@@ -1,0 +1,692 @@
+/* 全局样式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Microsoft YaHei', 'SimHei', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: #333;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    display: none;
+}
+
+.container.active {
+    display: block;
+}
+
+/* 登录界面样式 */
+#login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.login-form {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+}
+
+.login-form h1 {
+    color: #4a5568;
+    margin-bottom: 30px;
+    font-size: 28px;
+}
+
+.login-form h1 i {
+    color: #667eea;
+    margin-right: 10px;
+}
+
+/* 标签页样式 */
+.tabs {
+    display: flex;
+    margin-bottom: 30px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #f7fafc;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    font-size: 14px;
+}
+
+.tab-btn.active {
+    background: #667eea;
+    color: white;
+}
+
+.tab-btn:hover:not(.active) {
+    background: #e2e8f0;
+}
+
+/* 输入组样式 */
+.input-group {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.input-group i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #a0aec0;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 15px 15px 15px 45px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* 按钮样式 */
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    margin: 5px 0;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.btn-primary {
+    background: #667eea;
+    color: white;
+    width: 100%;
+}
+
+.btn-primary:hover {
+    background: #5a67d8;
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background: #a0aec0;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #718096;
+}
+
+.btn-success {
+    background: #48bb78;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #38a169;
+}
+
+/* 游戏界面样式 */
+#game-container {
+    display: block;
+}
+
+.game-header {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.player-info h2 {
+    color: #4a5568;
+    margin-bottom: 10px;
+}
+
+.player-info h2 i {
+    color: #667eea;
+}
+
+.player-stats {
+    display: flex;
+    gap: 20px;
+    font-size: 14px;
+    color: #718096;
+}
+
+.player-stats span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.player-stats i {
+    color: #667eea;
+}
+
+/* 主游戏区域 */
+.game-main {
+    display: grid;
+    grid-template-columns: 300px 1fr 300px;
+    gap: 20px;
+    height: calc(100vh - 200px);
+}
+
+.left-panel, .right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.game-area {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* 面板区域 */
+.panel-section {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.panel-section h3 {
+    color: #4a5568;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.panel-section h3 i {
+    color: #667eea;
+}
+
+/* 属性显示 */
+.attributes {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.attribute {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.attribute span:first-child {
+    font-weight: 500;
+    color: #4a5568;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 10px;
+    background: #e2e8f0;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.progress {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 5px;
+    transition: width 0.3s ease;
+}
+
+/* 修炼区域 */
+.cultivation-area {
+    text-align: center;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.cultivation-area h3 {
+    color: #4a5568;
+    margin-bottom: 20px;
+}
+
+.cultivation-status {
+    margin-bottom: 30px;
+}
+
+.cultivation-status p {
+    font-size: 18px;
+    color: #718096;
+    margin-bottom: 15px;
+}
+
+.cultivation-log {
+    flex: 1;
+    background: #f7fafc;
+    border-radius: 10px;
+    padding: 15px;
+    overflow-y: auto;
+    max-height: 300px;
+}
+
+.cultivation-log p {
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #4a5568;
+}
+
+/* 技能和物品列表 */
+.skills-list, .inventory-list, .quest-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.skill-item, .inventory-item, .quest-item {
+    background: #f7fafc;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s ease;
+}
+
+.skill-item:hover, .inventory-item:hover, .quest-item:hover {
+    background: #edf2f7;
+    transform: translateY(-1px);
+}
+
+/* 消息提示 */
+.message-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.message {
+    background: #48bb78;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    animation: slideIn 0.3s ease;
+}
+
+.message.error {
+    background: #f56565;
+}
+
+.message.warning {
+    background: #ed8936;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .game-main {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+    }
+    
+    .left-panel, .right-panel {
+        flex-direction: row;
+        overflow-x: auto;
+    }
+    
+    .panel-section {
+        min-width: 250px;
+    }
+    
+    .player-stats {
+        flex-direction: column;
+        gap: 10px;
+    }
+}
+
+/* 隐藏类 */
+.hidden {
+    display: none !important;
+}
+
+.active {
+    display: block !important;
+}
+
+/* 加载动画 */
+.loading {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+}
+
+.loading .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.loading span {
+    color: #4a5568;
+    font-weight: 500;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 消息提示 */
+.toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 10px;
+    color: white;
+    font-weight: 500;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    z-index: 1001;
+    animation: slideInRight 0.3s ease;
+}
+
+.toast.success {
+    background: #48bb78;
+}
+
+.toast.error {
+    background: #f56565;
+}
+
+.toast.warning {
+    background: #ed8936;
+}
+
+.toast.info {
+    background: #4299e1;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* 面板显示控制 */
+.panel {
+    display: none;
+}
+
+.panel.active {
+    display: block;
+}
+
+/* 底部导航 */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 10px;
+    display: flex;
+    justify-content: space-around;
+    border-top: 1px solid #e2e8f0;
+}
+
+.nav-btn {
+    padding: 10px 15px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #718096;
+}
+
+.nav-btn.active,
+.nav-btn:hover {
+    background: #667eea;
+    color: white;
+}
+
+/* 商店相关样式 */
+.shop-tabs {
+    display: flex;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f7fafc;
+}
+
+.shop-tab {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.shop-tab.active {
+    background: #667eea;
+    color: white;
+}
+
+.shop-tab:hover:not(.active) {
+    background: #e2e8f0;
+}
+
+.shop-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.shop-item {
+    background: #f7fafc;
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s ease;
+}
+
+.shop-item:hover {
+    background: #edf2f7;
+    transform: translateY(-2px);
+}
+
+.shop-item-name {
+    font-weight: 600;
+    color: #4a5568;
+    margin-bottom: 8px;
+}
+
+.shop-item-price {
+    color: #667eea;
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+.shop-item-stock {
+    color: #718096;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+/* 修炼状态显示 */
+#cultivationStatus {
+    margin-top: 15px;
+    padding: 15px;
+    background: #f7fafc;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+}
+
+.cultivation-time {
+    font-size: 18px;
+    font-weight: 600;
+    color: #667eea;
+    text-align: center;
+    margin-top: 10px;
+}
+
+/* 技能和任务样式 */
+.skills-list, .quest-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.skill-item, .quest-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: #f7fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.skill-item span, .quest-item span:first-child {
+    font-weight: 500;
+    color: #4a5568;
+}
+
+.quest-reward {
+    color: #667eea;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* 背包样式 */
+.inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 10px;
+}
+
+.inventory-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    background: #f7fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    text-align: center;
+}
+
+.inventory-item span:first-child {
+    font-size: 12px;
+    color: #4a5568;
+    margin-bottom: 5px;
+}
+
+.inventory-item span:last-child {
+    font-weight: 600;
+    color: #667eea;
+}
+
+/* 修炼日志样式 */
+.cultivation-log {
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 15px;
+    background: #f7fafc;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    margin-top: 15px;
+}
+
+.cultivation-log p {
+    margin-bottom: 8px;
+    color: #4a5568;
+    font-size: 14px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .game-main {
+        flex-direction: column;
+    }
+    
+    .left-panel, .right-panel {
+        width: 100%;
+        margin-bottom: 20px;
+    }
+    
+    .player-stats {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+}
+}

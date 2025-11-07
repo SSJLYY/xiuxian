@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>修仙挂机游戏</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- 登录页面 -->
+    <div id="loginPage" class="page active">
+        <div class="login-container">
+            <div class="login-box">
+                <h1><i class="fas fa-magic"></i> 修仙挂机游戏</h1>
+                <div class="login-tabs">
+                    <button class="tab-btn active" onclick="showLogin()">登录</button>
+                    <button class="tab-btn" onclick="showRegister()">注册</button>
+                </div>
+                
+                <!-- 登录表单 -->
+                <form id="loginForm" class="auth-form">
+                    <div class="form-group">
+                        <label>用户名</label>
+                        <input type="text" id="loginUsername" required>
+                    </div>
+                    <div class="form-group">
+                        <label>密码</label>
+                        <input type="password" id="loginPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">登录</button>
+                </form>
+                
+                <!-- 注册表单 -->
+                <form id="registerForm" class="auth-form hidden">
+                    <div class="form-group">
+                        <label>用户名</label>
+                        <input type="text" id="registerUsername" required>
+                    </div>
+                    <div class="form-group">
+                        <label>昵称</label>
+                        <input type="text" id="registerNickname" required>
+                    </div>
+                    <div class="form-group">
+                        <label>邮箱</label>
+                        <input type="email" id="registerEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label>密码</label>
+                        <input type="password" id="registerPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label>确认密码</label>
+                        <input type="password" id="registerConfirmPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">注册</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 游戏主页面 -->
+    <div id="gamePage" class="page">
+        <!-- 顶部状态栏 -->
+        <header class="game-header">
+            <div class="player-info">
+                <h2 id="playerName">玩家名称</h2>
+                <div class="player-stats">
+                    <span id="playerLevel">等级: 1</span>
+                    <span id="playerRealm">境界: 练气期一层</span>
+                    <span id="playerExp">经验: 0/100</span>
+                    <span id="playerSpiritStones">灵石: 0</span>
+                </div>
+            </div>
+            <button class="btn btn-danger" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> 退出
+            </button>
+        </header>
+
+        <!-- 主游戏区域 -->
+        <main class="game-main">
+            <!-- 左侧面板 -->
+            <aside class="left-panel">
+                <!-- 修炼面板 -->
+                <div class="panel active" id="cultivationPanel">
+                    <div class="panel-header">
+                        <h3><i class="fas fa-magic"></i> 修炼</h3>
+                    </div>
+                    <div class="panel-content">
+                        <div class="cultivation-info">
+                            <div class="progress-container">
+                                <label>修为进度</label>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="expProgress" style="width: 0%"></div>
+                                </div>
+                                <span id="expText">0/100</span>
+                            </div>
+                            
+                            <div class="cultivation-stats">
+                                <div class="stat-item">
+                                    <span>生命值:</span>
+                                    <span id="playerHealth">100</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span>灵力值:</span>
+                                    <span id="playerMana">50</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span>攻击力:</span>
+                                    <span id="playerAttack">0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span>防御力:</span>
+                                    <span id="playerDefense">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="cultivation-actions">
+                            <button class="btn btn-primary" onclick="startCultivation()">
+                                <i class="fas fa-play"></i> 开始修炼
+                            </button>
+                            <button class="btn btn-success" onclick="claimOfflineReward()">
+                                <i class="fas fa-gift"></i> 领取离线奖励
+                            </button>
+                        </div>
+                        
+                        <div id="cultivationStatus" class="cultivation-status hidden">
+                            <p>修炼中... <span id="cultivationTime">0</span>秒</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 技能面板 -->
+                <div class="panel" id="skillsPanel">
+                    <div class="panel-header">
+                        <h3><i class="fas fa-book"></i> 技能</h3>
+                    </div>
+                    <div class="panel-content">
+                        <div id="skillsList" class="skills-list">
+                            <!-- 技能列表将通过JavaScript动态生成 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 任务面板 -->
+                <div class="panel" id="questsPanel">
+                    <div class="panel-header">
+                        <h3><i class="fas fa-scroll"></i> 任务</h3>
+                    </div>
+                    <div class="panel-content">
+                        <div id="questsList" class="quests-list">
+                            <!-- 任务列表将通过JavaScript动态生成 -->
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- 中央面板 -->
+            <section class="center-panel">
+                <!-- 装备面板 -->
+                <div class="panel active" id="equipmentPanel">
+                    <div class="panel-header">
+                        <h3><i class="fas fa-shield-alt"></i> 装备</h3>
+                    </div>
+                    <div class="panel-content">
+                        <div class="equipment-slots">
+                            <div class="slot" data-slot="weapon">
+                                <div class="slot-icon"><i class="fas fa-sword"></i></div>
+                                <div class="slot-name">武器</div>
+                                <div class="slot-item" id="weaponSlot"></div>
+                            </div>
+                            <div class="slot" data-slot="chest">
+                                <div class="slot-icon"><i class="fas fa-tshirt"></i></div>
+                                <div class="slot-name">护甲</div>
+                                <div class="slot-item" id="chestSlot"></div>
+                            </div>
+                            <div class="slot" data-slot="helmet">
+                                <div class="slot-icon"><i class="fas fa-hat-wizard"></i></div>
+                                <div class="slot-name">头盔</div>
+                                <div class="slot-item" id="helmetSlot"></div>
+                            </div>
+                            <div class="slot" data-slot="boots">
+                                <div class="slot-icon"><i class="fas fa-shoe-prints"></i></div>
+                                <div class="slot-name">靴子</div>
+                                <div class="slot-item" id="bootsSlot"></div>
+                            </div>
+                            <div class="slot" data-slot="shield">
+                                <div class="slot-icon"><i class="fas fa-shield-alt"></i></div>
+                                <div class="slot-name">盾牌</div>
+                                <div class="slot-item" id="shieldSlot"></div>
+                            </div>
+                            <div class="slot" data-slot="ring">
+                                <div class="slot-icon"><i class="fas fa-ring"></i></div>
+                                <div class="slot-name">饰品</div>
+                                <div class="slot-item" id="ringSlot"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 背包面板 -->
+                <div class="panel" id="inventoryPanel">
+                    <div class="panel-header">
+                        <h3><i class="fas fa-box"></i> 背包</h3>
+                    </div>
+                    <div class="panel-content">
+                        <div id="inventoryGrid" class="inventory-grid">
+                            <!-- 背包格子将通过JavaScript动态生成 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 商店面板 -->
+                <div class="panel" id="shopPanel">
+                    <div class="panel-header">
+                        <h3><i class="fas fa-store"></i> 商店</h3>
+                        <div class="shop-tabs">
+                            <button class="shop-tab active" onclick="showShop('general')">杂货铺</button>
+                            <button class="shop-tab" onclick="showShop('skill')">功法阁</button>
+                            <button class="shop-tab" onclick="showShop('equipment')">炼器铺</button>
+                        </div>
+                    </div>
+                    <div class="panel-content">
+                        <div id="shopItems" class="shop-items">
+                            <!-- 商店物品将通过JavaScript动态生成 -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 底部导航 -->
+        <nav class="bottom-nav">
+            <button class="nav-btn active" onclick="showPanel('cultivation')">
+                <i class="fas fa-magic"></i>
+                <span>修炼</span>
+            </button>
+            <button class="nav-btn" onclick="showPanel('skills')">
+                <i class="fas fa-book"></i>
+                <span>技能</span>
+            </button>
+            <button class="nav-btn" onclick="showPanel('equipment')">
+                <i class="fas fa-shield-alt"></i>
+                <span>装备</span>
+            </button>
+            <button class="nav-btn" onclick="showPanel('inventory')">
+                <i class="fas fa-box"></i>
+                <span>背包</span>
+            </button>
+            <button class="nav-btn" onclick="showPanel('quests')">
+                <i class="fas fa-scroll"></i>
+                <span>任务</span>
+            </button>
+            <button class="nav-btn" onclick="showPanel('shop')">
+                <i class="fas fa-store"></i>
+                <span>商店</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- 消息提示 -->
+    <div id="toast" class="toast hidden">
+        <div class="toast-content">
+            <span id="toastMessage"></span>
+        </div>
+    </div>
+
+    <!-- 加载动画 -->
+    <div id="loading" class="loading hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

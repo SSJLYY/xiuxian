@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-XiuxianGameApplication<xiuxian-game>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.xiuxian.game.XiuxianGameApplication",
+            "projectName": "xiuxian-game",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}

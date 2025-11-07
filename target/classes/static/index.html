@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>修仙挂机游戏</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <!-- 使用本地Font Awesome图标作为备用 -->
+    <style>
+        /* 备用图标样式 */
+        .fa-user:before { content: "👤"; }
+        .fa-lock:before { content: "🔒"; }
+        .fa-sign-in-alt:before { content: "🔑"; }
+        .fa-user-plus:before { content: "👥"; }
+        .fa-magic:before { content: "✨"; }
+        .fa-star:before { content: "⭐"; }
+        .fa-gem:before { content: "💎"; }
+        .fa-coins:before { content: "💰"; }
+        .fa-sign-out-alt:before { content: "🚪"; }
+        .fa-chart-line:before { content: "📊"; }
+        .fa-backpack:before { content: "🎒"; }
+        .fa-tasks:before { content: "📋"; }
+        .fa-yin-yang:before { content: "☯️"; }
+        .fa-play:before { content: "▶️"; }
+        .fa-user-circle:before { content: "👨"; }
+    </style>
+</head>
+<body>
+    <!-- 登录界面 -->
+    <div id="loginPage" class="container" style="display: block;">
+        <div class="login-form">
+            <h1><i class="fas fa-magic"></i> 修仙挂机游戏</h1>
+            <div class="tabs">
+                <button class="tab-btn active" onclick="showLogin()">登录</button>
+                <button class="tab-btn" onclick="showRegister()">注册</button>
+            </div>
+            
+            <!-- 登录表单 -->
+            <div id="loginForm" class="form-content">
+                <div class="input-group">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="loginUsername" placeholder="用户名" required>
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="loginPassword" placeholder="密码" required>
+                </div>
+                <button class="btn btn-primary" onclick="login(event)">
+                    <i class="fas fa-sign-in-alt"></i> 登录
+                </button>
+            </div>
+            
+            <!-- 注册表单 -->
+            <div id="registerForm" class="form-content" style="display: none;">
+                <div class="input-group">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="registerUsername" placeholder="用户名" required>
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="registerNickname" placeholder="昵称" required>
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="registerEmail" placeholder="邮箱" required>
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="registerPassword" placeholder="密码" required>
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="registerConfirmPassword" placeholder="确认密码" required>
+                </div>
+                <button class="btn btn-primary" onclick="register(event)">
+                    <i class="fas fa-user-plus"></i> 注册
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 游戏界面 -->
+    <div id="gamePage" class="container" style="display: none;">
+        <!-- 顶部导航 -->
+        <header class="game-header">
+            <div class="player-info">
+                <h2><i class="fas fa-user-circle"></i> <span id="playerName">修仙者</span></h2>
+                <div class="player-stats">
+                    <span><i class="fas fa-star"></i> 等级: <span id="playerLevel">1</span></span>
+                    <span><i class="fas fa-gem"></i> 境界: <span id="playerRealm">练气期</span></span>
+                    <span><i class="fas fa-coins"></i> 经验: <span id="playerExp">0</span>/<span id="expToNext">100</span></span>
+                    <span><i class="fas fa-coins"></i> 灵石: <span id="playerSpiritStones">1000</span></span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> 退出
+                </button>
+            </div>
+        </header>
+
+        <!-- 主游戏区域 -->
+        <main class="game-main">
+            <!-- 左侧面板 -->
+            <aside class="left-panel">
+                <!-- 角色属性 -->
+                <div class="panel-section">
+                    <h3><i class="fas fa-chart-line"></i> 角色属性</h3>
+                    <div class="attributes">
+                        <div class="attribute">
+                            <span>经验值</span>
+                            <div class="progress-bar">
+                                <div class="progress" id="expProgress" style="width: 0%"></div>
+                            </div>
+                            <span id="expText">0/100</span>
+                        </div>
+                        <div class="attribute">
+                            <span>生命值</span>
+                            <span id="playerHealth">100</span>
+                        </div>
+                        <div class="attribute">
+                            <span>法力值</span>
+                            <span id="playerMana">100</span>
+                        </div>
+                        <div class="attribute">
+                            <span>攻击力</span>
+                            <span id="playerAttack">10</span>
+                        </div>
+                        <div class="attribute">
+                            <span>防御力</span>
+                            <span id="playerDefense">5</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 技能列表 -->
+                <div class="panel-section">
+                    <h3><i class="fas fa-magic"></i> 技能</h3>
+                    <div id="skillsList" class="skills-list">
+                        <div class="skill-item">
+                            <span>基础修炼法</span>
+                            <button class="btn btn-sm" onclick="useSkill('基础修炼法')">使用</button>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- 中央游戏区域 -->
+            <section class="game-area">
+                <div class="game-screen">
+                    <div class="cultivation-area">
+                        <h3><i class="fas fa-yin-yang"></i> 修炼区域</h3>
+                        <div class="cultivation-status">
+                            <p id="cultivation-status">点击开始修炼</p>
+                            <button id="cultivation-btn" class="btn btn-success" onclick="startCultivation()">
+                                <i class="fas fa-play"></i> 开始修炼
+                            </button>
+                        </div>
+                        <div class="cultivation-log" id="cultivation-log">
+                            <p>欢迎来到修仙世界！开始你的修炼之路吧。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 右侧面板 -->
+            <aside class="right-panel">
+                <!-- 背包 -->
+                <div class="panel-section">
+                    <h3><i class="fas fa-backpack"></i> 背包</h3>
+                    <div id="inventoryGrid" class="inventory-grid">
+                        <div class="inventory-item">
+                            <span>灵石</span>
+                            <span>1000</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 任务 -->
+                <div class="panel-section">
+                    <h3><i class="fas fa-tasks"></i> 任务</h3>
+                    <div id="questsList" class="quest-list">
+                        <div class="quest-item">
+                            <span>初次修炼</span>
+                            <span class="quest-reward">+10 经验</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <!-- 消息提示 -->
+    <div id="toast" class="toast hidden">
+        <span id="toastMessage"></span>
+    </div>
+    
+    <!-- 加载动画 -->
+    <div id="loading" class="loading hidden">
+        <div class="spinner"></div>
+        <span>加载中...</span>
+    </div>
+
+    <!-- 加载脚本 -->
+    <script src="/js/main.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/game.js"></script>
+</body>
+</html>
