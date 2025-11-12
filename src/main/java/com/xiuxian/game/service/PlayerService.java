@@ -226,12 +226,30 @@ public class PlayerService {
             profile.setMana(profile.getMana() + 10);
             profile.setSpeed(profile.getSpeed() + 1);
             
-            log.info("玩家升级: ID={}, 新等级={}", profile.getId(), profile.getLevel());
+            // 更新境界
+            updateRealm(profile);
+            
+            log.info("玩家升级: ID={}, 新等级={}, 新境界={}", profile.getId(), profile.getLevel(), profile.getRealm());
             levelUps++;
         }
         
         if (levelUps >= maxLevelUps) {
             log.warn("玩家升级次数过多，可能存在问题: ID={}", profile.getId());
         }
+    }
+    
+    /**
+     * 根据等级更新境界
+     */
+    private void updateRealm(PlayerProfile profile) {
+        int level = profile.getLevel();
+        if (level >= 2001) profile.setRealm("渡劫期");
+        else if (level >= 1501) profile.setRealm("大乘期");
+        else if (level >= 1001) profile.setRealm("合体期");
+        else if (level >= 701) profile.setRealm("化神期");
+        else if (level >= 401) profile.setRealm("元婴期");
+        else if (level >= 201) profile.setRealm("金丹期");
+        else if (level >= 101) profile.setRealm("筑基期");
+        else profile.setRealm("练气期");
     }
 }

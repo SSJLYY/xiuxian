@@ -383,8 +383,7 @@ class AuthManager {
             }
         } catch (error) {
             console.error('加载技能失败:', error);
-            // 使用默认数据但不抛出错误，让其他数据继续加载
-            this.renderSkills(this.getDefaultSkills());
+            throw new Error('技能API不可用: ' + error.message);
         }
     }
 
@@ -400,7 +399,7 @@ class AuthManager {
             }
         } catch (error) {
             console.error('加载装备失败:', error);
-            this.renderEquipment(this.getDefaultEquipment());
+            throw new Error('装备API不可用: ' + error.message);
         }
     }
 
@@ -416,7 +415,7 @@ class AuthManager {
             }
         } catch (error) {
             console.error('加载背包失败:', error);
-            this.renderInventory(this.getDefaultInventory());
+            throw new Error('背包API不可用: ' + error.message);
         }
     }
 
@@ -432,7 +431,7 @@ class AuthManager {
             }
         } catch (error) {
             console.error('加载任务失败:', error);
-            this.renderQuests(this.getDefaultQuests());
+            throw new Error('任务API不可用: ' + error.message);
         }
     }
 
@@ -496,14 +495,52 @@ class AuthManager {
         const questsList = document.getElementById('questsList');
         if (!questsList || !quests) return;
 
-        questsList.innerHTML = quests.map(quest => `
-            <div class="quest-item">
-                <div class="quest-title">${quest.title}</div>
-                <div class="quest-description">${quest.description}</div>
-                <div class="quest-reward">奖励: ${quest.reward}</div>
-                <button class="btn btn-sm" onclick="acceptQuest(${quest.id})">接受</button>
-            </div>
-        `).join('');
+        questsList.innerHTML = quests.map(playerQuest => {
+            const quest = playerQuest.quest;
+            const progress = playerQuest.currentProgress || 0;
+            const required = quest.requiredAmount || 1;
+            const progressPercent = Math.min((progress / required) * 100, 100);
+            const isCompleted = playerQuest.completed;
+            const isClaimed = playerQuest.rewardClaimed;
+            
+            let statusText = '';
+            let buttonText = '';
+            let buttonClass = 'btn btn-sm';
+            let buttonAction = '';
+            
+            if (isClaimed) {
+                statusText = '<span class="quest-status completed">已领取</span>';
+                buttonText = '已领取';
+                buttonClass += ' btn-secondary disabled';
+            } else if (isCompleted) {
+                statusText = '<span class="quest-status completed">已完成</span>';
+                buttonText = '领取奖励';
+                buttonClass += ' btn-success';
+                buttonAction = `claimQuest(${playerQuest.id})`;
+            } else {
+                statusText = `<span class="quest-status in-progress">进行中 ${progress}/${required}</span>`;
+                buttonText = '进行中';
+                buttonClass += ' btn-secondary disabled';
+            }
+            
+            return `
+                <div class="quest-item ${isCompleted ? 'completed' : ''}">
+                    <div class="quest-header">
+                        <span class="quest-title">${quest.title}</span>
+                        ${statusText}
+                    </div>
+                    <div class="quest-description">${quest.description}</div>
+                    <div class="quest-progress">
+                        <div class="progress-bar">
+                            <div class="progress" style="width: ${progressPercent}%"></div>
+                        </div>
+                        <span class="progress-text">${progress}/${required}</span>
+                    </div>
+                    <div class="quest-reward">奖励: ${quest.rewardExp}经验 + ${quest.rewardSpiritStones}灵石</div>
+                    <button class="${buttonClass}" onclick="${buttonAction}" ${isClaimed || !isCompleted ? 'disabled' : ''}>${buttonText}</button>
+                </div>
+            `;
+        }).join('');
     }
 
     // 更新玩家UI

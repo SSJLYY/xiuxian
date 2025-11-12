@@ -1,8 +1,10 @@
 package com.xiuxian.game.controller;
 
+import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.entity.Equipment;
 import com.xiuxian.game.entity.PlayerEquipment;
 import com.xiuxian.game.service.EquipmentService;
+import com.xiuxian.game.service.PlayerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,53 +17,96 @@ import java.util.List;
 public class EquipmentController {
 
     private final EquipmentService equipmentService;
+    private final PlayerService playerService;
 
     @GetMapping
-    public ResponseEntity<List<PlayerEquipment>> getPlayerEquipment(@RequestParam Integer playerId) {
-        return ResponseEntity.ok(equipmentService.getPlayerEquipments(playerId));
+    public ResponseEntity<ApiResponse<List<PlayerEquipment>>> getPlayerEquipment() {
+        try {
+            Integer playerId = playerService.getCurrentPlayerId();
+            List<PlayerEquipment> equipment = equipmentService.getPlayerEquipments(playerId);
+            return ResponseEntity.ok(ApiResponse.success("获取成功", equipment));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
     }
 
     @GetMapping("/equipped")
-    public ResponseEntity<List<PlayerEquipment>> getEquippedEquipment(@RequestParam Integer playerId) {
-        return ResponseEntity.ok(equipmentService.getEquippedItems(playerId));
+    public ResponseEntity<ApiResponse<List<PlayerEquipment>>> getEquippedEquipment() {
+        try {
+            Integer playerId = playerService.getCurrentPlayerId();
+            List<PlayerEquipment> equipment = equipmentService.getEquippedItems(playerId);
+            return ResponseEntity.ok(ApiResponse.success("获取成功", equipment));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
     }
 
     @GetMapping("/available")
-    public ResponseEntity<List<Equipment>> getAvailableEquipment(@RequestParam Integer playerId) {
-        return ResponseEntity.ok(equipmentService.getAvailableEquipments(playerId));
+    public ResponseEntity<ApiResponse<List<Equipment>>> getAvailableEquipment() {
+        try {
+            Integer playerId = playerService.getCurrentPlayerId();
+            List<Equipment> equipment = equipmentService.getAvailableEquipments(playerId);
+            return ResponseEntity.ok(ApiResponse.success("获取成功", equipment));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
     }
 
     @GetMapping("/all")
-    public ResponseEntity<List<Equipment>> getAllEquipment() {
-        return ResponseEntity.ok(equipmentService.getAllEquipments());
+    public ResponseEntity<ApiResponse<List<Equipment>>> getAllEquipment() {
+        try {
+            List<Equipment> equipment = equipmentService.getAllEquipments();
+            return ResponseEntity.ok(ApiResponse.success("获取成功", equipment));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
     }
 
     @PostMapping("/acquire")
-    public ResponseEntity<PlayerEquipment> acquireEquipment(
-            @RequestParam Integer equipmentId,
-            @RequestParam Integer playerId) {
-        return ResponseEntity.ok(equipmentService.acquireEquipment(equipmentId, playerId));
+    public ResponseEntity<ApiResponse<PlayerEquipment>> acquireEquipment(@RequestParam Integer equipmentId) {
+        try {
+            Integer playerId = playerService.getCurrentPlayerId();
+            PlayerEquipment playerEquipment = equipmentService.acquireEquipment(equipmentId, playerId);
+            return ResponseEntity.ok(ApiResponse.success("获取装备成功", playerEquipment));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
     }
 
     @PostMapping("/equip")
-    public ResponseEntity<PlayerEquipment> equipEquipment(
+    public ResponseEntity<ApiResponse<PlayerEquipment>> equipEquipment(
             @RequestParam Integer playerEquipmentId,
-            @RequestParam String slot,
-            @RequestParam Integer playerId) {
-        return ResponseEntity.ok(equipmentService.equipItem(playerEquipmentId, slot, playerId));
+            @RequestParam String slot) {
+        try {
+            Integer playerId = playerService.getCurrentPlayerId();
+            PlayerEquipment playerEquipment = equipmentService.equipItem(playerEquipmentId, slot, playerId);
+            return ResponseEntity.ok(ApiResponse.success("装备成功", playerEquipment));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
     }
 
     @PostMapping("/unequip")
-    public ResponseEntity<PlayerEquipment> unequipEquipment(
-            @RequestParam Integer playerEquipmentId,
-            @RequestParam Integer playerId) {
-        return ResponseEntity.ok(equipmentService.unequipItem(playerEquipmentId, playerId));
+    public ResponseEntity<ApiResponse<PlayerEquipment>> unequipEquipment(
+            @RequestParam Integer playerEquipmentId) {
+        try {
+            Integer playerId = playerService.getCurrentPlayerId();
+            PlayerEquipment playerEquipment = equipmentService.unequipItem(playerEquipmentId, playerId);
+            return ResponseEntity.ok(ApiResponse.success("卸下装备成功", playerEquipment));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
     }
 
     @PostMapping("/repair")
-    public ResponseEntity<PlayerEquipment> repairEquipment(
-            @RequestParam Integer playerEquipmentId,
-            @RequestParam Integer playerId) {
-        return ResponseEntity.ok(equipmentService.repairEquipment(playerEquipmentId, playerId));
+    public ResponseEntity<ApiResponse<PlayerEquipment>> repairEquipment(
+            @RequestParam Integer playerEquipmentId) {
+        try {
+            Integer playerId = playerService.getCurrentPlayerId();
+            PlayerEquipment playerEquipment = equipmentService.repairEquipment(playerEquipmentId, playerId);
+            return ResponseEntity.ok(ApiResponse.success("修复装备成功", playerEquipment));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
     }
 }

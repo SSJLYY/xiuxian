@@ -161,12 +161,12 @@ const gameAPI = {
 
     // 技能相关API
     async getSkills() {
-        return await api.get('/skills');
+        return await api.get('/skills/player');
     },
 
     // 装备相关API
     async getEquipment() {
-        return await api.get('/equipment');
+        return await api.get('/equipment/equipped');
     },
 
     // 背包相关API
@@ -177,6 +177,11 @@ const gameAPI = {
     // 任务相关API
     async getQuests() {
         return await api.get('/quests');
+    },
+    
+    // 领取任务奖励
+    async claimQuestReward(playerQuestId) {
+        return await api.post(`/quests/${playerQuestId}/claim`);
     },
 
     // 学习技能
@@ -193,6 +198,25 @@ const gameAPI = {
 // 导出到全局
 window.gameAPI = gameAPI;
 window.api = api;
+
+// 全局领取任务奖励函数
+window.claimQuest = async function(playerQuestId) {
+    try {
+        const response = await gameAPI.claimQuestReward(playerQuestId);
+        if (response && response.success) {
+            // 刷新任务列表
+            await gameManager.loadQuests();
+            // 刷新玩家数据
+            await gameManager.loadPlayerData();
+            gameManager.showToast('任务奖励领取成功', 'success');
+        } else {
+            throw new Error(response?.message || '领取任务奖励失败');
+        }
+    } catch (error) {
+        console.error('领取任务奖励失败:', error);
+        gameManager.showToast('领取任务奖励失败: ' + error.message, 'error');
+    }
+};
 
 // 全局技能使用函数
 window.useSkill = async function(skillId) {
