@@ -221,17 +221,64 @@ window.claimQuest = async function(playerQuestId) {
 // 全局技能使用函数
 window.useSkill = async function(skillId) {
     try {
-        // 先尝试学习技能
-        const learnResult = await gameAPI.learnSkill(skillId);
-        console.log('技能学习成功:', learnResult);
+        // 获取玩家技能列表
+        const playerSkillsResponse = await gameAPI.getPlayerSkills();
         
-        // 然后使用技能（使用玩家技能ID）
-        const useResult = await gameAPI.useSkill(learnResult.data.id);
-        console.log('技能使用成功:', useResult);
+        if (!playerSkillsResponse || !playerSkillsResponse.success) {
+            throw new Error('获取玩家技能失败');
+        }
         
-        // 刷新技能列表
-        if (window.game && window.game.refreshSkills) {
-            window.game.refreshSkills();
+        // 检查是否已经学习过该技能
+        const existingSkill = playerSkillsResponse.data?.find(ps => ps.skill?.id === skillId);
+        
+        if (existingSkill) {
+            // 如果已经学习过，直接使用技能
+            const useResult = await gameAPI.useSkill(existingSkill.id);
+            console.log('技能使用成功:', useResult);
+            
+            // 更新修炼任务进度
+            try {
+                await gameAPI.updateQuestProgressByType('MAIN', 1);
+            } catch (questError) {
+                console.warn('更新任务进度失败:', questError);
+            }
+            
+            // 刷新技能列表和任务列表
+            if (window.gameManager) {
+                await window.gameManager.loadSkills();
+                await window.gameManager.loadQuests();
+                await window.gameManager.loadPlayerData();
+            }
+            
+            alert('技能使用成功！');
+        } else {
+            // 如果没有学习过，先学习再使用
+            const learnResult = await gameAPI.learnSkill(skillId);
+            console.log('技能学习结果:', learnResult);
+            
+            if (learnResult && learnResult.success) {
+                // 学习成功，使用技能
+                const useResult = await gameAPI.useSkill(learnResult.data.id);
+                console.log('技能使用成功:', useResult);
+                
+                // 更新修炼任务进度
+                try {
+                    await gameAPI.updateQuestProgressByType('MAIN', 1);
+                } catch (questError) {
+                    console.warn('更新任务进度失败:', questError);
+                }
+                
+                // 刷新技能列表和任务列表
+                if (window.gameManager) {
+                    await window.gameManager.loadSkills();
+                    await window.gameManager.loadQuests();
+                    await window.gameManager.loadPlayerData();
+                }
+                
+                alert('技能使用成功！');
+            } else {
+                throw new Error('技能学习失败: ' + (learnResult?.message || '未知错误'));
+            }
         }
     } catch (error) {
         console.error('技能使用失败:', error);
