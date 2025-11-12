@@ -26,42 +26,53 @@ public class JwtTokenProvider {
     public String generateToken(String username) {
         System.out.println("=== DEBUG: JwtTokenProvider.generateToken ===");
         System.out.println("接收到的username参数: " + username);
-        
+
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpiration);
 
-        return Jwts.builder()
-                .setSubject(username)
-                .setIssuedAt(now)
-                .setExpiration(expiryDate)
-                .signWith(getSigningKey())
-                .compact();
+        try {
+            return Jwts.builder()
+                    .setSubject(username)
+                    .setIssuedAt(now)
+                    .setExpiration(expiryDate)
+                    .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                    .compact();
+        } catch (Exception e) {
+            System.err.println("JWT Token生成失败: " + e.getMessage());
+            throw new RuntimeException("JWT Token生成失败", e);
+        }
     }
 
     public String getUsernameFromToken(String token) {
         System.out.println("=== DEBUG: getUsernameFromToken ===");
         System.out.println("解析的token: " + token);
-        
-        Claims claims = Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
 
-        String subject = claims.getSubject();
-        System.out.println("从token中提取的subject: " + subject);
-        
-        return subject;
+        try {
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(getSigningKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+
+            String subject = claims.getSubject();
+            System.out.println("从token中提取的subject: " + subject);
+
+            return subject;
+        } catch (Exception e) {
+            System.err.println("JWT Token解析失败: " + e.getMessage());
+            throw new RuntimeException("JWT Token解析失败", e);
+        }
     }
 
     public boolean validateToken(String authToken) {
         try {
-            Jwts.parser()
-                    .verifyWith(getSigningKey())
+            Jwts.parserBuilder()
+                    .setSigningKey(getSigningKey())
                     .build()
-                    .parseSignedClaims(authToken);
+                    .parseClaimsJws(authToken);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
+            System.err.println("JWT Token验证失败: " + e.getMessage());
             return false;
         }
     }

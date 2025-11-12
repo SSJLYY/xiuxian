@@ -3,84 +3,235 @@ package com.xiuxian.game.service;
 import com.xiuxian.game.entity.PlayerProfile;
 import com.xiuxian.game.entity.User;
 import com.xiuxian.game.repository.PlayerProfileRepository;
-import com.xiuxian.game.repository.UserRepository;
-import com.xiuxian.game.util.GameCalculator;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PlayerService {
 
     private final PlayerProfileRepository playerProfileRepository;
-    private final UserRepository userRepository;
-    private final GameCalculator gameCalculator;
-    private final SkillService skillService;
 
-    public PlayerProfile getCurrentPlayerProfile() {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("用户不存在"));
-        return playerProfileRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new RuntimeException("玩家资料不存在"));
-    }
-
+    /**
+     * 创建新玩家档案
+     */
     @Transactional
-    public void cultivate() {
-        PlayerProfile player = getCurrentPlayerProfile();
-        
-        // 使用GameCalculator计算收益
-        long expGain = gameCalculator.calculateExpPerSecond(player);
-        long spiritStonesGain = gameCalculator.calculateSpiritStonesPerSecond(player);
-        
-        player.setExp(player.getExp() + expGain);
-        player.setSpiritStones(player.getSpiritStones() + spiritStonesGain);
-        player.setCultivationPoints(player.getCultivationPoints() + 1);
-        
-        // 更新总修炼时间
-        player.setTotalCultivationTime(player.getTotalCultivationTime() + 1);
-        
-        // 检查是否可以升级
-        gameCalculator.checkLevelUp(player);
-        
-        playerProfileRepository.save(player);
-    }
-    
+    public PlayerProfile createNewPlayer(User user, String nickname) {
+        try {
+            log.info("为用户创建玩家档案: {}", user.getUsername());
 
+            PlayerProfile playerProfile = PlayerProfile.builder()
+                    .user(user)
+                    .nickname(nickname != null ? nickname : user.getUsername())
+                    .level(1)
+                    .exp(0L)
+                    .expToNext(100L)
+                    .realm("练气期")
+                    .cultivationSpeed(BigDecimal.ONE)
+                    .spiritStones(1000L)
+                    .cultivationPoints(0L)
+                    .contributionPoints(0L)
+                    .attack(10)
+                    .defense(5)
+                    .health(100)
+                    .mana(50)
+                    .speed(10)
+                    .isCultivating(false)
+                    .lastOnlineTime(LocalDateTime.now())
+                    .totalCultivationTime(0L)
+                    .build();
 
-    @Transactional
-    public PlayerProfile savePlayerProfile(PlayerProfile player) {
-        return playerProfileRepository.save(player);
-    }
+            PlayerProfile savedProfile = playerProfileRepository.save(playerProfile);
+            log.info("玩家档案创建成功: ID={}", savedProfile.getId());
 
-    @Transactional
-    public PlayerProfile updatePlayerProfile(PlayerProfile player) {
-        return playerProfileRepository.save(player);
+            return savedProfile;
+
+        } catch (Exception e) {
+            log.error("创建玩家档案失败: {}", user.getUsername(), e);
+            throw new RuntimeException("创建玩家档案失败: " + e.getMessage());
+        }
     }
 
     /**
-     * 创建新玩家并自动初始化基础技能
+     * 根据ID获取玩家档案
+     */
+    public PlayerProfile getPlayerProfileById(Integer playerId) {
+        try {
+            log.info("获取玩家档案: ID={}", playerId);
+            return playerProfileRepository.findById(playerId)
+                    .orElseThrow(() -> new RuntimeException("玩家档案不存在"));
+        } catch (Exception e) {
+            log.error("获取玩家档案失败: ID={}", playerId, e);
+            throw new RuntimeException("获取玩家档案失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取当前登录玩家的档案
+     */
+    public PlayerProfile getCurrentPlayerProfile() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated()) {
+                throw new RuntimeException("用户未登录");
+            }
+
+            String username = authentication.getName();
+            log.info("获取当前玩家档案: {}", username);
+
+            return playerProfileRepository.findByUserUsername(username)
+                    .orElseThrow(() -> new RuntimeException("玩家档案不存在"));
+        } catch (Exception e) {
+            log.error("获取当前玩家档案失败", e);
+            throw new RuntimeException("获取当前玩家档案失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取当前登录玩家的ID
+     */
+    public Integer getCurrentPlayerId() {
+        try {
+            PlayerProfile profile = getCurrentPlayerProfile();
+            return profile.getId();
+        } catch (Exception e) {
+            log.error("获取当前玩家ID失败", e);
+            throw new RuntimeException("获取当前玩家ID失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 开始修炼
      */
     @Transactional
-    public PlayerProfile createNewPlayer(User user) {
-        PlayerProfile player = PlayerProfile.builder()
-                .user(user)
-                .level(1)
-                .exp(0L)
-                .spiritStones(100L) // 新玩家赠送100灵石
-                .cultivationPoints(0L)
-                .totalCultivationTime(0L)
-                .cultivationSpeed(java.math.BigDecimal.ONE)
-                .realm("练气期")
-                .build();
+    public void cultivate() {
+        try {
+            PlayerProfile profile = getCurrentPlayerProfile();
+            
+            // 确保isCultivating不为null
+            if (profile.getIsCultivating() == null) {
+                profile.setIsCultivating(false);
+            }
+            
+            if (profile.getIsCultivating()) {
+                throw new RuntimeException("已经在修炼中");
+            }
+
+            profile.setIsCultivating(true);
+            profile.setLastCultivationStart(LocalDateTime.now());
+            playerProfileRepository.save(profile);
+            
+            log.info("玩家开始修炼: ID={}", profile.getId());
+        } catch (Exception e) {
+            log.error("开始修炼失败", e);
+            throw new RuntimeException("开始修炼失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 停止修炼
+     */
+    @Transactional
+    public void stopCultivate() {
+        try {
+            PlayerProfile profile = getCurrentPlayerProfile();
+            
+            if (!profile.getIsCultivating()) {
+                throw new RuntimeException("当前没有在修炼");
+            }
+
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime startTime = profile.getLastCultivationStart();
+            
+            if (startTime != null) {
+                // 计算修炼时间（秒）
+                long cultivationTimeSeconds = java.time.Duration.between(startTime, now).getSeconds();
+                
+                // 限制最大修炼时间为24小时（防止异常情况）
+                long maxCultivationTime = 24 * 60 * 60; // 24小时
+                long actualCultivationTime = Math.min(cultivationTimeSeconds, maxCultivationTime);
+                
+                // 转换为分钟用于总时间统计
+                long cultivationTimeMinutes = actualCultivationTime / 60;
+                profile.setTotalCultivationTime(profile.getTotalCultivationTime() + cultivationTimeMinutes);
+                
+                // 计算修炼收益（每秒获得基础经验 * 修炼速度）
+                double baseExpPerSecond = 1.0; // 每秒获得1经验（加快速度）
+                long expGained = (long) (actualCultivationTime * baseExpPerSecond * profile.getCultivationSpeed().doubleValue());
+                
+                // 限制单次修炼最大经验获得
+                long maxExpPerCultivation = 3600; // 单次修炼最多获得3600经验（1小时）
+                expGained = Math.min(expGained, maxExpPerCultivation);
+                
+                profile.setExp(profile.getExp() + expGained);
+                
+                log.info("玩家修炼完成: ID={}, 修炼时间={}秒, 获得经验={}", 
+                        profile.getId(), actualCultivationTime, expGained);
+                
+                // 检查是否升级
+                checkLevelUp(profile);
+            }
+
+            profile.setIsCultivating(false);
+            profile.setLastCultivationEnd(now);
+            playerProfileRepository.save(profile);
+            
+            log.info("玩家停止修炼: ID={}", profile.getId());
+        } catch (Exception e) {
+            log.error("停止修炼失败", e);
+            throw new RuntimeException("停止修炼失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 保存玩家档案
+     */
+    @Transactional
+    public void savePlayerProfile(PlayerProfile playerProfile) {
+        try {
+            playerProfileRepository.save(playerProfile);
+            log.info("保存玩家档案成功: ID={}", playerProfile.getId());
+        } catch (Exception e) {
+            log.error("保存玩家档案失败: ID={}", playerProfile.getId(), e);
+            throw new RuntimeException("保存玩家档案失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 检查并处理升级
+     */
+    private void checkLevelUp(PlayerProfile profile) {
+        // 防止无限循环，最多升级100次
+        int maxLevelUps = 100;
+        int levelUps = 0;
         
-        PlayerProfile savedPlayer = playerProfileRepository.save(player);
+        while (profile.getExp() >= profile.getExpToNext() && levelUps < maxLevelUps) {
+            profile.setLevel(profile.getLevel() + 1);
+            profile.setExp(profile.getExp() - profile.getExpToNext());
+            profile.setExpToNext(profile.getExpToNext() * 2); // 下一级所需经验翻倍
+            
+            // 升级属性提升
+            profile.setAttack(profile.getAttack() + 5);
+            profile.setDefense(profile.getDefense() + 3);
+            profile.setHealth(profile.getHealth() + 20);
+            profile.setMana(profile.getMana() + 10);
+            profile.setSpeed(profile.getSpeed() + 1);
+            
+            log.info("玩家升级: ID={}, 新等级={}", profile.getId(), profile.getLevel());
+            levelUps++;
+        }
         
-        // 初始化基础技能（直接调用 SkillService 的方法）
-        skillService.initializePlayerSkills(savedPlayer); // 为玩家分配基础技能
-        
-        return savedPlayer;
+        if (levelUps >= maxLevelUps) {
+            log.warn("玩家升级次数过多，可能存在问题: ID={}", profile.getId());
+        }
     }
 }

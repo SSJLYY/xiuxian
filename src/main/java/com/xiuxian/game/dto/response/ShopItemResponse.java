@@ -26,4 +26,17 @@ public class ShopItemResponse {
     private Boolean isAvailable;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    // 添加便捷方法
+    public boolean isUnlimitedStock() {
+        return stock == null || stock == -1;
+    }
+
+    public boolean canAffordWithSpiritStones(long playerSpiritStones) {
+        return playerSpiritStones >= priceSpiritStones;
+    }
+
+    public boolean isInStock() {
+        return isUnlimitedStock() || (stock != null && stock > 0);
+    }
 }

@@ -18,22 +18,4 @@ public class HomeController {
     public String index() {
         return "forward:/index.html";
     }
-
-    /**
-     * 处理xiuxian-game路径的访问（无末尾斜杠）
-     * @return 首页HTML文件
-     */
-    @GetMapping("/xiuxian-game")
-    public String gameRoot() {
-        return "forward:/index.html";
-    }
-
-    /**
-     * 处理xiuxian-game路径的访问（有末尾斜杠）
-     * @return 首页HTML文件
-     */
-    @GetMapping("/xiuxian-game/")
-    public String gameRootWithSlash() {
-        return "forward:/index.html";
-    }
 }

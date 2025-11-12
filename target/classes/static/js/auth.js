@@ -1,336 +1,466 @@
-// 认证管理
+// 认证管理 - 修复认证流程
 class AuthManager {
     constructor() {
         this.currentUser = null;
         this.player = null;
         this.isAuthenticated = false;
+        this.isLoading = false;
+        this.loginTime = null;
+        this.lastDataUpdate = null;
+        this.token = localStorage.getItem('authToken');
+        
+        // 设置token到API实例
+        if (this.token && window.api) {
+            window.api.setToken(this.token);
+        }
+        
         this.init();
     }
 
     // 初始化认证状态
     async init() {
-        // 默认显示登录页面
-        this.showLoginPage();
-        
-        const token = localStorage.getItem('authToken');
-        if (token) {
-            try {
-                await this.loadUserData();
-                this.showGamePage();
-            } catch (error) {
-                console.error('Failed to load user data:', error);
-                this.logout();
+        this.bindEvents();
+        await this.checkAuthStatus();
+    }
+
+    // 绑定事件
+    bindEvents() {
+        // 登录表单
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.login();
+            });
+        }
+
+        // 注册表单
+        const registerForm = document.getElementById('registerForm');
+        if (registerForm) {
+            registerForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.register();
+            });
+        }
+    }
+
+    // 检查认证状态
+    async checkAuthStatus() {
+        console.log('检查认证状态，token存在:', !!this.token);
+
+        if (!this.token) {
+            this.showLoginPage();
+            return;
+        }
+
+        try {
+            // 验证token有效性
+            const validationResponse = await gameAPI.validateToken();
+            if (!validationResponse.success) {
+                throw new Error('Token无效');
             }
+
+            await this.loadUserData();
+            this.showGamePage();
+            
+            // 初始化游戏管理器
+            if (window.initGameManager) {
+                await window.initGameManager();
+            }
+            
+            console.log('自动登录成功');
+
+        } catch (error) {
+            console.error('自动登录失败:', error);
+            this.clearAuthData();
+            this.showLoginPage();
         }
     }
 
     // 加载用户数据
     async loadUserData() {
-        try {
-            const userResponse = await gameAPI.getCurrentUser();
-            if (userResponse.success && userResponse.data) {
-                this.currentUser = userResponse.data;
-                this.isAuthenticated = true;
+        if (this.isLoading) return;
 
-                // 加载玩家数据
-                const playerResponse = await gameAPI.getPlayerProfile();
-                if (playerResponse.success && playerResponse.data) {
-                    this.player = playerResponse.data;
-                    this.updatePlayerUI();
-                }
-            } else {
-                throw new Error('获取用户信息失败');
+        this.isLoading = true;
+        try {
+            console.log('开始加载用户数据');
+
+            // 获取当前用户信息
+            const userResponse = await gameAPI.getCurrentUser();
+            if (!userResponse.success) {
+                throw new Error(userResponse.message || '获取用户信息失败');
             }
+
+            this.currentUser = userResponse.data;
+            this.isAuthenticated = true;
+
+            console.log('用户数据加载成功:', this.currentUser.username);
+
+            // 加载玩家资料
+            await this.loadPlayerProfile();
+
         } catch (error) {
-            console.error('Failed to load user data:', error);
+            console.error('加载用户数据失败:', error);
             throw error;
+        } finally {
+            this.isLoading = false;
+        }
+    }
+
+    // 加载玩家资料
+    async loadPlayerProfile() {
+        try {
+            console.log('开始加载玩家资料');
+
+            const response = await gameAPI.getCurrentPlayerProfile();
+            if (!response.success) {
+                throw new Error(response.message || '获取玩家资料失败');
+            }
+
+            this.player = response.data;
+            this.loginTime = Date.now();
+
+            console.log('玩家资料加载成功:', this.player.nickname);
+            this.updatePlayerUI();
+
+        } catch (error) {
+            console.error('加载玩家资料失败:', error);
+            throw error;
+        }
+    }
+
+    // 登录 - 修复认证流程
+    async login() {
+        if (this.isLoading) return;
+
+        const username = document.getElementById('loginUsername')?.value.trim();
+        const password = document.getElementById('loginPassword')?.value;
+
+        if (!username || !password) {
+            this.showToast('请输入用户名和密码', 'warning');
+            return;
+        }
+
+        this.isLoading = true;
+        this.showLoading(true);
+
+        try {
+            console.log('开始登录:', username);
+
+            const response = await gameAPI.login(username, password);
+
+            if (!response.success) {
+                throw new Error(response.message || '登录失败');
+            }
+
+            if (!response.data) {
+                throw new Error('登录响应数据为空');
+            }
+
+            // 设置认证状态
+            this.isAuthenticated = true;
+            this.currentUser = response.data.user;
+            this.player = response.data.player;
+            this.loginTime = Date.now();
+            this.token = response.data.token;
+
+            // 保存token到localStorage
+            if (window.api) {
+                window.api.setToken(this.token);
+            }
+
+            this.showToast('登录成功', 'success');
+            console.log('登录成功，用户:', username);
+
+            // 立即显示游戏页面
+            this.showGamePage();
+
+            // 初始化游戏管理器
+            if (window.initGameManager) {
+                await window.initGameManager();
+            }
+
+            // 加载游戏数据
+            await this.loadGameData();
+
+        } catch (error) {
+            console.error('登录错误:', error);
+            this.showToast('登录失败: ' + error.message, 'error');
+            this.clearAuthData();
+        } finally {
+            this.isLoading = false;
+            this.showLoading(false);
+        }
+    }
+
+    // 注册
+    async register() {
+        if (this.isLoading) return;
+
+        const username = document.getElementById('registerUsername')?.value.trim();
+        const nickname = document.getElementById('registerNickname')?.value.trim();
+        const email = document.getElementById('registerEmail')?.value.trim();
+        const password = document.getElementById('registerPassword')?.value;
+        const confirmPassword = document.getElementById('registerConfirmPassword')?.value;
+
+        // 验证输入
+        if (!username || !nickname || !email || !password || !confirmPassword) {
+            this.showToast('请填写所有字段', 'warning');
+            return;
+        }
+
+        if (password.length < 6) {
+            this.showToast('密码长度至少6位', 'warning');
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            this.showToast('两次输入的密码不一致', 'warning');
+            return;
+        }
+
+        if (!this.validateEmail(email)) {
+            this.showToast('请输入有效的邮箱地址', 'warning');
+            return;
+        }
+
+        this.isLoading = true;
+        this.showLoading(true);
+
+        try {
+            const response = await gameAPI.register({
+                username,
+                nickname,
+                email,
+                password
+            });
+
+            if (!response.success) {
+                throw new Error(response.message || '注册失败');
+            }
+
+            this.showToast('注册成功，请登录', 'success');
+            this.showLoginForm();
+
+        } catch (error) {
+            console.error('注册错误:', error);
+            this.showToast('注册失败: ' + error.message, 'error');
+        } finally {
+            this.isLoading = false;
+            this.showLoading(false);
+        }
+    }
+
+    // 邮箱验证
+    validateEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+
+    // 显示游戏页面
+    showGamePage() {
+        const loginPage = document.getElementById('loginPage');
+        const gamePage = document.getElementById('gamePage');
+
+        if (loginPage) {
+            loginPage.style.display = 'none';
+            loginPage.classList.remove('active');
+        }
+        if (gamePage) {
+            gamePage.style.display = 'flex';
+            gamePage.classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        console.log('显示游戏页面');
+    }
+
+    // 显示登录页面
+    showLoginPage() {
+        const gamePage = document.getElementById('gamePage');
+        const loginPage = document.getElementById('loginPage');
+
+        if (gamePage) {
+            gamePage.style.display = 'none';
+            gamePage.classList.remove('active');
+        }
+        if (loginPage) {
+            loginPage.style.display = 'flex';
+            loginPage.classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        console.log('显示登录页面');
+    }
+
+    // 切换到登录表单
+    showLoginForm() {
+        this.switchForm('login');
+    }
+
+    // 切换到注册表单
+    showRegisterForm() {
+        this.switchForm('register');
+    }
+
+    // 切换表单
+    switchForm(formType) {
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const loginTab = document.querySelector('.tab-btn[onclick*="showLogin"]');
+        const registerTab = document.querySelector('.tab-btn[onclick*="showRegister"]');
+
+        if (formType === 'login') {
+            if (loginForm) loginForm.style.display = 'block';
+            if (registerForm) registerForm.style.display = 'none';
+            if (loginTab) loginTab.classList.add('active');
+            if (registerTab) registerTab.classList.remove('active');
+        } else {
+            if (loginForm) loginForm.style.display = 'none';
+            if (registerForm) registerForm.style.display = 'block';
+            if (loginTab) loginTab.classList.remove('active');
+            if (registerTab) registerTab.classList.add('active');
+        }
+    }
+
+    // 清除认证数据
+    clearAuthData() {
+        this.currentUser = null;
+        this.player = null;
+        this.isAuthenticated = false;
+        this.token = null;
+        this.loginTime = null;
+
+        if (window.api) {
+            window.api.clearToken();
+        }
+
+        localStorage.removeItem('authToken');
+    }
+
+    // 登出
+    async logout() {
+        try {
+            await gameAPI.logout();
+        } catch (error) {
+            console.warn('登出请求失败:', error);
+        } finally {
+            this.clearAuthData();
+            this.showLoginPage();
+            this.showToast('已成功登出', 'info');
         }
     }
 
     // 更新玩家UI
     updatePlayerUI() {
-        if (!this.player || !this.currentUser) {
-            console.error('Missing player or currentUser data');
+        if (!this.player) {
+            console.warn('玩家数据为空，无法更新UI');
             return;
         }
 
-        try {
-            // 更新顶部玩家信息
-            const playerNameElement = document.getElementById('playerName');
-            if (playerNameElement) {
-                playerNameElement.textContent = this.currentUser.username || '未知用户';
-            }
-            
-            const playerLevelElement = document.getElementById('playerLevel');
-            if (playerLevelElement) {
-                playerLevelElement.textContent = `等级: ${this.player.level || 1}`;
-            }
-            
-            const playerRealmElement = document.getElementById('playerRealm');
-            if (playerRealmElement) {
-                playerRealmElement.textContent = `境界: ${this.player.realm || '练气期'}`;
-            }
-            
-            const playerExpElement = document.getElementById('playerExp');
-            if (playerExpElement) {
-                const currentExp = this.player.currentExp || 0;
-                const expToNext = this.player.expToNext || 100;
-                playerExpElement.textContent = `经验: ${currentExp}/${expToNext}`;
-            }
-            
-            const playerSpiritStonesElement = document.getElementById('playerSpiritStones');
-            if (playerSpiritStonesElement) {
-                playerSpiritStonesElement.textContent = `灵石: ${this.player.spiritStones || 0}`;
-            }
+        console.log('更新玩家UI:', this.player);
 
-            // 更新修炼进度
-            const expProgressElement = document.getElementById('expProgress');
-            const expTextElement = document.getElementById('expText');
-            if (expProgressElement && expTextElement) {
-                const currentExp = this.player.currentExp || 0;
-                const expToNext = this.player.expToNext || 100;
-                const expPercent = Math.min((currentExp / expToNext) * 100, 100);
-                expProgressElement.style.width = expPercent + '%';
-                expTextElement.textContent = `${currentExp}/${expToNext}`;
-            }
+        const elements = {
+            'playerName': this.player.nickname,
+            'playerLevel': this.player.level,
+            'playerRealm': this.player.realm,
+            'playerExp': this.player.exp || 0,
+            'expToNext': this.player.expToNext || 100,
+            'playerSpiritStones': this.player.spiritStones || 0
+        };
 
-            // 更新属性
-            const playerHealthElement = document.getElementById('playerHealth');
-            const playerManaElement = document.getElementById('playerMana');
-            const playerAttackElement = document.getElementById('playerAttack');
-            const playerDefenseElement = document.getElementById('playerDefense');
-            
-            if (playerHealthElement) playerHealthElement.textContent = this.player.maxHealth || 100;
-            if (playerManaElement) playerManaElement.textContent = this.player.maxMana || 50;
-            if (playerAttackElement) playerAttackElement.textContent = this.player.attack || 10;
-            if (playerDefenseElement) playerDefenseElement.textContent = this.player.defense || 5;
-        } catch (error) {
-            console.error('Error updating player UI:', error);
+        // 更新文本内容
+        Object.entries(elements).forEach(([id, value]) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value;
+            }
+        });
+
+        console.log('玩家UI更新完成');
+    }
+
+    // 显示消息提示
+    showToast(message, type = 'info', duration = 3000) {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+
+        Object.assign(toast.style, {
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            background: this.getToastColor(type),
+            color: 'white',
+            padding: '15px 20px',
+            borderRadius: '8px',
+            boxShadow: '0 5px 15px rgba(0,0,0,0.2)',
+            zIndex: '1001',
+            animation: 'slideInRight 0.3s ease',
+            maxWidth: '300px',
+            wordWrap: 'break-word'
+        });
+
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.parentElement.removeChild(toast);
+                }
+            }, 300);
+        }, duration);
+    }
+
+    // 获取toast颜色
+    getToastColor(type) {
+        const colors = {
+            info: '#3498db',
+            success: '#2ecc71',
+            warning: '#f39c12',
+            error: '#e74c3c'
+        };
+        return colors[type] || colors.info;
+    }
+
+    // 显示加载指示器
+    showLoading(show = true) {
+        const loading = document.getElementById('loading');
+        if (loading) {
+            loading.style.display = show ? 'flex' : 'none';
         }
-    }
-
-    // 显示游戏页面
-    showGamePage() {
-        document.getElementById('loginPage').style.display = 'none';
-        document.getElementById('gamePage').style.display = 'block';
-        
-        // 加载游戏数据
-        this.loadGameData();
-    }
-
-    // 显示登录页面
-    showLoginPage() {
-        document.getElementById('gamePage').style.display = 'none';
-        document.getElementById('loginPage').style.display = 'block';
     }
 
     // 加载游戏数据
     async loadGameData() {
-        try {
-            // 并行加载所有游戏数据
-            await Promise.all([
-                this.loadSkills(),
-                this.loadEquipment(),
-                this.loadInventory(),
-                this.loadQuests()
-            ]);
-        } catch (error) {
-            console.error('Failed to load game data:', error);
+        if (!this.isAuthenticated) {
+            console.warn('用户未认证，无法加载游戏数据');
+            this.showToast('请先登录', 'warning');
+            return;
         }
-    }
 
-    // 加载技能数据
-    async loadSkills() {
+        this.showLoading(true);
+
         try {
-            const response = await gameAPI.getSkills();
-            if (response.success) {
-                this.renderSkills(response.data);
-            }
-        } catch (error) {
-            console.error('Failed to load skills:', error);
-        }
-    }
-
-    // 渲染技能列表
-    renderSkills(skills) {
-        const skillsList = document.getElementById('skillsList');
-        skillsList.innerHTML = '';
-
-        skills.forEach(skill => {
-            const skillElement = document.createElement('div');
-            skillElement.className = 'skill-item';
-            skillElement.innerHTML = `
-                <div class="skill-header">
-                    <span class="skill-name">${skill.name}</span>
-                    <span class="skill-level">Lv.${skill.level}</span>
-                </div>
-                <div class="skill-description">${skill.description}</div>
-                <div class="skill-stats">
-                    <span>伤害: ${skill.baseDamage}</span>
-                    <span>冷却: ${skill.cooldown}s</span>
-                    <span>消耗: ${skill.manaCost}</span>
-                </div>
-            `;
-            skillsList.appendChild(skillElement);
-        });
-    }
-
-    // 加载装备数据
-    async loadEquipment() {
-        try {
-            const response = await gameAPI.getEquipment();
-            if (response.success) {
-                this.renderEquipment(response.data);
-            }
-        } catch (error) {
-            console.error('Failed to load equipment:', error);
-        }
-    }
-
-    // 渲染装备
-    renderEquipment(equipment) {
-        const slots = ['weapon', 'chest', 'helmet', 'boots', 'shield', 'ring'];
-        
-        slots.forEach(slotType => {
-            const slotElement = document.getElementById(slotType + 'Slot');
-            const equippedItem = equipment.find(item => item.slotType === slotType);
+            console.log('开始加载游戏数据');
             
-            if (equippedItem) {
-                slotElement.innerHTML = `
-                    <div class="equipped-item">
-                        <i class="fas fa-${this.getItemIcon(slotType)}"></i>
-                        <div class="item-name">${equippedItem.name}</div>
-                        <div class="item-stats">
-                            ${equippedItem.attackBonus > 0 ? `攻击+${equippedItem.attackBonus}` : ''}
-                            ${equippedItem.defenseBonus > 0 ? `防御+${equippedItem.defenseBonus}` : ''}
-                        </div>
-                    </div>
-                `;
-                slotElement.classList.add('has-item');
-            } else {
-                slotElement.innerHTML = '<span>未装备</span>';
-                slotElement.classList.remove('has-item');
-            }
-        });
-    }
-
-    // 获取物品图标
-    getItemIcon(slotType) {
-        const icons = {
-            weapon: 'sword',
-            chest: 'tshirt',
-            helmet: 'hat-wizard',
-            boots: 'shoe-prints',
-            shield: 'shield-alt',
-            ring: 'ring'
-        };
-        return icons[slotType] || 'question';
-    }
-
-    // 加载背包数据
-    async loadInventory() {
-        try {
-            const response = await gameAPI.getInventory();
-            if (response.success) {
-                this.renderInventory(response.data);
-            }
-        } catch (error) {
-            console.error('Failed to load inventory:', error);
-        }
-    }
-
-    // 渲染背包
-    renderInventory(items) {
-        const inventoryGrid = document.getElementById('inventoryGrid');
-        inventoryGrid.innerHTML = '';
-
-        // 生成40个背包格子
-        for (let i = 0; i < 40; i++) {
-            const slot = document.createElement('div');
-            slot.className = 'inventory-slot';
-            slot.dataset.index = i;
-
-            const item = items[i];
-            if (item) {
-                slot.classList.add('has-item');
-                slot.innerHTML = `
-                    <div class="item-icon">
-                        <i class="fas fa-${this.getItemIcon(item.type)}"></i>
-                    </div>
-                    <div class="item-quantity">${item.quantity}</div>
-                `;
-                slot.title = `${item.name}\n${item.description}`;
-            } else {
-                slot.innerHTML = '<span style="color: #cbd5e0;">+</span>';
-            }
-
-            inventoryGrid.appendChild(slot);
-        }
-    }
-
-    // 加载任务数据
-    async loadQuests() {
-        try {
-            const response = await gameAPI.getQuests();
-            if (response.success) {
-                this.renderQuests(response.data);
-            }
-        } catch (error) {
-            console.error('Failed to load quests:', error);
-        }
-    }
-
-    // 渲染任务列表
-    renderQuests(quests) {
-        const questsList = document.getElementById('questsList');
-        questsList.innerHTML = '';
-
-        quests.forEach(quest => {
-            const questElement = document.createElement('div');
-            questElement.className = 'quest-item';
-            
-            const progress = quest.currentProgress || 0;
-            const target = quest.targetProgress || 1;
-            const progressPercent = Math.min((progress / target) * 100, 100);
-
-            questElement.innerHTML = `
-                <div class="quest-header">
-                    <span class="quest-title">${quest.title}</span>
-                    <span class="quest-type">${quest.type}</span>
-                </div>
-                <div class="quest-description">${quest.description}</div>
-                <div class="quest-progress">
-                    <span>进度: ${progress}/${target}</span>
-                    <span>${progressPercent.toFixed(0)}%</span>
-                </div>
-                <div class="progress-bar" style="margin-top: 8px;">
-                    <div class="progress-fill" style="width: ${progressPercent}%"></div>
-                </div>
-            `;
-            questsList.appendChild(questElement);
-        });
-    }
-
-    // 登出
-    logout() {
-        api.clearToken();
-        this.currentUser = null;
-        this.player = null;
-        this.isAuthenticated = false;
-        this.showLoginPage();
-        showToast('已成功登出', 'info');
-    }
-
-    // 刷新玩家数据
-    async refreshPlayer() {
-        try {
-            const response = await gameAPI.getPlayerProfile();
-            if (response.success) {
-                this.player = response.data;
+            // 加载玩家资料数据
+            const profileResponse = await gameAPI.getCurrentPlayerProfile();
+            if (profileResponse && profileResponse.success) {
+                console.log('玩家资料加载成功');
+                this.player = profileResponse.data;
                 this.updatePlayerUI();
             }
+
+            this.showToast('游戏数据加载完成', 'success');
+            console.log('游戏数据加载完成');
+
         } catch (error) {
-            console.error('Failed to refresh player data:', error);
+            console.error('加载游戏数据失败:', error);
+            this.showToast('加载游戏数据失败: ' + error.message, 'error');
+        } finally {
+            this.showLoading(false);
         }
     }
 }
@@ -338,83 +468,20 @@ class AuthManager {
 // 创建认证管理器实例
 const authManager = new AuthManager();
 
-// 登录函数
-async function login(event) {
-    event.preventDefault();
-    
-    const username = document.getElementById('loginUsername').value;
-    const password = document.getElementById('loginPassword').value;
-    
-    if (!username || !password) {
-        showToast('请填写用户名和密码', 'warning');
-        return;
-    }
+// 全局函数
+window.login = (event) => {
+    if (event) event.preventDefault();
+    authManager.login();
+};
 
-    try {
-        const response = await gameAPI.login(username, password);
-        if (response.success) {
-            showToast('登录成功', 'success');
-            await authManager.loadUserData();
-            authManager.showGamePage();
-        }
-    } catch (error) {
-        showToast('登录失败: ' + error.message, 'error');
-    }
-}
+window.register = (event) => {
+    if (event) event.preventDefault();
+    authManager.register();
+};
 
-// 注册函数
-async function register(event) {
-    event.preventDefault();
-    
-    const username = document.getElementById('registerUsername').value;
-    const nickname = document.getElementById('registerNickname').value;
-    const email = document.getElementById('registerEmail').value;
-    const password = document.getElementById('registerPassword').value;
-    const confirmPassword = document.getElementById('registerConfirmPassword').value;
-    
-    if (!username || !nickname || !email || !password || !confirmPassword) {
-        showToast('请填写所有字段', 'warning');
-        return;
-    }
+window.logout = () => authManager.logout();
+window.showLogin = () => authManager.showLoginForm();
+window.showRegister = () => authManager.showRegisterForm();
 
-    if (password.length < 6) {
-        showToast('密码长度至少6位', 'warning');
-        return;
-    }
-
-    if (password !== confirmPassword) {
-        showToast('两次输入的密码不一致', 'warning');
-        return;
-    }
-
-    try {
-        const response = await gameAPI.register(username, nickname, email, password);
-        if (response.success) {
-            showToast('注册成功，请登录', 'success');
-            showLogin(); // 切换到登录表单
-        }
-    } catch (error) {
-        showToast('注册失败: ' + error.message, 'error');
-    }
-}
-
-// 登出函数
-function logout() {
-    authManager.logout();
-}
-
-// 切换到登录表单
-function showLogin() {
-    document.getElementById('loginForm').style.display = 'block';
-    document.getElementById('registerForm').style.display = 'none';
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelector('.tab-btn:first-child').classList.add('active');
-}
-
-// 切换到注册表单
-function showRegister() {
-    document.getElementById('loginForm').style.display = 'none';
-    document.getElementById('registerForm').style.display = 'block';
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelector('.tab-btn:last-child').classList.add('active');
-}
+// 导出到全局作用域
+window.authManager = authManager;

@@ -1,6 +1,6 @@
 package com.xiuxian.game.entity;
 
-import javax.persistence.*;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import javax.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -18,6 +19,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PlayerProfile {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -36,6 +38,10 @@ public class PlayerProfile {
     @Column(nullable = false)
     @Builder.Default
     private Long exp = 0L;
+
+    @Column(name = "exp_to_next", nullable = false)
+    @Builder.Default
+    private Long expToNext = 100L;
 
     @Column(nullable = false, length = 50)
     @Builder.Default
@@ -65,14 +71,26 @@ public class PlayerProfile {
     @Builder.Default
     private Long totalCultivationTime = 0L;
 
-    // 战斗属性
+    // 修炼状态
+    @Column(name = "is_cultivating")
+    @JsonProperty("isCultivating")
+    @Builder.Default
+    private Boolean isCultivating = false;
+
+    @Column(name = "last_cultivation_start")
+    private LocalDateTime lastCultivationStart;
+
+    @Column(name = "last_cultivation_end")
+    private LocalDateTime lastCultivationEnd;
+
+    // 基础属性
     @Column(nullable = false)
     @Builder.Default
     private Integer attack = 10;
 
     @Column(nullable = false)
     @Builder.Default
-    private Integer defense = 10;
+    private Integer defense = 5;
 
     @Column(nullable = false)
     @Builder.Default
@@ -86,56 +104,26 @@ public class PlayerProfile {
     @Builder.Default
     private Integer speed = 10;
 
-    // 装备加成属性（临时计算，不持久化）
-    @Transient
+    // 装备加成属性
+    @Column(name = "equipment_attack_bonus", nullable = false)
+    @Builder.Default
     private Integer equipmentAttackBonus = 0;
 
-    @Transient
+    @Column(name = "equipment_defense_bonus", nullable = false)
+    @Builder.Default
     private Integer equipmentDefenseBonus = 0;
 
-    @Transient
+    @Column(name = "equipment_health_bonus", nullable = false)
+    @Builder.Default
     private Integer equipmentHealthBonus = 0;
 
-    @Transient
+    @Column(name = "equipment_mana_bonus", nullable = false)
+    @Builder.Default
     private Integer equipmentManaBonus = 0;
 
-    @Transient
+    @Column(name = "equipment_speed_bonus", nullable = false)
+    @Builder.Default
     private Integer equipmentSpeedBonus = 0;
-
-    /**
-     * 获取总攻击力（基础攻击 + 装备加成）
-     */
-    public Integer getTotalAttack() {
-        return attack + equipmentAttackBonus;
-    }
-
-    /**
-     * 获取总防御力（基础防御 + 装备加成）
-     */
-    public Integer getTotalDefense() {
-        return defense + equipmentDefenseBonus;
-    }
-
-    /**
-     * 获取总生命值（基础生命 + 装备加成）
-     */
-    public Integer getTotalHealth() {
-        return health + equipmentHealthBonus;
-    }
-
-    /**
-     * 获取总灵力值（基础灵力 + 装备加成）
-     */
-    public Integer getTotalMana() {
-        return mana + equipmentManaBonus;
-    }
-
-    /**
-     * 获取总速度（基础速度 + 装备加成）
-     */
-    public Integer getTotalSpeed() {
-        return speed + equipmentSpeedBonus;
-    }
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -144,4 +132,49 @@ public class PlayerProfile {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    // 装备加成计算方法
+    public Integer getTotalHealth() {
+        return this.health + getEquipmentHealthBonus();
+    }
+
+    public Integer getEquipmentAttackBonus() {
+        return this.equipmentAttackBonus;
+    }
+
+    public void setEquipmentAttackBonus(Integer equipmentAttackBonus) {
+        this.equipmentAttackBonus = equipmentAttackBonus;
+    }
+
+    public Integer getEquipmentDefenseBonus() {
+        return this.equipmentDefenseBonus;
+    }
+
+    public void setEquipmentDefenseBonus(Integer equipmentDefenseBonus) {
+        this.equipmentDefenseBonus = equipmentDefenseBonus;
+    }
+
+    public Integer getEquipmentHealthBonus() {
+        return this.equipmentHealthBonus;
+    }
+
+    public void setEquipmentHealthBonus(Integer equipmentHealthBonus) {
+        this.equipmentHealthBonus = equipmentHealthBonus;
+    }
+
+    public Integer getEquipmentManaBonus() {
+        return this.equipmentManaBonus;
+    }
+
+    public void setEquipmentManaBonus(Integer equipmentManaBonus) {
+        this.equipmentManaBonus = equipmentManaBonus;
+    }
+
+    public Integer getEquipmentSpeedBonus() {
+        return this.equipmentSpeedBonus;
+    }
+
+    public void setEquipmentSpeedBonus(Integer equipmentSpeedBonus) {
+        this.equipmentSpeedBonus = equipmentSpeedBonus;
+    }
 }

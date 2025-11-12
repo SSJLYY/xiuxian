@@ -1,10 +1,7 @@
 package com.xiuxian.game.security;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -13,23 +10,19 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
+@Slf4j
 @Component
+@RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private JwtTokenProvider tokenProvider;
-    private CustomUserDetailsService userDetailsService;
-
-    @Autowired
-    public void setTokenProvider(JwtTokenProvider tokenProvider) {
-        this.tokenProvider = tokenProvider;
-    }
-
-    @Autowired
-    public void setUserDetailsService(CustomUserDetailsService userDetailsService) {
-        this.userDetailsService = userDetailsService;
-    }
+    private final JwtTokenProvider tokenProvider;
+    private final CustomUserDetailsService userDetailsService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -38,23 +31,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String jwt = getJwtFromRequest(request);
 
             if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
-                System.out.println("=== DEBUG: JwtAuthenticationFilter ===");
-                System.out.println("提取的JWT token: " + jwt);
-                
+                log.debug("=== DEBUG: JwtAuthenticationFilter ===");
+                log.debug("提取的JWT token: {}", jwt);
+
                 String username = tokenProvider.getUsernameFromToken(jwt);
-                System.out.println("从token中提取的用户名: " + username);
-                
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                System.out.println("尝试加载用户: " + username);
+                log.debug("从token中提取的用户名: {}", username);
 
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                    log.debug("成功加载用户: {}", username);
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    log.debug("设置认证上下文: {}", username);
+                }
             }
         } catch (Exception ex) {
-            logger.error("Could not set user authentication in security context", ex);
+            log.error("设置用户认证失败", ex);
         }
 
         filterChain.doFilter(request, response);

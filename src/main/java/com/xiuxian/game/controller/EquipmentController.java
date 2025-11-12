@@ -1,6 +1,5 @@
 package com.xiuxian.game.controller;
 
-import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.entity.Equipment;
 import com.xiuxian.game.entity.PlayerEquipment;
 import com.xiuxian.game.service.EquipmentService;
@@ -11,89 +10,58 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@RequestMapping("/api/equipment")
 @RequiredArgsConstructor
-@RequestMapping("/api/equipments")
 public class EquipmentController {
 
     private final EquipmentService equipmentService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<PlayerEquipment>>> getPlayerEquipments() {
-        try {
-            List<PlayerEquipment> equipments = equipmentService.getPlayerEquipments();
-            return ResponseEntity.ok(ApiResponse.success("获取成功", equipments));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
-    }
-
-    @GetMapping("/available")
-    public ResponseEntity<ApiResponse<List<Equipment>>> getAvailableEquipments() {
-        try {
-            List<Equipment> equipments = equipmentService.getAvailableEquipments();
-            return ResponseEntity.ok(ApiResponse.success("获取成功", equipments));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
-    }
-
-    @GetMapping("/player")
-    public ResponseEntity<ApiResponse<List<PlayerEquipment>>> getPlayerEquipments() {
-        try {
-            List<PlayerEquipment> equipments = equipmentService.getPlayerEquipments();
-            return ResponseEntity.ok(ApiResponse.success("获取成功", equipments));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
+    public ResponseEntity<List<PlayerEquipment>> getPlayerEquipment(@RequestParam Integer playerId) {
+        return ResponseEntity.ok(equipmentService.getPlayerEquipments(playerId));
     }
 
     @GetMapping("/equipped")
-    public ResponseEntity<ApiResponse<List<PlayerEquipment>>> getEquippedItems() {
-        try {
-            List<PlayerEquipment> equipments = equipmentService.getEquippedItems();
-            return ResponseEntity.ok(ApiResponse.success("获取成功", equipments));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
+    public ResponseEntity<List<PlayerEquipment>> getEquippedEquipment(@RequestParam Integer playerId) {
+        return ResponseEntity.ok(equipmentService.getEquippedItems(playerId));
     }
 
-    @PostMapping("/acquire/{equipmentId}")
-    public ResponseEntity<ApiResponse<PlayerEquipment>> acquireEquipment(@PathVariable Integer equipmentId) {
-        try {
-            PlayerEquipment playerEquipment = equipmentService.acquireEquipment(equipmentId);
-            return ResponseEntity.ok(ApiResponse.success("获取成功", playerEquipment));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
+    @GetMapping("/available")
+    public ResponseEntity<List<Equipment>> getAvailableEquipment(@RequestParam Integer playerId) {
+        return ResponseEntity.ok(equipmentService.getAvailableEquipments(playerId));
     }
 
-    @PostMapping("/equip/{playerEquipmentId}")
-    public ResponseEntity<ApiResponse<PlayerEquipment>> equipItem(@PathVariable Integer playerEquipmentId) {
-        try {
-            PlayerEquipment playerEquipment = equipmentService.equipItem(playerEquipmentId);
-            return ResponseEntity.ok(ApiResponse.success("装备成功", playerEquipment));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
+    @GetMapping("/all")
+    public ResponseEntity<List<Equipment>> getAllEquipment() {
+        return ResponseEntity.ok(equipmentService.getAllEquipments());
     }
 
-    @PostMapping("/unequip/{playerEquipmentId}")
-    public ResponseEntity<ApiResponse<PlayerEquipment>> unequipItem(@PathVariable Integer playerEquipmentId) {
-        try {
-            PlayerEquipment playerEquipment = equipmentService.unequipItem(playerEquipmentId);
-            return ResponseEntity.ok(ApiResponse.success("卸下成功", playerEquipment));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
+    @PostMapping("/acquire")
+    public ResponseEntity<PlayerEquipment> acquireEquipment(
+            @RequestParam Integer equipmentId,
+            @RequestParam Integer playerId) {
+        return ResponseEntity.ok(equipmentService.acquireEquipment(equipmentId, playerId));
     }
 
-    @PostMapping("/repair/{playerEquipmentId}")
-    public ResponseEntity<ApiResponse<PlayerEquipment>> repairEquipment(@PathVariable Integer playerEquipmentId) {
-        try {
-            PlayerEquipment playerEquipment = equipmentService.repairEquipment(playerEquipmentId);
-            return ResponseEntity.ok(ApiResponse.success("修理成功", playerEquipment));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
+    @PostMapping("/equip")
+    public ResponseEntity<PlayerEquipment> equipEquipment(
+            @RequestParam Integer playerEquipmentId,
+            @RequestParam String slot,
+            @RequestParam Integer playerId) {
+        return ResponseEntity.ok(equipmentService.equipItem(playerEquipmentId, slot, playerId));
+    }
+
+    @PostMapping("/unequip")
+    public ResponseEntity<PlayerEquipment> unequipEquipment(
+            @RequestParam Integer playerEquipmentId,
+            @RequestParam Integer playerId) {
+        return ResponseEntity.ok(equipmentService.unequipItem(playerEquipmentId, playerId));
+    }
+
+    @PostMapping("/repair")
+    public ResponseEntity<PlayerEquipment> repairEquipment(
+            @RequestParam Integer playerEquipmentId,
+            @RequestParam Integer playerId) {
+        return ResponseEntity.ok(equipmentService.repairEquipment(playerEquipmentId, playerId));
     }
 }

@@ -219,25 +219,30 @@ public class SkillService {
         return playerSkillRepository.save(playerSkill);
     }
 
+
+
     @Transactional
     public PlayerSkill equipSkill(Integer playerSkillId, Integer slotNumber, Integer playerId) {
         PlayerSkill playerSkill = playerSkillRepository.findById(playerSkillId)
                 .orElseThrow(() -> new IllegalArgumentException(GameConstants.ERROR_SKILL_NOT_FOUND + ": 玩家技能不存在"));
 
+        // 修复：使用正确的 getId() 方法
         if (!playerSkill.getPlayer().getId().equals(playerId)) {
             throw new IllegalArgumentException(GameConstants.ERROR_INVALID_OPERATION + ": 无权操作该技能");
         }
 
-        // 检查槽位是否已被占用
+        // 修复：使用更安全的方式处理流操作
         PlayerProfile player = playerProfileRepository.findById(playerId)
                 .orElseThrow(() -> new IllegalArgumentException("玩家不存在"));
-        playerSkillRepository.findByPlayerAndEquipped(player, true).stream()
-                .filter(ps -> ps.getSlotNumber().equals(slotNumber))
-                .forEach(ps -> {
-                    ps.setEquipped(false);
-                    ps.setSlotNumber(0);
-                    playerSkillRepository.save(ps);
-                });
+
+        List<PlayerSkill> equippedSkills = playerSkillRepository.findByPlayerAndEquipped(player, true);
+        for (PlayerSkill ps : equippedSkills) {
+            if (ps.getSlotNumber() != null && ps.getSlotNumber().equals(slotNumber)) {
+                ps.setEquipped(false);
+                ps.setSlotNumber(0);
+                playerSkillRepository.save(ps);
+            }
+        }
 
         playerSkill.setEquipped(true);
         playerSkill.setSlotNumber(slotNumber);

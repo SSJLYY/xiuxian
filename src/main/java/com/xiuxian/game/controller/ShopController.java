@@ -2,7 +2,6 @@ package com.xiuxian.game.controller;
 
 import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.dto.response.ShopItemResponse;
-import com.xiuxian.game.entity.ShopItem;
 import com.xiuxian.game.service.ShopService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -40,9 +39,10 @@ public class ShopController {
     @PostMapping("/buy")
     public ResponseEntity<ApiResponse<Void>> buyItem(
             @RequestParam Integer shopItemId,
-            @RequestParam Integer quantity) {
+            @RequestParam Integer quantity,
+            @RequestParam Integer playerId) { // 添加 playerId 参数
         try {
-            shopService.buyItem(shopItemId, quantity);
+            shopService.buyItem(shopItemId, quantity, playerId); // 传递 playerId
             return ResponseEntity.ok(ApiResponse.success("购买成功", null));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
@@ -52,9 +52,10 @@ public class ShopController {
     @PostMapping("/sell")
     public ResponseEntity<ApiResponse<Void>> sellItem(
             @RequestParam Long playerItemId,
-            @RequestParam Integer quantity) {
+            @RequestParam Integer quantity,
+            @RequestParam Integer playerId) { // 添加 playerId 参数
         try {
-            shopService.sellItem(playerItemId, quantity);
+            shopService.sellItem(playerItemId, quantity, playerId); // 传递 playerId
             return ResponseEntity.ok(ApiResponse.success("出售成功", null));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));

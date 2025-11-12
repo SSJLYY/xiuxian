@@ -13,9 +13,8 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "player_equipments")
+@Table(name = "player_equipment")
 public class PlayerEquipment {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -28,28 +27,35 @@ public class PlayerEquipment {
     @JoinColumn(name = "equipment_id", nullable = false)
     private Equipment equipment;
 
-    @Column(nullable = false)
-    private Boolean equipped;
+    @Column(name = "slot", nullable = false, length = 20)
+    private String slot;
+
+    @Column(name = "is_equipped", nullable = false)
+    @Builder.Default
+    private Boolean equipped = false;
 
     @Column(nullable = false)
-    private String slot; // 装备槽位：武器、头盔、胸甲、护腿、靴子、戒指等
+    @Builder.Default
+    private Integer durability = 100;
 
-    @Column(nullable = false)
-    private Integer durability;
+    @Column(name = "max_durability", nullable = false)
+    @Builder.Default
+    private Integer maxDurability = 100;
 
-    @Column(nullable = false)
-    private Integer maxDurability;
-
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(nullable = false)
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+        if (updatedAt == null) {
+            updatedAt = LocalDateTime.now();
+        }
     }
 
     @PreUpdate

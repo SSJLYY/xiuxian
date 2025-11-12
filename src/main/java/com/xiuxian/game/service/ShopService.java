@@ -7,6 +7,7 @@ import com.xiuxian.game.dto.response.ShopItemResponse;
 import com.xiuxian.game.repository.ItemRepository;
 import com.xiuxian.game.repository.ShopItemRepository;
 import com.xiuxian.game.repository.EquipmentRepository;
+import com.xiuxian.game.repository.PlayerProfileRepository;
 import com.xiuxian.game.util.GameConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Arrays;
 import com.xiuxian.game.util.Java8Compatibility;
 
 @Service
@@ -22,7 +26,7 @@ public class ShopService {
 
     private final ItemRepository itemRepository;
     private final ShopItemRepository shopItemRepository;
-    private final PlayerService playerService;
+    private final PlayerProfileRepository playerProfileRepository;
     private final InventoryService inventoryService;
     private final EquipmentService equipmentService;
     private final EquipmentRepository equipmentRepository;
@@ -43,11 +47,11 @@ public class ShopService {
      * 获取商店分类信息
      */
     public List<String> getShopCategories() {
-        return Java8Compatibility.listOf(
-            "general",     // 消耗品
-            "equipment",   // 装备
-            "materials",   // 材料
-            "special"      // 特殊物品
+        return Arrays.asList(
+                "general",     // 消耗品
+                "equipment",   // 装备
+                "materials",   // 材料
+                "special"      // 特殊物品
         );
     }
 
@@ -67,38 +71,42 @@ public class ShopService {
     /**
      * 获取所有商店商品按分类分组
      */
-    public java.util.Map<String, List<ShopItemResponse>> getShopItemsGroupedByCategory() {
+    public Map<String, List<ShopItemResponse>> getShopItemsGroupedByCategory() {
         return getShopItems().stream()
-                .collect(java.util.stream.Collectors.groupingBy(ShopItemResponse::getShopType));
+                .collect(Collectors.groupingBy(ShopItemResponse::getShopType));
     }
 
     /**
      * 获取商店商品统计信息
      */
-    public java.util.Map<String, Object> getShopStatistics() {
-        java.util.Map<String, Object> stats = new java.util.HashMap<>();
-        
+    public Map<String, Object> getShopStatistics() {
+        Map<String, Object> stats = new HashMap<>();
+
+        List<ShopItem> availableItems = shopItemRepository.findByIsAvailable(true);
+
         // 按分类统计商品数量
-        java.util.Map<String, Long> categoryCount = shopItemRepository.findByIsAvailable(true).stream()
-                .collect(java.util.stream.Collectors.groupingBy(
-                    ShopItem::getShopType, 
-                    java.util.stream.Collectors.counting()
+        Map<String, Long> categoryCount = availableItems.stream()
+                .collect(Collectors.groupingBy(
+                        ShopItem::getShopType,
+                        Collectors.counting()
                 ));
-        
+
         stats.put("totalItems", shopItemRepository.count());
-        stats.put("availableItems", shopItemRepository.findByIsAvailable(true).size());
+        stats.put("availableItems", availableItems.size());
         stats.put("categoryCount", categoryCount);
-        
+
         return stats;
     }
 
     @Transactional
-    public void buyItem(Integer shopItemId, Integer quantity) {
+    public void buyItem(Integer shopItemId, Integer quantity, Integer playerId) {
         if (quantity <= 0) {
             throw new IllegalArgumentException(GameConstants.ERROR_INVALID_OPERATION + ": 数量必须大于0");
         }
 
-        PlayerProfile player = playerService.getCurrentPlayerProfile();
+        PlayerProfile player = playerProfileRepository.findById(playerId)
+                .orElseThrow(() -> new IllegalArgumentException(GameConstants.ERROR_PLAYER_NOT_FOUND));
+
         ShopItem shopItem = shopItemRepository.findById(shopItemId)
                 .orElseThrow(() -> new IllegalArgumentException(GameConstants.ERROR_ITEM_NOT_FOUND + ": 商店物品不存在"));
 
@@ -119,7 +127,7 @@ public class ShopService {
 
         // 扣除灵石
         player.setSpiritStones(player.getSpiritStones() - totalCost);
-        playerService.savePlayerProfile(player);
+        playerProfileRepository.save(player);
 
         // 更新库存
         if (shopItem.getStock() >= 0) {
@@ -133,7 +141,7 @@ public class ShopService {
             buyEquipment(player, shopItem.getEquipment(), quantity);
         } else if (shopItem.getItem() != null) {
             // 普通物品 - 添加到背包
-            inventoryService.addItemToInventory(shopItem.getItem().getId(), quantity);
+            inventoryService.addItemToInventory(player.getId(), shopItem.getItem().getId(), quantity);
         }
     }
 
@@ -147,9 +155,9 @@ public class ShopService {
             if (player.getLevel() < equipment.getRequiredLevel()) {
                 throw new IllegalArgumentException("等级不足，无法购买此装备（需要等级" + equipment.getRequiredLevel() + "）");
             }
-            
+
             // 获取装备并添加到玩家装备库
-            equipmentService.acquireEquipment(equipment.getId());
+            equipmentService.acquireEquipment(equipment.getId(), player.getId());
         }
     }
 
@@ -157,8 +165,10 @@ public class ShopService {
      * 购买并自动装备装备（如果是第一次购买且玩家等级足够）
      */
     @Transactional
-    public void buyAndEquipItem(Integer shopItemId) {
-        PlayerProfile player = playerService.getCurrentPlayerProfile();
+    public void buyAndEquipItem(Integer shopItemId, Integer playerId) {
+        PlayerProfile player = playerProfileRepository.findById(playerId)
+                .orElseThrow(() -> new IllegalArgumentException(GameConstants.ERROR_PLAYER_NOT_FOUND));
+
         ShopItem shopItem = shopItemRepository.findById(shopItemId)
                 .orElseThrow(() -> new IllegalArgumentException(GameConstants.ERROR_ITEM_NOT_FOUND + ": 商店物品不存在"));
 
@@ -172,7 +182,7 @@ public class ShopService {
         }
 
         // 购买装备
-        buyItem(shopItemId, 1);
+        buyItem(shopItemId, 1, playerId);
 
         // 自动装备（如果玩家该槽位没有装备）
         // 这里简化处理，实际应该检查玩家是否已拥有该装备
@@ -181,8 +191,10 @@ public class ShopService {
     /**
      * 检查玩家是否可以购买某个商店物品
      */
-    public boolean canPlayerBuyItem(Integer shopItemId) {
-        PlayerProfile player = playerService.getCurrentPlayerProfile();
+    public boolean canPlayerBuyItem(Integer shopItemId, Integer playerId) {
+        PlayerProfile player = playerProfileRepository.findById(playerId)
+                .orElseThrow(() -> new IllegalArgumentException(GameConstants.ERROR_PLAYER_NOT_FOUND));
+
         ShopItem shopItem = shopItemRepository.findById(shopItemId)
                 .orElseThrow(() -> new IllegalArgumentException(GameConstants.ERROR_ITEM_NOT_FOUND + ": 商店物品不存在"));
 
@@ -213,8 +225,10 @@ public class ShopService {
     /**
      * 获取玩家可购买的装备列表
      */
-    public List<ShopItemResponse> getAvailableEquipmentForPlayer() {
-        PlayerProfile player = playerService.getCurrentPlayerProfile();
+    public List<ShopItemResponse> getAvailableEquipmentForPlayer(Integer playerId) {
+        PlayerProfile player = playerProfileRepository.findById(playerId)
+                .orElseThrow(() -> new IllegalArgumentException(GameConstants.ERROR_PLAYER_NOT_FOUND));
+
         return shopItemRepository.findByShopTypeAndIsAvailable("equipment", true).stream()
                 .filter(shopItem -> {
                     if (shopItem.getEquipment() == null) {
@@ -227,13 +241,14 @@ public class ShopService {
     }
 
     @Transactional
-    public void sellItem(Long playerItemId, Integer quantity) {
+    public void sellItem(Long playerItemId, Integer quantity, Integer playerId) {
         if (quantity <= 0) {
             throw new IllegalArgumentException(GameConstants.ERROR_INVALID_OPERATION + ": 数量必须大于0");
         }
 
-        PlayerProfile player = playerService.getCurrentPlayerProfile();
-        
+        PlayerProfile player = playerProfileRepository.findById(playerId)
+                .orElseThrow(() -> new IllegalArgumentException(GameConstants.ERROR_PLAYER_NOT_FOUND));
+
         // 这里简化实现，实际应该从PlayerItem实体获取物品信息
         // 计算售价（通常为购买价的一半）
         // 注意：这里需要从PlayerItemRepository直接查询
@@ -250,10 +265,10 @@ public class ShopService {
 
         // 初始化基础物品商店
         initializeItemShop();
-        
+
         // 初始化装备商店
         initializeEquipmentShop();
-        
+
         // 初始化材料商店
         initializeMaterialShop();
     }
@@ -274,11 +289,11 @@ public class ShopService {
         createEquipmentShopItem(1, "equipment", 100, 0, 10);   // 木剑
         createEquipmentShopItem(4, "equipment", 500, 0, 5);    // 铁剑
         createEquipmentShopItem(6, "equipment", 1200, 0, 2);   // 法杖
-        
+
         // 装备商店 - 防具类
         createEquipmentShopItem(2, "equipment", 150, 0, 10);   // 布袍
         createEquipmentShopItem(5, "equipment", 600, 0, 5);    // 皮甲
-        
+
         // 装备商店 - 饰品类
         createEquipmentShopItem(3, "equipment", 300, 0, 5);    // 玉符
     }
@@ -292,7 +307,7 @@ public class ShopService {
     private void createShopItem(Integer itemId, String shopType, Integer priceSpiritStones, Integer priceContributionPoints, Integer stock) {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new IllegalArgumentException("物品不存在: " + itemId));
-        
+
         ShopItem shopItem = new ShopItem();
         shopItem.setItem(item);
         shopItem.setShopType(shopType);
@@ -300,7 +315,7 @@ public class ShopService {
         shopItem.setPriceContributionPoints(priceContributionPoints);
         shopItem.setStock(stock);
         shopItem.setIsAvailable(true);
-        
+
         shopItemRepository.save(shopItem);
     }
 
@@ -308,7 +323,7 @@ public class ShopService {
         // 使用EquipmentRepository查找装备
         com.xiuxian.game.entity.Equipment equipment = equipmentRepository.findById(equipmentId)
                 .orElseThrow(() -> new IllegalArgumentException("装备不存在: " + equipmentId));
-        
+
         ShopItem shopItem = new ShopItem();
         shopItem.setEquipment(equipment);
         shopItem.setShopType(shopType);
@@ -316,14 +331,14 @@ public class ShopService {
         shopItem.setPriceContributionPoints(priceContributionPoints);
         shopItem.setStock(stock);
         shopItem.setIsAvailable(true);
-        
+
         shopItemRepository.save(shopItem);
     }
 
     private ShopItemResponse convertToResponse(ShopItem shopItem) {
         String itemName, itemDescription, itemType;
         Integer itemQuality;
-        
+
         if (shopItem.getItem() != null) {
             // 普通物品
             itemName = shopItem.getItem().getName();
@@ -342,7 +357,7 @@ public class ShopService {
             itemType = "unknown";
             itemQuality = 1;
         }
-        
+
         return ShopItemResponse.builder()
                 .id(shopItem.getId().longValue())
                 .itemId(shopItem.getItem() != null ? shopItem.getItem().getId().longValue() : null)

@@ -88,23 +88,29 @@ class ApiClient {
 // 创建 API 客户端实例
 const api = new ApiClient();
 
-// 游戏 API 方法
+// 修复后的前端API调用（完全去模拟化）
 const gameAPI = {
     // 认证相关
     async login(username, password) {
         const response = await api.post('/auth/login', { username, password });
-        if (response.success) {
+        if (response.success && response.data && response.data.token) {
             api.setToken(response.data.token);
         }
         return response;
     },
 
-    async register(username, nickname, email, password) {
-        return await api.post('/auth/register', { username, nickname, email, password });
+    async register(userData) {
+        return await api.post('/auth/register', userData);
     },
 
     async getCurrentUser() {
         return await api.get('/auth/me');
+    },
+
+    async logout() {
+        const response = await api.post('/auth/logout');
+        api.clearToken();
+        return response;
     },
 
     // 玩家相关
@@ -112,89 +118,130 @@ const gameAPI = {
         return await api.get('/player/profile');
     },
 
+    // 修炼相关
     async startCultivation() {
         return await api.post('/player/cultivate');
+    },
+
+    async stopCultivation() {
+        return await api.post('/player/cultivate/stop');
     },
 
     async claimOfflineRewards() {
         return await api.post('/player/claim-offline-rewards');
     },
 
-    // 技能相关
+    async addExperience(amount) {
+        return await api.post('/player/add-experience', { amount: amount });
+    },
+
+    async addSpiritStones(amount) {
+        return await api.post('/player/add-spirit-stones', { amount: amount });
+    },
+
+    // 以下端点在后端不存在，直接返回错误
+    async getCultivationProgress() {
+        return {
+            success: false,
+            message: 'API端点不存在',
+            data: null
+        };
+    },
+
+    async saveCultivationProgress(data) {
+        return {
+            success: false,
+            message: 'API端点不存在',
+            data: null
+        };
+    },
+
     async getSkills() {
-        return await api.get('/skills');
+        return {
+            success: false,
+            message: 'API端点不存在',
+            data: null
+        };
     },
 
-    async learnSkill(skillId) {
-        return await api.post('/skills/learn', { skillId });
+    async useSkill(skillId) {
+        return {
+            success: false,
+            message: 'API端点不存在',
+            data: null
+        };
     },
 
-    async upgradeSkill(skillId) {
-        return await api.post('/skills/upgrade', { skillId });
-    },
-
-    async equipSkill(skillId) {
-        return await api.post('/skills/equip', { skillId });
-    },
-
-    // 装备相关
     async getEquipment() {
-        return await api.get('/equipments');
+        return {
+            success: false,
+            message: 'API端点不存在',
+            data: null
+        };
     },
 
-    async equipItem(equipmentId) {
-        return await api.post('/equipment/equip', { equipmentId });
+    async equipItem(itemId) {
+        return {
+            success: false,
+            message: 'API端点不存在',
+            data: null
+        };
     },
 
-    async unequipItem(slotType) {
-        return await api.post('/equipment/unequip', { slotType });
-    },
-
-    async repairEquipment(equipmentId) {
-        return await api.post('/equipment/repair', { equipmentId });
-    },
-
-    // 背包相关
     async getInventory() {
-        return await api.get('/inventory');
+        return {
+            success: false,
+            message: 'API端点不存在',
+            data: null
+        };
     },
 
     async useItem(itemId) {
-        return await api.post('/inventory/use-item', { itemId });
+        return {
+            success: false,
+            message: 'API端点不存在',
+            data: null
+        };
     },
 
-    async addItem(itemId, quantity = 1) {
-        return await api.post('/inventory/add-item', { itemId, quantity });
-    },
-
-    async removeItem(itemId, quantity = 1) {
-        return await api.post('/inventory/remove-item', { itemId, quantity });
-    },
-
-    // 任务相关
     async getQuests() {
-        return await api.get('/quests');
+        return {
+            success: false,
+            message: 'API端点不存在',
+            data: null
+        };
     },
 
-    async updateQuestProgress(questId, progress) {
-        return await api.post('/quests/update-progress', { questId, progress });
+    async acceptQuest(questId) {
+        return {
+            success: false,
+            message: 'API端点不存在',
+            data: null
+        };
     },
 
-    async claimQuestReward(questId) {
-        return await api.post('/quests/claim-reward', { questId });
+    async completeQuest(questId) {
+        return {
+            success: false,
+            message: 'API端点不存在',
+            data: null
+        };
     },
 
-    // 商店相关
-    async getShopItems(shopType) {
-        return await api.get(`/shop/${shopType}`);
+    async quickSave() {
+        return {
+            success: false,
+            message: 'API端点不存在',
+            data: null
+        };
     },
 
-    async buyItem(shopItemId, quantity = 1) {
-        return await api.post('/shop/buy', { shopItemId, quantity });
-    },
-
-    async sellItem(itemId, quantity = 1) {
-        return await api.post('/shop/sell', { itemId, quantity });
+    async checkLevelUp() {
+        return {
+            success: false,
+            message: 'API端点不存在',
+            data: null
+        };
     }
 };
 

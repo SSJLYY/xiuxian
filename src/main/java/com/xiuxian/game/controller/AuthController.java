@@ -6,11 +6,12 @@ import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.dto.response.LoginResponse;
 import com.xiuxian.game.entity.User;
 import com.xiuxian.game.service.AuthService;
-import javax.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import javax.validation.Valid;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -38,27 +39,36 @@ public class AuthController {
             return ResponseEntity.badRequest().body(ApiResponse.error("用户名或密码错误"));
         }
     }
-    
+
     @GetMapping("/me")
-    public ResponseEntity<ApiResponse<User>> getCurrentUser(@AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails userDetails) {
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<User>> getCurrentUser() {
         try {
-            // 从UserDetails中获取用户名，然后从数据库获取完整的User实体
-            String username = userDetails.getUsername();
-            System.out.println("=== DEBUG: AuthController.getCurrentUser ===");
-            System.out.println("从SecurityContext获取的用户名: " + username);
-            
-            User user = authService.getUserByUsername(username);
-            System.out.println("从数据库获取的用户: " + user);
-            System.out.println("用户ID: " + user.getId());
-            System.out.println("用户名: " + user.getUsername());
-            System.out.println("邮箱: " + user.getEmail());
-            
+            User user = authService.getCurrentUser();
             return ResponseEntity.ok(ApiResponse.success("获取当前用户成功", user));
         } catch (Exception e) {
-            System.out.println("=== DEBUG: AuthController.getCurrentUser ERROR ===");
-            System.out.println("错误信息: " + e.getMessage());
-            e.printStackTrace();
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/logout")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Void>> logout() {
+        try {
+            authService.logout();
+            return ResponseEntity.ok(ApiResponse.success("登出成功", null));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/validate")
+    public ResponseEntity<ApiResponse<Boolean>> validateToken() {
+        try {
+            // 如果能够执行到这里，说明token有效
+            return ResponseEntity.ok(ApiResponse.success("Token有效", true));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Token无效", false));
         }
     }
 }
