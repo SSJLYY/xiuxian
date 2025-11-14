@@ -1,0 +1,1651 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>修仙爬塔录 - 文字挂机Roguelike游戏</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- 配置Tailwind自定义颜色和字体 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#8B4513',      // 棕色 - 木质/竹简感
+                        secondary: '#2F4F4F',    // 深灰绿 - 水墨画风格
+                        accent: '#CD5C5C',       // 朱砂红 - 强调色
+                        light: '#F5F5DC',        // 米白 - 背景
+                        dark: '#2C3E50',         // 墨黑 - 文字
+                    },
+                    fontFamily: {
+                        ancient: ['"Ma Shan Zheng"', '"Noto Serif SC"', 'serif'],
+                    },
+                    backgroundImage: {
+                        'paper-texture': "url('https://picsum.photos/id/106/1200/800')",
+                        'ink-splash': "url('https://picsum.photos/id/175/1200/800')",
+                    }
+                },
+            }
+        }
+    </script>
+    
+    <!-- 引入中文字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- 自定义工具类 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            }
+            .ink-border {
+                border-image: url('https://picsum.photos/id/104/100/100') 30 stretch;
+            }
+            .paper-bg {
+                background-color: rgba(245, 245, 220, 0.9);
+                background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%238b4513' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
+            }
+            .ink-splash-bg {
+                background-color: rgba(47, 79, 79, 0.9);
+                background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23f5f5dc' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            }
+        }
+    </style>
+    
+    <style>
+        /* 基础动画效果 */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        .animate-slideUp {
+            animation: slideUp 0.5s ease forwards;
+        }
+        
+        .animate-pulse-slow {
+            animation: pulse 2s infinite;
+        }
+        
+        /* 滚动条样式 - 水墨风格 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(245, 245, 220, 0.2);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(139, 69, 19, 0.5);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(139, 69, 19, 0.7);
+        }
+        
+        /* 装备品质颜色 */
+        .quality-common { color: #888888; }       /* 普通 - 白色 */
+        .quality-rare { color: #1E90FF; }         /* 稀有 - 蓝色 */
+        .quality-epic { color: #9370DB; }         /* 史诗 - 紫色 */
+        .quality-legendary { color: #FFA500; }    /* 传说 - 橙色 */
+        .quality-mythic { color: #FFD700; }       /* 神话 - 金色 */
+        
+        /* 战斗日志样式 */
+        .combat-log {
+            height: 200px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+
+<body class="paper-bg min-h-screen text-dark font-ancient">
+    <!-- 页面加载动画 -->
+    <div id="loading-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-secondary">
+        <div class="text-center">
+            <h1 class="text-4xl md:text-6xl text-light animate-pulse-slow mb-4">修仙爬塔录</h1>
+            <p class="text-light text-lg">载入中...</p>
+        </div>
+    </div>
+
+    <!-- 主容器 -->
+    <div id="game-container" class="container mx-auto px-4 py-6 max-w-4xl hidden">
+        <!-- 顶部状态栏 -->
+        <header class="mb-6 animate-fadeIn">
+            <div class="flex flex-col md:flex-row justify-between items-center bg-secondary/10 p-4 rounded-lg border border-primary/30">
+                <div class="mb-4 md:mb-0">
+                    <h1 class="text-3xl md:text-4xl text-primary font-bold text-shadow">修仙爬塔录</h1>
+                    <p class="text-secondary italic">大道争锋，始于足下</p>
+                </div>
+                
+                <div class="flex flex-wrap gap-4 justify-center">
+                    <div class="flex items-center">
+                        <i class="fa fa-user-circle text-accent mr-2"></i>
+                        <span id="player-level" class="font-bold">炼气期 1层</span>
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fa fa-star text-accent mr-2"></i>
+                        <span>修为: <span id="player-cultivation">0</span>/<span id="player-required-cultivation">100</span></span>
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fa fa-diamond text-accent mr-2"></i>
+                        <span>灵石: <span id="player-spirit-stones">100</span></span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主要内容区 -->
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- 左侧：玩家信息与属性 -->
+            <section class="lg:col-span-1 animate-slideUp" style="animation-delay: 0.1s">
+                <div class="bg-white/70 rounded-lg border border-primary/30 p-4 mb-6">
+                    <h2 class="text-xl font-bold text-primary mb-3 border-b border-primary/20 pb-2">
+                        <i class="fa fa-info-circle mr-2"></i>修士信息
+                    </h2>
+                    
+                    <div class="mb-4">
+                        <img src="https://picsum.photos/id/237/200/200" alt="修士头像" class="w-24 h-24 rounded-full mx-auto object-cover border-2 border-secondary/30">
+                        <p class="text-center mt-2 font-bold" id="player-name">无名修士</p>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span>攻击: <span id="player-attack">10</span></span>
+                            <span>防御: <span id="player-defense">5</span></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>生命: <span id="player-health">100</span></span>
+                            <span>暴击率: <span id="player-crit-rate">5</span>%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>暴击伤害: <span id="player-crit-damage">150</span>%</span>
+                            <span>穿甲: <span id="player-armor-penetration">0</span>%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>吸血: <span id="player-vampirism">0</span>%</span>
+                            <span>幸运: <span id="player-luck">1</span></span>
+                        </div>
+                    </div>
+                    
+                    <!-- 升级按钮 -->
+                    <button id="cultivate-btn" class="w-full mt-4 py-2 bg-primary/80 text-light rounded hover:bg-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fa fa-level-up mr-1"></i> 修为突破
+                    </button>
+                </div>
+                
+                <!-- 当前装备 -->
+                <div class="bg-white/70 rounded-lg border border-primary/30 p-4 mb-6">
+                    <h2 class="text-xl font-bold text-primary mb-3 border-b border-primary/20 pb-2">
+                        <i class="fa fa-shield mr-2"></i>当前装备
+                    </h2>
+                    
+                    <div class="grid grid-cols-2 gap-2" id="equipment-slots">
+                        <!-- 装备槽位 -->
+                        <div class="equipment-slot p-2 border border-dashed border-secondary/30 rounded text-center hover:bg-secondary/5 cursor-pointer" data-slot="weapon">
+                            <p class="text-xs mb-1">武器</p>
+                            <p id="weapon-name" class="text-sm">无</p>
+                        </div>
+                        <div class="equipment-slot p-2 border border-dashed border-secondary/30 rounded text-center hover:bg-secondary/5 cursor-pointer" data-slot="armor">
+                            <p class="text-xs mb-1"> armor</p>
+                            <p id="armor-name" class="text-sm">无</p>
+                        </div>
+                        <div class="equipment-slot p-2 border border-dashed border-secondary/30 rounded text-center hover:bg-secondary/5 cursor-pointer" data-slot="helmet">
+                            <p class="text-xs mb-1">头盔</p>
+                            <p id="helmet-name" class="text-sm">无</p>
+                        </div>
+                        <div class="equipment-slot p-2 border border-dashed border-secondary/30 rounded text-center hover:bg-secondary/5 cursor-pointer" data-slot="necklace">
+                            <p class="text-xs mb-1">项链</p>
+                            <p id="necklace-name" class="text-sm">无</p>
+                        </div>
+                        <div class="equipment-slot p-2 border border-dashed border-secondary/30 rounded text-center hover:bg-secondary/5 cursor-pointer" data-slot="ring">
+                            <p class="text-xs mb-1">戒指</p>
+                            <p id="ring-name" class="text-sm">无</p>
+                        </div>
+                        <div class="equipment-slot p-2 border border-dashed border-secondary/30 rounded text-center hover:bg-secondary/5 cursor-pointer" data-slot="treasure">
+                            <p class="text-xs mb-1">法宝</p>
+                            <p id="treasure-name" class="text-sm">无</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 背包按钮 -->
+                    <button id="backpack-btn" class="w-full mt-4 py-2 bg-secondary/80 text-light rounded hover:bg-secondary transition-colors">
+                        <i class="fa fa-briefcase mr-1"></i> 打开背包
+                    </button>
+                </div>
+            </section>
+            
+            <!-- 右侧：游戏主界面 -->
+            <section class="lg:col-span-2 animate-slideUp" style="animation-delay: 0.2s">
+                <!-- 爬塔区域 -->
+                <div class="bg-white/70 rounded-lg border border-primary/30 p-4 mb-6">
+                    <h2 class="text-xl font-bold text-primary mb-3 border-b border-primary/20 pb-2">
+                        <i class="fa fa-signal mr-2"></i>镇妖塔
+                    </h2>
+                    
+                    <div class="text-center mb-4">
+                        <p class="text-lg">当前层数: <span id="current-floor" class="font-bold text-accent">1</span>/100</p>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5 mt-2 mb-4">
+                            <div id="tower-progress" class="bg-accent h-2.5 rounded-full" style="width: 1%"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- 怪物信息 -->
+                    <div class="mb-4 p-3 bg-secondary/5 rounded border border-secondary/20">
+                        <h3 class="font-bold mb-2 flex items-center">
+                            <i class="fa fa-bug text-secondary mr-2"></i>
+                            <span id="monster-name">妖狼</span>
+                            <span id="monster-level" class="ml-2 text-sm">(炼气期 1层)</span>
+                            <span id="monster-type" class="ml-2 px-2 py-0.5 text-xs rounded bg-secondary/20">普通</span>
+                        </h3>
+                        
+                        <div class="flex justify-between text-sm mb-2">
+                            <span>生命: <span id="monster-health">80</span></span>
+                            <span>攻击: <span id="monster-attack">8</span></span>
+                            <span>防御: <span id="monster-defense">3</span></span>
+                        </div>
+                        
+                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                            <div id="monster-health-bar" class="bg-red-500 h-2.5 rounded-full" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- 战斗按钮 -->
+                    <div class="flex gap-2">
+                        <button id="fight-btn" class="flex-1 py-2 bg-accent text-light rounded hover:bg-accent/80 transition-colors">
+                            <i class="fa fa-crosshairs mr-1"></i> 挑战当前层
+                        </button>
+                        <button id="auto-fight-btn" class="flex-1 py-2 bg-primary text-light rounded hover:bg-primary/80 transition-colors">
+                            <i class="fa fa-play-circle mr-1"></i> 自动爬塔
+                        </button>
+                    </div>
+                    
+                    <!-- 战斗日志 -->
+                    <div class="mt-4">
+                        <h3 class="font-bold mb-2 flex items-center">
+                            <i class="fa fa-book text-secondary mr-2"></i>战斗记录
+                        </h3>
+                        <div id="combat-log" class="combat-log p-3 bg-dark/5 rounded border border-dark/10 text-sm">
+                            <p class="text-secondary italic">准备挑战镇妖塔第1层...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 功能区 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- 炼器/寻宝 -->
+                    <div class="bg-white/70 rounded-lg border border-primary/30 p-4">
+                        <h2 class="text-xl font-bold text-primary mb-3 border-b border-primary/20 pb-2">
+                            <i class="fa fa-magic mr-2"></i>炼器阁
+                        </h2>
+                        
+                        <p class="text-sm mb-3">消耗灵石可炼制法宝，有机会获得稀有装备</p>
+                        
+                        <div class="space-y-2">
+                            <button id="craft-normal-btn" class="w-full py-2 bg-secondary/70 text-light rounded hover:bg-secondary transition-colors">
+                                <i class="fa fa-hammer mr-1"></i> 普通炼制 (50灵石)
+                            </button>
+                            <button id="craft-advanced-btn" class="w-full py-2 bg-accent/80 text-light rounded hover:bg-accent transition-colors">
+                                <i class="fa fa-fire mr-1"></i> 高级炼制 (200灵石)
+                            </button>
+                        </div>
+                        
+                        <div class="mt-3 text-center text-sm text-secondary">
+                            <p>上次获得: <span id="last-crafted" class="italic">暂无</span></p>
+                        </div>
+                    </div>
+                    
+                    <!-- 收益与状态 -->
+                    <div class="bg-white/70 rounded-lg border border-primary/30 p-4">
+                        <h2 class="text-xl font-bold text-primary mb-3 border-b border-primary/20 pb-2">
+                            <i class="fa fa-trophy mr-2"></i>修行收益
+                        </h2>
+                        
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center p-2 bg-secondary/5 rounded">
+                                <span>已通关最高层</span>
+                                <span id="max-floor" class="font-bold">1</span>
+                            </div>
+                            
+                            <div class="flex justify-between items-center p-2 bg-secondary/5 rounded">
+                                <span>离线收益 (每小时)</span>
+                                <span id="offline-rewards">修为 x 50, 灵石 x 10</span>
+                            </div>
+                            
+                            <button id="collect-rewards-btn" class="w-full py-2 bg-primary/80 text-light rounded hover:bg-primary transition-colors">
+                                <i class="fa fa-gift mr-1"></i> 领取收益
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- 模态框 - 修为突破 -->
+    <div id="cultivate-modal" class="fixed inset-0 z-40 flex items-center justify-center hidden">
+        <div class="absolute inset-0 bg-black/50" id="cultivate-modal-backdrop"></div>
+        <div class="relative bg-white rounded-lg border border-primary/50 p-6 max-w-md w-full mx-4 animate-slideUp">
+            <h2 class="text-2xl font-bold text-primary mb-4 text-center">修为突破</h2>
+            
+            <p class="text-center mb-4">请选择一项突破方向：</p>
+            
+            <div id="cultivate-options" class="space-y-3 mb-6">
+                <!-- 突破选项将动态生成 -->
+                <div class="cultivate-option p-3 border border-secondary/30 rounded hover:bg-secondary/5 cursor-pointer">
+                    <p>攻击 +5</p>
+                    <button class="refresh-option text-xs text-secondary mt-1">刷新 <i class="fa fa-refresh"></i> (2次)</button>
+                </div>
+                <div class="cultivate-option p-3 border border-secondary/30 rounded hover:bg-secondary/5 cursor-pointer">
+                    <p>防御 +3</p>
+                    <button class="refresh-option text-xs text-secondary mt-1">刷新 <i class="fa fa-refresh"></i> (2次)</button>
+                </div>
+                <div class="cultivate-option p-3 border border-secondary/30 rounded hover:bg-secondary/5 cursor-pointer">
+                    <p>生命 +50</p>
+                    <button class="refresh-option text-xs text-secondary mt-1">刷新 <i class="fa fa-refresh"></i> (2次)</button>
+                </div>
+            </div>
+            
+            <button id="close-cultivate-modal" class="w-full py-2 bg-secondary/80 text-light rounded hover:bg-secondary transition-colors">
+                稍后突破
+            </button>
+        </div>
+    </div>
+
+    <!-- 模态框 - 背包 -->
+    <div id="backpack-modal" class="fixed inset-0 z-40 flex items-center justify-center hidden">
+        <div class="absolute inset-0 bg-black/50" id="backpack-modal-backdrop"></div>
+        <div class="relative bg-white rounded-lg border border-primary/50 p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col animate-slideUp">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-primary">背包</h2>
+                <span id="backpack-count" class="text-sm bg-secondary/20 px-2 py-1 rounded">0/50</span>
+            </div>
+            
+            <!-- 装备过滤 -->
+            <div class="flex flex-wrap gap-2 mb-4">
+                <button class="filter-btn active px-3 py-1 text-sm bg-primary text-light rounded" data-filter="all">全部</button>
+                <button class="filter-btn px-3 py-1 text-sm bg-secondary/20 rounded" data-filter="weapon">武器</button>
+                <button class="filter-btn px-3 py-1 text-sm bg-secondary/20 rounded" data-filter="armor"> armor</button>
+                <button class="filter-btn px-3 py-1 text-sm bg-secondary/20 rounded" data-filter="helmet">头盔</button>
+                <button class="filter-btn px-3 py-1 text-sm bg-secondary/20 rounded" data-filter="necklace">项链</button>
+                <button class="filter-btn px-3 py-1 text-sm bg-secondary/20 rounded" data-filter="ring">戒指</button>
+                <button class="filter-btn px-3 py-1 text-sm bg-secondary/20 rounded" data-filter="treasure">法宝</button>
+            </div>
+            
+            <!-- 装备列表 -->
+            <div id="equipment-list" class="flex-1 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- 装备项将动态生成 -->
+                <div class="equipment-item p-3 border border-secondary/30 rounded hover:bg-secondary/5 cursor-pointer" data-id="1" data-type="weapon" data-quality="rare">
+                    <div class="flex justify-between">
+                        <p class="font-bold quality-rare">铁剑</p>
+                        <span class="text-xs bg-secondary/10 px-1 rounded">武器</span>
+                    </div>
+                    <p class="text-sm mt-1">攻击 +8</p>
+                    <p class="text-xs text-secondary mt-1">需要等级: 1</p>
+                </div>
+            </div>
+            
+            <button id="close-backpack-modal" class="mt-4 w-full py-2 bg-secondary/80 text-light rounded hover:bg-secondary transition-colors">
+                关闭背包
+            </button>
+        </div>
+    </div>
+
+    <!-- 模态框 - 装备详情 -->
+    <div id="equipment-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="absolute inset-0 bg-black/50" id="equipment-modal-backdrop"></div>
+        <div class="relative bg-white rounded-lg border border-primary/50 p-6 max-w-md w-full mx-4 animate-slideUp">
+            <h2 id="equipment-detail-name" class="text-2xl font-bold text-primary mb-2 quality-rare">铁剑</h2>
+            <p id="equipment-detail-type" class="text-sm bg-secondary/10 px-2 py-0.5 inline-block rounded mb-4">武器</p>
+            
+            <div class="mb-4">
+                <p class="text-sm mb-1"><strong>基础属性:</strong></p>
+                <ul id="equipment-detail-properties" class="ml-4 space-y-1 text-sm">
+                    <li>攻击 +8</li>
+                </ul>
+                
+                <p class="text-sm mb-1 mt-3"><strong>特殊词条:</strong></p>
+                <ul id="equipment-detail-attributes" class="ml-4 space-y-1 text-sm text-accent">
+                    <li>锋利: 增加5%暴击率</li>
+                </ul>
+            </div>
+            
+            <div class="text-sm text-secondary mb-4">
+                <p>需要等级: <span id="equipment-detail-required-level">1</span></p>
+            </div>
+            
+            <!-- 装备对比 -->
+            <div class="p-3 bg-secondary/5 rounded mb-4">
+                <p class="text-sm font-bold mb-2">与当前装备对比:</p>
+                <div id="equipment-comparison" class="text-sm">
+                    <p>当前: 无</p>
+                    <p class="text-green-600">攻击 +8</p>
+                </div>
+            </div>
+            
+            <button id="equip-btn" class="w-full py-2 bg-accent text-light rounded hover:bg-accent/80 transition-colors mb-2">
+                装备
+            </button>
+            <button id="close-equipment-modal" class="w-full py-2 bg-secondary/80 text-light rounded hover:bg-secondary transition-colors">
+                关闭
+            </button>
+        </div>
+    </div>
+
+    <!-- 游戏逻辑脚本 -->
+    <script>
+        // 游戏数据模型
+        const gameData = {
+            player: {
+                name: "无名修士",
+                level: 1,
+                cultivation: 0,          // 当前修为
+                requiredCultivation: 100, // 升级所需修为
+                health: 100,
+                maxHealth: 100,
+                attack: 10,
+                defense: 5,
+                critRate: 5,          // 百分比
+                critDamage: 150,      // 百分比
+                armorPenetration: 0,  // 百分比
+                vampirism: 0,         // 百分比
+                luck: 1,
+                spiritStones: 100,
+                maxFloor: 1,
+                offlineRewards: {
+                    cultivation: 50,
+                    spiritStones: 10
+                }
+            },
+            tower: {
+                currentFloor: 1,
+                totalFloors: 100
+            },
+            currentMonster: {
+                name: "妖狼",
+                level: 1,
+                type: "普通", // 普通、精英、BOSS
+                health: 80,
+                maxHealth: 80,
+                attack: 8,
+                defense: 3
+            },
+            equipment: {
+                equipped: {
+                    weapon: null,
+                    armor: null,
+                    helmet: null,
+                    necklace: null,
+                    ring: null,
+                    treasure: null
+                },
+                inventory: [
+                    {
+                        id: 1,
+                        name: "铁剑",
+                        type: "weapon",
+                        quality: "rare",
+                        requiredLevel: 1,
+                        properties: [
+                            { name: "攻击", value: 8 }
+                        ],
+                        attributes: [
+                            { name: "锋利", description: "增加5%暴击率" }
+                        ]
+                    }
+                ]
+            },
+            combatLog: [
+                "准备挑战镇妖塔第1层..."
+            ],
+            lastCrafted: "暂无"
+        };
+
+        // DOM元素引用
+        const elements = {
+            // 加载界面
+            loadingScreen: document.getElementById('loading-screen'),
+            gameContainer: document.getElementById('game-container'),
+            
+            // 玩家信息
+            playerLevel: document.getElementById('player-level'),
+            playerCultivation: document.getElementById('player-cultivation'),
+            playerRequiredCultivation: document.getElementById('player-required-cultivation'),
+            playerSpiritStones: document.getElementById('player-spirit-stones'),
+            playerName: document.getElementById('player-name'),
+            playerAttack: document.getElementById('player-attack'),
+            playerDefense: document.getElementById('player-defense'),
+            playerHealth: document.getElementById('player-health'),
+            playerCritRate: document.getElementById('player-crit-rate'),
+            playerCritDamage: document.getElementById('player-crit-damage'),
+            playerArmorPenetration: document.getElementById('player-armor-penetration'),
+            playerVampirism: document.getElementById('player-vampirism'),
+            playerLuck: document.getElementById('player-luck'),
+            
+            // 装备槽位
+            equipmentSlots: {
+                weapon: document.getElementById('weapon-name'),
+                armor: document.getElementById('armor-name'),
+                helmet: document.getElementById('helmet-name'),
+                necklace: document.getElementById('necklace-name'),
+                ring: document.getElementById('ring-name'),
+                treasure: document.getElementById('treasure-name')
+            },
+            
+            // 爬塔信息
+            currentFloor: document.getElementById('current-floor'),
+            towerProgress: document.getElementById('tower-progress'),
+            monsterName: document.getElementById('monster-name'),
+            monsterLevel: document.getElementById('monster-level'),
+            monsterType: document.getElementById('monster-type'),
+            monsterHealth: document.getElementById('monster-health'),
+            monsterAttack: document.getElementById('monster-attack'),
+            monsterDefense: document.getElementById('monster-defense'),
+            monsterHealthBar: document.getElementById('monster-health-bar'),
+            combatLog: document.getElementById('combat-log'),
+            maxFloor: document.getElementById('max-floor'),
+            offlineRewards: document.getElementById('offline-rewards'),
+            
+            // 炼器信息
+            lastCrafted: document.getElementById('last-crafted'),
+            
+            // 背包信息
+            backpackCount: document.getElementById('backpack-count'),
+            equipmentList: document.getElementById('equipment-list'),
+            
+            // 装备详情
+            equipmentDetailName: document.getElementById('equipment-detail-name'),
+            equipmentDetailType: document.getElementById('equipment-detail-type'),
+            equipmentDetailProperties: document.getElementById('equipment-detail-properties'),
+            equipmentDetailAttributes: document.getElementById('equipment-detail-attributes'),
+            equipmentDetailRequiredLevel: document.getElementById('equipment-detail-required-level'),
+            equipmentComparison: document.getElementById('equipment-comparison'),
+            
+            // 模态框
+            cultivateModal: document.getElementById('cultivate-modal'),
+            cultivateModalBackdrop: document.getElementById('cultivate-modal-backdrop'),
+            cultivateOptions: document.getElementById('cultivate-options'),
+            closeCultivateModal: document.getElementById('close-cultivate-modal'),
+            
+            backpackModal: document.getElementById('backpack-modal'),
+            backpackModalBackdrop: document.getElementById('backpack-modal-backdrop'),
+            closeBackpackModal: document.getElementById('close-backpack-modal'),
+            
+            equipmentModal: document.getElementById('equipment-modal'),
+            equipmentModalBackdrop: document.getElementById('equipment-modal-backdrop'),
+            closeEquipmentModal: document.getElementById('close-equipment-modal'),
+            equipBtn: document.getElementById('equip-btn'),
+            
+            // 按钮
+            cultivateBtn: document.getElementById('cultivate-btn'),
+            backpackBtn: document.getElementById('backpack-btn'),
+            fightBtn: document.getElementById('fight-btn'),
+            autoFightBtn: document.getElementById('auto-fight-btn'),
+            craftNormalBtn: document.getElementById('craft-normal-btn'),
+            craftAdvancedBtn: document.getElementById('craft-advanced-btn'),
+            collectRewardsBtn: document.getElementById('collect-rewards-btn'),
+            filterBtns: document.querySelectorAll('.filter-btn')
+        };
+
+        // 辅助函数：更新UI显示
+        function updateUI() {
+            // 更新玩家信息
+            elements.playerLevel.textContent = getCultivationStage(gameData.player.level);
+            elements.playerCultivation.textContent = gameData.player.cultivation;
+            elements.playerRequiredCultivation.textContent = gameData.player.requiredCultivation;
+            elements.playerSpiritStones.textContent = gameData.player.spiritStones;
+            elements.playerName.textContent = gameData.player.name;
+            elements.playerAttack.textContent = gameData.player.attack;
+            elements.playerDefense.textContent = gameData.player.defense;
+            elements.playerHealth.textContent = gameData.player.health;
+            elements.playerCritRate.textContent = gameData.player.critRate;
+            elements.playerCritDamage.textContent = gameData.player.critDamage;
+            elements.playerArmorPenetration.textContent = gameData.player.armorPenetration;
+            elements.playerVampirism.textContent = gameData.player.vampirism;
+            elements.playerLuck.textContent = gameData.player.luck;
+            
+            // 更新装备显示
+            Object.keys(gameData.equipment.equipped).forEach(slot => {
+                const equipment = gameData.equipment.equipped[slot];
+                elements.equipmentSlots[slot].textContent = equipment ? equipment.name : "无";
+                if (equipment) {
+                    elements.equipmentSlots[slot].className = `text-sm quality-${equipment.quality}`;
+                } else {
+                    elements.equipmentSlots[slot].className = "text-sm";
+                }
+            });
+            
+            // 更新爬塔信息
+            elements.currentFloor.textContent = gameData.tower.currentFloor;
+            elements.towerProgress.style.width = `${(gameData.tower.currentFloor / gameData.tower.totalFloors) * 100}%`;
+            elements.monsterName.textContent = gameData.currentMonster.name;
+            elements.monsterLevel.textContent = `(炼气期 ${gameData.currentMonster.level}层)`;
+            elements.monsterType.textContent = gameData.currentMonster.type;
+            elements.monsterHealth.textContent = gameData.currentMonster.health;
+            elements.monsterAttack.textContent = gameData.currentMonster.attack;
+            elements.monsterDefense.textContent = gameData.currentMonster.defense;
+            elements.monsterHealthBar.style.width = `${(gameData.currentMonster.health / gameData.currentMonster.maxHealth) * 100}%`;
+            
+            // 更新战斗日志
+            elements.combatLog.innerHTML = '';
+            gameData.combatLog.forEach(log => {
+                const p = document.createElement('p');
+                p.innerHTML = log;
+                elements.combatLog.appendChild(p);
+            });
+            elements.combatLog.scrollTop = elements.combatLog.scrollHeight;
+            
+            // 更新其他信息
+            elements.maxFloor.textContent = gameData.player.maxFloor;
+            elements.offlineRewards.textContent = `修为 x ${gameData.player.offlineRewards.cultivation}, 灵石 x ${gameData.player.offlineRewards.spiritStones}`;
+            elements.lastCrafted.textContent = gameData.lastCrafted;
+            
+            // 更新背包计数
+            elements.backpackCount.textContent = `${gameData.equipment.inventory.length}/50`;
+            
+            // 更新突破按钮状态
+            elements.cultivateBtn.disabled = gameData.player.cultivation < gameData.player.requiredCultivation;
+            
+            // 更新炼器按钮状态
+            elements.craftNormalBtn.disabled = gameData.player.spiritStones < 50;
+            elements.craftAdvancedBtn.disabled = gameData.player.spiritStones < 200;
+        }
+
+        // 辅助函数：获取修仙境界名称
+        function getCultivationStage(level) {
+            const stages = [
+                "炼气期", "筑基期", "金丹期", "元婴期", 
+                "化神期", "炼虚期", "合体期", "大乘期", "渡劫期"
+            ];
+            
+            const stageIndex = Math.floor((level - 1) / 10);
+            const stageLevel = (level - 1) % 10 + 1;
+            
+            return `${stages[Math.min(stageIndex, stages.length - 1)]} ${stageLevel}层`;
+        }
+
+        // 辅助函数：添加战斗日志
+        function addCombatLog(message) {
+            gameData.combatLog.push(message);
+            // 限制日志数量
+            if (gameData.combatLog.length > 20) {
+                gameData.combatLog.shift();
+            }
+            updateUI();
+        }
+
+        // 战斗系统
+        async function startCombat() {
+            // 禁用战斗按钮
+            elements.fightBtn.disabled = true;
+            elements.autoFightBtn.disabled = true;
+            
+            // 重置怪物状态
+            gameData.currentMonster.health = gameData.currentMonster.maxHealth;
+            
+            addCombatLog(`开始挑战${gameData.currentMonster.name}...`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // 战斗循环
+            while (gameData.currentMonster.health > 0 && gameData.player.health > 0) {
+                // 玩家攻击
+                await playerAttack();
+                if (gameData.currentMonster.health <= 0) break;
+                
+                await new Promise(resolve => setTimeout(resolve, 800));
+                
+                // 怪物攻击
+                await monsterAttack();
+                if (gameData.player.health <= 0) break;
+                
+                await new Promise(resolve => setTimeout(resolve, 800));
+            }
+            
+            // 战斗结束
+            if (gameData.player.health <= 0) {
+                addCombatLog(`<span class="text-red-600">挑战失败！你被${gameData.currentMonster.name}击败了。</span>`);
+                // 恢复部分生命值
+                gameData.player.health = Math.floor(gameData.player.maxHealth * 0.3);
+            } else {
+                addCombatLog(`<span class="text-green-600">挑战成功！你击败了${gameData.currentMonster.name}。</span>`);
+                
+                // 计算奖励
+                const baseCultivation = 20 + gameData.tower.currentFloor * 2;
+                const luckBonus = Math.floor(baseCultivation * (gameData.player.luck / 10));
+                const totalCultivation = baseCultivation + luckBonus;
+                
+                const baseSpiritStones = 5 + Math.floor(gameData.tower.currentFloor / 5);
+                const totalSpiritStones = baseSpiritStones + Math.floor(baseSpiritStones * (gameData.player.luck / 20));
+                
+                addCombatLog(`获得了${totalCultivation}点修为和${totalSpiritStones}颗灵石！`);
+                
+                // 发放奖励
+                gameData.player.cultivation += totalCultivation;
+                gameData.player.spiritStones += totalSpiritStones;
+                
+                // 更新最高层数
+                if (gameData.tower.currentFloor > gameData.player.maxFloor) {
+                    gameData.player.maxFloor = gameData.tower.currentFloor;
+                    addCombatLog(`<span class="text-accent">恭喜！刷新了最高记录：${gameData.player.maxFloor}层</span>`);
+                }
+                
+                // 恢复部分生命值
+                gameData.player.health = Math.min(gameData.player.health + Math.floor(gameData.player.maxHealth * 0.2), gameData.player.maxHealth);
+                
+                // 进入下一层
+                gameData.tower.currentFloor++;
+                generateMonster();
+            }
+            
+            // 启用战斗按钮
+            elements.fightBtn.disabled = false;
+            elements.autoFightBtn.disabled = false;
+            
+            updateUI();
+        }
+
+        // 玩家攻击
+        async function playerAttack() {
+            // 计算基础伤害
+            let baseDamage = gameData.player.attack;
+            
+            // 检测装备词条效果（这里简化处理）
+            // TODO: 实现完整的词条系统
+            
+            // 计算防御修正
+            const defenseReduction = gameData.player.armorPenetration / 100;
+            const effectiveDefense = gameData.currentMonster.defense * (1 - defenseReduction);
+            
+            // 计算防御减免率
+            const defenseReductionRate = effectiveDefense / (effectiveDefense + 100);
+            
+            // 计算最终伤害
+            let finalDamage = baseDamage * (1 - defenseReductionRate);
+            
+            // 暴击判定
+            let isCrit = false;
+            if (Math.random() * 100 < gameData.player.critRate) {
+                isCrit = true;
+                finalDamage *= gameData.player.critDamage / 100;
+            }
+            
+            // 伤害保底
+            finalDamage = Math.max(Math.floor(finalDamage), 1);
+            
+            // 应用伤害
+            gameData.currentMonster.health -= finalDamage;
+            
+            // 吸血效果
+            if (gameData.player.vampirism > 0) {
+                const healAmount = Math.floor(finalDamage * (gameData.player.vampirism / 100));
+                gameData.player.health = Math.min(gameData.player.health + healAmount, gameData.player.maxHealth);
+                addCombatLog(`你吸取了${healAmount}点生命值！`);
+            }
+            
+            // 记录日志
+            if (isCrit) {
+                addCombatLog(`<span class="text-red-600">你对${gameData.currentMonster.name}造成了${finalDamage}点暴击伤害！</span>`);
+            } else {
+                addCombatLog(`你对${gameData.currentMonster.name}造成了${finalDamage}点伤害！`);
+            }
+            
+            updateUI();
+        }
+
+        // 怪物攻击
+        async function monsterAttack() {
+            // 计算基础伤害
+            let baseDamage = gameData.currentMonster.attack;
+            
+            // 计算防御修正
+            const effectiveDefense = gameData.player.defense;
+            
+            // 计算防御减免率
+            const defenseReductionRate = effectiveDefense / (effectiveDefense + 100);
+            
+            // 计算最终伤害
+            let finalDamage = baseDamage * (1 - defenseReductionRate);
+            
+            // 伤害保底
+            finalDamage = Math.max(Math.floor(finalDamage), 1);
+            
+            // 应用伤害
+            gameData.player.health -= finalDamage;
+            
+            // 记录日志
+            addCombatLog(`${gameData.currentMonster.name}对你造成了${finalDamage}点伤害！`);
+            
+            updateUI();
+        }
+
+        // 生成怪物
+        function generateMonster() {
+            const floor = gameData.tower.currentFloor;
+            const isElite = floor % 5 === 0 && floor % 10 !== 0;
+            const isBoss = floor % 10 === 0;
+            
+            let monsterLevel = Math.min(1, Math.floor(floor / 2)) + gameData.player.level;
+            let healthMultiplier = 1;
+            let attackMultiplier = 1;
+            let defenseMultiplier = 1;
+            let monsterType = "普通";
+            let monsterName = "";
+            
+            // 精英和BOSS强化
+            if (isElite) {
+                monsterType = "精英";
+                healthMultiplier = 2;
+                attackMultiplier = 1.5;
+                defenseMultiplier = 1.3;
+            } else if (isBoss) {
+                monsterType = "BOSS";
+                healthMultiplier = 4;
+                attackMultiplier = 2;
+                defenseMultiplier = 1.5;
+            }
+            
+            // 怪物名称
+            const normalMonsters = ["妖狼", "精怪", "邪修", "恶灵", "妖兽"];
+            const eliteMonsters = ["狂暴妖狼", "千年精怪", "魔道长老", "厉鬼", "变异妖兽"];
+            const bossMonsters = ["妖狼王", "精怪王", "魔道护法", "鬼王", "妖兽领主"];
+            
+            if (isBoss) {
+                monsterName = bossMonsters[Math.floor(Math.random() * bossMonsters.length)];
+            } else if (isElite) {
+                monsterName = eliteMonsters[Math.floor(Math.random() * eliteMonsters.length)];
+            } else {
+                monsterName = normalMonsters[Math.floor(Math.random() * normalMonsters.length)];
+            }
+            
+            // 设置怪物属性
+            gameData.currentMonster = {
+                name: monsterName,
+                level: monsterLevel,
+                type: monsterType,
+                health: Math.floor((50 + floor * 5) * healthMultiplier),
+                maxHealth: Math.floor((50 + floor * 5) * healthMultiplier),
+                attack: Math.floor((8 + floor * 0.8) * attackMultiplier),
+                defense: Math.floor((3 + floor * 0.3) * defenseMultiplier)
+            };
+        }
+
+        // 生成突破选项
+        function generateCultivateOptions() {
+            elements.cultivateOptions.innerHTML = '';
+            
+            // 属性类型
+            const properties = [
+                { name: "攻击", min: 3, max: 8, base: gameData.player.attack },
+                { name: "防御", min: 2, max: 5, base: gameData.player.defense },
+                { name: "生命", min: 30, max: 80, base: gameData.player.maxHealth },
+                { name: "暴击率", min: 1, max: 3, base: gameData.player.critRate, suffix: "%" },
+                { name: "暴击伤害", min: 5, max: 15, base: gameData.player.critDamage, suffix: "%" },
+                { name: "穿甲", min: 1, max: 3, base: gameData.player.armorPenetration, suffix: "%" },
+                { name: "吸血", min: 1, max: 3, base: gameData.player.vampirism, suffix: "%" },
+                { name: "幸运", min: 1, max: 2, base: gameData.player.luck }
+            ];
+            
+            // 生成3个选项
+            for (let i = 0; i < 3; i++) {
+                const option = createCultivateOption(properties);
+                elements.cultivateOptions.appendChild(option);
+            }
+            
+            // 添加刷新事件
+            document.querySelectorAll('.refresh-option').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const optionElement = this.parentElement;
+                    const remainingRefreshes = parseInt(this.innerHTML.match(/\((\d+)\)/)[1]);
+                    
+                    if (remainingRefreshes > 0) {
+                        const newRemaining = remainingRefreshes - 1;
+                        this.innerHTML = `刷新 <i class="fa fa-refresh"></i> (${newRemaining}次)`;
+                        
+                        // 重新生成这个选项
+                        const properties = [
+                            { name: "攻击", min: 3, max: 8, base: gameData.player.attack },
+                            { name: "防御", min: 2, max: 5, base: gameData.player.defense },
+                            { name: "生命", min: 30, max: 80, base: gameData.player.maxHealth },
+                            { name: "暴击率", min: 1, max: 3, base: gameData.player.critRate, suffix: "%" },
+                            { name: "暴击伤害", min: 5, max: 15, base: gameData.player.critDamage, suffix: "%" },
+                            { name: "穿甲", min: 1, max: 3, base: gameData.player.armorPenetration, suffix: "%" },
+                            { name: "吸血", min: 1, max: 3, base: gameData.player.vampirism, suffix: "%" },
+                            { name: "幸运", min: 1, max: 2, base: gameData.player.luck }
+                        ];
+                        
+                        const property = properties[Math.floor(Math.random() * properties.length)];
+                        const value = Math.floor(Math.random() * (property.max - property.min + 1)) + property.min;
+                        const suffix = property.suffix || "";
+                        
+                        optionElement.querySelector('p').textContent = `${property.name} +${value}${suffix}`;
+                        optionElement.dataset.property = property.name;
+                        optionElement.dataset.value = value;
+                    }
+                });
+            });
+            
+            // 添加选择事件
+            document.querySelectorAll('.cultivate-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    const property = this.dataset.property;
+                    const value = parseInt(this.dataset.value);
+                    
+                    applyCultivation(property, value);
+                    elements.cultivateModal.classList.add('hidden');
+                });
+            });
+        }
+
+        // 创建突破选项元素
+        function createCultivateOption(properties) {
+            const property = properties[Math.floor(Math.random() * properties.length)];
+            const value = Math.floor(Math.random() * (property.max - property.min + 1)) + property.min;
+            const suffix = property.suffix || "";
+            
+            const div = document.createElement('div');
+            div.className = 'cultivate-option p-3 border border-secondary/30 rounded hover:bg-secondary/5 cursor-pointer';
+            div.dataset.property = property.name;
+            div.dataset.value = value;
+            
+            div.innerHTML = `
+                <p>${property.name} +${value}${suffix}</p>
+                <button class="refresh-option text-xs text-secondary mt-1">刷新 <i class="fa fa-refresh"></i> (2次)</button>
+            `;
+            
+            return div;
+        }
+
+        // 应用突破
+        function applyCultivation(property, value) {
+            // 消耗修为
+            gameData.player.cultivation -= gameData.player.requiredCultivation;
+            
+            // 提升等级
+            gameData.player.level++;
+            
+            // 随机小幅增长所有属性
+            gameData.player.attack += Math.floor(Math.random() * 3) + 1;
+            gameData.player.defense += Math.floor(Math.random() * 2) + 1;
+            gameData.player.maxHealth += Math.floor(Math.random() * 20) + 10;
+            gameData.player.health = gameData.player.maxHealth; // 突破后满血
+            gameData.player.critRate += Math.random() < 0.3 ? (Math.random() * 0.5 + 0.5) : 0;
+            gameData.player.critDamage += Math.random() < 0.2 ? (Math.random() * 5 + 5) : 0;
+            
+            // 应用选择的属性提升
+            switch(property) {
+                case "攻击":
+                    gameData.player.attack += value;
+                    break;
+                case "防御":
+                    gameData.player.defense += value;
+                    break;
+                case "生命":
+                    gameData.player.maxHealth += value;
+                    gameData.player.health = gameData.player.maxHealth;
+                    break;
+                case "暴击率":
+                    gameData.player.critRate += value;
+                    break;
+                case "暴击伤害":
+                    gameData.player.critDamage += value;
+                    break;
+                case "穿甲":
+                    gameData.player.armorPenetration += value;
+                    break;
+                case "吸血":
+                    gameData.player.vampirism += value;
+                    break;
+                case "幸运":
+                    gameData.player.luck += value;
+                    break;
+            }
+            
+            // 计算下一级所需修为
+            gameData.player.requiredCultivation = Math.floor(gameData.player.requiredCultivation * 1.5);
+            
+            // 记录日志
+            addCombatLog(`<span class="text-accent">恭喜！你突破到了${getCultivationStage(gameData.player.level)}，${property}提升了${value}！</span>`);
+            
+            updateUI();
+        }
+
+        // 刷新背包显示
+        function refreshBackpack(filter = 'all') {
+            elements.equipmentList.innerHTML = '';
+            
+            const filteredEquipment = filter === 'all' 
+                ? gameData.equipment.inventory 
+                : gameData.equipment.inventory.filter(item => item.type === filter);
+            
+            if (filteredEquipment.length === 0) {
+                const emptyMsg = document.createElement('div');
+                emptyMsg.className = 'col-span-2 text-center py-6 text-secondary italic';
+                emptyMsg.textContent = '没有找到装备';
+                elements.equipmentList.appendChild(emptyMsg);
+                return;
+            }
+            
+            filteredEquipment.forEach(item => {
+                const slotNames = {
+                    'weapon': '武器',
+                    'armor': ' armor',
+                    'helmet': '头盔',
+                    'necklace': '项链',
+                    'ring': '戒指',
+                    'treasure': '法宝'
+                };
+                
+                const div = document.createElement('div');
+                div.className = `equipment-item p-3 border border-secondary/30 rounded hover:bg-secondary/5 cursor-pointer`;
+                div.dataset.id = item.id;
+                div.dataset.type = item.type;
+                div.dataset.quality = item.quality;
+                
+                let propertiesHtml = '';
+                item.properties.forEach(prop => {
+                    propertiesHtml += `<p class="text-sm mt-1">${prop.name} +${prop.value}${prop.suffix || ''}</p>`;
+                });
+                
+                div.innerHTML = `
+                    <div class="flex justify-between">
+                        <p class="font-bold quality-${item.quality}">${item.name}</p>
+                        <span class="text-xs bg-secondary/10 px-1 rounded">${slotNames[item.type]}</span>
+                    </div>
+                    ${propertiesHtml}
+                    <p class="text-xs text-secondary mt-1">需要等级: ${item.requiredLevel}</p>
+                `;
+                
+                div.addEventListener('click', () => showEquipmentDetail(item.id));
+                elements.equipmentList.appendChild(div);
+            });
+        }
+
+        // 显示装备详情
+        function showEquipmentDetail(equipmentId) {
+            const equipment = gameData.equipment.inventory.find(item => item.id === equipmentId);
+            if (!equipment) return;
+            
+            const slotNames = {
+                'weapon': '武器',
+                'armor': ' armor',
+                'helmet': '头盔',
+                'necklace': '项链',
+                'ring': '戒指',
+                'treasure': '法宝'
+            };
+            
+            // 当前装备的同类型装备
+            const currentEquipment = gameData.equipment.equipped[equipment.type];
+            
+            // 更新详情UI
+            elements.equipmentDetailName.textContent = equipment.name;
+            elements.equipmentDetailName.className = `text-2xl font-bold quality-${equipment.quality}`;
+            elements.equipmentDetailType.textContent = slotNames[equipment.type];
+            
+            // 属性列表
+            elements.equipmentDetailProperties.innerHTML = '';
+            equipment.properties.forEach(prop => {
+                const li = document.createElement('li');
+                li.textContent = `${prop.name} +${prop.value}${prop.suffix || ''}`;
+                elements.equipmentDetailProperties.appendChild(li);
+            });
+            
+            // 词条列表
+            elements.equipmentDetailAttributes.innerHTML = '';
+            if (equipment.attributes && equipment.attributes.length > 0) {
+                equipment.attributes.forEach(attr => {
+                    const li = document.createElement('li');
+                    li.textContent = `${attr.name}: ${attr.description}`;
+                    elements.equipmentDetailAttributes.appendChild(li);
+                });
+            } else {
+                const li = document.createElement('li');
+                li.textContent = '无';
+                elements.equipmentDetailAttributes.appendChild(li);
+            }
+            
+            // 需求等级
+            elements.equipmentDetailRequiredLevel.textContent = equipment.requiredLevel;
+            
+            // 装备对比
+            elements.equipmentComparison.innerHTML = '';
+            if (currentEquipment) {
+                const currentP = document.createElement('p');
+                currentP.textContent = `当前: ${currentEquipment.name}`;
+                elements.equipmentComparison.appendChild(currentP);
+                
+                // 比较主要属性
+                equipment.properties.forEach(prop => {
+                    const currentProp = currentEquipment.properties.find(p => p.name === prop.name);
+                    const diffP = document.createElement('p');
+                    
+                    if (currentProp) {
+                        const diff = prop.value - currentProp.value;
+                        if (diff > 0) {
+                            diffP.className = 'text-green-600';
+                            diffP.textContent = `${prop.name} +${diff}`;
+                        } else if (diff < 0) {
+                            diffP.className = 'text-red-600';
+                            diffP.textContent = `${prop.name} ${diff}`;
+                        } else {
+                            diffP.textContent = `${prop.name} 持平`;
+                        }
+                    } else {
+                        diffP.className = 'text-green-600';
+                        diffP.textContent = `${prop.name} +${prop.value}`;
+                    }
+                    
+                    elements.equipmentComparison.appendChild(diffP);
+                });
+            } else {
+                const p = document.createElement('p');
+                p.textContent = '当前: 无';
+                elements.equipmentComparison.appendChild(p);
+                
+                equipment.properties.forEach(prop => {
+                    const diffP = document.createElement('p');
+                    diffP.className = 'text-green-600';
+                    diffP.textContent = `${prop.name} +${prop.value}`;
+                    elements.equipmentComparison.appendChild(diffP);
+                });
+            }
+            
+            // 装备按钮状态
+            elements.equipBtn.disabled = gameData.player.level < equipment.requiredLevel;
+            elements.equipBtn.dataset.id = equipmentId;
+            
+            // 显示模态框
+            elements.equipmentModal.classList.remove('hidden');
+        }
+
+        // 装备物品
+        function equipItem(equipmentId) {
+            const index = gameData.equipment.inventory.findIndex(item => item.id === equipmentId);
+            if (index === -1) return;
+            
+            const equipment = gameData.equipment.inventory[index];
+            
+            // 检查等级要求
+            if (gameData.player.level < equipment.requiredLevel) {
+                alert(`需要${equipment.requiredLevel}级才能装备`);
+                return;
+            }
+            
+            // 如果已有装备，放入背包
+            const currentEquipment = gameData.equipment.equipped[equipment.type];
+            if (currentEquipment) {
+                gameData.equipment.inventory.push(currentEquipment);
+            }
+            
+            // 装备新物品
+            gameData.equipment.equipped[equipment.type] = equipment;
+            
+            // 从背包移除
+            gameData.equipment.inventory.splice(index, 1);
+            
+            // 记录日志
+            addCombatLog(`你装备了${equipment.name}`);
+            
+            // 关闭模态框并刷新背包
+            elements.equipmentModal.classList.add('hidden');
+            refreshBackpack(document.querySelector('.filter-btn.active').dataset.filter);
+            
+            updateUI();
+        }
+
+        // 炼制装备
+        function craftEquipment(isAdvanced = false) {
+            const cost = isAdvanced ? 200 : 50;
+            
+            // 检查灵石是否足够
+            if (gameData.player.spiritStones < cost) {
+                addCombatLog(`<span class="text-red-600">灵石不足，无法炼制！</span>`);
+                return;
+            }
+            
+            // 消耗灵石
+            gameData.player.spiritStones -= cost;
+            
+            // 生成装备品质
+            const qualities = ["common", "rare", "epic", "legendary", "mythic"];
+            let qualityChance = [0.6, 0.25, 0.1, 0.04, 0.01];
+            
+            // 高级炼制提升概率
+            if (isAdvanced) {
+                qualityChance = [0.3, 0.3, 0.2, 0.15, 0.05];
+            }
+            
+            // 幸运值影响概率
+            const luckFactor = 1 + (gameData.player.luck / 100);
+            qualityChance = qualityChance.map((chance, index) => {
+                // 越高品质，幸运影响越大
+                return chance * Math.pow(luckFactor, index + 1);
+            });
+            
+            // 归一化概率
+            const total = qualityChance.reduce((a, b) => a + b, 0);
+            qualityChance = qualityChance.map(chance => chance / total);
+            
+            // 随机选择品质
+            let qualityIndex = 0;
+            let random = Math.random();
+            while (random > 0) {
+                random -= qualityChance[qualityIndex];
+                if (random <= 0) break;
+                qualityIndex++;
+            }
+            const quality = qualities[Math.min(qualityIndex, qualities.length - 1)];
+            
+            // 生成装备类型
+            const types = ["weapon", "armor", "helmet", "necklace", "ring", "treasure"];
+            const type = types[Math.floor(Math.random() * types.length)];
+            
+            // 装备名称
+            const baseNames = {
+                "weapon": ["铁剑", "铜刀", "木杖", "钢斧", "玉匕"],
+                "armor": ["皮甲", "布袍", "铁甲", "藤甲", "玉衣"],
+                "helmet": ["皮帽", "铁盔", "布冠", "铜盔", "玉冠"],
+                "necklace": ["石珠", "铜链", "玉坠", "金链", "灵珠"],
+                "ring": ["铁环", "铜戒", "银戒", "金戒", "玉戒"],
+                "treasure": ["小瓶", "符箓", "小鼎", "玉佩", "令牌"]
+            };
+            
+            const rareNames = {
+                "weapon": ["精铁剑", "锋利刀", "法杖", "战斧", "毒匕"],
+                "armor": ["坚韧皮甲", "法袍", "精铁甲", "防御藤甲", "宝玉衣"],
+                "helmet": ["战盔", "防御头盔", "法冠", "精铜盔", "灵玉冠"],
+                "necklace": ["灵珠链", "防御项链", "气血项链", "攻击项链", "灵力项链"],
+                "ring": ["力量戒指", "防御戒指", "气血戒指", "攻击戒指", "灵力戒指"],
+                "treasure": ["灵液瓶", "攻击符箓", "炼丹鼎", "防御玉佩", "召唤令牌"]
+            };
+            
+            const epicNames = {
+                "weapon": ["玄铁剑", "宝刀", "魔杖", "巨斧", "神匕"],
+                "armor": ["龙皮甲", "仙袍", "玄铁甲", "万年藤甲", "仙玉衣"],
+                "helmet": ["将军盔", "仙头盔", "帝冠", "玄铜盔", "仙玉冠"],
+                "necklace": ["神器珠链", "仙防项链", "圣气血链", "神攻击链", "仙灵力链"],
+                "ring": ["神力戒指", "仙防戒指", "圣气血戒", "神攻击戒", "仙灵力戒"],
+                "treasure": ["仙液瓶", "神攻击符", "仙炼丹鼎", "神防御佩", "圣召唤令"]
+            };
+            
+            let name;
+            if (quality === "common") {
+                name = baseNames[type][Math.floor(Math.random() * baseNames[type].length)];
+            } else if (quality === "rare") {
+                name = rareNames[type][Math.floor(Math.random() * rareNames[type].length)];
+            } else if (quality === "epic") {
+                name = epicNames[type][Math.floor(Math.random() * epicNames[type].length)];
+            } else if (quality === "legendary") {
+                name = "传说之" + baseNames[type][Math.floor(Math.random() * baseNames[type].length)];
+            } else { // mythic
+                name = "神话之" + baseNames[type][Math.floor(Math.random() * baseNames[type].length)];
+            }
+            
+            // 生成属性数量
+            let propertyCount = 1;
+            if (quality === "rare") propertyCount = 2;
+            else if (quality === "epic") propertyCount = 3;
+            else if (quality === "legendary") propertyCount = 4;
+            else if (quality === "mythic") propertyCount = 5;
+            
+            // 属性类型
+            const possibleProperties = [];
+            switch(type) {
+                case "weapon":
+                    possibleProperties.push(
+                        { name: "攻击", min: 5, max: 15 },
+                        { name: "暴击率", min: 1, max: 5, suffix: "%" },
+                        { name: "暴击伤害", min: 5, max: 20, suffix: "%" },
+                        { name: "穿甲", min: 1, max: 5, suffix: "%" }
+                    );
+                    break;
+                case "armor":
+                case "helmet":
+                    possibleProperties.push(
+                        { name: "防御", min: 3, max: 10 },
+                        { name: "生命", min: 20, max: 100 },
+                        { name: "吸血", min: 1, max: 3, suffix: "%" }
+                    );
+                    break;
+                case "necklace":
+                    possibleProperties.push(
+                        { name: "生命", min: 30, max: 150 },
+                        { name: "攻击", min: 3, max: 10 },
+                        { name: "防御", min: 2, max: 8 }
+                    );
+                    break;
+                case "ring":
+                    possibleProperties.push(
+                        { name: "攻击", min: 2, max: 8 },
+                        { name: "防御", min: 1, max: 5 },
+                        { name: "暴击率", min: 0.5, max: 3, suffix: "%" },
+                        { name: "吸血", min: 0.5, max: 2, suffix: "%" }
+                    );
+                    break;
+                case "treasure":
+                    possibleProperties.push(
+                        { name: "攻击", min: 4, max: 12 },
+                        { name: "防御", min: 2, max: 8 },
+                        { name: "生命", min: 25, max: 120 },
+                        { name: "暴击率", min: 1, max: 4, suffix: "%" },
+                        { name: "幸运", min: 1, max: 3 }
+                    );
+                    break;
+            }
+            
+            // 生成属性
+            const properties = [];
+            for (let i = 0; i < propertyCount; i++) {
+                // 避免重复属性
+                let availableProps = possibleProperties;
+                if (i > 0) {
+                    availableProps = possibleProperties.filter(prop => 
+                        !properties.some(p => p.name === prop.name)
+                    );
+                }
+                
+                if (availableProps.length === 0) availableProps = possibleProperties;
+                
+                const prop = availableProps[Math.floor(Math.random() * availableProps.length)];
+                const value = quality === "common" ? 
+                    Math.floor(Math.random() * (prop.max - prop.min + 1) / 2 + prop.min) :
+                    Math.floor(Math.random() * (prop.max - prop.min + 1) + prop.min);
+                
+                properties.push({
+                    name: prop.name,
+                    value: value,
+                    suffix: prop.suffix
+                });
+            }
+            
+            // 生成特殊词条
+            const attributes = [];
+            const attributeList = [
+                { name: "久战", description: "敌人血量低于25%时，对其伤害增加20%" },
+                { name: "狂怒", description: "单次攻击伤害超过100时，暴击率提升15%，持续3秒" },
+                { name: "护主", description: "生命值低于30%时，生成一个吸收伤害的护盾" },
+                { name: "破甲", description: "攻击时有20%几率无视敌人30%的防御" },
+                { name: "吸血", description: "攻击时吸取5%的伤害作为生命值" },
+                { name: "反击", description: "受到攻击时有10%几率反击，造成50%的伤害" },
+                { name: "致命", description: "暴击伤害增加20%" },
+                { name: "闪避", description: "有5%几率闪避敌人的攻击" },
+                { name: "坚毅", description: "生命值低于50%时，防御力提升10%" },
+                { name: "勇猛", description: "攻击力提升5%，但受到的伤害增加2%" },
+                { name: "神速", description: "攻击速度提升10%" },
+                { name: "幸运", description: "所有奖励增加5%" },
+                { name: "灵气", description: "修为获取增加10%" },
+                { name: "聚宝", description: "灵石获取增加10%" },
+                { name: "威慑", description: "降低敌人5%的攻击力" }
+            ];
+            
+            // 传说和神话品质有特殊词条
+            if (quality === "legendary") {
+                const attr = attributeList[Math.floor(Math.random() * attributeList.length)];
+                attributes.push(attr);
+            } else if (quality === "mythic") {
+                // 神话品质有两个词条
+                let attr1 = attributeList[Math.floor(Math.random() * attributeList.length)];
+                let attr2 = attributeList[Math.floor(Math.random() * attributeList.length)];
+                while (attr1.name === attr2.name) {
+                    attr2 = attributeList[Math.floor(Math.random() * attributeList.length)];
+                }
+                attributes.push(attr1, attr2);
+            }
+            
+            // 生成装备ID
+            const equipmentId = Date.now();
+            
+            // 创建装备对象
+            const newEquipment = {
+                id: equipmentId,
+                name: name,
+                type: type,
+                quality: quality,
+                requiredLevel: Math.max(1, gameData.player.level - 2 + Math.floor(Math.random() * 5)),
+                properties: properties,
+                attributes: attributes
+            };
+            
+            // 添加到背包
+            gameData.equipment.inventory.push(newEquipment);
+            
+            // 更新最后炼制记录
+            gameData.lastCrafted = `${name} (${getQualityName(quality)})`;
+            
+            // 记录日志
+            addCombatLog(`<span class="quality-${quality}">你炼制出了${name}（${getQualityName(quality)}）！</span>`);
+            
+            updateUI();
+        }
+
+        // 获取品质名称
+        function getQualityName(quality) {
+            const names = {
+                "common": "普通",
+                "rare": "稀有",
+                "epic": "史诗",
+                "legendary": "传说",
+                "mythic": "神话"
+            };
+            return names[quality] || quality;
+        }
+
+        // 自动爬塔
+        async function autoFight() {
+            // 禁用按钮
+            elements.autoFightBtn.disabled = true;
+            elements.fightBtn.disabled = true;
+            
+            let continueFighting = true;
+            let consecutiveWins = 0;
+            
+            // 更新按钮文本
+            elements.autoFightBtn.innerHTML = '<i class="fa fa-stop mr-1"></i> 停止自动爬塔';
+            elements.autoFightBtn.removeEventListener('click', autoFight);
+            elements.autoFightBtn.addEventListener('click', function stopAutoFight() {
+                continueFighting = false;
+                elements.autoFightBtn.innerHTML = '<i class="fa fa-play-circle mr-1"></i> 自动爬塔';
+                elements.autoFightBtn.removeEventListener('click', stopAutoFight);
+                elements.autoFightBtn.addEventListener('click', autoFight);
+                elements.autoFightBtn.disabled = false;
+                elements.fightBtn.disabled = false;
+            });
+            
+            // 自动战斗循环
+            while (continueFighting && consecutiveWins < 10) {
+                // 检查是否能打赢
+                const playerPower = gameData.player.attack * 2 + gameData.player.defense + gameData.player.maxHealth / 10;
+                const monsterPower = gameData.currentMonster.attack * 2 + gameData.currentMonster.defense + gameData.currentMonster.maxHealth / 10;
+                
+                // 如果实力差距太大，停止自动战斗
+                if (playerPower * 0.7 < monsterPower) {
+                    addCombatLog(`<span class="text-yellow-600">实力差距过大，自动爬塔停止。</span>`);
+                    break;
+                }
+                
+                // 开始战斗
+                await startCombat();
+                
+                // 检查是否胜利
+                if (gameData.player.health > 0) {
+                    consecutiveWins++;
+                } else {
+                    consecutiveWins = 0;
+                    // 失败后休息一下
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+                
+                // 每5场战斗检查一次是否继续
+                if (consecutiveWins % 5 === 0 && consecutiveWins > 0) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+            }
+            
+            // 恢复按钮状态
+            if (continueFighting) {
+                elements.autoFightBtn.innerHTML = '<i class="fa fa-play-circle mr-1"></i> 自动爬塔';
+                elements.autoFightBtn.removeEventListener('click', arguments.callee);
+                elements.autoFightBtn.addEventListener('click', autoFight);
+                elements.autoFightBtn.disabled = false;
+                elements.fightBtn.disabled = false;
+                
+                if (consecutiveWins >= 10) {
+                    addCombatLog(`<span class="text-yellow-600">已连续通关10层，自动爬塔停止。</span>`);
+                }
+            }
+        }
+
+        // 领取离线收益
+        function collectRewards() {
+            // 简单处理，实际应根据离线时间计算
+            gameData.player.cultivation += gameData.player.offlineRewards.cultivation;
+            gameData.player.spiritStones += gameData.player.offlineRewards.spiritStones;
+            
+            addCombatLog(`<span class="text-green-600">你领取了离线收益：${gameData.player.offlineRewards.cultivation}修为，${gameData.player.offlineRewards.spiritStones}灵石</span>`);
+            
+            updateUI();
+        }
+
+        // 初始化事件监听
+        function initEventListeners() {
+            // 修为突破按钮
+            elements.cultivateBtn.addEventListener('click', () => {
+                if (gameData.player.cultivation >= gameData.player.requiredCultivation) {
+                    generateCultivateOptions();
+                    elements.cultivateModal.classList.remove('hidden');
+                }
+            });
+            
+            // 关闭突破模态框
+            elements.closeCultivateModal.addEventListener('click', () => {
+                elements.cultivateModal.classList.add('hidden');
+            });
+            elements.cultivateModalBackdrop.addEventListener('click', () => {
+                elements.cultivateModal.classList.add('hidden');
+            });
+            
+            // 背包按钮
+            elements.backpackBtn.addEventListener('click', () => {
+                refreshBackpack();
+                elements.backpackModal.classList.remove('hidden');
+            });
+            
+            // 关闭背包模态框
+            elements.closeBackpackModal.addEventListener('click', () => {
+                elements.backpackModal.classList.add('hidden');
+            });
+            elements.backpackModalBackdrop.addEventListener('click', () => {
+                elements.backpackModal.classList.add('hidden');
+            });
+            
+            // 关闭装备详情模态框
+            elements.closeEquipmentModal.addEventListener('click', () => {
+                elements.equipmentModal.classList.add('hidden');
+            });
+            elements.equipmentModalBackdrop.addEventListener('click', () => {
+                elements.equipmentModal.classList.add('hidden');
+            });
+            
+            // 装备按钮
+            elements.equipBtn.addEventListener('click', function() {
+                const equipmentId = parseInt(this.dataset.id);
+                equipItem(equipmentId);
+            });
+            
+            // 装备槽点击
+            document.querySelectorAll('.equipment-slot').forEach(slot => {
+                slot.addEventListener('click', function() {
+                    const slotType = this.dataset.slot;
+                    refreshBackpack(slotType);
+                    elements.backpackModal.classList.remove('hidden');
+                    
+                    // 激活对应过滤器
+                    document.querySelectorAll('.filter-btn').forEach(btn => {
+                        if (btn.dataset.filter === slotType) {
+                            btn.click();
+                        }
+                    });
+                });
+            });
+            
+            // 过滤按钮
+            elements.filterBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // 更新活跃状态
+                    elements.filterBtns.forEach(b => {
+                        b.classList.remove('active', 'bg-primary', 'text-light');
+                        b.classList.add('bg-secondary/20');
+                    });
+                    this.classList.add('active', 'bg-primary', 'text-light');
+                    this.classList.remove('bg-secondary/20');
+                    
+                    // 刷新列表
+                    refreshBackpack(this.dataset.filter);
+                });
+            });
+            
+            // 战斗按钮
+            elements.fightBtn.addEventListener('click', startCombat);
+            
+            // 自动战斗按钮
+            elements.autoFightBtn.addEventListener('click', autoFight);
+            
+            // 炼制按钮
+            elements.craftNormalBtn.addEventListener('click', () => craftEquipment(false));
+            elements.craftAdvancedBtn.addEventListener('click', () => craftEquipment(true));
+            
+            // 领取收益按钮
+            elements.collectRewardsBtn.addEventListener('click', collectRewards);
+        }
+
+        // 初始化游戏
+        function initGame() {
+            // 隐藏加载界面，显示游戏
+            setTimeout(() => {
+                elements.loadingScreen.classList.add('hidden');
+                elements.gameContainer.classList.remove('hidden');
+            }, 1500);
+            
+            // 生成初始怪物
+            generateMonster();
+            
+            // 初始化UI
+            updateUI();
+            
+            // 初始化事件监听
+            initEventListeners();
+        }
+
+        // 启动游戏
+        window.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>
