@@ -90,7 +90,7 @@ class AuthManager {
     // 加载玩家资料
     async loadPlayerProfile() {
         try {
-            const response = await gameAPI.getPlayerProfile();
+            const response = await gameAPI.getCurrentPlayerProfile();
             if (response && response.success && response.data) {
                 this.player = response.data;
                 this.updatePlayerUI();
@@ -100,33 +100,12 @@ class AuthManager {
             }
         } catch (error) {
             console.error('加载玩家资料失败:', error);
-
-            // 如果获取玩家资料失败，创建默认玩家数据
-            this.createDefaultPlayer();
-            return false;
+            this.showToast('加载玩家资料失败: ' + error.message, 'error');
+            throw error;
         }
     }
 
-    // 创建默认玩家数据
-    createDefaultPlayer() {
-        const username = document.getElementById('loginUsername')?.value || '玩家';
-        this.player = {
-            id: 1,
-            username: username,
-            nickname: username,
-            level: 1,
-            exp: 0,
-            expToNext: 100,
-            realm: '练气期',
-            spiritStones: 1000,
-            health: 100,
-            mana: 50,
-            attack: 10,
-            defense: 5,
-            currentExp: 0
-        };
-        this.updatePlayerUI();
-    }
+    
 
     // 登录
     async login() {
@@ -169,44 +148,9 @@ class AuthManager {
         } catch (error) {
             console.error('登录错误:', error);
             this.showToast('登录失败: ' + error.message, 'error');
-
-            // 登录失败时也显示游戏界面，但使用本地数据
-            this.fallbackToLocalMode(username);
+            this.showLoginPage();
         } finally {
             this.isLoading = false;
-            this.showLoading(false);
-        }
-    }
-
-    // 降级到本地模式
-    fallbackToLocalMode(username) {
-        console.warn('API不可用，切换到本地模式');
-
-        this.isAuthenticated = true;
-        this.currentUser = { username: username };
-        this.createDefaultPlayer();
-
-        this.showGamePage();
-        this.loadLocalGameData();
-    }
-
-    // 加载本地游戏数据
-    loadLocalGameData() {
-        this.showLoading(true);
-
-        try {
-            // 使用本地数据
-            this.renderSkills(this.getDefaultSkills());
-            this.renderEquipment(this.getDefaultEquipment());
-            this.renderInventory(this.getDefaultInventory());
-            this.renderQuests(this.getDefaultQuests());
-
-            this.updatePlayerUI();
-            this.showToast('本地游戏数据加载完成', 'success');
-        } catch (error) {
-            console.error('加载本地数据失败:', error);
-            this.showToast('加载数据失败: ' + error.message, 'error');
-        } finally {
             this.showLoading(false);
         }
     }
@@ -330,42 +274,21 @@ class AuthManager {
 
     // 加载游戏数据 - 修复认证检查逻辑
     async loadGameData() {
-        // 修复：检查认证状态，但允许降级到本地模式
         if (!this.isAuthenticated) {
             console.warn('用户未认证，无法加载游戏数据');
-
-            // 检查是否有本地保存的状态
-            if (this.loadGameState()) {
-                console.log('使用本地保存的游戏状态');
-                this.isAuthenticated = true;
-            } else {
-                this.showToast('请先登录', 'warning');
-                return;
-            }
+            this.showToast('请先登录', 'warning');
+            return;
         }
 
         this.showLoading(true);
 
         try {
-            // 尝试从API加载数据
-            const loaders = [
-                this.loadSkills(),
-                this.loadEquipment(),
-                this.loadInventory(),
-                this.loadQuests()
-            ];
-
-            await Promise.allSettled(loaders);
-
+            await this.loadPlayerProfile();
             this.updatePlayerUI();
-            this.showToast('游戏数据加载完成', 'success');
-
+            this.showToast('玩家数据加载完成', 'success');
         } catch (error) {
             console.error('加载游戏数据失败:', error);
             this.showToast('加载游戏数据失败: ' + error.message, 'error');
-
-            // API失败时使用本地数据
-            this.loadLocalGameData();
         } finally {
             this.showLoading(false);
         }
@@ -651,53 +574,7 @@ class AuthManager {
         }
     }
 
-    // 默认数据
-    getDefaultSkills() {
-        return [
-            {
-                id: 1,
-                name: '基础修炼法',
-                level: 1,
-                description: '提升基础修炼速度',
-                damage: 0,
-                cooldown: 0,
-                cost: 0
-            }
-        ];
-    }
-
-    getDefaultEquipment() {
-        return [
-            {
-                id: 1,
-                name: '木剑',
-                type: '武器',
-                attackBonus: 5
-            }
-        ];
-    }
-
-    getDefaultInventory() {
-        return [
-            {
-                id: 1,
-                name: '灵石',
-                type: '货币',
-                quantity: 1000
-            }
-        ];
-    }
-
-    getDefaultQuests() {
-        return [
-            {
-                id: 1,
-                title: '初次修炼',
-                description: '完成一次修炼来获得经验',
-                reward: '100经验'
-            }
-        ];
-    }
+    
 
     // 保存游戏状态
     saveGameState() {

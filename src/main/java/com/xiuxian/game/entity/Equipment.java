@@ -1,99 +1,75 @@
 package com.xiuxian.game.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.persistence.*;
 import java.time.LocalDateTime;
 
+@TableName("equipments")
 @Data
-@Entity
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "equipments")
 public class Equipment {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Integer id;
 
-    @Column(nullable = false, length = 100)
+    @TableField(value = "name")
     private String name;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @TableField(value = "description")
     private String description;
 
-    @Column(nullable = false, length = 20)
+    @TableField(value = "type")
     private String type; // 武器、防具、饰品等
 
-    @Column(nullable = false)
+    @TableField(value = "level")
     @Builder.Default
     private Integer level = 1;
 
-    @Column(nullable = false)
+    @TableField(value = "quality")
     @Builder.Default
     private Integer quality = 1; // 1-普通, 2-精良, 3-稀有, 4-史诗, 5-传说
 
-    @Column(name = "attack_bonus", nullable = false)
+    @TableField(value = "attack_bonus")
     @Builder.Default
     private Integer attackBonus = 0;
 
-    @Column(name = "defense_bonus", nullable = false)
+    @TableField(value = "defense_bonus")
     @Builder.Default
     private Integer defenseBonus = 0;
 
-    @Column(name = "health_bonus", nullable = false)
+    @TableField(value = "health_bonus")
     @Builder.Default
     private Integer healthBonus = 0;
 
-    @Column(name = "mana_bonus", nullable = false)
+    @TableField(value = "mana_bonus")
     @Builder.Default
     private Integer manaBonus = 0;
 
-    @Column(name = "speed_bonus", nullable = false)
+    @TableField(value = "speed_bonus")
     @Builder.Default
     private Integer speedBonus = 0;
 
-    @Column(name = "required_level", nullable = false)
+    @TableField(value = "required_level")
     @Builder.Default
     private Integer requiredLevel = 1;
 
-    @Column(nullable = false)
+    @TableField(value = "price")
     @Builder.Default
     private Integer price = 0;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @TableField(value = "created_at")
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at", nullable = false)
+    @TableField(value = "updated_at")
     private LocalDateTime updatedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        if (createdAt == null) {
-            createdAt = LocalDateTime.now();
-        }
-        if (updatedAt == null) {
-            updatedAt = LocalDateTime.now();
-        }
-        // 设置默认值
-        if (level == null) level = 1;
-        if (quality == null) quality = 1;
-        if (attackBonus == null) attackBonus = 0;
-        if (defenseBonus == null) defenseBonus = 0;
-        if (healthBonus == null) healthBonus = 0;
-        if (manaBonus == null) manaBonus = 0;
-        if (speedBonus == null) speedBonus = 0;
-        if (requiredLevel == null) requiredLevel = 1;
-        if (price == null) price = 0;
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
 
     // 业务方法
     public boolean canEquip(int playerLevel) {

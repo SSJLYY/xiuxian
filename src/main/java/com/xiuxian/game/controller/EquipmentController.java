@@ -6,6 +6,7 @@ import com.xiuxian.game.entity.PlayerEquipment;
 import com.xiuxian.game.service.EquipmentService;
 import com.xiuxian.game.service.PlayerService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,6 +15,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/equipment")
 @RequiredArgsConstructor
+@ConditionalOnProperty(value = "app.features.equipment.enabled", havingValue = "true")
 public class EquipmentController {
 
     private final EquipmentService equipmentService;

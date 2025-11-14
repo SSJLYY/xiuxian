@@ -1,54 +1,50 @@
 package com.xiuxian.game.entity;
 
-import javax.persistence.*;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "quests")
+@TableName("quests")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class Quest {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Integer id;
 
-    @Column(nullable = false, length = 100)
+    @TableField(value = "title")
     private String title;
 
-    @Column(nullable = false, length = 500)
+    @TableField(value = "description")
     private String description;
 
-    @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
-    private QuestType type;
+    @TableField(value = "type")
+    private String type;
 
-    @Column(nullable = false)
+    @TableField(value = "required_amount")
     private Integer requiredAmount;
 
-    @Column(nullable = false)
+    @TableField(value = "reward_exp")
     private Integer rewardExp;
 
-    @Column(nullable = false)
+    @TableField(value = "reward_spirit_stones")
     private Integer rewardSpiritStones;
 
-    @Column(nullable = false)
+    @TableField(value = "reward_contribution_points")
     private Integer rewardContributionPoints;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @TableField(value = "created_at")
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at")
+    @TableField(value = "updated_at")
     private LocalDateTime updatedAt;
 
     public enum QuestType {

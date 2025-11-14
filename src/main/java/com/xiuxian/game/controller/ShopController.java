@@ -4,6 +4,7 @@ import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.dto.response.ShopItemResponse;
 import com.xiuxian.game.service.ShopService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,6 +13,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/shop")
 @RequiredArgsConstructor
+@ConditionalOnProperty(value = "app.features.shop.enabled", havingValue = "true")
 public class ShopController {
 
     private final ShopService shopService;

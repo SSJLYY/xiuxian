@@ -1,54 +1,49 @@
 package com.xiuxian.game.entity;
 
-import javax.persistence.*;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "player_quests")
+@TableName("player_quests")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class PlayerQuest {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Integer id;
 
-    @ManyToOne
-    @JoinColumn(name = "player_id", nullable = false)
-    private PlayerProfile player;
+    @TableField(value = "player_id")
+    private Integer playerId;
 
-    @ManyToOne
-    @JoinColumn(name = "quest_id", nullable = false)
-    private Quest quest;
+    @TableField(value = "quest_id")
+    private Integer questId;
 
-    @Column(nullable = false)
+    @TableField(value = "current_progress")
     @Builder.Default
     private Integer currentProgress = 0;
 
-    @Column(nullable = false)
+    @TableField(value = "completed")
     @Builder.Default
     private Boolean completed = false;
 
-    @Column(nullable = false)
+    @TableField(value = "reward_claimed")
     @Builder.Default
     private Boolean rewardClaimed = false;
 
-    @Column(name = "completed_at")
+    @TableField(value = "completed_at")
     private LocalDateTime completedAt;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @TableField(value = "created_at")
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at")
+    @TableField(value = "updated_at")
     private LocalDateTime updatedAt;
 }

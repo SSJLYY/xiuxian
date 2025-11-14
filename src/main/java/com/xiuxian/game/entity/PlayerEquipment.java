@@ -1,65 +1,49 @@
 package com.xiuxian.game.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.persistence.*;
 import java.time.LocalDateTime;
 
+@TableName("player_equipment")
 @Data
-@Entity
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "player_equipment")
 public class PlayerEquipment {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Integer id;
 
-    @ManyToOne
-    @JoinColumn(name = "player_id", nullable = false)
-    private PlayerProfile player;
+    @TableField(value = "player_id")
+    private Integer playerId;
 
-    @ManyToOne
-    @JoinColumn(name = "equipment_id", nullable = false)
-    private Equipment equipment;
+    @TableField(value = "equipment_id")
+    private Integer equipmentId;
 
-    @Column(name = "slot", nullable = false, length = 20)
+    @TableField(value = "slot")
     private String slot;
 
-    @Column(name = "is_equipped", nullable = false)
+    @TableField(value = "is_equipped")
     @Builder.Default
     private Boolean equipped = false;
 
-    @Column(nullable = false)
+    @TableField(value = "durability")
     @Builder.Default
     private Integer durability = 100;
 
-    @Column(name = "max_durability", nullable = false)
+    @TableField(value = "max_durability")
     @Builder.Default
     private Integer maxDurability = 100;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @TableField(value = "created_at")
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
+    @TableField(value = "updated_at")
     private LocalDateTime updatedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        if (createdAt == null) {
-            createdAt = LocalDateTime.now();
-        }
-        if (updatedAt == null) {
-            updatedAt = LocalDateTime.now();
-        }
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
 }

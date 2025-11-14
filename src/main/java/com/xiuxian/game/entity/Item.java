@@ -1,88 +1,67 @@
 package com.xiuxian.game.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.persistence.*;
 import java.time.LocalDateTime;
 
+@TableName("items")
 @Data
-@Entity
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "items")
 public class Item {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Integer id;
 
-    @Column(nullable = false, length = 100)
+    @TableField(value = "name")
     private String name;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @TableField(value = "description")
     private String description;
 
-    @Column(nullable = false, length = 20)
+    @TableField(value = "type")
     private String type; // 消耗品、材料、任务物品等
 
-    @Column(nullable = false)
+    @TableField(value = "quality")
     @Builder.Default
     private Integer quality = 1; // 1-普通, 2-精良, 3-稀有, 4-史诗, 5-传说
 
-    @Column(nullable = false)
+    @TableField(value = "stackable")
     @Builder.Default
     private Boolean stackable = true; // 是否可堆叠
 
-    @Column(name = "max_stack", nullable = false)
+    @TableField(value = "max_stack")
     @Builder.Default
     private Integer maxStack = 99; // 最大堆叠数量
 
-    @Column(nullable = false)
+    @TableField(value = "price")
     @Builder.Default
     private Integer price = 0; // 价格（灵石）
 
-    @Column(nullable = false)
+    @TableField(value = "sellable")
     @Builder.Default
     private Boolean sellable = true; // 是否可出售
 
-    @Column(nullable = false)
+    @TableField(value = "usable")
     @Builder.Default
     private Boolean usable = true; // 是否可使用
 
-    @Column(columnDefinition = "TEXT")
+    @TableField(value = "effect")
     private String effect; // 使用效果描述
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @TableField(value = "created_at")
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at", nullable = false)
+    @TableField(value = "updated_at")
     private LocalDateTime updatedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        if (createdAt == null) {
-            createdAt = LocalDateTime.now();
-        }
-        if (updatedAt == null) {
-            updatedAt = LocalDateTime.now();
-        }
-        // 设置默认值
-        if (quality == null) quality = 1;
-        if (stackable == null) stackable = true;
-        if (maxStack == null) maxStack = 99;
-        if (price == null) price = 0;
-        if (sellable == null) sellable = true;
-        if (usable == null) usable = true;
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
 
     // 业务方法
     public boolean canStackWith(Item other) {

@@ -10,7 +10,7 @@ Target Server Type    : MYSQL
 Target Server Version : 80044
 File Encoding         : 65001
 
-Date: 2025-11-12 09:59:47
+Date: 2025-11-13 13:47:59
 */
 
 SET FOREIGN_KEY_CHECKS=0;
@@ -20,18 +20,18 @@ SET FOREIGN_KEY_CHECKS=0;
 -- ----------------------------
 DROP TABLE IF EXISTS `cultivation_levels`;
 CREATE TABLE `cultivation_levels` (
-                                      `id` int NOT NULL AUTO_INCREMENT,
-                                      `level` int NOT NULL,
-                                      `name` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
-                                      `min_exp` bigint NOT NULL,
-                                      `max_exp` bigint NOT NULL,
-                                      `health_bonus` int NOT NULL,
-                                      `mana_bonus` int NOT NULL,
-                                      `attack_bonus` int NOT NULL,
-                                      `defense_bonus` int NOT NULL,
-                                      PRIMARY KEY (`id`),
-                                      UNIQUE KEY `level` (`level`),
-                                      KEY `idx_level` (`level`)
+  `id` int NOT NULL AUTO_INCREMENT,
+  `level` int NOT NULL,
+  `name` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `min_exp` bigint NOT NULL,
+  `max_exp` bigint NOT NULL,
+  `health_bonus` int NOT NULL,
+  `mana_bonus` int NOT NULL,
+  `attack_bonus` int NOT NULL,
+  `defense_bonus` int NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `level` (`level`),
+  KEY `idx_level` (`level`)
 ) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------
@@ -63,19 +63,19 @@ INSERT INTO `cultivation_levels` VALUES ('20', '20', '元婴期一层', '20000',
 -- ----------------------------
 DROP TABLE IF EXISTS `cultivation_logs`;
 CREATE TABLE `cultivation_logs` (
-                                    `id` int NOT NULL AUTO_INCREMENT,
-                                    `player_id` int NOT NULL,
-                                    `cultivation_time` int NOT NULL,
-                                    `exp_gained` int NOT NULL,
-                                    `cultivation_points_gained` int NOT NULL,
-                                    `created_at` timestamp NOT NULL,
-                                    `cultivation_duration` bigint NOT NULL,
-                                    `is_offline` bit(1) NOT NULL,
-                                    `spirit_stones_gained` int NOT NULL,
-                                    PRIMARY KEY (`id`),
-                                    KEY `idx_player_id` (`player_id`),
-                                    KEY `idx_created_at` (`created_at`),
-                                    CONSTRAINT `cultivation_logs_ibfk_1` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE
+  `id` int NOT NULL AUTO_INCREMENT,
+  `player_id` int NOT NULL,
+  `cultivation_time` int NOT NULL,
+  `exp_gained` int NOT NULL,
+  `cultivation_points_gained` int NOT NULL,
+  `created_at` timestamp NOT NULL,
+  `cultivation_duration` bigint NOT NULL,
+  `is_offline` bit(1) NOT NULL,
+  `spirit_stones_gained` int NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_created_at` (`created_at`),
+  CONSTRAINT `cultivation_logs_ibfk_1` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------
@@ -87,25 +87,25 @@ CREATE TABLE `cultivation_logs` (
 -- ----------------------------
 DROP TABLE IF EXISTS `equipments`;
 CREATE TABLE `equipments` (
-                              `id` int NOT NULL AUTO_INCREMENT,
-                              `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-                              `description` text COLLATE utf8mb4_unicode_ci NOT NULL,
-                              `type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
-                              `level` int NOT NULL,
-                              `quality` int NOT NULL,
-                              `attack_bonus` int NOT NULL DEFAULT '0',
-                              `defense_bonus` int NOT NULL DEFAULT '0',
-                              `health_bonus` int NOT NULL DEFAULT '0',
-                              `mana_bonus` int NOT NULL DEFAULT '0',
-                              `speed_bonus` int NOT NULL DEFAULT '0',
-                              `required_level` int NOT NULL,
-                              `price` bigint NOT NULL,
-                              `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                              `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                              PRIMARY KEY (`id`),
-                              KEY `idx_equipment_type` (`type`),
-                              KEY `idx_quality` (`quality`),
-                              KEY `idx_required_level` (`required_level`)
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `level` int NOT NULL,
+  `quality` int NOT NULL,
+  `attack_bonus` int NOT NULL DEFAULT '0',
+  `defense_bonus` int NOT NULL DEFAULT '0',
+  `health_bonus` int NOT NULL DEFAULT '0',
+  `mana_bonus` int NOT NULL DEFAULT '0',
+  `speed_bonus` int NOT NULL DEFAULT '0',
+  `required_level` int NOT NULL,
+  `price` bigint NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_equipment_type` (`type`),
+  KEY `idx_quality` (`quality`),
+  KEY `idx_required_level` (`required_level`)
 ) ENGINE=InnoDB AUTO_INCREMENT=59 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------
@@ -175,70 +175,70 @@ INSERT INTO `equipments` VALUES ('58', '金戒', '顶级灵力戒指', 'ring', '
 -- ----------------------------
 DROP TABLE IF EXISTS `items`;
 CREATE TABLE `items` (
-                         `id` int NOT NULL AUTO_INCREMENT,
-                         `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-                         `description` text COLLATE utf8mb4_unicode_ci NOT NULL,
-                         `type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
-                         `quality` int NOT NULL,
-                         `stackable` tinyint(1) NOT NULL,
-                         `max_stack` int NOT NULL,
-                         `price` bigint NOT NULL,
-                         `sellable` tinyint(1) NOT NULL,
-                         `usable` tinyint(1) NOT NULL,
-                         `effect` json DEFAULT NULL,
-                         `created_at` timestamp NOT NULL,
-                         `updated_at` timestamp NOT NULL,
-                         PRIMARY KEY (`id`),
-                         KEY `idx_item_type` (`type`),
-                         KEY `idx_quality` (`quality`),
-                         KEY `idx_stackable` (`stackable`)
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `quality` int NOT NULL,
+  `stackable` tinyint(1) NOT NULL,
+  `max_stack` int NOT NULL,
+  `price` bigint NOT NULL,
+  `sellable` tinyint(1) NOT NULL,
+  `usable` tinyint(1) NOT NULL,
+  `effect` json DEFAULT NULL,
+  `created_at` timestamp NOT NULL,
+  `updated_at` timestamp NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_item_type` (`type`),
+  KEY `idx_quality` (`quality`),
+  KEY `idx_stackable` (`stackable`)
 ) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------
 -- Records of items
 -- ----------------------------
-INSERT INTO `items` VALUES ('1', '疗伤丹', '恢复生命值的丹药', 'consumable', '1', '1', '99', '50', '1', '1', '{\"heal\": 50}', '2025-10-31 18:37:33');
-INSERT INTO `items` VALUES ('2', '回灵丹', '恢复灵力的丹药', 'consumable', '1', '1', '99', '50', '1', '1', '{\"restore_mana\": 50}', '2025-10-31 18:37:33');
-INSERT INTO `items` VALUES ('3', '经验丹', '提升经验值的丹药', 'consumable', '2', '1', '50', '200', '1', '1', '{\"exp\": 100}', '2025-10-31 18:37:33');
-INSERT INTO `items` VALUES ('4', '突破丹', '帮助突破境界的丹药', 'consumable', '3', '1', '10', '1000', '1', '1', '{\"breakthrough\": 1}', '2025-10-31 18:37:33');
-INSERT INTO `items` VALUES ('5', '灵草', '蕴含灵力的草药', 'material', '1', '1', '999', '10', '1', '0', '{}', '2025-10-31 18:37:33');
-INSERT INTO `items` VALUES ('6', '灵石', '蕴含纯净灵力的石头', 'material', '2', '1', '999', '100', '1', '0', '{}', '2025-10-31 18:37:33');
-INSERT INTO `items` VALUES ('7', '妖丹', '妖兽内丹，炼器材料', 'material', '3', '1', '99', '500', '1', '0', '{}', '2025-10-31 18:37:33');
-INSERT INTO `items` VALUES ('8', '仙草', '传说中的仙草', 'material', '4', '1', '10', '2000', '1', '0', '{}', '2025-10-31 18:37:33');
-INSERT INTO `items` VALUES ('9', '新手礼包', '包含基础装备和物品的礼包', 'special', '1', '0', '1', '0', '0', '1', '{\"items\": [{\"id\": 1, \"quantity\": 1}, {\"id\": 2, \"quantity\": 5}]}', '2025-10-31 18:37:33');
-INSERT INTO `items` VALUES ('10', '修炼心得', '记录修炼感悟的书籍', 'book', '2', '0', '1', '500', '1', '1', '{\"cultivation_speed\": 1.1}', '2025-10-31 18:37:33');
-INSERT INTO `items` VALUES ('11', '疗伤丹', '恢复生命值的丹药', 'consumable', '1', '1', '99', '50', '1', '1', '{\"heal\": 50}', '2025-10-31 18:37:50');
-INSERT INTO `items` VALUES ('12', '回灵丹', '恢复灵力的丹药', 'consumable', '1', '1', '99', '50', '1', '1', '{\"restore_mana\": 50}', '2025-10-31 18:37:50');
-INSERT INTO `items` VALUES ('13', '经验丹', '提升经验值的丹药', 'consumable', '2', '1', '50', '200', '1', '1', '{\"exp\": 100}', '2025-10-31 18:37:50');
-INSERT INTO `items` VALUES ('14', '突破丹', '帮助突破境界的丹药', 'consumable', '3', '1', '10', '1000', '1', '1', '{\"breakthrough\": 1}', '2025-10-31 18:37:50');
-INSERT INTO `items` VALUES ('15', '灵草', '蕴含灵力的草药', 'material', '1', '1', '999', '10', '1', '0', '{}', '2025-10-31 18:37:50');
-INSERT INTO `items` VALUES ('16', '灵石', '蕴含纯净灵力的石头', 'material', '2', '1', '999', '100', '1', '0', '{}', '2025-10-31 18:37:50');
-INSERT INTO `items` VALUES ('17', '妖丹', '妖兽内丹，炼器材料', 'material', '3', '1', '99', '500', '1', '0', '{}', '2025-10-31 18:37:50');
-INSERT INTO `items` VALUES ('18', '仙草', '传说中的仙草', 'material', '4', '1', '10', '2000', '1', '0', '{}', '2025-10-31 18:37:50');
-INSERT INTO `items` VALUES ('19', '新手礼包', '包含基础装备和物品的礼包', 'special', '1', '0', '1', '0', '0', '1', '{\"items\": [{\"id\": 1, \"quantity\": 1}, {\"id\": 2, \"quantity\": 5}]}', '2025-10-31 18:37:50');
-INSERT INTO `items` VALUES ('20', '修炼心得', '记录修炼感悟的书籍', 'book', '2', '0', '1', '500', '1', '1', '{\"cultivation_speed\": 1.1}', '2025-10-31 18:37:50');
+INSERT INTO `items` VALUES ('1', '疗伤丹', '恢复生命值的丹药', 'consumable', '1', '1', '99', '50', '1', '1', '{\"heal\": 50}', '2025-10-31 18:37:33', '2025-10-31 18:37:33');
+INSERT INTO `items` VALUES ('2', '回灵丹', '恢复灵力的丹药', 'consumable', '1', '1', '99', '50', '1', '1', '{\"restore_mana\": 50}', '2025-10-31 18:37:33', '2025-10-31 18:37:33');
+INSERT INTO `items` VALUES ('3', '经验丹', '提升经验值的丹药', 'consumable', '2', '1', '50', '200', '1', '1', '{\"exp\": 100}', '2025-10-31 18:37:33', '2025-10-31 18:37:33');
+INSERT INTO `items` VALUES ('4', '突破丹', '帮助突破境界的丹药', 'consumable', '3', '1', '10', '1000', '1', '1', '{\"breakthrough\": 1}', '2025-10-31 18:37:33', '2025-10-31 18:37:33');
+INSERT INTO `items` VALUES ('5', '灵草', '蕴含灵力的草药', 'material', '1', '1', '999', '10', '1', '0', '{}', '2025-10-31 18:37:33', '2025-10-31 18:37:33');
+INSERT INTO `items` VALUES ('6', '灵石', '蕴含纯净灵力的石头', 'material', '2', '1', '999', '100', '1', '0', '{}', '2025-10-31 18:37:33', '2025-10-31 18:37:33');
+INSERT INTO `items` VALUES ('7', '妖丹', '妖兽内丹，炼器材料', 'material', '3', '1', '99', '500', '1', '0', '{}', '2025-10-31 18:37:33', '2025-10-31 18:37:33');
+INSERT INTO `items` VALUES ('8', '仙草', '传说中的仙草', 'material', '4', '1', '10', '2000', '1', '0', '{}', '2025-10-31 18:37:33', '2025-10-31 18:37:33');
+INSERT INTO `items` VALUES ('9', '新手礼包', '包含基础装备和物品的礼包', 'special', '1', '0', '1', '0', '0', '1', '{\"items\": [{\"id\": 1, \"quantity\": 1}, {\"id\": 2, \"quantity\": 5}]}', '2025-10-31 18:37:33', '2025-10-31 18:37:33');
+INSERT INTO `items` VALUES ('10', '修炼心得', '记录修炼感悟的书籍', 'book', '2', '0', '1', '500', '1', '1', '{\"cultivation_speed\": 1.1}', '2025-10-31 18:37:33', '2025-10-31 18:37:33');
+INSERT INTO `items` VALUES ('11', '疗伤丹', '恢复生命值的丹药', 'consumable', '1', '1', '99', '50', '1', '1', '{\"heal\": 50}', '2025-10-31 18:37:50', '2025-10-31 18:37:50');
+INSERT INTO `items` VALUES ('12', '回灵丹', '恢复灵力的丹药', 'consumable', '1', '1', '99', '50', '1', '1', '{\"restore_mana\": 50}', '2025-10-31 18:37:50', '2025-10-31 18:37:50');
+INSERT INTO `items` VALUES ('13', '经验丹', '提升经验值的丹药', 'consumable', '2', '1', '50', '200', '1', '1', '{\"exp\": 100}', '2025-10-31 18:37:50', '2025-10-31 18:37:50');
+INSERT INTO `items` VALUES ('14', '突破丹', '帮助突破境界的丹药', 'consumable', '3', '1', '10', '1000', '1', '1', '{\"breakthrough\": 1}', '2025-10-31 18:37:50', '2025-10-31 18:37:50');
+INSERT INTO `items` VALUES ('15', '灵草', '蕴含灵力的草药', 'material', '1', '1', '999', '10', '1', '0', '{}', '2025-10-31 18:37:50', '2025-10-31 18:37:50');
+INSERT INTO `items` VALUES ('16', '灵石', '蕴含纯净灵力的石头', 'material', '2', '1', '999', '100', '1', '0', '{}', '2025-10-31 18:37:50', '2025-10-31 18:37:50');
+INSERT INTO `items` VALUES ('17', '妖丹', '妖兽内丹，炼器材料', 'material', '3', '1', '99', '500', '1', '0', '{}', '2025-10-31 18:37:50', '2025-10-31 18:37:50');
+INSERT INTO `items` VALUES ('18', '仙草', '传说中的仙草', 'material', '4', '1', '10', '2000', '1', '0', '{}', '2025-10-31 18:37:50', '2025-10-31 18:37:50');
+INSERT INTO `items` VALUES ('19', '新手礼包', '包含基础装备和物品的礼包', 'special', '1', '0', '1', '0', '0', '1', '{\"items\": [{\"id\": 1, \"quantity\": 1}, {\"id\": 2, \"quantity\": 5}]}', '2025-10-31 18:37:50', '2025-10-31 18:37:50');
+INSERT INTO `items` VALUES ('20', '修炼心得', '记录修炼感悟的书籍', 'book', '2', '0', '1', '500', '1', '1', '{\"cultivation_speed\": 1.1}', '2025-10-31 18:37:50', '2025-10-31 18:37:50');
 
 -- ----------------------------
 -- Table structure for player_equipment
 -- ----------------------------
 DROP TABLE IF EXISTS `player_equipment`;
 CREATE TABLE `player_equipment` (
-                                    `id` int NOT NULL AUTO_INCREMENT,
-                                    `player_id` int NOT NULL,
-                                    `equipment_id` int NOT NULL,
-                                    `slot` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
-                                    `is_equipped` tinyint(1) NOT NULL DEFAULT '0',
-                                    `durability` int NOT NULL DEFAULT '100',
-                                    `max_durability` int NOT NULL DEFAULT '100',
-                                    `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                                    `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                                    PRIMARY KEY (`id`),
-                                    KEY `idx_player_id` (`player_id`),
-                                    KEY `idx_equipment_id` (`equipment_id`),
-                                    KEY `idx_slot` (`slot`),
-                                    KEY `idx_is_equipped` (`is_equipped`),
-                                    CONSTRAINT `player_equipment_ibfk_1` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
-                                    CONSTRAINT `player_equipment_ibfk_2` FOREIGN KEY (`equipment_id`) REFERENCES `equipments` (`id`) ON DELETE CASCADE
+  `id` int NOT NULL AUTO_INCREMENT,
+  `player_id` int NOT NULL,
+  `equipment_id` int NOT NULL,
+  `slot` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `is_equipped` tinyint(1) NOT NULL DEFAULT '0',
+  `durability` int NOT NULL DEFAULT '100',
+  `max_durability` int NOT NULL DEFAULT '100',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_equipment_id` (`equipment_id`),
+  KEY `idx_slot` (`slot`),
+  KEY `idx_is_equipped` (`is_equipped`),
+  CONSTRAINT `player_equipment_ibfk_1` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `player_equipment_ibfk_2` FOREIGN KEY (`equipment_id`) REFERENCES `equipments` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------
@@ -250,20 +250,20 @@ CREATE TABLE `player_equipment` (
 -- ----------------------------
 DROP TABLE IF EXISTS `player_equipments`;
 CREATE TABLE `player_equipments` (
-                                     `id` int NOT NULL AUTO_INCREMENT,
-                                     `created_at` datetime(6) NOT NULL,
-                                     `durability` int NOT NULL,
-                                     `equipped` bit(1) NOT NULL,
-                                     `max_durability` int NOT NULL,
-                                     `slot` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-                                     `updated_at` datetime(6) NOT NULL,
-                                     `equipment_id` int NOT NULL,
-                                     `player_id` int NOT NULL,
-                                     PRIMARY KEY (`id`),
-                                     KEY `FKliafc7weyhnx9nw20mi6jvc5t` (`equipment_id`),
-                                     KEY `FK3skbfdyiw72p83f8or2qmnif1` (`player_id`),
-                                     CONSTRAINT `FK3skbfdyiw72p83f8or2qmnif1` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`),
-                                     CONSTRAINT `FKliafc7weyhnx9nw20mi6jvc5t` FOREIGN KEY (`equipment_id`) REFERENCES `equipments` (`id`)
+  `id` int NOT NULL AUTO_INCREMENT,
+  `created_at` datetime(6) NOT NULL,
+  `durability` int NOT NULL,
+  `equipped` bit(1) NOT NULL,
+  `max_durability` int NOT NULL,
+  `slot` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `updated_at` datetime(6) NOT NULL,
+  `equipment_id` int NOT NULL,
+  `player_id` int NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `FKliafc7weyhnx9nw20mi6jvc5t` (`equipment_id`),
+  KEY `FK3skbfdyiw72p83f8or2qmnif1` (`player_id`),
+  CONSTRAINT `FK3skbfdyiw72p83f8or2qmnif1` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`),
+  CONSTRAINT `FKliafc7weyhnx9nw20mi6jvc5t` FOREIGN KEY (`equipment_id`) REFERENCES `equipments` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------
@@ -275,18 +275,18 @@ CREATE TABLE `player_equipments` (
 -- ----------------------------
 DROP TABLE IF EXISTS `player_items`;
 CREATE TABLE `player_items` (
-                                `id` int NOT NULL AUTO_INCREMENT,
-                                `player_id` int NOT NULL,
-                                `item_id` int NOT NULL,
-                                `quantity` int NOT NULL DEFAULT '1',
-                                `created_at` timestamp NOT NULL,
-                                `updated_at` timestamp NOT NULL,
-                                PRIMARY KEY (`id`),
-                                UNIQUE KEY `uk_player_item` (`player_id`,`item_id`),
-                                KEY `idx_player_id` (`player_id`),
-                                KEY `idx_item_id` (`item_id`),
-                                CONSTRAINT `player_items_ibfk_1` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
-                                CONSTRAINT `player_items_ibfk_2` FOREIGN KEY (`item_id`) REFERENCES `items` (`id`) ON DELETE CASCADE
+  `id` int NOT NULL AUTO_INCREMENT,
+  `player_id` int NOT NULL,
+  `item_id` int NOT NULL,
+  `quantity` int NOT NULL DEFAULT '1',
+  `created_at` timestamp NOT NULL,
+  `updated_at` timestamp NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_item` (`player_id`,`item_id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_item_id` (`item_id`),
+  CONSTRAINT `player_items_ibfk_1` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `player_items_ibfk_2` FOREIGN KEY (`item_id`) REFERENCES `items` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------
@@ -298,263 +298,270 @@ CREATE TABLE `player_items` (
 -- ----------------------------
 DROP TABLE IF EXISTS `player_profiles`;
 CREATE TABLE `player_profiles` (
-                                   `id` int NOT NULL AUTO_INCREMENT,
-                                   `user_id` int NOT NULL,
-                                   `nickname` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
-                                   `level` int NOT NULL DEFAULT '1',
-                                   `exp` bigint NOT NULL DEFAULT '0',
-                                   `realm` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '练气期',
-                                   `cultivation_speed` decimal(10,2) NOT NULL DEFAULT '1.00',
-                                   `spirit_stones` bigint NOT NULL DEFAULT '1000',
-                                   `cultivation_points` bigint NOT NULL DEFAULT '0',
-                                   `contribution_points` bigint NOT NULL DEFAULT '0',
-                                   `last_online_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                                   `total_cultivation_time` bigint NOT NULL DEFAULT '0',
-                                   `attack` int NOT NULL DEFAULT '10',
-                                   `defense` int NOT NULL DEFAULT '10',
-                                   `health` int NOT NULL DEFAULT '100',
-                                   `mana` int NOT NULL DEFAULT '50',
-                                   `speed` int NOT NULL DEFAULT '10',
-                                   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                                   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                                   `equipment_attack_bonus` int NOT NULL DEFAULT '0',
-                                   `equipment_defense_bonus` int NOT NULL DEFAULT '0',
-                                   `equipment_health_bonus` int NOT NULL DEFAULT '0',
-                                   `equipment_mana_bonus` int NOT NULL DEFAULT '0',
-                                   `equipment_speed_bonus` int NOT NULL DEFAULT '0',
-                                   `is_cultivating` bit(1) DEFAULT NULL,
-                                   `last_cultivation_end` datetime(6) DEFAULT NULL,
-                                   `last_cultivation_start` datetime(6) DEFAULT NULL,
-                                   `exp_to_next` bigint NOT NULL,
-                                   PRIMARY KEY (`id`),
-                                   UNIQUE KEY `user_id` (`user_id`),
-                                   KEY `idx_user_id` (`user_id`),
-                                   KEY `idx_level` (`level`),
-                                   KEY `idx_realm` (`realm`),
-                                   CONSTRAINT `player_profiles_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `nickname` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `level` int NOT NULL DEFAULT '1',
+  `exp` bigint NOT NULL DEFAULT '0',
+  `realm` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '练气期',
+  `cultivation_speed` decimal(10,2) NOT NULL DEFAULT '1.00',
+  `spirit_stones` bigint NOT NULL DEFAULT '1000',
+  `cultivation_points` bigint NOT NULL DEFAULT '0',
+  `contribution_points` bigint NOT NULL DEFAULT '0',
+  `last_online_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `total_cultivation_time` bigint NOT NULL DEFAULT '0',
+  `attack` int NOT NULL DEFAULT '10',
+  `defense` int NOT NULL DEFAULT '10',
+  `health` int NOT NULL DEFAULT '100',
+  `mana` int NOT NULL DEFAULT '50',
+  `speed` int NOT NULL DEFAULT '10',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `equipment_attack_bonus` int NOT NULL DEFAULT '0',
+  `equipment_defense_bonus` int NOT NULL DEFAULT '0',
+  `equipment_health_bonus` int NOT NULL DEFAULT '0',
+  `equipment_mana_bonus` int NOT NULL DEFAULT '0',
+  `equipment_speed_bonus` int NOT NULL DEFAULT '0',
+  `is_cultivating` bit(1) DEFAULT NULL,
+  `last_cultivation_end` datetime(6) DEFAULT NULL,
+  `last_cultivation_start` datetime(6) DEFAULT NULL,
+  `exp_to_next` bigint NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `user_id` (`user_id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_level` (`level`),
+  KEY `idx_realm` (`realm`),
+  CONSTRAINT `player_profiles_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------
 -- Records of player_profiles
 -- ----------------------------
-INSERT INTO `player_profiles` VALUES ('4', '4', 'shaun', '1', '40', '练气期', '1.00', '1004', '4', '0', '2025-11-07 14:43:06', '4', '10', '10', '100', '50', '10', '2025-11-07 14:43:06', '2025-11-10 17:50:42', '0', '0', '0', '0', '0', null, null, null, '0');
+INSERT INTO `player_profiles` VALUES ('4', '4', 'shaun', '601', '3702', '元婴期', '1.00', '1004', '4', '0', '2025-11-07 14:43:06', '65', '3010', '1810', '12100', '6050', '610', '2025-11-07 14:43:06', '2025-11-12 17:09:17', '0', '0', '0', '0', '0', '', '2025-11-12 17:00:20.228000', '2025-11-12 17:09:17.042000', '0');
+INSERT INTO `player_profiles` VALUES ('5', '5', 'shaun1', '1', '31', '练气期', '1.00', '1000', '0', '0', '2025-11-12 11:05:59', '0', '10', '5', '100', '50', '10', '2025-11-12 11:05:59', '2025-11-12 11:06:53', '0', '0', '0', '0', '0', '\0', '2025-11-12 11:06:52.748000', '2025-11-12 11:06:32.957000', '100');
 
 -- ----------------------------
 -- Table structure for player_quests
 -- ----------------------------
 DROP TABLE IF EXISTS `player_quests`;
 CREATE TABLE `player_quests` (
-                                 `id` int NOT NULL AUTO_INCREMENT,
-                                 `player_id` int NOT NULL,
-                                 `quest_id` int NOT NULL,
-                                 `progress` json DEFAULT NULL,
-                                 `is_completed` tinyint(1) NOT NULL DEFAULT '0',
-                                 `is_claimed` tinyint(1) NOT NULL DEFAULT '0',
-                                 `created_at` timestamp NOT NULL,
-                                 `updated_at` timestamp NOT NULL,
-                                 `completed` bit(1) NOT NULL,
-                                 `completed_at` datetime(6) DEFAULT NULL,
-                                 `current_progress` int NOT NULL,
-                                 `reward_claimed` bit(1) NOT NULL,
-                                 PRIMARY KEY (`id`),
-                                 UNIQUE KEY `uk_player_quest` (`player_id`,`quest_id`),
-                                 KEY `idx_player_id` (`player_id`),
-                                 KEY `idx_quest_id` (`quest_id`),
-                                 KEY `idx_is_completed` (`is_completed`),
-                                 KEY `idx_is_claimed` (`is_claimed`),
-                                 CONSTRAINT `player_quests_ibfk_1` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
-                                 CONSTRAINT `player_quests_ibfk_2` FOREIGN KEY (`quest_id`) REFERENCES `quests` (`id`) ON DELETE CASCADE
+  `id` int NOT NULL AUTO_INCREMENT,
+  `player_id` int NOT NULL,
+  `quest_id` int NOT NULL,
+  `progress` json DEFAULT NULL,
+  `is_completed` tinyint(1) NOT NULL DEFAULT '0',
+  `is_claimed` tinyint(1) NOT NULL DEFAULT '0',
+  `created_at` timestamp NOT NULL,
+  `updated_at` timestamp NOT NULL,
+  `completed` bit(1) NOT NULL,
+  `completed_at` datetime(6) DEFAULT NULL,
+  `current_progress` int NOT NULL,
+  `reward_claimed` bit(1) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_quest` (`player_id`,`quest_id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_quest_id` (`quest_id`),
+  KEY `idx_is_completed` (`is_completed`),
+  KEY `idx_is_claimed` (`is_claimed`),
+  CONSTRAINT `player_quests_ibfk_1` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `player_quests_ibfk_2` FOREIGN KEY (`quest_id`) REFERENCES `quests` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------
 -- Records of player_quests
 -- ----------------------------
-INSERT INTO `player_quests` VALUES ('1', '4', '9', null, '0', '0', '2025-11-07 14:43:06', '2025-11-07 14:43:06', '\0', null, '0');
-INSERT INTO `player_quests` VALUES ('2', '4', '5', null, '0', '0', '2025-11-07 14:43:06', '2025-11-07 14:43:06', '\0', null, '0');
-INSERT INTO `player_quests` VALUES ('3', '4', '6', null, '0', '0', '2025-11-07 14:43:06', '2025-11-07 14:43:06', '\0', null, '0');
-INSERT INTO `player_quests` VALUES ('4', '4', '7', null, '0', '0', '2025-11-07 14:43:06', '2025-11-07 14:43:06', '\0', null, '0');
+INSERT INTO `player_quests` VALUES ('1', '4', '9', null, '0', '0', '2025-11-07 14:43:06', '2025-11-07 14:43:06', '\0', null, '0', '\0');
+INSERT INTO `player_quests` VALUES ('2', '4', '5', null, '0', '0', '2025-11-07 14:43:06', '2025-11-07 14:43:06', '\0', null, '0', '\0');
+INSERT INTO `player_quests` VALUES ('3', '4', '6', null, '0', '0', '2025-11-07 14:43:06', '2025-11-07 14:43:06', '\0', null, '0', '\0');
+INSERT INTO `player_quests` VALUES ('4', '4', '7', null, '0', '0', '2025-11-07 14:43:06', '2025-11-07 14:43:06', '\0', null, '0', '\0');
 
 -- ----------------------------
 -- Table structure for player_skills
 -- ----------------------------
 DROP TABLE IF EXISTS `player_skills`;
 CREATE TABLE `player_skills` (
-                                 `id` int NOT NULL AUTO_INCREMENT,
-                                 `player_id` int NOT NULL,
-                                 `skill_id` int NOT NULL,
-                                 `current_level` int NOT NULL DEFAULT '1',
-                                 `experience` int NOT NULL DEFAULT '0',
-                                 `is_equipped` tinyint(1) NOT NULL DEFAULT '0',
-                                 `created_at` timestamp NOT NULL,
-                                 `updated_at` timestamp NOT NULL,
-                                 `equipped` bit(1) NOT NULL,
-                                 `level` int NOT NULL,
-                                 `slot_number` int NOT NULL,
-                                 PRIMARY KEY (`id`),
-                                 UNIQUE KEY `uk_player_skill` (`player_id`,`skill_id`),
-                                 KEY `idx_player_id` (`player_id`),
-                                 KEY `idx_skill_id` (`skill_id`),
-                                 KEY `idx_is_equipped` (`is_equipped`),
-                                 CONSTRAINT `player_skills_ibfk_1` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
-                                 CONSTRAINT `player_skills_ibfk_2` FOREIGN KEY (`skill_id`) REFERENCES `skills` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `id` int NOT NULL AUTO_INCREMENT,
+  `player_id` int NOT NULL,
+  `skill_id` int NOT NULL,
+  `current_level` int NOT NULL DEFAULT '1',
+  `experience` int NOT NULL DEFAULT '0',
+  `is_equipped` tinyint(1) NOT NULL DEFAULT '0',
+  `created_at` timestamp NOT NULL,
+  `updated_at` timestamp NOT NULL,
+  `equipped` bit(1) NOT NULL,
+  `level` int NOT NULL,
+  `slot_number` int NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_skill` (`player_id`,`skill_id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_skill_id` (`skill_id`),
+  KEY `idx_is_equipped` (`is_equipped`),
+  CONSTRAINT `player_skills_ibfk_1` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `player_skills_ibfk_2` FOREIGN KEY (`skill_id`) REFERENCES `skills` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------
 -- Records of player_skills
 -- ----------------------------
+INSERT INTO `player_skills` VALUES ('1', '4', '1', '1', '10', '0', '2025-11-12 11:04:26', '2025-11-12 11:04:26', '\0', '1', '0');
 
 -- ----------------------------
 -- Table structure for quests
 -- ----------------------------
 DROP TABLE IF EXISTS `quests`;
 CREATE TABLE `quests` (
-                          `id` int NOT NULL AUTO_INCREMENT,
-                          `title` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-                          `description` text COLLATE utf8mb4_unicode_ci NOT NULL,
-                          `type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
-                          `requirements` json DEFAULT NULL,
-                          `rewards` json DEFAULT NULL,
-                          `is_active` tinyint(1) NOT NULL DEFAULT '1',
-                          `created_at` timestamp NOT NULL,
-                          `updated_at` timestamp NOT NULL,
-                          `required_amount` int NOT NULL,
-                          `reward_contribution_points` int NOT NULL,
-                          `reward_exp` int NOT NULL,
-                          `reward_spirit_stones` int NOT NULL,
-                          PRIMARY KEY (`id`),
-                          KEY `idx_quest_type` (`type`),
-                          KEY `idx_is_active` (`is_active`)
+  `id` int NOT NULL AUTO_INCREMENT,
+  `title` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `requirements` json DEFAULT NULL,
+  `rewards` json DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` timestamp NOT NULL,
+  `updated_at` timestamp NOT NULL,
+  `required_amount` int NOT NULL,
+  `reward_contribution_points` int NOT NULL,
+  `reward_exp` int NOT NULL,
+  `reward_spirit_stones` int NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_quest_type` (`type`),
+  KEY `idx_is_active` (`is_active`)
 ) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------
 -- Records of quests
 -- ----------------------------
-INSERT INTO `quests` VALUES ('1', '初入修仙', '完成新手引导，开始修仙之路', 'main', '{\"level\": 1}', '{\"exp\": 100, \"money\": 100}', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '0', '0');
-INSERT INTO `quests` VALUES ('2', '每日修炼', '完成今日的修炼任务', 'DAILY', '{\"cultivation_time\": 3600}', '{\"exp\": 50, \"money\": 50}', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '0', '0');
-INSERT INTO `quests` VALUES ('3', '收集灵草', '收集10株灵草', 'DAILY', '{\"collect_items\": {\"material\": 1, \"quantity\": 10}}', '{\"exp\": 30, \"money\": 30}', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '0', '0');
-INSERT INTO `quests` VALUES ('4', '击败妖兽', '击败一只妖兽', 'DAILY', '{\"kill_monsters\": 1}', '{\"exp\": 80, \"money\": 80}', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '0', '0');
-INSERT INTO `quests` VALUES ('5', '商店购物', '在商店购买一件物品', 'DAILY', '{\"buy_items\": 1}', '{\"exp\": 20, \"money\": 20}', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '0', '0');
-INSERT INTO `quests` VALUES ('6', '初入修仙', '完成新手引导，开始修仙之路', 'DAILY', '{\"level\": 1}', '{\"exp\": 100, \"money\": 100}', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '0', '0');
-INSERT INTO `quests` VALUES ('7', '每日修炼', '完成今日的修炼任务', 'DAILY', '{\"cultivation_time\": 3600}', '{\"exp\": 50, \"money\": 50}', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '0', '0');
-INSERT INTO `quests` VALUES ('8', '收集灵草', '收集10株灵草', 'DAILY', '{\"collect_items\": {\"material\": 1, \"quantity\": 10}}', '{\"exp\": 30, \"money\": 30}', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '0', '0');
-INSERT INTO `quests` VALUES ('9', '击败妖兽', '击败一只妖兽', 'DAILY', '{\"kill_monsters\": 1}', '{\"exp\": 80, \"money\": 80}', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '0', '0');
-INSERT INTO `quests` VALUES ('10', '商店购物', '在商店购买一件物品', 'DAILY', '{\"buy_items\": 1}', '{\"exp\": 20, \"money\": 20}', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '0', '0');
+INSERT INTO `quests` VALUES ('1', '初入修仙', '完成新手引导，开始修仙之路', 'main', '{\"level\": 1}', '{\"exp\": 100, \"money\": 100}', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '1', '100', '0', '0');
+INSERT INTO `quests` VALUES ('2', '每日修炼', '完成今日的修炼任务', 'DAILY', '{\"cultivation_time\": 3600}', '{\"exp\": 50, \"money\": 50}', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '3600', '50', '50', '0');
+INSERT INTO `quests` VALUES ('3', '收集灵草', '收集10株灵草', 'DAILY', '{\"collect_items\": {\"material\": 1, \"quantity\": 10}}', '{\"exp\": 30, \"money\": 30}', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '10', '30', '30', '0');
+INSERT INTO `quests` VALUES ('4', '击败妖兽', '击败一只妖兽', 'DAILY', '{\"kill_monsters\": 1}', '{\"exp\": 80, \"money\": 80}', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '1', '80', '80', '0');
+INSERT INTO `quests` VALUES ('5', '商店购物', '在商店购买一件物品', 'DAILY', '{\"buy_items\": 1}', '{\"exp\": 20, \"money\": 20}', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '1', '20', '20', '0');
+INSERT INTO `quests` VALUES ('6', '初入修仙', '完成新手引导，开始修仙之路', 'DAILY', '{\"level\": 1}', '{\"exp\": 100, \"money\": 100}', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '1', '100', '0', '0');
+INSERT INTO `quests` VALUES ('7', '每日修炼', '完成今日的修炼任务', 'DAILY', '{\"cultivation_time\": 3600}', '{\"exp\": 50, \"money\": 50}', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '3600', '50', '50', '0');
+INSERT INTO `quests` VALUES ('8', '收集灵草', '收集10株灵草', 'DAILY', '{\"collect_items\": {\"material\": 1, \"quantity\": 10}}', '{\"exp\": 30, \"money\": 30}', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '10', '30', '30', '0');
+INSERT INTO `quests` VALUES ('9', '击败妖兽', '击败一只妖兽', 'DAILY', '{\"kill_monsters\": 1}', '{\"exp\": 80, \"money\": 80}', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '1', '80', '80', '0');
+INSERT INTO `quests` VALUES ('10', '商店购物', '在商店购买一件物品', 'DAILY', '{\"buy_items\": 1}', '{\"exp\": 20, \"money\": 20}', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '1', '20', '20', '0');
 
 -- ----------------------------
 -- Table structure for shop_items
 -- ----------------------------
 DROP TABLE IF EXISTS `shop_items`;
 CREATE TABLE `shop_items` (
-                              `id` int NOT NULL AUTO_INCREMENT,
-                              `shop_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
-                              `item_id` int DEFAULT NULL,
-                              `equipment_id` int DEFAULT NULL,
-                              `price` bigint NOT NULL,
-                              `stock` int NOT NULL,
-                              `is_active` tinyint(1) NOT NULL DEFAULT '1',
-                              `created_at` timestamp NOT NULL,
-                              `updated_at` timestamp NOT NULL,
-                              `is_available` bit(1) NOT NULL,
-                              `price_contribution_points` int NOT NULL,
-                              `price_spirit_stones` int NOT NULL,
-                              PRIMARY KEY (`id`),
-                              KEY `idx_shop_type` (`shop_type`),
-                              KEY `idx_item_id` (`item_id`),
-                              KEY `idx_equipment_id` (`equipment_id`),
-                              KEY `idx_is_active` (`is_active`),
-                              CONSTRAINT `shop_items_ibfk_1` FOREIGN KEY (`item_id`) REFERENCES `items` (`id`) ON DELETE CASCADE,
-                              CONSTRAINT `shop_items_ibfk_2` FOREIGN KEY (`equipment_id`) REFERENCES `equipments` (`id`) ON DELETE CASCADE
+  `id` int NOT NULL AUTO_INCREMENT,
+  `shop_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `item_id` int DEFAULT NULL,
+  `equipment_id` int DEFAULT NULL,
+  `price` bigint NOT NULL,
+  `stock` int NOT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` timestamp NOT NULL,
+  `updated_at` timestamp NOT NULL,
+  `is_available` bit(1) NOT NULL,
+  `price_contribution_points` int NOT NULL,
+  `price_spirit_stones` int NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_shop_type` (`shop_type`),
+  KEY `idx_item_id` (`item_id`),
+  KEY `idx_equipment_id` (`equipment_id`),
+  KEY `idx_is_active` (`is_active`),
+  CONSTRAINT `shop_items_ibfk_1` FOREIGN KEY (`item_id`) REFERENCES `items` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `shop_items_ibfk_2` FOREIGN KEY (`equipment_id`) REFERENCES `equipments` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------
 -- Records of shop_items
 -- ----------------------------
-INSERT INTO `shop_items` VALUES ('1', 'general', '1', null, '50', '100', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '0');
-INSERT INTO `shop_items` VALUES ('2', 'general', '2', null, '50', '100', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '0');
-INSERT INTO `shop_items` VALUES ('3', 'general', '5', null, '10', '500', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '0');
-INSERT INTO `shop_items` VALUES ('4', 'general', '6', null, '100', '100', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '0');
-INSERT INTO `shop_items` VALUES ('5', 'skill', null, null, '1000', '10', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '0');
-INSERT INTO `shop_items` VALUES ('6', 'skill', null, null, '2000', '5', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '0');
-INSERT INTO `shop_items` VALUES ('7', 'skill', null, null, '5000', '1', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '0');
-INSERT INTO `shop_items` VALUES ('8', 'equipment', null, '1', '100', '50', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '0');
-INSERT INTO `shop_items` VALUES ('9', 'equipment', null, '2', '150', '50', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '0');
-INSERT INTO `shop_items` VALUES ('10', 'equipment', null, '6', '500', '20', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '0');
-INSERT INTO `shop_items` VALUES ('11', 'equipment', null, '11', '1200', '10', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '0');
-INSERT INTO `shop_items` VALUES ('12', 'general', '1', null, '50', '100', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '0');
-INSERT INTO `shop_items` VALUES ('13', 'general', '2', null, '50', '100', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '0');
-INSERT INTO `shop_items` VALUES ('14', 'general', '5', null, '10', '500', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '0');
-INSERT INTO `shop_items` VALUES ('15', 'general', '6', null, '100', '100', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '0');
-INSERT INTO `shop_items` VALUES ('16', 'skill', null, null, '1000', '10', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '0');
-INSERT INTO `shop_items` VALUES ('17', 'skill', null, null, '2000', '5', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '0');
-INSERT INTO `shop_items` VALUES ('18', 'skill', null, null, '5000', '1', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '0');
-INSERT INTO `shop_items` VALUES ('19', 'equipment', null, '1', '100', '50', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '0');
-INSERT INTO `shop_items` VALUES ('20', 'equipment', null, '2', '150', '50', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '0');
-INSERT INTO `shop_items` VALUES ('21', 'equipment', null, '6', '500', '20', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '0');
-INSERT INTO `shop_items` VALUES ('22', 'equipment', null, '11', '1200', '10', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '0');
+INSERT INTO `shop_items` VALUES ('1', 'general', '1', null, '50', '100', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '50');
+INSERT INTO `shop_items` VALUES ('2', 'general', '2', null, '50', '100', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '50');
+INSERT INTO `shop_items` VALUES ('3', 'general', '5', null, '10', '500', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '10');
+INSERT INTO `shop_items` VALUES ('4', 'general', '6', null, '100', '100', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '100');
+INSERT INTO `shop_items` VALUES ('5', 'skill', null, null, '1000', '10', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '1000');
+INSERT INTO `shop_items` VALUES ('6', 'skill', null, null, '2000', '5', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '2000');
+INSERT INTO `shop_items` VALUES ('7', 'skill', null, null, '5000', '1', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '5000');
+INSERT INTO `shop_items` VALUES ('8', 'equipment', null, '1', '100', '50', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '100');
+INSERT INTO `shop_items` VALUES ('9', 'equipment', null, '2', '150', '50', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '150');
+INSERT INTO `shop_items` VALUES ('10', 'equipment', null, '6', '500', '20', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '500');
+INSERT INTO `shop_items` VALUES ('11', 'equipment', null, '11', '1200', '10', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '1200');
+INSERT INTO `shop_items` VALUES ('12', 'general', '1', null, '50', '100', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '50');
+INSERT INTO `shop_items` VALUES ('13', 'general', '2', null, '50', '100', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '50');
+INSERT INTO `shop_items` VALUES ('14', 'general', '5', null, '10', '500', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '10');
+INSERT INTO `shop_items` VALUES ('15', 'general', '6', null, '100', '100', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '100');
+INSERT INTO `shop_items` VALUES ('16', 'skill', null, null, '1000', '10', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '1000');
+INSERT INTO `shop_items` VALUES ('17', 'skill', null, null, '2000', '5', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '2000');
+INSERT INTO `shop_items` VALUES ('18', 'skill', null, null, '5000', '1', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '5000');
+INSERT INTO `shop_items` VALUES ('19', 'equipment', null, '1', '100', '50', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '100');
+INSERT INTO `shop_items` VALUES ('20', 'equipment', null, '2', '150', '50', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '150');
+INSERT INTO `shop_items` VALUES ('21', 'equipment', null, '6', '500', '20', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '500');
+INSERT INTO `shop_items` VALUES ('22', 'equipment', null, '11', '1200', '10', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '1200');
 
 -- ----------------------------
 -- Table structure for skills
 -- ----------------------------
 DROP TABLE IF EXISTS `skills`;
 CREATE TABLE `skills` (
-                          `id` int NOT NULL AUTO_INCREMENT,
-                          `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-                          `description` text COLLATE utf8mb4_unicode_ci NOT NULL,
-                          `level` int NOT NULL,
-                          `max_level` int NOT NULL,
-                          `base_damage` double NOT NULL,
-                          `damage_per_level` double NOT NULL,
-                          `cooldown` int NOT NULL,
-                          `mana_cost` int NOT NULL,
-                          `skill_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
-                          `element` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL,
-                          `unlock_level` int NOT NULL,
-                          `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                          `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                          PRIMARY KEY (`id`),
-                          KEY `idx_skill_type` (`skill_type`),
-                          KEY `idx_element` (`element`),
-                          KEY `idx_unlock_level` (`unlock_level`)
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `level` int NOT NULL,
+  `max_level` int NOT NULL,
+  `base_damage` double NOT NULL,
+  `damage_per_level` double NOT NULL,
+  `cooldown` int NOT NULL,
+  `mana_cost` int NOT NULL,
+  `skill_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `element` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `unlock_level` int NOT NULL,
+  `required_spirit_stones` int DEFAULT '0' COMMENT '需要的灵石数量',
+  `icon` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `animation` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `active` tinyint(1) DEFAULT '1',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_skill_type` (`skill_type`),
+  KEY `idx_element` (`element`),
+  KEY `idx_unlock_level` (`unlock_level`)
 ) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------
 -- Records of skills
 -- ----------------------------
-INSERT INTO `skills` VALUES ('1', '基础功法', '提升基础修炼速度', '1', '100', '0.05', '0.01', '0', '0', 'cultivation', '无', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33');
-INSERT INTO `skills` VALUES ('2', '火球术', '基础火系攻击法术', '1', '50', '10', '2', '5', '10', 'attack', '火', '5', '2025-10-31 18:37:33', '2025-10-31 18:37:33');
-INSERT INTO `skills` VALUES ('3', '治疗术', '恢复生命值的法术', '1', '30', '20', '1.5', '8', '15', 'heal', '木', '3', '2025-10-31 18:37:33', '2025-10-31 18:37:33');
-INSERT INTO `skills` VALUES ('4', '水盾术', '创造一个水盾，减少受到的伤害', '1', '10', '0', '0', '10', '15', 'defense', '水', '8', '2025-10-31 18:37:33', '2025-10-31 18:37:33');
-INSERT INTO `skills` VALUES ('5', '地刺术', '从地面召唤尖刺，对敌人造成土属性伤害', '1', '10', '25', '10', '5', '20', 'attack', '土', '12', '2025-10-31 18:37:33', '2025-10-31 18:37:33');
-INSERT INTO `skills` VALUES ('6', '风刃术', '释放锋利的风刃，对敌人造成风属性伤害', '1', '10', '15', '7', '2', '8', 'attack', '风', '10', '2025-10-31 18:37:33', '2025-10-31 18:37:33');
-INSERT INTO `skills` VALUES ('7', '基础功法', '提升基础修炼速度', '1', '100', '0.05', '0.01', '0', '0', 'cultivation', '无', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50');
-INSERT INTO `skills` VALUES ('8', '火球术', '基础火系攻击法术', '1', '50', '10', '2', '5', '10', 'attack', '火', '5', '2025-10-31 18:37:50', '2025-10-31 18:37:50');
-INSERT INTO `skills` VALUES ('9', '治疗术', '恢复生命值的法术', '1', '30', '20', '1.5', '8', '15', 'heal', '木', '3', '2025-10-31 18:37:50', '2025-10-31 18:37:50');
-INSERT INTO `skills` VALUES ('10', '水盾术', '创造一个水盾，减少受到的伤害', '1', '10', '0', '0', '10', '15', 'defense', '水', '8', '2025-10-31 18:37:50', '2025-10-31 18:37:50');
-INSERT INTO `skills` VALUES ('11', '地刺术', '从地面召唤尖刺，对敌人造成土属性伤害', '1', '10', '25', '10', '5', '20', 'attack', '土', '12', '2025-10-31 18:37:50', '2025-10-31 18:37:50');
-INSERT INTO `skills` VALUES ('12', '风刃术', '释放锋利的风刃，对敌人造成风属性伤害', '1', '10', '15', '7', '2', '8', 'attack', '风', '10', '2025-10-31 18:37:50', '2025-10-31 18:37:50');
+INSERT INTO `skills` VALUES ('1', '基础功法', '提升基础修炼速度', '1', '100', '0.05', '0.01', '0', '0', 'cultivation', '无', '1', '0', NULL, NULL, '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33');
+INSERT INTO `skills` VALUES ('2', '火球术', '基础火系攻击法术', '1', '50', '10', '2', '5', '10', 'attack', '火', '5', '0', NULL, NULL, '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33');
+INSERT INTO `skills` VALUES ('3', '治疗术', '恢复生命值的法术', '1', '30', '20', '1.5', '8', '15', 'heal', '木', '3', '0', NULL, NULL, '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33');
+INSERT INTO `skills` VALUES ('4', '水盾术', '创造一个水盾，减少受到的伤害', '1', '10', '0', '0', '10', '15', 'defense', '水', '8', '0', NULL, NULL, '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33');
+INSERT INTO `skills` VALUES ('5', '地刺术', '从地面召唤尖刺，对敌人造成土属性伤害', '1', '10', '25', '10', '5', '20', 'attack', '土', '12', '0', NULL, NULL, '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33');
+INSERT INTO `skills` VALUES ('6', '风刃术', '释放锋利的风刃，对敌人造成风属性伤害', '1', '10', '15', '7', '2', '8', 'attack', '风', '10', '0', NULL, NULL, '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33');
+INSERT INTO `skills` VALUES ('7', '基础功法', '提升基础修炼速度', '1', '100', '0.05', '0.01', '0', '0', 'cultivation', '无', '1', '0', NULL, NULL, '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50');
+INSERT INTO `skills` VALUES ('8', '火球术', '基础火系攻击法术', '1', '50', '10', '2', '5', '10', 'attack', '火', '5', '0', NULL, NULL, '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50');
+INSERT INTO `skills` VALUES ('9', '治疗术', '恢复生命值的法术', '1', '30', '20', '1.5', '8', '15', 'heal', '木', '3', '0', NULL, NULL, '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50');
+INSERT INTO `skills` VALUES ('10', '水盾术', '创造一个水盾，减少受到的伤害', '1', '10', '0', '0', '10', '15', 'defense', '水', '8', '0', NULL, NULL, '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50');
+INSERT INTO `skills` VALUES ('11', '地刺术', '从地面召唤尖刺，对敌人造成土属性伤害', '1', '10', '25', '10', '5', '20', 'attack', '土', '12', '0', NULL, NULL, '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50');
+INSERT INTO `skills` VALUES ('12', '风刃术', '释放锋利的风刃,对敌人造成风属性伤害', '1', '10', '15', '7', '2', '8', 'attack', '风', '10', '0', NULL, NULL, '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50');
 
 -- ----------------------------
 -- Table structure for users
 -- ----------------------------
 DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users` (
-                         `id` int NOT NULL AUTO_INCREMENT,
-                         `username` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
-                         `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-                         `email` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-                         `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                         `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                         PRIMARY KEY (`id`),
-                         UNIQUE KEY `username` (`username`),
-                         UNIQUE KEY `email` (`email`),
-                         KEY `idx_username` (`username`),
-                         KEY `idx_email` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `id` int NOT NULL AUTO_INCREMENT,
+  `username` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `username` (`username`),
+  UNIQUE KEY `email` (`email`),
+  KEY `idx_username` (`username`),
+  KEY `idx_email` (`email`)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------
 -- Records of users
 -- ----------------------------
-INSERT INTO `users` VALUES ('4', 'shaun', '$2a$10$3VYcas8oeb7vWVzVzpEbquZBO/ZHRD3CuXRghlWa.sKEhx8YDSlFO', 'shaun88@88.com', '2025-11-07 14:43:06', '2025-11-12 09:48:43');
+INSERT INTO `users` VALUES ('4', 'shaun', '$2a$10$3VYcas8oeb7vWVzVzpEbquZBO/ZHRD3CuXRghlWa.sKEhx8YDSlFO', 'shaun88@88.com', '2025-11-07 14:43:06', '2025-11-12 16:59:47');
+INSERT INTO `users` VALUES ('5', 'shaun1', '$2a$10$MJnZPdecBDHriZlvYTPZXeX2r64y14AyX26OGc7XT9cLKCSjrFMhG', 'shaun18@88.com', '2025-11-12 11:05:59', '2025-11-12 11:06:03');
 
 -- ----------------------------
 -- View structure for v_player_summary

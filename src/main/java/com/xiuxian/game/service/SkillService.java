@@ -3,77 +3,70 @@ package com.xiuxian.game.service;
 import com.xiuxian.game.entity.PlayerProfile;
 import com.xiuxian.game.entity.PlayerSkill;
 import com.xiuxian.game.entity.Skill;
-import com.xiuxian.game.repository.PlayerProfileRepository;
-import com.xiuxian.game.repository.PlayerSkillRepository;
-import com.xiuxian.game.repository.SkillRepository;
+import com.xiuxian.game.mapper.PlayerProfileMapper;
+import com.xiuxian.game.mapper.PlayerSkillMapper;
+import com.xiuxian.game.mapper.SkillMapper;
 import com.xiuxian.game.util.GameCalculator;
 import com.xiuxian.game.util.GameConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
-import com.xiuxian.game.util.Java8Compatibility;
 
 @Service
+@ConditionalOnProperty(value = "app.features.skills.enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class SkillService {
 
-    private final SkillRepository skillRepository;
-    private final PlayerSkillRepository playerSkillRepository;
-    private final PlayerProfileRepository playerProfileRepository;
+    private final SkillMapper skillMapper;
+    private final PlayerSkillMapper playerSkillMapper;
+    private final PlayerProfileMapper playerProfileMapper;
     private final GameCalculator gameCalculator;
 
     public List<Skill> getAllSkills() {
-        return skillRepository.findAll();
+        return skillMapper.selectList(null);
     }
 
     public List<Skill> getAvailableSkills(Integer playerId) {
-        PlayerProfile player = playerProfileRepository.findById(playerId)
-                .orElseThrow(() -> new IllegalArgumentException("玩家不存在"));
-        return skillRepository.findByUnlockLevelLessThanEqual(player.getLevel());
+        PlayerProfile player = playerProfileMapper.selectById(playerId);
+        if (player == null) throw new IllegalArgumentException("玩家不存在");
+        return skillMapper.selectByUnlockLevelLessThanEqual(player.getLevel());
     }
 
     public List<PlayerSkill> getPlayerSkills(Integer playerId) {
-        PlayerProfile player = playerProfileRepository.findById(playerId)
-                .orElseThrow(() -> new IllegalArgumentException("玩家不存在"));
-        return playerSkillRepository.findByPlayer(player);
+        return playerSkillMapper.selectByPlayerId(playerId);
     }
 
     public List<PlayerSkill> getEquippedSkills(Integer playerId) {
-        PlayerProfile player = playerProfileRepository.findById(playerId)
-                .orElseThrow(() -> new IllegalArgumentException("玩家不存在"));
-        return playerSkillRepository.findByPlayerAndEquipped(player, true);
+        return playerSkillMapper.selectByPlayerIdAndEquipped(playerId, true);
     }
 
     @Transactional
     public PlayerSkill learnSkill(Integer skillId, Integer playerId) {
-        PlayerProfile player = playerProfileRepository.findById(playerId)
-                .orElseThrow(() -> new IllegalArgumentException("玩家不存在"));
-        
-        Skill skill = skillRepository.findById(skillId)
-                .orElseThrow(() -> new IllegalArgumentException("技能不存在"));
-
+        PlayerProfile player = playerProfileMapper.selectById(playerId);
+        if (player == null) throw new IllegalArgumentException("玩家不存在");
+        Skill skill = skillMapper.selectById(skillId);
+        if (skill == null) throw new IllegalArgumentException("技能不存在");
         if (skill.getUnlockLevel() > player.getLevel()) {
             throw new IllegalArgumentException(GameConstants.ERROR_REQUIREMENTS_NOT_MET + ": 角色等级不足，无法学习该技能");
         }
-
-        Optional<PlayerSkill> existingSkill = playerSkillRepository.findByPlayerAndSkill(player, skill);
-        if (existingSkill.isPresent()) {
+        PlayerSkill existing = playerSkillMapper.selectByPlayerIdAndSkillId(playerId, skillId);
+        if (existing != null) {
             throw new IllegalArgumentException(GameConstants.ERROR_INVALID_OPERATION + ": 已经学习过该技能");
         }
-
         PlayerSkill playerSkill = PlayerSkill.builder()
-                .player(player)
-                .skill(skill)
+                .playerId(playerId)
+                .skillId(skillId)
                 .level(1)
                 .experience(0)
                 .equipped(false)
                 .slotNumber(0)
                 .build();
-
-        return playerSkillRepository.save(playerSkill);
+        playerSkillMapper.insert(playerSkill);
+        return playerSkillMapper.selectById(playerSkill.getId());
     }
 
     /**
@@ -82,21 +75,21 @@ public class SkillService {
     @Transactional
     public void initializePlayerSkills(PlayerProfile player) {
         // 获取所有1级解锁的技能
-        List<Skill> basicSkills = skillRepository.findByUnlockLevelLessThanEqual(1);
+        List<Skill> basicSkills = skillMapper.selectByUnlockLevelLessThanEqual(1);
         
         for (Skill skill : basicSkills) {
             // 检查玩家是否已经拥有该技能
-            Optional<PlayerSkill> existingSkill = playerSkillRepository.findByPlayerAndSkill(player, skill);
-            if (Java8Compatibility.isEmpty(existingSkill)) {
+            PlayerSkill existingSkill = playerSkillMapper.selectByPlayerIdAndSkillId(player.getId(), skill.getId());
+            if (existingSkill == null) {
                 PlayerSkill playerSkill = PlayerSkill.builder()
-                        .player(player)
-                        .skill(skill)
+                        .playerId(player.getId())
+                        .skillId(skill.getId())
                         .level(1)
                         .experience(0)
                         .equipped(false)
                         .slotNumber(0)
                         .build();
-                playerSkillRepository.save(playerSkill);
+                playerSkillMapper.insert(playerSkill);
             }
         }
     }
@@ -113,29 +106,12 @@ public class SkillService {
      * 计算技能实际伤害
      */
     public double calculateSkillDamage(PlayerSkill playerSkill) {
-        Skill skill = playerSkill.getSkill();
+        Skill skill = skillMapper.selectById(playerSkill.getSkillId());
         int skillLevel = playerSkill.getLevel();
-        
-        // 基础伤害 + (等级-1) * 每级伤害增长
         double damage = skill.getBaseDamage() + (skillLevel - 1) * skill.getDamagePerLevel();
-        
-        // 根据技能类型应用修正系数
-        switch (skill.getSkillType()) {
-            case "攻击":
-                // 攻击技能保持原始伤害
-                break;
-            case "防御":
-                // 防御技能返回减伤值
-                damage = damage * 0.1; // 防御技能效果较弱
-                break;
-            case "辅助":
-                // 辅助技能返回效果值
-                damage = damage * 0.05; // 辅助技能效果更弱
-                break;
-            default:
-                break;
-        }
-        
+        String type = skill.getSkillType();
+        if ("防御".equals(type)) damage = damage * 0.1;
+        else if ("辅助".equals(type)) damage = damage * 0.05;
         return Math.max(0, damage);
     }
 
@@ -143,11 +119,8 @@ public class SkillService {
      * 获取技能冷却时间（秒）
      */
     public int getSkillCooldown(PlayerSkill playerSkill) {
-        // 技能等级越高，冷却时间越短
-        int baseCooldown = playerSkill.getSkill().getCooldown();
+        int baseCooldown = skillMapper.selectById(playerSkill.getSkillId()).getCooldown();
         int skillLevel = playerSkill.getLevel();
-        
-        // 每级减少0.5秒冷却时间，最低1秒
         int reducedCooldown = Math.max(1, baseCooldown - (skillLevel - 1) / 2);
         return reducedCooldown;
     }
@@ -156,11 +129,8 @@ public class SkillService {
      * 获取技能消耗法力
      */
     public int getSkillManaCost(PlayerSkill playerSkill) {
-        // 技能等级越高，法力消耗略微增加
-        int baseCost = playerSkill.getSkill().getManaCost();
+        int baseCost = skillMapper.selectById(playerSkill.getSkillId()).getManaCost();
         int skillLevel = playerSkill.getLevel();
-        
-        // 每级增加1点法力消耗
         return baseCost + (skillLevel - 1);
     }
 
@@ -169,179 +139,78 @@ public class SkillService {
      */
     @Transactional
     public void addSkillExperience(Integer playerSkillId, int expGain) {
-        PlayerSkill playerSkill = playerSkillRepository.findById(playerSkillId)
-                .orElseThrow(() -> new IllegalArgumentException("玩家技能不存在"));
-        
+        PlayerSkill playerSkill = playerSkillMapper.selectById(playerSkillId);
+        if (playerSkill == null) throw new IllegalArgumentException("玩家技能不存在");
         playerSkill.setExperience(playerSkill.getExperience() + expGain);
-        
-        // 检查是否可以升级
-        while (playerSkill.getExperience() >= calculateSkillUpgradeExp(playerSkill.getLevel()) 
-                && playerSkill.getLevel() < playerSkill.getSkill().getMaxLevel()) {
+        Skill skill = skillMapper.selectById(playerSkill.getSkillId());
+        while (playerSkill.getExperience() >= calculateSkillUpgradeExp(playerSkill.getLevel())
+                && playerSkill.getLevel() < skill.getMaxLevel()) {
             int requiredExp = calculateSkillUpgradeExp(playerSkill.getLevel());
             playerSkill.setExperience(playerSkill.getExperience() - requiredExp);
             playerSkill.setLevel(playerSkill.getLevel() + 1);
-            
-            // 升级奖励经验
             playerSkill.setExperience(playerSkill.getExperience() + 20);
         }
-        
-        playerSkillRepository.save(playerSkill);
+        playerSkillMapper.updateById(playerSkill);
     }
 
     @Transactional
     public PlayerSkill upgradeSkill(Integer playerSkillId, Integer playerId) {
-        PlayerSkill playerSkill = playerSkillRepository.findById(playerSkillId)
-                .orElseThrow(() -> new IllegalArgumentException(GameConstants.ERROR_SKILL_NOT_FOUND + ": 玩家技能不存在"));
-
-        if (!playerSkill.getPlayer().getId().equals(playerId)) {
+        PlayerSkill playerSkill = playerSkillMapper.selectById(playerSkillId);
+        if (playerSkill == null) throw new IllegalArgumentException(GameConstants.ERROR_SKILL_NOT_FOUND + ": 玩家技能不存在");
+        if (!playerSkill.getPlayerId().equals(playerId)) {
             throw new IllegalArgumentException(GameConstants.ERROR_INVALID_OPERATION + ": 无权操作该技能");
         }
-
-        if (playerSkill.getLevel() >= playerSkill.getSkill().getMaxLevel()) {
+        Skill skill = skillMapper.selectById(playerSkill.getSkillId());
+        if (playerSkill.getLevel() >= skill.getMaxLevel()) {
             throw new IllegalArgumentException(GameConstants.ERROR_INVALID_OPERATION + ": 技能已达到最大等级");
         }
-
-        // 计算升级所需经验（技能经验）
         int currentLevel = playerSkill.getLevel();
         int requiredExp = calculateSkillUpgradeExp(currentLevel);
-        
         if (playerSkill.getExperience() < requiredExp) {
             throw new IllegalArgumentException(GameConstants.ERROR_INSUFFICIENT_RESOURCES + ": 技能经验不足，无法升级技能");
         }
-
-        // 扣除经验并升级
         playerSkill.setExperience(playerSkill.getExperience() - requiredExp);
         playerSkill.setLevel(currentLevel + 1);
-
-        // 升级时给予少量奖励经验，便于下次升级
         playerSkill.setExperience(playerSkill.getExperience() + 10);
-
-        return playerSkillRepository.save(playerSkill);
+        playerSkillMapper.updateById(playerSkill);
+        return playerSkillMapper.selectById(playerSkillId);
     }
 
 
 
     @Transactional
     public PlayerSkill equipSkill(Integer playerSkillId, Integer slotNumber, Integer playerId) {
-        PlayerSkill playerSkill = playerSkillRepository.findById(playerSkillId)
-                .orElseThrow(() -> new IllegalArgumentException(GameConstants.ERROR_SKILL_NOT_FOUND + ": 玩家技能不存在"));
-
-        // 修复：使用正确的 getId() 方法
-        if (!playerSkill.getPlayer().getId().equals(playerId)) {
+        PlayerSkill playerSkill = playerSkillMapper.selectById(playerSkillId);
+        if (playerSkill == null) throw new IllegalArgumentException(GameConstants.ERROR_SKILL_NOT_FOUND + ": 玩家技能不存在");
+        if (!playerSkill.getPlayerId().equals(playerId)) {
             throw new IllegalArgumentException(GameConstants.ERROR_INVALID_OPERATION + ": 无权操作该技能");
         }
-
-        // 修复：使用更安全的方式处理流操作
-        PlayerProfile player = playerProfileRepository.findById(playerId)
-                .orElseThrow(() -> new IllegalArgumentException("玩家不存在"));
-
-        List<PlayerSkill> equippedSkills = playerSkillRepository.findByPlayerAndEquipped(player, true);
+        List<PlayerSkill> equippedSkills = playerSkillMapper.selectByPlayerIdAndEquipped(playerId, true);
         for (PlayerSkill ps : equippedSkills) {
             if (ps.getSlotNumber() != null && ps.getSlotNumber().equals(slotNumber)) {
                 ps.setEquipped(false);
                 ps.setSlotNumber(0);
-                playerSkillRepository.save(ps);
+                playerSkillMapper.updateById(ps);
             }
         }
-
         playerSkill.setEquipped(true);
         playerSkill.setSlotNumber(slotNumber);
-        return playerSkillRepository.save(playerSkill);
+        playerSkillMapper.updateById(playerSkill);
+        return playerSkillMapper.selectById(playerSkillId);
     }
 
     @Transactional
     public PlayerSkill unequipSkill(Integer playerSkillId, Integer playerId) {
-        PlayerSkill playerSkill = playerSkillRepository.findById(playerSkillId)
-                .orElseThrow(() -> new IllegalArgumentException(GameConstants.ERROR_SKILL_NOT_FOUND + ": 玩家技能不存在"));
-
-        if (!playerSkill.getPlayer().getId().equals(playerId)) {
+        PlayerSkill playerSkill = playerSkillMapper.selectById(playerSkillId);
+        if (playerSkill == null) throw new IllegalArgumentException(GameConstants.ERROR_SKILL_NOT_FOUND + ": 玩家技能不存在");
+        if (!playerSkill.getPlayerId().equals(playerId)) {
             throw new IllegalArgumentException(GameConstants.ERROR_INVALID_OPERATION + ": 无权操作该技能");
         }
-
         playerSkill.setEquipped(false);
         playerSkill.setSlotNumber(0);
-        return playerSkillRepository.save(playerSkill);
+        playerSkillMapper.updateById(playerSkill);
+        return playerSkillMapper.selectById(playerSkillId);
     }
 
-    @Transactional
-    public void initializeDefaultSkills() {
-        if (skillRepository.count() == 0) {
-            // 基础技能
-            Skill basicAttack = Skill.builder()
-                    .name("基础攻击")
-                    .description("基础的攻击技能，对敌人造成物理伤害")
-                    .level(1)
-                    .maxLevel(10)
-                    .baseDamage(10.0)
-                    .damagePerLevel(5.0)
-                    .cooldown(0)
-                    .manaCost(0)
-                    .skillType("攻击")
-                    .element("无")
-                    .unlockLevel(1)
-                    .build();
-            
-            Skill fireball = Skill.builder()
-                    .name("火球术")
-                    .description("释放一个火球，对敌人造成火属性伤害")
-                    .level(1)
-                    .maxLevel(10)
-                    .baseDamage(20.0)
-                    .damagePerLevel(8.0)
-                    .cooldown(3)
-                    .manaCost(10)
-                    .skillType("攻击")
-                    .element("火")
-                    .unlockLevel(5)
-                    .build();
-            
-            Skill waterShield = Skill.builder()
-                    .name("水盾术")
-                    .description("创造一个水盾，减少受到的伤害")
-                    .level(1)
-                    .maxLevel(10)
-                    .baseDamage(0.0)
-                    .damagePerLevel(0.0)
-                    .cooldown(10)
-                    .manaCost(15)
-                    .skillType("防御")
-                    .element("水")
-                    .unlockLevel(8)
-                    .build();
-            
-            Skill earthSpike = Skill.builder()
-                    .name("地刺术")
-                    .description("从地面召唤尖刺，对敌人造成土属性伤害")
-                    .level(1)
-                    .maxLevel(10)
-                    .baseDamage(25.0)
-                    .damagePerLevel(10.0)
-                    .cooldown(5)
-                    .manaCost(20)
-                    .skillType("攻击")
-                    .element("土")
-                    .unlockLevel(12)
-                    .build();
-            
-            Skill windSlash = Skill.builder()
-                    .name("风刃术")
-                    .description("释放锋利的风刃，对敌人造成风属性伤害")
-                    .level(1)
-                    .maxLevel(10)
-                    .baseDamage(15.0)
-                    .damagePerLevel(7.0)
-                    .cooldown(2)
-                    .manaCost(8)
-                    .skillType("攻击")
-                    .element("风")
-                    .unlockLevel(10)
-                    .build();
-            
-            skillRepository.save(basicAttack);
-            skillRepository.save(fireball);
-            skillRepository.save(waterShield);
-            skillRepository.save(earthSpike);
-            skillRepository.save(windSlash);
-        }
-    }
+    
 }

@@ -5,8 +5,8 @@ import com.xiuxian.game.dto.request.RegisterRequest;
 import com.xiuxian.game.dto.response.LoginResponse;
 import com.xiuxian.game.entity.PlayerProfile;
 import com.xiuxian.game.entity.User;
-import com.xiuxian.game.repository.PlayerProfileRepository;
-import com.xiuxian.game.repository.UserRepository;
+import com.xiuxian.game.mapper.PlayerProfileMapper;
+import com.xiuxian.game.mapper.UserMapper;
 import com.xiuxian.game.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,8 +25,8 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final UserRepository userRepository;
-    private final PlayerProfileRepository playerProfileRepository;
+    private final UserMapper userMapper;
+    private final PlayerProfileMapper playerProfileMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
     private final AuthenticationManager authenticationManager;
@@ -38,12 +38,14 @@ public class AuthService {
             log.info("开始注册用户: {}", request.getUsername());
 
             // 检查用户名是否已存在
-            if (userRepository.existsByUsername(request.getUsername())) {
+            User existingUserByUsername = userMapper.selectByUsername(request.getUsername());
+            if (existingUserByUsername != null) {
                 throw new RuntimeException("用户名已存在");
             }
 
             // 检查邮箱是否已存在
-            if (userRepository.existsByEmail(request.getEmail())) {
+            User existingUserByEmail = userMapper.selectByEmail(request.getEmail());
+            if (existingUserByEmail != null) {
                 throw new RuntimeException("邮箱已被使用");
             }
 
@@ -54,7 +56,7 @@ public class AuthService {
                     .email(request.getEmail())
                     .build();
 
-            user = userRepository.save(user);
+            userMapper.insert(user);
             log.info("用户创建成功: ID={}", user.getId());
 
             // 创建玩家档案
@@ -87,12 +89,16 @@ public class AuthService {
             log.info("用户认证成功: {}", request.getUsername());
 
             // 获取用户信息
-            User user = userRepository.findByUsername(request.getUsername())
-                    .orElseThrow(() -> new RuntimeException("用户不存在"));
+            User user = userMapper.selectByUsername(request.getUsername());
+            if (user == null) {
+                throw new RuntimeException("用户不存在");
+            }
 
             // 获取玩家档案
-            PlayerProfile playerProfile = playerProfileRepository.findByUserId(user.getId())
-                    .orElseThrow(() -> new RuntimeException("玩家档案不存在"));
+            PlayerProfile playerProfile = playerProfileMapper.selectByUserId(user.getId());
+            if (playerProfile == null) {
+                throw new RuntimeException("玩家档案不存在");
+            }
 
             // 生成JWT令牌
             String token = tokenProvider.generateToken(user.getUsername());
@@ -100,7 +106,7 @@ public class AuthService {
 
             // 更新最后登录时间
             user.setUpdatedAt(LocalDateTime.now());
-            userRepository.save(user);
+            userMapper.updateById(user);
 
             return buildLoginResponse(user, playerProfile, token);
 
@@ -113,8 +119,11 @@ public class AuthService {
     public User getUserByUsername(String username) {
         try {
             log.info("根据用户名查询用户: {}", username);
-            return userRepository.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException("用户不存在"));
+            User user = userMapper.selectByUsername(username);
+            if (user == null) {
+                throw new RuntimeException("用户不存在");
+            }
+            return user;
         } catch (Exception e) {
             log.error("查询用户失败: {}", username, e);
             throw new RuntimeException("获取用户信息失败: " + e.getMessage());
@@ -163,8 +172,11 @@ public class AuthService {
             String username = authentication.getName();
             log.info("获取当前用户: {}", username);
             
-            return userRepository.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException("用户不存在"));
+            User user = userMapper.selectByUsername(username);
+            if (user == null) {
+                throw new RuntimeException("用户不存在");
+            }
+            return user;
         } catch (Exception e) {
             log.error("获取当前用户失败", e);
             throw new RuntimeException("获取当前用户失败: " + e.getMessage());

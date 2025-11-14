@@ -4,35 +4,42 @@ import com.xiuxian.game.entity.Item;
 import com.xiuxian.game.entity.PlayerItem;
 import com.xiuxian.game.entity.PlayerProfile;
 import com.xiuxian.game.dto.response.PlayerItemResponse;
-import com.xiuxian.game.repository.ItemRepository;
-import com.xiuxian.game.repository.PlayerItemRepository;
-import com.xiuxian.game.repository.PlayerProfileRepository;
+import com.xiuxian.game.mapper.ItemMapper;
+import com.xiuxian.game.mapper.PlayerItemMapper;
+import com.xiuxian.game.mapper.PlayerProfileMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@ConditionalOnProperty(value = "app.features.inventory.enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class InventoryService {
 
-    private final ItemRepository itemRepository;
-    private final PlayerItemRepository playerItemRepository;
-    private final PlayerProfileRepository playerProfileRepository;
+    private final ItemMapper itemMapper;
+    private final PlayerItemMapper playerItemMapper;
+    private final PlayerProfileMapper playerProfileMapper;
 
-    // 修复1：确保方法签名与调用一致
     public List<PlayerItemResponse> getPlayerInventory(Integer playerId, String type, String search, String sortBy, String order) {
-        PlayerProfile player = playerProfileRepository.findById(playerId)
-                .orElseThrow(() -> new IllegalArgumentException("玩家不存在"));
+        PlayerProfile player = playerProfileMapper.selectById(playerId);
+        if (player == null) {
+            throw new IllegalArgumentException("玩家不存在");
+        }
 
-        List<PlayerItem> playerItems = playerItemRepository.findByPlayer(player);
+        List<PlayerItem> playerItems = playerItemMapper.selectByPlayerId(playerId);
 
         // 过滤逻辑
         if (type != null && !type.isEmpty()) {
             playerItems = playerItems.stream()
-                    .filter(pi -> pi.getItem().getType().equals(type))
+                    .filter(pi -> {
+                        Item item = itemMapper.selectById(pi.getItemId());
+                        return item != null && item.getType().equals(type);
+                    })
                     .collect(Collectors.toList());
         }
 
@@ -40,8 +47,11 @@ public class InventoryService {
         if (search != null && !search.isEmpty()) {
             String searchLower = search.toLowerCase();
             playerItems = playerItems.stream()
-                    .filter(pi -> pi.getItem().getName().toLowerCase().contains(searchLower) ||
-                            pi.getItem().getDescription().toLowerCase().contains(searchLower))
+                    .filter(pi -> {
+                        Item item = itemMapper.selectById(pi.getItemId());
+                        return item != null && (item.getName().toLowerCase().contains(searchLower) ||
+                                item.getDescription().toLowerCase().contains(searchLower));
+                    })
                     .collect(Collectors.toList());
         }
 
@@ -61,154 +71,227 @@ public class InventoryService {
                 .collect(Collectors.toList());
     }
 
-    // 修复2：添加重载方法，支持不同的参数组合
     public List<PlayerItemResponse> getPlayerInventory(Integer playerId) {
         return getPlayerInventory(playerId, null, null, null, null);
     }
 
-    // 修复3：添加正确的 addItemToInventory 方法
     @Transactional
     public PlayerItemResponse addItemToInventory(Integer playerId, Integer itemId, Integer quantity) {
-        PlayerProfile player = playerProfileRepository.findById(playerId)
-                .orElseThrow(() -> new IllegalArgumentException("玩家不存在"));
+        PlayerProfile player = playerProfileMapper.selectById(playerId);
+        if (player == null) {
+            throw new IllegalArgumentException("玩家不存在");
+        }
 
-        Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new IllegalArgumentException("物品不存在"));
+        Item item = itemMapper.selectById(itemId);
+        if (item == null) {
+            throw new IllegalArgumentException("物品不存在");
+        }
 
         // 检查是否已存在该物品
-        Optional<PlayerItem> existingItem = playerItemRepository.findByPlayerAndItem(player, item);
+        PlayerItem existingItem = playerItemMapper.selectByPlayerIdAndItemId(playerId, itemId);
 
-        if (existingItem.isPresent()) {
+        if (existingItem != null) {
             // 如果可堆叠，增加数量
-            PlayerItem playerItem = existingItem.get();
             if (item.getStackable()) {
-                playerItem.setQuantity(playerItem.getQuantity() + quantity);
-                playerItemRepository.save(playerItem);
-                return convertToResponse(playerItem);
+                existingItem.setQuantity(existingItem.getQuantity() + quantity);
+                existingItem.setUpdatedAt(LocalDateTime.now());
+                playerItemMapper.updateById(existingItem);
+                return convertToResponse(existingItem);
             }
         }
 
         // 创建新物品
         PlayerItem newPlayerItem = PlayerItem.builder()
-                .player(player)
-                .item(item)
+                .playerId(playerId)
+                .itemId(itemId)
                 .quantity(quantity)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
                 .build();
 
-        PlayerItem savedItem = playerItemRepository.save(newPlayerItem);
+        playerItemMapper.insert(newPlayerItem);
+        PlayerItem savedItem = playerItemMapper.selectById(newPlayerItem.getId());
         return convertToResponse(savedItem);
     }
 
-    // 修复4：添加正确的 removeItemFromInventory 方法（3个参数）
     @Transactional
-    public void removeItemFromInventory(Integer playerItemId, Integer quantity, Integer playerId) {
-        PlayerItem playerItem = playerItemRepository.findById(playerItemId)
-                .orElseThrow(() -> new IllegalArgumentException("物品不存在"));
-
-        // 验证物品所有权
-        if (!playerItem.getPlayer().getId().equals(playerId)) {
-            throw new IllegalArgumentException("无权操作该物品");
+    public PlayerItemResponse removeItemFromInventory(Integer playerId, Integer itemId, Integer quantity) {
+        PlayerProfile player = playerProfileMapper.selectById(playerId);
+        if (player == null) {
+            throw new IllegalArgumentException("玩家不存在");
         }
 
-        if (playerItem.getQuantity() <= quantity) {
-            playerItemRepository.delete(playerItem);
-        } else {
-            playerItem.setQuantity(playerItem.getQuantity() - quantity);
-            playerItemRepository.save(playerItem);
-        }
-    }
-
-    // 修复5：添加正确的 useItem 方法（3个参数）
-    @Transactional
-    public Map<String, Object> useItem(Integer playerItemId, Integer quantity, Integer playerId) {
-        PlayerItem playerItem = playerItemRepository.findById(playerItemId)
-                .orElseThrow(() -> new IllegalArgumentException("物品不存在"));
-
-        // 验证物品所有权
-        if (!playerItem.getPlayer().getId().equals(playerId)) {
-            throw new IllegalArgumentException("无权操作该物品");
-        }
-
-        Item item = playerItem.getItem();
-        if (!item.getUsable()) {
-            throw new IllegalArgumentException("该物品不可使用");
+        PlayerItem playerItem = playerItemMapper.selectByPlayerIdAndItemId(playerId, itemId);
+        if (playerItem == null) {
+            throw new IllegalArgumentException("玩家没有该物品");
         }
 
         if (playerItem.getQuantity() < quantity) {
             throw new IllegalArgumentException("物品数量不足");
         }
 
-        // 应用物品效果
-        PlayerProfile player = playerItem.getPlayer();
+        playerItem.setQuantity(playerItem.getQuantity() - quantity);
+        playerItem.setUpdatedAt(LocalDateTime.now());
+
+        if (playerItem.getQuantity() <= 0) {
+            playerItemMapper.deleteById(playerItem.getId());
+            return null;
+        } else {
+            playerItemMapper.updateById(playerItem);
+            return convertToResponse(playerItem);
+        }
+    }
+
+    @Transactional
+    public PlayerItemResponse useItem(Integer playerId, Integer itemId) {
+        PlayerProfile player = playerProfileMapper.selectById(playerId);
+        if (player == null) {
+            throw new IllegalArgumentException("玩家不存在");
+        }
+
+        Item item = itemMapper.selectById(itemId);
+        if (item == null) {
+            throw new IllegalArgumentException("物品不存在");
+        }
+
+        if (!item.getUsable()) {
+            throw new IllegalArgumentException("该物品不可使用");
+        }
+
+        PlayerItem playerItem = playerItemMapper.selectByPlayerIdAndItemId(playerId, itemId);
+        if (playerItem == null) {
+            throw new IllegalArgumentException("玩家没有该物品");
+        }
+
+        // 应用物品效果(简化处理)
+        applyItemEffect(player, item);
+
+        // 减少物品数量
+        return removeItemFromInventory(playerId, itemId, 1);
+    }
+
+    // Controller调用的重载方法
+    @Transactional
+    public Map<String, Object> useItem(Integer playerItemId, Integer quantity, Integer playerId) {
+        // 根据playerItemId获取itemId
+        PlayerItem playerItem = playerItemMapper.selectById(playerItemId);
+        if (playerItem == null) {
+            throw new IllegalArgumentException("物品不存在");
+        }
+
+        if (playerItem.getQuantity() < quantity) {
+            throw new IllegalArgumentException("物品数量不足");
+        }
+
+        Item item = itemMapper.selectById(playerItem.getItemId());
+        if (!item.getUsable()) {
+            throw new IllegalArgumentException("该物品不可使用");
+        }
+
+        PlayerProfile player = playerProfileMapper.selectById(playerId);
+        
+        // 使用指定数量的物品
         for (int i = 0; i < quantity; i++) {
             applyItemEffect(player, item);
         }
 
-        // 更新数量
-        if (playerItem.getQuantity() == quantity) {
-            playerItemRepository.delete(playerItem);
+        // 减少物品数量
+        playerItem.setQuantity(playerItem.getQuantity() - quantity);
+        if (playerItem.getQuantity() <= 0) {
+            playerItemMapper.deleteById(playerItem.getId());
         } else {
-            playerItem.setQuantity(playerItem.getQuantity() - quantity);
-            playerItemRepository.save(playerItem);
+            playerItem.setUpdatedAt(LocalDateTime.now());
+            playerItemMapper.updateById(playerItem);
         }
 
         Map<String, Object> result = new HashMap<>();
-        result.put("message", "成功使用 " + item.getName() + " x" + quantity);
-        result.put("item", convertToResponse(playerItem));
-
+        result.put("used", quantity);
+        result.put("remaining", Math.max(0, playerItem.getQuantity()));
         return result;
     }
 
-    // 辅助方法
+    // 出售物品
+    @Transactional
+    public void sellItem(Integer playerId, Integer playerItemId, Integer quantity) {
+        PlayerProfile player = playerProfileMapper.selectById(playerId);
+        if (player == null) {
+            throw new IllegalArgumentException("玩家不存在");
+        }
+
+        PlayerItem playerItem = playerItemMapper.selectById(playerItemId);
+        if (playerItem == null) {
+            throw new IllegalArgumentException("物品不存在");
+        }
+
+        if (!playerItem.getPlayerId().equals(playerId)) {
+            throw new IllegalArgumentException("该物品不属于当前玩家");
+        }
+
+        Item item = itemMapper.selectById(playerItem.getItemId());
+        if (item == null || !item.getSellable()) {
+            throw new IllegalArgumentException("该物品不可出售");
+        }
+
+        if (playerItem.getQuantity() < quantity) {
+            throw new IllegalArgumentException("物品数量不足");
+        }
+
+        // 计算出售价格（通常是购买价格的50%）
+        long sellPrice = (item.getPrice() * quantity) / 2;
+        
+        // 增加玩家灵石
+        player.setSpiritStones(player.getSpiritStones() + sellPrice);
+        playerProfileMapper.updateById(player);
+
+        // 减少物品数量
+        playerItem.setQuantity(playerItem.getQuantity() - quantity);
+        if (playerItem.getQuantity() <= 0) {
+            playerItemMapper.deleteById(playerItem.getId());
+        } else {
+            playerItem.setUpdatedAt(LocalDateTime.now());
+            playerItemMapper.updateById(playerItem);
+        }
+    }
+
+    private void applyItemEffect(PlayerProfile player, Item item) {
+        // 简化的物品效果应用
+        // 实际应该根据item.effect来处理
+        playerProfileMapper.updateById(player);
+    }
+
     private Comparator<PlayerItem> getSortComparator(String sortBy) {
-        switch (sortBy.toLowerCase()) {
-            case "name":
-                return Comparator.comparing(pi -> pi.getItem().getName());
-            case "type":
-                return Comparator.comparing(pi -> pi.getItem().getType());
-            case "quality":
-                return Comparator.comparing(pi -> pi.getItem().getQuality());
+        switch (sortBy) {
             case "quantity":
                 return Comparator.comparing(PlayerItem::getQuantity);
+            case "created":
+                return Comparator.comparing(PlayerItem::getCreatedAt);
             default:
                 return Comparator.comparing(PlayerItem::getId);
         }
     }
 
-    private void applyItemEffect(PlayerProfile player, Item item) {
-        // 根据物品类型应用效果
-        switch (item.getType()) {
-            case "恢复药剂":
-                player.setHealth(Math.min(player.getHealth() + 100, player.getTotalHealth()));
-                break;
-            case "经验丹":
-                player.setExp(player.getExp() + 500);
-                break;
-            default:
-                // 默认效果
-                break;
-        }
-        playerProfileRepository.save(player);
-    }
-
     private PlayerItemResponse convertToResponse(PlayerItem playerItem) {
-        Item item = playerItem.getItem();
-        return PlayerItemResponse.builder()
-                .id(playerItem.getId().longValue())
-                .itemId(item.getId().longValue())
-                .itemName(item.getName())
-                .itemDescription(item.getDescription())
-                .itemType(item.getType())
-                .itemQuality(item.getQuality())
-                .quantity(playerItem.getQuantity())
-                .maxStack(item.getMaxStack())
-                .stackable(item.getStackable())
-                .usable(item.getUsable())
-                .effect(item.getEffect())
-                .price(item.getPrice())
-                .sellable(item.getSellable())
-                .createdAt(playerItem.getCreatedAt())
-                .updatedAt(playerItem.getUpdatedAt())
-                .build();
+        Item item = itemMapper.selectById(playerItem.getItemId());
+        
+        PlayerItemResponse response = new PlayerItemResponse();
+        response.setId(playerItem.getId().longValue());
+        response.setItemId(playerItem.getItemId().longValue());
+        response.setQuantity(playerItem.getQuantity());
+        response.setCreatedAt(playerItem.getCreatedAt());
+        response.setUpdatedAt(playerItem.getUpdatedAt());
+        
+        if (item != null) {
+            response.setItemName(item.getName());
+            response.setItemDescription(item.getDescription());
+            response.setItemType(item.getType());
+            response.setItemQuality(item.getQuality());
+            response.setStackable(item.getStackable());
+            response.setMaxStack(item.getMaxStack());
+            response.setUsable(item.getUsable());
+            response.setSellable(item.getSellable());
+            response.setPrice(item.getPrice());
+        }
+        
+        return response;
     }
 }

@@ -1,50 +1,38 @@
 package com.xiuxian.game.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.persistence.*;
 import java.time.LocalDateTime;
 
+@TableName("player_items")
 @Data
-@Entity
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "player_items")
 public class PlayerItem {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Integer id;
 
-    @ManyToOne
-    @JoinColumn(name = "player_id", nullable = false)
-    private PlayerProfile player;
+    @TableField(value = "player_id")
+    private Integer playerId;
 
-    @ManyToOne
-    @JoinColumn(name = "item_id", nullable = false)
-    private Item item;
+    @TableField(value = "item_id")
+    private Integer itemId;
 
-    @Column(nullable = false)
+    @TableField(value = "quantity")
     private Integer quantity;
 
-    @Column(nullable = false)
+    @TableField(value = "created_at")
     private LocalDateTime createdAt;
 
-    @Column(nullable = false)
+    @TableField(value = "updated_at")
     private LocalDateTime updatedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
 }

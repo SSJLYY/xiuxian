@@ -1,0 +1,16 @@
+.git/
+.gitignore
+*.md
+logs/
+*.log
+.idea/
+.vscode/
+*.iml
+.DS_Store
+compile-output.txt
+compile.log
+target/classes/
+target/generated-sources/
+target/maven-archiver/
+target/maven-status/
+target/test-classes/

@@ -2,7 +2,8 @@ package com.xiuxian.game.service;
 
 import com.xiuxian.game.entity.PlayerProfile;
 import com.xiuxian.game.entity.User;
-import com.xiuxian.game.repository.PlayerProfileRepository;
+import com.xiuxian.game.mapper.PlayerProfileMapper;
+import com.xiuxian.game.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -19,7 +20,8 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class PlayerService {
 
-    private final PlayerProfileRepository playerProfileRepository;
+    private final PlayerProfileMapper playerProfileMapper;
+    private final UserMapper userMapper;
 
     /**
      * 创建新玩家档案
@@ -30,7 +32,7 @@ public class PlayerService {
             log.info("为用户创建玩家档案: {}", user.getUsername());
 
             PlayerProfile playerProfile = PlayerProfile.builder()
-                    .user(user)
+                    .userId(user.getId())
                     .nickname(nickname != null ? nickname : user.getUsername())
                     .level(1)
                     .exp(0L)
@@ -50,7 +52,8 @@ public class PlayerService {
                     .totalCultivationTime(0L)
                     .build();
 
-            PlayerProfile savedProfile = playerProfileRepository.save(playerProfile);
+            playerProfileMapper.insert(playerProfile);
+            PlayerProfile savedProfile = playerProfileMapper.selectById(playerProfile.getId());
             log.info("玩家档案创建成功: ID={}", savedProfile.getId());
 
             return savedProfile;
@@ -67,8 +70,11 @@ public class PlayerService {
     public PlayerProfile getPlayerProfileById(Integer playerId) {
         try {
             log.info("获取玩家档案: ID={}", playerId);
-            return playerProfileRepository.findById(playerId)
-                    .orElseThrow(() -> new RuntimeException("玩家档案不存在"));
+            PlayerProfile profile = playerProfileMapper.selectById(playerId);
+            if (profile == null) {
+                throw new RuntimeException("玩家档案不存在");
+            }
+            return profile;
         } catch (Exception e) {
             log.error("获取玩家档案失败: ID={}", playerId, e);
             throw new RuntimeException("获取玩家档案失败: " + e.getMessage());
@@ -88,8 +94,18 @@ public class PlayerService {
             String username = authentication.getName();
             log.info("获取当前玩家档案: {}", username);
 
-            return playerProfileRepository.findByUserUsername(username)
-                    .orElseThrow(() -> new RuntimeException("玩家档案不存在"));
+            // 先通过用户名获取用户信息
+            User user = userMapper.selectByUsername(username);
+            if (user == null) {
+                throw new RuntimeException("用户不存在");
+            }
+            
+            // 然后通过用户ID获取玩家档案
+            PlayerProfile profile = playerProfileMapper.selectByUserId(user.getId());
+            if (profile == null) {
+                throw new RuntimeException("玩家档案不存在");
+            }
+            return profile;
         } catch (Exception e) {
             log.error("获取当前玩家档案失败", e);
             throw new RuntimeException("获取当前玩家档案失败: " + e.getMessage());
@@ -116,7 +132,8 @@ public class PlayerService {
     public void cultivate() {
         try {
             PlayerProfile profile = getCurrentPlayerProfile();
-            
+            log.info("开始修炼前，玩家 {} 的修炼状态: {}", profile.getId(), profile.getIsCultivating());
+
             // 确保isCultivating不为null
             if (profile.getIsCultivating() == null) {
                 profile.setIsCultivating(false);
@@ -128,7 +145,7 @@ public class PlayerService {
 
             profile.setIsCultivating(true);
             profile.setLastCultivationStart(LocalDateTime.now());
-            playerProfileRepository.save(profile);
+            playerProfileMapper.updateById(profile);
             
             log.info("玩家开始修炼: ID={}", profile.getId());
         } catch (Exception e) {
@@ -144,8 +161,12 @@ public class PlayerService {
     public void stopCultivate() {
         try {
             PlayerProfile profile = getCurrentPlayerProfile();
-            
+            log.info("停止修炼前，玩家 {} 的修炼状态: {}", profile.getId(), profile.getIsCultivating());
+
             if (!profile.getIsCultivating()) {
+                // 即使状态已经是false，也尝试重置以防万一
+                profile.setIsCultivating(false);
+                playerProfileMapper.updateById(profile);
                 throw new RuntimeException("当前没有在修炼");
             }
 
@@ -183,7 +204,7 @@ public class PlayerService {
 
             profile.setIsCultivating(false);
             profile.setLastCultivationEnd(now);
-            playerProfileRepository.save(profile);
+            playerProfileMapper.updateById(profile);
             
             log.info("玩家停止修炼: ID={}", profile.getId());
         } catch (Exception e) {
@@ -198,7 +219,7 @@ public class PlayerService {
     @Transactional
     public void savePlayerProfile(PlayerProfile playerProfile) {
         try {
-            playerProfileRepository.save(playerProfile);
+            playerProfileMapper.updateById(playerProfile);
             log.info("保存玩家档案成功: ID={}", playerProfile.getId());
         } catch (Exception e) {
             log.error("保存玩家档案失败: ID={}", playerProfile.getId(), e);

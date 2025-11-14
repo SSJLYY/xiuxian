@@ -19,6 +19,11 @@ public class ShopItemResponse {
     private String itemDescription;
     private String itemType;
     private Integer itemQuality;
+    private String equipmentName;
+    private String equipmentDescription;
+    private String equipmentType;
+    private Integer equipmentQuality;
+    private Integer requiredLevel;
     private String shopType;
     private Integer priceSpiritStones;
     private Integer priceContributionPoints;

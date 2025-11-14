@@ -1,47 +1,42 @@
 package com.xiuxian.game.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.persistence.*;
 import java.time.LocalDateTime;
 
+@TableName("cultivation_logs")
 @Data
-@Entity
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "cultivation_logs")
 public class CultivationLog {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Integer id;
 
-    @ManyToOne
-    @JoinColumn(name = "player_id", nullable = false)
-    private PlayerProfile playerProfile;
+    @TableField(value = "player_id")
+    private Integer playerId;
 
-    @Column(name = "exp_gained", nullable = false)
+    @TableField(value = "exp_gained")
     private Long expGained;
 
-    @Column(name = "spirit_stones_gained", nullable = false)
+    @TableField(value = "spirit_stones_gained")
     private Integer spiritStonesGained;
 
-    @Column(name = "cultivation_duration", nullable = false)
+    @TableField(value = "cultivation_duration")
     private Long cultivationDuration;
 
-    @Column(name = "is_offline", nullable = false)
+    @TableField(value = "is_offline")
     @Builder.Default
     private Boolean isOffline = false;
 
-    @Column(nullable = false)
+    @TableField(value = "created_at")
     private LocalDateTime createdAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-    }
 }

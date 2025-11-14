@@ -1,12 +1,14 @@
 package com.xiuxian.game.config;
 
 import com.xiuxian.game.entity.Skill;
-import com.xiuxian.game.repository.SkillRepository;
+import com.xiuxian.game.mapper.SkillMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.time.LocalDateTime;
 
 @Component
 @RequiredArgsConstructor
@@ -14,14 +16,14 @@ public class DataInitializer implements CommandLineRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(DataInitializer.class);
 
-    private final SkillRepository skillRepository;
+    private final SkillMapper skillMapper;
 
     @Override
     public void run(String... args) {
         logger.info("开始初始化游戏数据...");
         
         try {
-            // 初始化技能数据（直接使用Repository，避免循环依赖）
+            // 初始化技能数据
             logger.info("初始化技能数据...");
             initializeDefaultSkills();
             logger.info("技能数据初始化完成");
@@ -34,10 +36,11 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     /**
-     * 初始化默认技能数据（避免循环依赖）
+     * 初始化默认技能数据
      */
     private void initializeDefaultSkills() {
-        if (skillRepository.count() == 0) {
+        long count = skillMapper.selectList(null).size();
+        if (count == 0) {
             // 基础技能
             Skill basicAttack = Skill.builder()
                     .name("基础攻击")
@@ -51,6 +54,9 @@ public class DataInitializer implements CommandLineRunner {
                     .skillType("攻击")
                     .element("无")
                     .unlockLevel(1)
+                    .active(true)
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
                     .build();
             
             Skill fireball = Skill.builder()
@@ -65,6 +71,9 @@ public class DataInitializer implements CommandLineRunner {
                     .skillType("攻击")
                     .element("火")
                     .unlockLevel(5)
+                    .active(true)
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
                     .build();
             
             Skill waterShield = Skill.builder()
@@ -79,6 +88,9 @@ public class DataInitializer implements CommandLineRunner {
                     .skillType("防御")
                     .element("水")
                     .unlockLevel(8)
+                    .active(true)
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
                     .build();
             
             Skill earthSpike = Skill.builder()
@@ -93,6 +105,9 @@ public class DataInitializer implements CommandLineRunner {
                     .skillType("攻击")
                     .element("土")
                     .unlockLevel(12)
+                    .active(true)
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
                     .build();
             
             Skill windSlash = Skill.builder()
@@ -107,13 +122,16 @@ public class DataInitializer implements CommandLineRunner {
                     .skillType("攻击")
                     .element("风")
                     .unlockLevel(10)
+                    .active(true)
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
                     .build();
             
-            skillRepository.save(basicAttack);
-            skillRepository.save(fireball);
-            skillRepository.save(waterShield);
-            skillRepository.save(earthSpike);
-            skillRepository.save(windSlash);
+            skillMapper.insert(basicAttack);
+            skillMapper.insert(fireball);
+            skillMapper.insert(waterShield);
+            skillMapper.insert(earthSpike);
+            skillMapper.insert(windSlash);
         }
     }
 }

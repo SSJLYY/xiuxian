@@ -1,72 +1,75 @@
 package com.xiuxian.game.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.persistence.*;
 import java.time.LocalDateTime;
 
+@TableName("skills")
 @Data
-@Entity
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "skills")
 public class Skill {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Integer id;
 
-    @Column(nullable = false)
+    @TableField(value = "name")
     private String name;
 
-    @Column(nullable = false)
+    @TableField(value = "description")
     private String description;
 
-    @Column(nullable = false)
+    @TableField(value = "level")
     private Integer level;
 
-    @Column(nullable = false)
+    @TableField(value = "max_level")
     private Integer maxLevel;
 
-    @Column(nullable = false)
+    @TableField(value = "base_damage")
     private Double baseDamage;
 
-    @Column(nullable = false)
+    @TableField(value = "damage_per_level")
     private Double damagePerLevel;
 
-    @Column(nullable = false)
+    @TableField(value = "cooldown")
     private Integer cooldown;
 
-    @Column(nullable = false)
+    @TableField(value = "mana_cost")
     private Integer manaCost;
 
-    @Column(nullable = false)
+    @TableField(value = "skill_type")
     private String skillType; // 攻击、防御、辅助等
 
-    @Column(nullable = false)
+    @TableField(value = "element")
     private String element; // 金、木、水、火、土
 
-    @Column(nullable = false)
+    @TableField(value = "unlock_level")
     private Integer unlockLevel; // 角色等级解锁要求
 
-    @Column(nullable = false)
+    @TableField(value = "required_spirit_stones")
+    private Integer requiredSpiritStones;
+
+    @TableField(value = "icon")
+    private String icon;
+
+    @TableField(value = "animation")
+    private String animation;
+
+    @TableField(value = "active")
+    @Builder.Default
+    private Boolean active = true;
+
+    @TableField(value = "created_at")
     private LocalDateTime createdAt;
 
-    @Column(nullable = false)
+    @TableField(value = "updated_at")
     private LocalDateTime updatedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
 }

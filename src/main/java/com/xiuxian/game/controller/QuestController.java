@@ -1,10 +1,12 @@
 package com.xiuxian.game.controller;
 
 import com.xiuxian.game.dto.response.ApiResponse;
+import com.xiuxian.game.dto.response.PlayerQuestDetailResponse;
 import com.xiuxian.game.entity.PlayerQuest;
 import com.xiuxian.game.entity.Quest;
 import com.xiuxian.game.service.QuestService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,14 +15,15 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/quests")
 @RequiredArgsConstructor
+@ConditionalOnProperty(value = "app.features.quests.enabled", havingValue = "true")
 public class QuestController {
 
     private final QuestService questService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<PlayerQuest>>> getQuests() {
+    public ResponseEntity<ApiResponse<List<PlayerQuestDetailResponse>>> getQuests() {
         try {
-            List<PlayerQuest> quests = questService.getPlayerAllQuests();
+            List<PlayerQuestDetailResponse> quests = questService.getPlayerAllQuestsDetail();
             return ResponseEntity.ok(ApiResponse.success("获取成功", quests));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
@@ -28,9 +31,9 @@ public class QuestController {
     }
 
     @GetMapping("/daily")
-    public ResponseEntity<ApiResponse<List<PlayerQuest>>> getDailyQuests() {
+    public ResponseEntity<ApiResponse<List<PlayerQuestDetailResponse>>> getDailyQuests() {
         try {
-            List<PlayerQuest> quests = questService.getPlayerDailyQuests();
+            List<PlayerQuestDetailResponse> quests = questService.getPlayerQuestsDetailByType(Quest.QuestType.DAILY);
             return ResponseEntity.ok(ApiResponse.success("获取日常任务成功", quests));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
@@ -38,9 +41,10 @@ public class QuestController {
     }
 
     @PostMapping("/daily/refresh")
-    public ResponseEntity<ApiResponse<List<PlayerQuest>>> refreshDailyQuests() {
+    public ResponseEntity<ApiResponse<List<PlayerQuestDetailResponse>>> refreshDailyQuests() {
         try {
-            List<PlayerQuest> quests = questService.refreshDailyQuests();
+            questService.refreshDailyQuests();
+            List<PlayerQuestDetailResponse> quests = questService.getPlayerQuestsDetailByType(Quest.QuestType.DAILY);
             return ResponseEntity.ok(ApiResponse.success("刷新日常任务成功", quests));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
@@ -59,10 +63,10 @@ public class QuestController {
         }
     }
 
-    @PostMapping("/{playerQuestId}/claim")
-    public ResponseEntity<ApiResponse<Void>> claimQuestReward(@PathVariable Integer playerQuestId) {
+    @PostMapping("/{questId}/claim")
+    public ResponseEntity<ApiResponse<Void>> claimQuestReward(@PathVariable Integer questId) {
         try {
-            questService.claimQuestReward(playerQuestId);
+            questService.claimQuestReward(questId);
             return ResponseEntity.ok(ApiResponse.success("领取任务奖励成功", null));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
@@ -71,9 +75,9 @@ public class QuestController {
 
     // 获取玩家所有任务
     @GetMapping("/all")
-    public ResponseEntity<ApiResponse<List<PlayerQuest>>> getAllQuests() {
+    public ResponseEntity<ApiResponse<List<PlayerQuestDetailResponse>>> getAllQuests() {
         try {
-            List<PlayerQuest> quests = questService.getPlayerAllQuests();
+            List<PlayerQuestDetailResponse> quests = questService.getPlayerAllQuestsDetail();
             return ResponseEntity.ok(ApiResponse.success("获取所有任务成功", quests));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
@@ -82,9 +86,9 @@ public class QuestController {
 
     // 根据类型获取任务
     @GetMapping("/type/{type}")
-    public ResponseEntity<ApiResponse<List<PlayerQuest>>> getQuestsByType(@PathVariable Quest.QuestType type) {
+    public ResponseEntity<ApiResponse<List<PlayerQuestDetailResponse>>> getQuestsByType(@PathVariable Quest.QuestType type) {
         try {
-            List<PlayerQuest> quests = questService.getPlayerQuestsByType(type);
+            List<PlayerQuestDetailResponse> quests = questService.getPlayerQuestsDetailByType(type);
             return ResponseEntity.ok(ApiResponse.success("获取" + type + "任务成功", quests));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));

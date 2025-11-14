@@ -1,77 +1,56 @@
 package com.xiuxian.game.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.persistence.*;
 import java.time.LocalDateTime;
 
+@TableName("shop_items")
 @Data
-@Entity
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "shop_items")
 public class ShopItem {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Integer id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "item_id")
-    private Item item;
+    @TableField(value = "item_id")
+    private Integer itemId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "equipment_id")
-    private Equipment equipment;
+    @TableField(value = "equipment_id")
+    private Integer equipmentId;
 
-    @Column(nullable = false, length = 50)
+    @TableField(value = "shop_type")
     private String shopType; // general, equipment, materials, special
 
-    @Column(name = "price_spirit_stones", nullable = false)
+    @TableField(value = "price_spirit_stones")
     @Builder.Default
     private Integer priceSpiritStones = 0;
 
-    @Column(name = "price_contribution_points", nullable = false)
+    @TableField(value = "price_contribution_points")
     @Builder.Default
     private Integer priceContributionPoints = 0;
 
-    @Column(nullable = false)
+    @TableField(value = "stock")
     @Builder.Default
     private Integer stock = -1; // -1表示无限库存
 
-    @Column(name = "is_available", nullable = false)
+    @TableField(value = "is_available")
     @Builder.Default
     private Boolean isAvailable = true;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @TableField(value = "created_at")
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at", nullable = false)
+    @TableField(value = "updated_at")
     private LocalDateTime updatedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        if (createdAt == null) {
-            createdAt = LocalDateTime.now();
-        }
-        if (updatedAt == null) {
-            updatedAt = LocalDateTime.now();
-        }
-        // 确保默认值
-        if (priceSpiritStones == null) priceSpiritStones = 0;
-        if (priceContributionPoints == null) priceContributionPoints = 0;
-        if (stock == null) stock = -1;
-        if (isAvailable == null) isAvailable = true;
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
 
     // 添加业务逻辑方法
     public boolean isUnlimitedStock() {

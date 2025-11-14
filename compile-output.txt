@@ -1,0 +1,44 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ----------------------< com.xiuxian:xiuxian-game >----------------------
+[INFO] Building xiuxian-game 1.0.0
+[INFO] --------------------------------[ jar ]---------------------------------
+[WARNING] The artifact mysql:mysql-connector-java:jar:8.0.33 has been relocated to com.mysql:mysql-connector-j:jar:8.0.33
+[INFO] 
+[INFO] --- maven-clean-plugin:3.2.0:clean (default-clean) @ xiuxian-game ---
+[INFO] Deleting C:\Users\DELL\Downloads\demo\xiuxian\target
+[INFO] 
+[INFO] --- maven-resources-plugin:3.2.0:resources (default-resources) @ xiuxian-game ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] Copying 1 resource
+[INFO] Copying 11 resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.11.0:compile (default-compile) @ xiuxian-game ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 76 source files with javac [debug target 1.8] to target\classes
+[INFO] /C:/Users/DELL/Downloads/demo/xiuxian/src/main/java/com/xiuxian/game/util/Java8Compatibility.java: C:\Users\DELL\Downloads\demo\xiuxian\src\main\java\com\xiuxian\game\util\Java8Compatibility.java使用了未经检查或不安全的操作。
+[INFO] /C:/Users/DELL/Downloads/demo/xiuxian/src/main/java/com/xiuxian/game/util/Java8Compatibility.java: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+[INFO] 某些消息已经过简化; 请使用 -Xdiags:verbose 重新编译以获得完整输出
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /C:/Users/DELL/Downloads/demo/xiuxian/src/main/java/com/xiuxian/game/service/InventoryService.java:[292,43] 不兼容的类型: java.lang.Long无法转换为java.lang.Integer
+[INFO] 1 error
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 22.003 s
+[INFO] Finished at: 2025-11-13T13:31:47+08:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.11.0:compile (default-compile) on project xiuxian-game: Compilation failure
+[ERROR] /C:/Users/DELL/Downloads/demo/xiuxian/src/main/java/com/xiuxian/game/service/InventoryService.java:[292,43] 不兼容的类型: java.lang.Long无法转换为java.lang.Integer
+[ERROR] 
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

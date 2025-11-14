@@ -1,101 +1,50 @@
 package com.xiuxian.game.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.persistence.*;
 import java.time.LocalDateTime;
 
+@TableName("player_skills")
 @Data
-@Entity
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "player_skills")
 public class PlayerSkill {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Integer id;
 
-    @ManyToOne
-    @JoinColumn(name = "player_id", nullable = false)
-    private PlayerProfile player;
+    @TableField(value = "player_id")
+    private Integer playerId;
 
-    @ManyToOne
-    @JoinColumn(name = "skill_id", nullable = false)
-    private Skill skill;
+    @TableField(value = "skill_id")
+    private Integer skillId;
 
-    @Column(nullable = false)
+    @TableField(value = "level")
     @Builder.Default
     private Integer level = 1;
 
-    @Column(nullable = false)
+    @TableField(value = "experience")
     @Builder.Default
     private Integer experience = 0;
 
-    @Column(nullable = false)
+    @TableField(value = "equipped")
     @Builder.Default
     private Boolean equipped = false;
 
-    @Column(nullable = false)
+    @TableField(value = "slot_number")
     @Builder.Default
     private Integer slotNumber = 0;
 
-    @Column(name = "created_at", nullable = false)
+    @TableField(value = "created_at")
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at", nullable = false)
+    @TableField(value = "updated_at")
     private LocalDateTime updatedAt;
-
-    // 手动添加缺失的关键方法
-    public Skill getSkill() {
-        return this.skill;
-    }
-
-    public void setSkill(Skill skill) {
-        this.skill = skill;
-    }
-
-    public void setEquipped(Boolean equipped) {
-        this.equipped = equipped;
-    }
-
-    public void setSlotNumber(Integer slotNumber) {
-        this.slotNumber = slotNumber;
-    }
-
-    public void setExperience(Integer experience) {
-        this.experience = experience;
-    }
-
-    public void setLevel(Integer level) {
-        this.level = level;
-    }
-
-    public Boolean getEquipped() {
-        return this.equipped;
-    }
-
-    public Integer getSlotNumber() {
-        return this.slotNumber;
-    }
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-
-        // 确保默认值
-        if (level == null) level = 1;
-        if (experience == null) experience = 0;
-        if (equipped == null) equipped = false;
-        if (slotNumber == null) slotNumber = 0;
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
 }

@@ -5,6 +5,7 @@ import com.xiuxian.game.dto.response.PlayerItemResponse;
 import com.xiuxian.game.service.InventoryService;
 import com.xiuxian.game.service.PlayerService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,6 +16,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/inventory")
 @RequiredArgsConstructor
+@ConditionalOnProperty(value = "app.features.inventory.enabled", havingValue = "true")
 public class InventoryController {
 
     private final InventoryService inventoryService;

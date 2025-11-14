@@ -4,11 +4,10 @@ import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.entity.PlayerProfile;
 import com.xiuxian.game.entity.PlayerSkill;
 import com.xiuxian.game.entity.Skill;
-import com.xiuxian.game.entity.User;
-import com.xiuxian.game.repository.PlayerProfileRepository;
-import com.xiuxian.game.repository.UserRepository;
+import com.xiuxian.game.service.PlayerService;
 import com.xiuxian.game.service.SkillService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,28 +17,18 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
+@ConditionalOnProperty(value = "app.features.skills.enabled", havingValue = "true")
 @RequestMapping("/api/skills")
 public class SkillController {
 
     private final SkillService skillService;
-    private final UserRepository userRepository;
-    private final PlayerProfileRepository playerProfileRepository;
+    private final PlayerService playerService;
 
     /**
      * 获取当前登录用户的PlayerProfile
      */
     private PlayerProfile getCurrentPlayerProfile() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new IllegalArgumentException("用户未登录");
-        }
-        
-        String username = authentication.getName();
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("用户不存在: " + username));
-        
-        return playerProfileRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new IllegalArgumentException("玩家档案不存在"));
+        return playerService.getCurrentPlayerProfile();
     }
 
     @GetMapping

@@ -3,12 +3,13 @@ package com.xiuxian.game.service;
 import com.xiuxian.game.dto.response.OfflineRewardResponse;
 import com.xiuxian.game.entity.CultivationLog;
 import com.xiuxian.game.entity.PlayerProfile;
-import com.xiuxian.game.repository.CultivationLogRepository;
-import com.xiuxian.game.repository.PlayerProfileRepository;
+import com.xiuxian.game.mapper.CultivationLogMapper;
+import com.xiuxian.game.mapper.PlayerProfileMapper;
 import com.xiuxian.game.util.GameCalculator;
 import com.xiuxian.game.util.GameConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
@@ -16,12 +17,13 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
+@ConditionalOnProperty(value = "app.features.offline.enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class OfflineRewardService {
 
     private final PlayerService playerService;
-    private final PlayerProfileRepository playerProfileRepository;
-    private final CultivationLogRepository cultivationLogRepository;
+    private final PlayerProfileMapper playerProfileMapper;
+    private final CultivationLogMapper cultivationLogMapper;
     private final GameCalculator gameCalculator;
 
     @Transactional
@@ -61,17 +63,18 @@ public class OfflineRewardService {
         // 检查升级
         gameCalculator.checkLevelUp(player);
         
-        playerProfileRepository.save(player);
+        playerProfileMapper.updateById(player);
         
         // 记录修炼日志
         CultivationLog log = CultivationLog.builder()
-                .playerProfile(player)
+                .playerId(player.getId())
                 .expGained(expGained)
                 .spiritStonesGained((int)spiritStonesGained)
                 .cultivationDuration(offlineSeconds)
                 .isOffline(true)
+                .createdAt(LocalDateTime.now())
                 .build();
-        cultivationLogRepository.save(log);
+        cultivationLogMapper.insert(log);
         
         // 返回离线收益信息
         return OfflineRewardResponse.builder()
@@ -84,6 +87,6 @@ public class OfflineRewardService {
 
     public List<CultivationLog> getCultivationLogs() {
         PlayerProfile player = playerService.getCurrentPlayerProfile();
-        return cultivationLogRepository.findByPlayerProfileOrderByCreatedAtDesc(player);
+        return cultivationLogMapper.selectByPlayerId(player.getId(), 100);
     }
 }

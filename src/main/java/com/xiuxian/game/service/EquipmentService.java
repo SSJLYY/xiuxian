@@ -3,54 +3,66 @@ package com.xiuxian.game.service;
 import com.xiuxian.game.entity.Equipment;
 import com.xiuxian.game.entity.PlayerEquipment;
 import com.xiuxian.game.entity.PlayerProfile;
-import com.xiuxian.game.repository.EquipmentRepository;
-import com.xiuxian.game.repository.PlayerEquipmentRepository;
-import com.xiuxian.game.repository.PlayerProfileRepository;
+import com.xiuxian.game.mapper.EquipmentMapper;
+import com.xiuxian.game.mapper.PlayerEquipmentMapper;
+import com.xiuxian.game.mapper.PlayerProfileMapper;
 import com.xiuxian.game.util.GameConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @Service
+@ConditionalOnProperty(value = "app.features.equipment.enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class EquipmentService {
 
-    private final EquipmentRepository equipmentRepository;
-    private final PlayerEquipmentRepository playerEquipmentRepository;
-    private final PlayerProfileRepository playerProfileRepository;
+    private final EquipmentMapper equipmentMapper;
+    private final PlayerEquipmentMapper playerEquipmentMapper;
+    private final PlayerProfileMapper playerProfileMapper;
 
     public List<Equipment> getAllEquipments() {
-        return equipmentRepository.findAll();
+        return equipmentMapper.selectList(null);
     }
 
     public List<Equipment> getAvailableEquipments(Integer playerId) {
-        PlayerProfile player = playerProfileRepository.findById(playerId)
-                .orElseThrow(() -> new IllegalArgumentException("玩家不存在"));
-        return equipmentRepository.findByRequiredLevelLessThanEqual(player.getLevel());
+        PlayerProfile player = playerProfileMapper.selectById(playerId);
+        if (player == null) {
+            throw new IllegalArgumentException("玩家不存在");
+        }
+        return equipmentMapper.selectByRequiredLevel(player.getLevel());
     }
 
     public List<PlayerEquipment> getPlayerEquipments(Integer playerId) {
-        PlayerProfile player = playerProfileRepository.findById(playerId)
-                .orElseThrow(() -> new IllegalArgumentException("玩家不存在"));
-        return playerEquipmentRepository.findByPlayer(player);
+        PlayerProfile player = playerProfileMapper.selectById(playerId);
+        if (player == null) {
+            throw new IllegalArgumentException("玩家不存在");
+        }
+        return playerEquipmentMapper.selectByPlayerId(playerId);
     }
 
     public List<PlayerEquipment> getEquippedItems(Integer playerId) {
-        PlayerProfile player = playerProfileRepository.findById(playerId)
-                .orElseThrow(() -> new IllegalArgumentException("玩家不存在"));
-        return playerEquipmentRepository.findByPlayerAndEquipped(player, true);
+        PlayerProfile player = playerProfileMapper.selectById(playerId);
+        if (player == null) {
+            throw new IllegalArgumentException("玩家不存在");
+        }
+        return playerEquipmentMapper.selectEquippedByPlayerId(playerId);
     }
 
     @Transactional
     public PlayerEquipment acquireEquipment(Integer equipmentId, Integer playerId) {
-        PlayerProfile player = playerProfileRepository.findById(playerId)
-                .orElseThrow(() -> new IllegalArgumentException("玩家不存在"));
+        PlayerProfile player = playerProfileMapper.selectById(playerId);
+        if (player == null) {
+            throw new IllegalArgumentException("玩家不存在");
+        }
 
-        Equipment equipment = equipmentRepository.findById(equipmentId)
-                .orElseThrow(() -> new IllegalArgumentException("装备不存在"));
+        Equipment equipment = equipmentMapper.selectById(equipmentId);
+        if (equipment == null) {
+            throw new IllegalArgumentException("装备不存在");
+        }
 
         // 检查等级要求
         if (player.getLevel() < equipment.getRequiredLevel()) {
@@ -58,110 +70,133 @@ public class EquipmentService {
         }
 
         // 检查是否已拥有该装备
-        List<PlayerEquipment> playerEquipments = playerEquipmentRepository.findByPlayer(player);
+        List<PlayerEquipment> playerEquipments = playerEquipmentMapper.selectByPlayerId(playerId);
         boolean alreadyOwned = playerEquipments.stream()
-                .anyMatch(pe -> pe.getEquipment().getId().equals(equipmentId));
+                .anyMatch(pe -> pe.getEquipmentId().equals(equipmentId));
 
         if (alreadyOwned) {
             throw new IllegalArgumentException("已经拥有该装备");
         }
 
         PlayerEquipment playerEquipment = PlayerEquipment.builder()
-                .player(player)
-                .equipment(equipment)
+                .playerId(playerId)
+                .equipmentId(equipmentId)
                 .equipped(false)
                 .slot("")
                 .durability(100)
                 .maxDurability(100)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
                 .build();
 
-        return playerEquipmentRepository.save(playerEquipment);
+        playerEquipmentMapper.insert(playerEquipment);
+        return playerEquipmentMapper.selectById(playerEquipment.getId());
     }
 
     @Transactional
     public PlayerEquipment equipItem(Integer playerEquipmentId, String slot, Integer playerId) {
-        PlayerProfile player = playerProfileRepository.findById(playerId)
-                .orElseThrow(() -> new IllegalArgumentException("玩家不存在"));
+        PlayerProfile player = playerProfileMapper.selectById(playerId);
+        if (player == null) {
+            throw new IllegalArgumentException("玩家不存在");
+        }
 
-        PlayerEquipment playerEquipment = playerEquipmentRepository.findById(playerEquipmentId)
-                .orElseThrow(() -> new IllegalArgumentException("玩家装备不存在"));
+        PlayerEquipment playerEquipment = playerEquipmentMapper.selectById(playerEquipmentId);
+        if (playerEquipment == null) {
+            throw new IllegalArgumentException("玩家装备不存在");
+        }
 
-        if (!playerEquipment.getPlayer().getId().equals(playerId)) {
+        if (!playerEquipment.getPlayerId().equals(playerId)) {
             throw new IllegalArgumentException("无权操作该装备");
         }
 
+        Equipment equipment = equipmentMapper.selectById(playerEquipment.getEquipmentId());
+        
         // 检查等级要求
-        if (player.getLevel() < playerEquipment.getEquipment().getRequiredLevel()) {
+        if (player.getLevel() < equipment.getRequiredLevel()) {
             throw new IllegalArgumentException("等级不足，无法装备此物品");
         }
 
         // 如果同槽位已有装备，则卸下
-        Optional<PlayerEquipment> existingInSlot = playerEquipmentRepository.findByPlayerAndSlot(player, slot);
-        if (existingInSlot.isPresent()) {
-            PlayerEquipment equippedItem = existingInSlot.get();
-            if (equippedItem.getEquipped()) {
-                equippedItem.setEquipped(false);
-                playerEquipmentRepository.save(equippedItem);
+        PlayerEquipment existingInSlot = playerEquipmentMapper.selectEquippedBySlot(playerId, slot);
+        if (existingInSlot != null) {
+            if (existingInSlot.getEquipped()) {
+                existingInSlot.setEquipped(false);
+                existingInSlot.setUpdatedAt(LocalDateTime.now());
+                playerEquipmentMapper.updateById(existingInSlot);
                 // 移除旧装备的属性加成
-                removeEquipmentBonuses(player, equippedItem.getEquipment());
+                Equipment oldEquipment = equipmentMapper.selectById(existingInSlot.getEquipmentId());
+                removeEquipmentBonuses(player, oldEquipment);
             }
         }
 
         // 装备新物品
         playerEquipment.setEquipped(true);
         playerEquipment.setSlot(slot);
-        PlayerEquipment savedEquipment = playerEquipmentRepository.save(playerEquipment);
+        playerEquipment.setUpdatedAt(LocalDateTime.now());
+        playerEquipmentMapper.updateById(playerEquipment);
 
         // 添加新装备的属性加成
-        addEquipmentBonuses(player, playerEquipment.getEquipment());
+        addEquipmentBonuses(player, equipment);
 
         // 更新玩家属性
-        playerProfileRepository.save(player);
+        playerProfileMapper.updateById(player);
 
-        return savedEquipment;
+        return playerEquipmentMapper.selectById(playerEquipmentId);
     }
 
     @Transactional
     public PlayerEquipment unequipItem(Integer playerEquipmentId, Integer playerId) {
-        PlayerProfile player = playerProfileRepository.findById(playerId)
-                .orElseThrow(() -> new IllegalArgumentException("玩家不存在"));
+        PlayerProfile player = playerProfileMapper.selectById(playerId);
+        if (player == null) {
+            throw new IllegalArgumentException("玩家不存在");
+        }
 
-        PlayerEquipment playerEquipment = playerEquipmentRepository.findById(playerEquipmentId)
-                .orElseThrow(() -> new IllegalArgumentException("玩家装备不存在"));
+        PlayerEquipment playerEquipment = playerEquipmentMapper.selectById(playerEquipmentId);
+        if (playerEquipment == null) {
+            throw new IllegalArgumentException("玩家装备不存在");
+        }
 
-        if (!playerEquipment.getPlayer().getId().equals(playerId)) {
+        if (!playerEquipment.getPlayerId().equals(playerId)) {
             throw new IllegalArgumentException("无权操作该装备");
         }
 
         if (playerEquipment.getEquipped()) {
+            Equipment equipment = equipmentMapper.selectById(playerEquipment.getEquipmentId());
             // 移除装备的属性加成
-            removeEquipmentBonuses(player, playerEquipment.getEquipment());
+            removeEquipmentBonuses(player, equipment);
         }
 
         playerEquipment.setEquipped(false);
         playerEquipment.setSlot("");
-        PlayerEquipment savedEquipment = playerEquipmentRepository.save(playerEquipment);
+        playerEquipment.setUpdatedAt(LocalDateTime.now());
+        playerEquipmentMapper.updateById(playerEquipment);
 
         // 更新玩家属性
-        playerProfileRepository.save(player);
+        playerProfileMapper.updateById(player);
 
-        return savedEquipment;
+        return playerEquipmentMapper.selectById(playerEquipmentId);
     }
 
     @Transactional
     public PlayerEquipment repairEquipment(Integer playerEquipmentId, Integer playerId) {
-        PlayerProfile player = playerProfileRepository.findById(playerId)
-                .orElseThrow(() -> new IllegalArgumentException("玩家不存在"));
+        PlayerProfile player = playerProfileMapper.selectById(playerId);
+        if (player == null) {
+            throw new IllegalArgumentException("玩家不存在");
+        }
 
-        PlayerEquipment playerEquipment = playerEquipmentRepository.findById(playerEquipmentId)
-                .orElseThrow(() -> new IllegalArgumentException("玩家装备不存在"));
+        PlayerEquipment playerEquipment = playerEquipmentMapper.selectById(playerEquipmentId);
+        if (playerEquipment == null) {
+            throw new IllegalArgumentException("玩家装备不存在");
+        }
 
-        if (!playerEquipment.getPlayer().getId().equals(playerId)) {
+        if (!playerEquipment.getPlayerId().equals(playerId)) {
             throw new IllegalArgumentException("无权操作该装备");
         }
 
         playerEquipment.setDurability(playerEquipment.getMaxDurability());
-        return playerEquipmentRepository.save(playerEquipment);
+        playerEquipment.setUpdatedAt(LocalDateTime.now());
+        playerEquipmentMapper.updateById(playerEquipment);
+        return playerEquipmentMapper.selectById(playerEquipmentId);
     }
 
     /**
@@ -191,7 +226,8 @@ public class EquipmentService {
      */
     @Transactional
     public void initializeDefaultEquipments() {
-        if (equipmentRepository.count() == 0) {
+        long count = equipmentMapper.selectList(null).size();
+        if (count == 0) {
             // 创建基础装备
             Equipment woodenSword = Equipment.builder()
                     .name("木剑")
@@ -206,6 +242,8 @@ public class EquipmentService {
                     .speedBonus(0)
                     .requiredLevel(1)
                     .price(100)
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
                     .build();
 
             Equipment clothArmor = Equipment.builder()
@@ -221,10 +259,12 @@ public class EquipmentService {
                     .speedBonus(0)
                     .requiredLevel(1)
                     .price(80)
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
                     .build();
 
-            equipmentRepository.save(woodenSword);
-            equipmentRepository.save(clothArmor);
+            equipmentMapper.insert(woodenSword);
+            equipmentMapper.insert(clothArmor);
         }
     }
 }
