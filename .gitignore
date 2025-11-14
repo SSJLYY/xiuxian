@@ -2,11 +2,12 @@
 target/
 **/target/
 
+# 日志目录和文件
+logs/
+*.log
+
 # 编译类文件
 *.class
-
-# 日志文件
-*.log
 
 # 打包文件
 *.jar
@@ -18,3 +19,6 @@ target/
 *.iml
 *.iws
 
+# 系统文件
+.DS_Store
+Thumbs.db
