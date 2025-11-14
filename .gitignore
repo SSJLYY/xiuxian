@@ -1,0 +1,20 @@
+# Maven 目标目录
+target/
+**/target/
+
+# 编译类文件
+*.class
+
+# 日志文件
+*.log
+
+# 打包文件
+*.jar
+*.war
+*.ear
+
+# IDE 文件
+.idea/
+*.iml
+*.iws
+
