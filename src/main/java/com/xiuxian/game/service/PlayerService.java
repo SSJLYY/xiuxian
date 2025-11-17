@@ -22,6 +22,7 @@ public class PlayerService {
 
     private final PlayerProfileMapper playerProfileMapper;
     private final UserMapper userMapper;
+    private final QuestProgressService questProgressService;
 
     /**
      * 创建新玩家档案
@@ -200,6 +201,14 @@ public class PlayerService {
                 
                 // 检查是否升级
                 checkLevelUp(profile);
+
+                try {
+                    questProgressService.updateQuestProgressByType(profile.getId(), com.xiuxian.game.entity.Quest.QuestType.DAILY, 1);
+                    questProgressService.updateQuestProgressByType(profile.getId(), com.xiuxian.game.entity.Quest.QuestType.WEEKLY, (int) actualCultivationTime);
+                    questProgressService.updateQuestProgressByType(profile.getId(), com.xiuxian.game.entity.Quest.QuestType.MONTHLY, 1);
+                } catch (Exception qe) {
+                    log.warn("更新任务进度失败: {}", qe.getMessage());
+                }
             }
 
             profile.setIsCultivating(false);
@@ -236,6 +245,7 @@ public class PlayerService {
         int levelUps = 0;
         
         while (profile.getExp() >= profile.getExpToNext() && levelUps < maxLevelUps) {
+            String oldRealm = profile.getRealm();
             profile.setLevel(profile.getLevel() + 1);
             profile.setExp(profile.getExp() - profile.getExpToNext());
             profile.setExpToNext(profile.getExpToNext() * 2); // 下一级所需经验翻倍
@@ -249,6 +259,10 @@ public class PlayerService {
             
             // 更新境界
             updateRealm(profile);
+            if (!java.util.Objects.equals(oldRealm, profile.getRealm())) {
+                profile.setAttributePoints((profile.getAttributePoints() == null ? 0 : profile.getAttributePoints()) + 5);
+                profile.setSkillPoints((profile.getSkillPoints() == null ? 0 : profile.getSkillPoints()) + 1);
+            }
             
             log.info("玩家升级: ID={}, 新等级={}, 新境界={}", profile.getId(), profile.getLevel(), profile.getRealm());
             levelUps++;

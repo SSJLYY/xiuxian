@@ -63,8 +63,12 @@ public class SecurityConfig {
                         .antMatchers(
                                 "/",
                                 "/index.html",
+                                "/login.html",
+                                "/cultivate.html",
                                 "/xiuxian-game/",
                                 "/xiuxian-game/index.html",
+                                "/xiuxian-game/login.html",
+                                "/xiuxian-game/cultivate.html",
                                 "/static/**",
                                 "/css/**",
                                 "/js/**",

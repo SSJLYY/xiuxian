@@ -4,6 +4,9 @@ class GameManager {
         this.isCultivating = false;
         this.cultivationTimer = null;
         this.cultivationTime = 0;
+        this.cycleDurationMs = 10000;
+        this.cycleStart = null;
+        this.cycleCount = 0;
         this.lastCultivationStart = null;
         this.isInitialized = false;
         this.dataRefreshTimer = null;
@@ -15,6 +18,8 @@ class GameManager {
         
         this.bindEvents();
         await this.initCultivationStatus();
+        await this.loadQuests();
+        await this.loadSkillShop();
         this.isInitialized = true;
     }
 
@@ -76,6 +81,90 @@ class GameManager {
             console.error('初始化修炼状态失败:', error);
             this.isCultivating = false;
             this.updateCultivationStatus('点击开始修炼');
+        }
+    }
+
+    async loadSkillShop() {
+        try {
+            const res = await gameAPI.getSkillShop();
+            if (!res || !res.success) return;
+            const list = document.getElementById('skillsList');
+            if (!list) return;
+            const items = res.data || [];
+            items.forEach(it => {
+                const el = document.createElement('div');
+                el.className = 'skill-shop-item';
+                el.innerHTML = `技能ID: ${it.skillId} 价格: ${it.price} 要求等级: ${it.requiredLevel} <button class="btn btn-primary btn-sm" data-shop="${it.id}">购买</button>`;
+                list.appendChild(el);
+            });
+            list.querySelectorAll('button[data-shop]').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.currentTarget.getAttribute('data-shop');
+                    try {
+                        const r = await gameAPI.buySkill(id);
+                        if (!r || !r.success) throw new Error(r?.message||'购买失败');
+                        await this.loadQuests();
+                        if (window.authManager && window.authManager.loadPlayerProfile) {
+                            await window.authManager.loadPlayerProfile();
+                        }
+                        this.showToast('购买成功','success');
+                    } catch(err){ this.showToast('购买失败: '+err.message,'error'); throw err; }
+                });
+            });
+        } catch (error) { /* 忽略渲染错误 */ }
+    }
+
+    async loadQuests() {
+        try {
+            const res = await gameAPI.getQuests();
+            if (!res || !res.success) {
+                throw new Error(res?.message || '获取任务失败');
+            }
+            const list = document.getElementById('questsList');
+            if (!list) return;
+            list.innerHTML = '';
+            const quests = res.data || [];
+            quests.forEach(q => {
+                const item = document.createElement('div');
+                item.className = 'quest-item';
+                const progress = Math.min(q.currentProgress || 0, q.quest.requiredAmount || 1);
+                const done = !!q.completed;
+                item.innerHTML = `
+                    <div class="quest-header">
+                        <strong>${q.quest.title}</strong>
+                        <span class="quest-type">${q.quest.type}</span>
+                    </div>
+                    <div class="quest-desc">${q.quest.description || ''}</div>
+                    <div class="quest-progress">进度：${progress}/${q.quest.requiredAmount}</div>
+                    <div class="quest-reward">奖励：经验${q.quest.rewardExp}，灵石${q.quest.rewardSpiritStones}，贡献${q.quest.rewardContributionPoints}</div>
+                    <div class="quest-actions">
+                        ${done && !q.rewardClaimed ? `<button class="btn btn-primary btn-sm" data-id="${q.id}">领取奖励</button>` : `<span class="status">${done ? '已完成' : '未完成'}</span>`}
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+            list.querySelectorAll('button[data-id]').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.currentTarget.getAttribute('data-id');
+                    try {
+                        const r = await gameAPI.claimQuestReward(id);
+                        if (!r || !r.success) {
+                            throw new Error(r?.message || '领取失败');
+                        }
+                        await this.loadQuests();
+                        if (window.authManager && window.authManager.loadPlayerProfile) {
+                            await window.authManager.loadPlayerProfile();
+                        }
+                        this.showToast('任务奖励领取成功', 'success');
+                    } catch (err) {
+                        this.showToast('任务奖励领取失败: ' + err.message, 'error');
+                        throw err;
+                    }
+                });
+            });
+        } catch (error) {
+            this.showToast('获取任务失败: ' + error.message, 'error');
+            throw error;
         }
     }
 
@@ -196,15 +285,18 @@ class GameManager {
 
     // 开始修炼计时器
     startCultivationTimer() {
+        this.cycleStart = Date.now();
         this.cultivationTimer = setInterval(() => {
-            this.cultivationTime++;
-            this.updateCultivationDisplay();
-            
-            // 每30秒刷新一次玩家数据，显示经验变化
-            if (this.cultivationTime % 30 === 0) {
+            const elapsed = Date.now() - this.cycleStart;
+            const percent = Math.min(100, Math.floor((elapsed / this.cycleDurationMs) * 100));
+            this.updateCycleProgress(percent);
+            if (elapsed >= this.cycleDurationMs) {
+                this.cycleStart = Date.now();
+                this.cycleCount++;
+                this.updateCultivationDisplay();
                 this.refreshPlayerData();
             }
-        }, 1000);
+        }, 100);
     }
 
     // 停止修炼计时器
@@ -235,20 +327,15 @@ class GameManager {
 
     // 更新修炼显示
     updateCultivationDisplay() {
-        const timeElement = document.getElementById('cultivationTime');
-        if (timeElement) {
-            timeElement.textContent = this.cultivationTime;
-        }
-
         const statusElement = document.getElementById('cultivationStatus');
         if (statusElement) {
-            statusElement.textContent = `修炼中... ${this.cultivationTime}秒`;
+            statusElement.textContent = `修炼中... 小周期 ${this.cycleCount} 次`;
         }
+    }
 
-        // 每10秒添加一次日志
-        if (this.cultivationTime % 10 === 0) {
-            this.addCultivationLog(`修炼进行中... ${this.cultivationTime}秒`);
-        }
+    updateCycleProgress(percent) {
+        const bar = document.getElementById('expProgress');
+        if (bar) bar.style.width = `${percent}%`;
     }
 
     // 更新修炼状态
@@ -271,11 +358,11 @@ class GameManager {
 
         if (button) {
             if (this.isCultivating) {
-                button.innerHTML = '<i class="fas fa-stop"></i> 停止修炼';
+                button.innerHTML = '<i class="fa-solid fa-stop"></i> 停止修炼';
                 button.className = 'btn btn-danger';
                 button.onclick = () => this.stopCultivation();
             } else {
-                button.innerHTML = '<i class="fas fa-play"></i> 开始修炼';
+                button.innerHTML = '<i class="fa-solid fa-play"></i> 开始修炼';
                 button.className = 'btn btn-success';
                 button.onclick = () => this.startCultivation();
             }
@@ -284,18 +371,7 @@ class GameManager {
 
     // 添加修炼日志
     addCultivationLog(message) {
-        const logElement = document.getElementById('cultivation-log');
-        if (logElement) {
-            const logEntry = document.createElement('p');
-            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-            logElement.appendChild(logEntry);
-            logElement.scrollTop = logElement.scrollHeight;
-
-            // 限制日志数量
-            if (logElement.children.length > 50) {
-                logElement.removeChild(logElement.firstChild);
-            }
-        }
+        this.showToast(message, 'info');
     }
 
     // 领取离线奖励 - 使用后端存在的API
@@ -327,33 +403,41 @@ class GameManager {
             window.authManager.showToast(message, type, duration);
         } else {
             const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
+            const count = document.querySelectorAll('.toast-bubble').length;
+            const bottom = 10 + count * 36;
+            toast.className = `toast-bubble ${type}`;
             toast.textContent = message;
-
             Object.assign(toast.style, {
                 position: 'fixed',
-                top: '20px',
-                right: '20px',
+                bottom: `${bottom}px`,
+                right: '16px',
                 background: this.getToastColor(type),
-                color: 'white',
-                padding: '15px 20px',
-                borderRadius: '8px',
-                boxShadow: '0 5px 15px rgba(0,0,0,0.2)',
-                zIndex: '1001',
-                animation: 'slideInRight 0.3s ease',
-                maxWidth: '300px',
-                wordWrap: 'break-word'
+                color: '#fff',
+                padding: '6px 10px',
+                borderRadius: '9999px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+                zIndex: '10001',
+                maxWidth: '220px',
+                wordWrap: 'break-word',
+                fontSize: '12px',
+                lineHeight: '1.2',
+                opacity: '0',
+                transform: 'translateY(8px)',
+                transition: 'all 0.25s ease'
             });
-
             document.body.appendChild(toast);
-
+            requestAnimationFrame(() => {
+                toast.style.opacity = '1';
+                toast.style.transform = 'translateY(0)';
+            });
             setTimeout(() => {
-                toast.style.animation = 'slideOutRight 0.3s ease';
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(8px)';
                 setTimeout(() => {
                     if (toast.parentElement) {
                         toast.parentElement.removeChild(toast);
                     }
-                }, 300);
+                }, 250);
             }, duration);
         }
     }
@@ -370,8 +454,8 @@ class GameManager {
     }
 }
 
-// 游戏管理器实例（延迟初始化）
-let gameManager = null;
+    // 游戏管理器实例（延迟初始化）
+    let gameManager = null;
 
 // 初始化游戏管理器（在认证成功后调用）
 window.initGameManager = async function() {
@@ -390,6 +474,29 @@ window.initGameManager = async function() {
         window.gameManager = gameManager;
     }
     return gameManager;
+};
+
+// 增加重置修炼状态方法
+GameManager.prototype.resetCultivation = async function() {
+    try {
+        const response = await gameAPI.resetCultivation();
+        if (!response.success) {
+            throw new Error(response.message || '重置修炼状态失败');
+        }
+        this.isCultivating = false;
+        this.stopCultivationTimer();
+        this.cultivationTime = 0;
+        this.updateCultivationStatus('点击开始修炼');
+        await this.loadQuests();
+        if (window.authManager && window.authManager.loadPlayerProfile) {
+            await window.authManager.loadPlayerProfile();
+        }
+        this.showToast('修炼状态已重置', 'info');
+    } catch (error) {
+        console.error('重置修炼状态失败:', error);
+        this.showToast('重置修炼状态失败: ' + error.message, 'error');
+        throw error;
+    }
 };
 
 // 获取游戏管理器实例

@@ -275,7 +275,6 @@ class AuthManager {
     // 加载游戏数据 - 修复认证检查逻辑
     async loadGameData() {
         if (!this.isAuthenticated) {
-            console.warn('用户未认证，无法加载游戏数据');
             this.showToast('请先登录', 'warning');
             return;
         }
@@ -284,10 +283,14 @@ class AuthManager {
 
         try {
             await this.loadPlayerProfile();
+            await Promise.all([
+                this.loadSkills(),
+                this.loadInventory(),
+                this.loadQuests()
+            ]);
             this.updatePlayerUI();
-            this.showToast('玩家数据加载完成', 'success');
+            this.showToast('游戏数据加载完成', 'success');
         } catch (error) {
-            console.error('加载游戏数据失败:', error);
             this.showToast('加载游戏数据失败: ' + error.message, 'error');
         } finally {
             this.showLoading(false);
@@ -358,24 +361,26 @@ class AuthManager {
         }
     }
 
-    // 渲染技能列表
+    // 渲染技能列表（Tailwind风格）
     renderSkills(skills) {
         const skillsList = document.getElementById('skillsList');
         if (!skillsList || !skills) return;
 
-        skillsList.innerHTML = skills.map(skill => `
-            <div class="skill-item" data-skill-id="${skill.id}">
-                <div class="skill-header">
-                    <span class="skill-name">${skill.name}</span>
-                    <span class="skill-level">Lv.${skill.level}</span>
+        skillsList.innerHTML = skills.map(s => `
+            <div class="bg-white/90 rounded-lg border border-gray-200 p-4 shadow hover:shadow-md transition transform hover:-translate-y-0.5" data-skill-id="${s.id}">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-2">
+                        <i class="fa fa-magic text-indigo-500"></i>
+                        <span class="font-semibold text-gray-800">${s.skill?.name || s.name || ''}</span>
+                    </div>
+                    <span class="text-xs px-2 py-1 rounded bg-indigo-50 text-indigo-600">Lv.${s.level}</span>
                 </div>
-                <div class="skill-description">${skill.description}</div>
-                <div class="skill-stats">
-                    <span>伤害: ${skill.damage || 0}</span>
-                    <span>冷却: ${skill.cooldown || 0}s</span>
-                    <span>消耗: ${skill.cost || 0}</span>
+                <p class="text-sm text-gray-600 mb-2">${s.skill?.description || s.description || ''}</p>
+                <div class="flex items-center gap-4 text-sm text-gray-500">
+                    <span><i class="fa fa-clock-o mr-1"></i>${s.cooldown || 0}s</span>
+                    <span><i class="fa fa-fire mr-1"></i>${s.manaCost || s.cost || 0}</span>
                 </div>
-                <button class="btn btn-sm" onclick="useSkill(${skill.id})">使用</button>
+                <button class="mt-3 px-3 py-1 text-sm rounded bg-indigo-500 text-white hover:bg-indigo-600" onclick="useSkill(${s.id})">使用</button>
             </div>
         `).join('');
     }
@@ -398,69 +403,67 @@ class AuthManager {
         `).join('');
     }
 
-    // 渲染背包
+    // 渲染背包（Tailwind风格）
     renderInventory(items) {
         const inventoryGrid = document.getElementById('inventoryGrid');
         if (!inventoryGrid || !items) return;
 
         inventoryGrid.innerHTML = items.map(item => `
-            <div class="inventory-item">
-                <div class="item-name">${item.name}</div>
-                <div class="item-type">${item.type}</div>
-                <div class="item-quantity">数量: ${item.quantity}</div>
-                <button class="btn btn-sm" onclick="useItem(${item.id})">使用</button>
+            <div class="bg-white/90 rounded-lg border border-gray-200 p-4 shadow hover:shadow-md transition">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-2">
+                        <i class="fa fa-archive text-amber-600"></i>
+                        <span class="font-semibold text-gray-800">${item.itemName || item.name}</span>
+                    </div>
+                    <span class="text-xs px-2 py-1 rounded bg-amber-50 text-amber-700">x${item.quantity}</span>
+                </div>
+                <p class="text-sm text-gray-600 mb-2">${item.itemDescription || item.description || ''}</p>
+                <div class="text-xs text-gray-500">${item.itemType || item.type}</div>
+                <button class="mt-3 px-3 py-1 text-sm rounded bg-amber-600 text-white hover:bg-amber-700" onclick="useItem(${item.id})">使用</button>
             </div>
         `).join('');
     }
 
-    // 渲染任务列表
+    // 渲染任务列表（Tailwind风格）
     renderQuests(quests) {
         const questsList = document.getElementById('questsList');
         if (!questsList || !quests) return;
 
-        questsList.innerHTML = quests.map(playerQuest => {
-            const quest = playerQuest.quest;
-            const progress = playerQuest.currentProgress || 0;
-            const required = quest.requiredAmount || 1;
+        questsList.innerHTML = quests.map(pq => {
+            const q = pq.quest;
+            const progress = pq.currentProgress || 0;
+            const required = q.requiredAmount || 1;
             const progressPercent = Math.min((progress / required) * 100, 100);
-            const isCompleted = playerQuest.completed;
-            const isClaimed = playerQuest.rewardClaimed;
-            
-            let statusText = '';
-            let buttonText = '';
-            let buttonClass = 'btn btn-sm';
-            let buttonAction = '';
-            
-            if (isClaimed) {
-                statusText = '<span class="quest-status completed">已领取</span>';
-                buttonText = '已领取';
-                buttonClass += ' btn-secondary disabled';
-            } else if (isCompleted) {
-                statusText = '<span class="quest-status completed">已完成</span>';
-                buttonText = '领取奖励';
-                buttonClass += ' btn-success';
-                buttonAction = `claimQuest(${playerQuest.id})`;
-            } else {
-                statusText = `<span class="quest-status in-progress">进行中 ${progress}/${required}</span>`;
-                buttonText = '进行中';
-                buttonClass += ' btn-secondary disabled';
-            }
-            
+            const isCompleted = pq.completed;
+            const isClaimed = pq.rewardClaimed;
+
+            const statusText = isClaimed
+                ? '<span class="text-xs px-2 py-1 rounded bg-green-50 text-green-700">已领取</span>'
+                : isCompleted
+                    ? '<span class="text-xs px-2 py-1 rounded bg-green-50 text-green-700">已完成</span>'
+                    : `<span class=\"text-xs px-2 py-1 rounded bg-blue-50 text-blue-700\">进行中 ${progress}/${required}</span>`;
+            const button = isClaimed || !isCompleted
+                ? `<button class=\"mt-3 px-3 py-1 text-sm rounded bg-gray-300 text-gray-600 cursor-not-allowed\" disabled>进行中</button>`
+                : `<button class=\"mt-3 px-3 py-1 text-sm rounded bg-green-600 text-white hover:bg-green-700\" onclick=\"claimQuest(${pq.id})\">领取奖励</button>`;
+
             return `
-                <div class="quest-item ${isCompleted ? 'completed' : ''}">
-                    <div class="quest-header">
-                        <span class="quest-title">${quest.title}</span>
+                <div class="bg-white/90 rounded-lg border border-gray-200 p-4 shadow hover:shadow-md transition">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                            <i class="fa fa-tasks text-blue-600"></i>
+                            <span class="font-semibold text-gray-800">${q.title}</span>
+                        </div>
                         ${statusText}
                     </div>
-                    <div class="quest-description">${quest.description}</div>
-                    <div class="quest-progress">
-                        <div class="progress-bar">
-                            <div class="progress" style="width: ${progressPercent}%"></div>
+                    <p class="text-sm text-gray-600 mb-2">${q.description}</p>
+                    <div class="flex items-center gap-3">
+                        <div class="w-full h-2 bg-gray-200 rounded overflow-hidden">
+                            <div class="h-2 bg-gradient-to-r from-amber-700 to-red-500" style="width: ${progressPercent}%"></div>
                         </div>
-                        <span class="progress-text">${progress}/${required}</span>
+                        <span class="text-xs text-gray-500">${progress}/${required}</span>
                     </div>
-                    <div class="quest-reward">奖励: ${quest.rewardExp}经验 + ${quest.rewardSpiritStones}灵石</div>
-                    <button class="${buttonClass}" onclick="${buttonAction}" ${isClaimed || !isCompleted ? 'disabled' : ''}>${buttonText}</button>
+                    <div class="mt-2 text-sm text-gray-700">奖励: ${q.rewardExp}经验 + ${q.rewardSpiritStones}灵石</div>
+                    ${button}
                 </div>
             `;
         }).join('');
@@ -509,27 +512,42 @@ class AuthManager {
 
     // 显示消息提示
     showToast(message, type = 'info', duration = 3000) {
-        // 创建简单的toast
         const toast = document.createElement('div');
+        const count = document.querySelectorAll('.toast-bubble').length;
+        const bottom = 10 + count * 36;
+        toast.className = `toast-bubble ${type}`;
         toast.style.cssText = `
             position: fixed;
-            top: 20px;
-            right: 20px;
+            bottom: ${bottom}px;
+            right: 16px;
             background: ${this.getToastColor(type)};
-            color: white;
-            padding: 12px 20px;
-            border-radius: 4px;
-            z-index: 10000;
-            max-width: 300px;
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 9999px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            z-index: 10001;
+            max-width: 220px;
+            font-size: 12px;
+            line-height: 1.2;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: all 0.25s ease;
         `;
         toast.textContent = message;
 
         document.body.appendChild(toast);
-
+        requestAnimationFrame(() => {
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+        });
         setTimeout(() => {
-            if (toast.parentNode) {
-                toast.parentNode.removeChild(toast);
-            }
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(8px)';
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 250);
         }, duration);
     }
 

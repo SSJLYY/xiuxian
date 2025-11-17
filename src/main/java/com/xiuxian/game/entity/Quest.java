@@ -50,6 +50,7 @@ public class Quest {
     public enum QuestType {
         DAILY, // 日常任务
         WEEKLY, // 周常任务
+        MONTHLY, // 月常任务
         MAIN, // 主线任务
         SIDE // 支线任务
     }

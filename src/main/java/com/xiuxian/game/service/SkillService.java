@@ -3,6 +3,7 @@ package com.xiuxian.game.service;
 import com.xiuxian.game.entity.PlayerProfile;
 import com.xiuxian.game.entity.PlayerSkill;
 import com.xiuxian.game.entity.Skill;
+import com.xiuxian.game.dto.response.SkillResponse;
 import com.xiuxian.game.mapper.PlayerProfileMapper;
 import com.xiuxian.game.mapper.PlayerSkillMapper;
 import com.xiuxian.game.mapper.SkillMapper;
@@ -38,6 +39,33 @@ public class SkillService {
 
     public List<PlayerSkill> getPlayerSkills(Integer playerId) {
         return playerSkillMapper.selectByPlayerId(playerId);
+    }
+
+    public List<SkillResponse> getPlayerSkillDetails(Integer playerId) {
+        List<PlayerSkill> list = getPlayerSkills(playerId);
+        java.util.ArrayList<SkillResponse> res = new java.util.ArrayList<>();
+        for (PlayerSkill ps : list) {
+            Skill s = skillMapper.selectById(ps.getSkillId());
+            SkillResponse.SkillSummary summary = SkillResponse.SkillSummary.builder()
+                    .id(s.getId().longValue())
+                    .name(s.getName())
+                    .description(s.getDescription())
+                    .type(s.getSkillType())
+                    .unlockLevel(s.getUnlockLevel())
+                    .maxLevel(s.getMaxLevel())
+                    .build();
+            SkillResponse sr = SkillResponse.builder()
+                    .id(ps.getId().longValue())
+                    .level(ps.getLevel())
+                    .equipped(ps.getEquipped())
+                    .slotNumber(ps.getSlotNumber())
+                    .cooldown(getSkillCooldown(ps))
+                    .manaCost(getSkillManaCost(ps))
+                    .skill(summary)
+                    .build();
+            res.add(sr);
+        }
+        return res;
     }
 
     public List<PlayerSkill> getEquippedSkills(Integer playerId) {
@@ -172,6 +200,29 @@ public class SkillService {
         playerSkill.setExperience(playerSkill.getExperience() - requiredExp);
         playerSkill.setLevel(currentLevel + 1);
         playerSkill.setExperience(playerSkill.getExperience() + 10);
+        playerSkillMapper.updateById(playerSkill);
+        return playerSkillMapper.selectById(playerSkillId);
+    }
+
+    @Transactional
+    public PlayerSkill upgradeSkillByPoints(Integer playerSkillId, Integer playerId) {
+        PlayerSkill playerSkill = playerSkillMapper.selectById(playerSkillId);
+        if (playerSkill == null) throw new IllegalArgumentException(GameConstants.ERROR_SKILL_NOT_FOUND + ": 玩家技能不存在");
+        if (!playerSkill.getPlayerId().equals(playerId)) {
+            throw new IllegalArgumentException(GameConstants.ERROR_INVALID_OPERATION + ": 无权操作该技能");
+        }
+        Skill skill = skillMapper.selectById(playerSkill.getSkillId());
+        if (playerSkill.getLevel() >= skill.getMaxLevel()) {
+            throw new IllegalArgumentException(GameConstants.ERROR_INVALID_OPERATION + ": 技能已达到最大等级");
+        }
+        PlayerProfile player = playerProfileMapper.selectById(playerId);
+        int points = player.getSkillPoints() == null ? 0 : player.getSkillPoints();
+        if (points <= 0) {
+            throw new IllegalArgumentException(GameConstants.ERROR_INSUFFICIENT_RESOURCES + ": 技能点不足");
+        }
+        player.setSkillPoints(points - 1);
+        playerProfileMapper.updateById(player);
+        playerSkill.setLevel(playerSkill.getLevel() + 1);
         playerSkillMapper.updateById(playerSkill);
         return playerSkillMapper.selectById(playerSkillId);
     }

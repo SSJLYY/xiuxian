@@ -5,6 +5,7 @@ import com.xiuxian.game.entity.PlayerProfile;
 import com.xiuxian.game.entity.PlayerSkill;
 import com.xiuxian.game.entity.Skill;
 import com.xiuxian.game.service.PlayerService;
+import com.xiuxian.game.dto.response.SkillResponse;
 import com.xiuxian.game.service.SkillService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -53,10 +54,10 @@ public class SkillController {
     }
 
     @GetMapping("/player")
-    public ResponseEntity<ApiResponse<List<PlayerSkill>>> getPlayerSkills() {
+    public ResponseEntity<ApiResponse<List<SkillResponse>>> getPlayerSkills() {
         try {
             PlayerProfile player = getCurrentPlayerProfile();
-            List<PlayerSkill> skills = skillService.getPlayerSkills(player.getId());
+            List<SkillResponse> skills = skillService.getPlayerSkillDetails(player.getId());
             return ResponseEntity.ok(ApiResponse.success("获取成功", skills));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
@@ -126,6 +127,17 @@ public class SkillController {
             // 使用技能后增加经验
             skillService.addSkillExperience(playerSkillId, 10);
             return ResponseEntity.ok(ApiResponse.success("技能使用成功", null));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{playerSkillId}/upgrade-by-points")
+    public ResponseEntity<ApiResponse<PlayerSkill>> upgradeSkillByPoints(@PathVariable Integer playerSkillId) {
+        try {
+            PlayerProfile player = getCurrentPlayerProfile();
+            PlayerSkill updated = skillService.upgradeSkillByPoints(playerSkillId, player.getId());
+            return ResponseEntity.ok(ApiResponse.success("技能点升级成功", updated));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }

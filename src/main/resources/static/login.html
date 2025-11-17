@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>修仙挂机游戏 - 登录</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+</head>
+<body>
+    <div id="loginPage" class="container active">
+        <div class="login-form">
+            <h1><i class="fa-solid fa-wand-magic-sparkles"></i> 修仙挂机游戏</h1>
+            <div class="tabs">
+                <button class="tab-btn active" onclick="showLogin()">登录</button>
+                <button class="tab-btn" onclick="showRegister()">注册</button>
+            </div>
+            <div id="loginForm" class="form-content">
+                <div class="input-group">
+                    <i class="fa-solid fa-user"></i>
+                    <input type="text" id="loginUsername" placeholder="用户名" required>
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" id="loginPassword" placeholder="密码" required>
+                </div>
+                <button class="btn btn-primary" onclick="login(event)"><i class="fa-solid fa-right-to-bracket"></i> 登录</button>
+            </div>
+            <div id="registerForm" class="form-content" style="display: none;">
+                <div class="input-group">
+                    <i class="fa-solid fa-user"></i>
+                    <input type="text" id="registerUsername" placeholder="用户名" required>
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-user"></i>
+                    <input type="text" id="registerNickname" placeholder="昵称" required>
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-envelope"></i>
+                    <input type="email" id="registerEmail" placeholder="邮箱" required>
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" id="registerPassword" placeholder="密码" required>
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" id="registerConfirmPassword" placeholder="确认密码" required>
+                </div>
+                <button class="btn btn-primary" onclick="register(event)"><i class="fa-solid fa-user-plus"></i> 注册</button>
+            </div>
+        </div>
+    </div>
+    <div id="loading" class="loading hidden"><div class="spinner"></div><span>加载中...</span></div>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+</html>

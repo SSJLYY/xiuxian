@@ -61,12 +61,7 @@ class AuthManager {
             }
 
             await this.loadUserData();
-            this.showGamePage();
-            
-            // 初始化游戏管理器
-            if (window.initGameManager) {
-                await window.initGameManager();
-            }
+            this.redirectToCultivate();
             
             console.log('自动登录成功');
 
@@ -172,16 +167,7 @@ class AuthManager {
             this.showToast('登录成功', 'success');
             console.log('登录成功，用户:', username);
 
-            // 立即显示游戏页面
-            this.showGamePage();
-
-            // 初始化游戏管理器
-            if (window.initGameManager) {
-                await window.initGameManager();
-            }
-
-            // 加载游戏数据
-            await this.loadGameData();
+            window.location.href = '/cultivate.html';
 
         } catch (error) {
             console.error('登录错误:', error);
@@ -288,9 +274,24 @@ class AuthManager {
             loginPage.style.display = 'flex';
             loginPage.classList.add('active');
             window.scrollTo(0, 0);
+        } else {
+            window.location.href = '/login.html';
         }
 
         console.log('显示登录页面');
+    }
+
+    // 跳转到修炼页面
+    redirectToCultivate() {
+        try {
+            const currentPath = window.location.pathname || '';
+            if (currentPath.endsWith('/cultivate.html') || currentPath.endsWith('cultivate.html')) {
+                return;
+            }
+            window.location.href = 'cultivate.html';
+        } catch (e) {
+            window.location.href = 'cultivate.html';
+        }
     }
 
     // 切换到登录表单
@@ -346,7 +347,7 @@ class AuthManager {
             console.warn('登出请求失败:', error);
         } finally {
             this.clearAuthData();
-            this.showLoginPage();
+            window.location.href = '/login.html';
             this.showToast('已成功登出', 'info');
         }
     }
@@ -366,7 +367,9 @@ class AuthManager {
             'playerRealm': this.player.realm,
             'playerExp': this.player.exp || 0,
             'expToNext': this.player.expToNext || 100,
-            'playerSpiritStones': this.player.spiritStones || 0
+            'playerSpiritStones': this.player.spiritStones || 0,
+            'attributePoints': this.player.attributePoints || 0,
+            'playerSpeed': this.player.speed || 0
         };
 
         // 更新文本内容
@@ -383,33 +386,40 @@ class AuthManager {
     // 显示消息提示
     showToast(message, type = 'info', duration = 3000) {
         const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
+        toast.className = `toast-bubble ${type}`;
         toast.textContent = message;
-
+        const count = document.querySelectorAll('.toast-bubble').length;
+        const bottom = 10 + count * 36;
         Object.assign(toast.style, {
             position: 'fixed',
-            top: '20px',
-            right: '20px',
+            bottom: `${bottom}px`,
+            right: '16px',
             background: this.getToastColor(type),
-            color: 'white',
-            padding: '15px 20px',
-            borderRadius: '8px',
-            boxShadow: '0 5px 15px rgba(0,0,0,0.2)',
-            zIndex: '1001',
-            animation: 'slideInRight 0.3s ease',
-            maxWidth: '300px',
-            wordWrap: 'break-word'
+            color: '#fff',
+            padding: '6px 10px',
+            borderRadius: '9999px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+            zIndex: '10001',
+            maxWidth: '220px',
+            fontSize: '12px',
+            lineHeight: '1.2',
+            opacity: '0',
+            transform: 'translateY(8px)',
+            transition: 'all 0.25s ease'
         });
-
         document.body.appendChild(toast);
-
+        requestAnimationFrame(() => {
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+        });
         setTimeout(() => {
-            toast.style.animation = 'slideOutRight 0.3s ease';
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(8px)';
             setTimeout(() => {
                 if (toast.parentElement) {
                     toast.parentElement.removeChild(toast);
                 }
-            }, 300);
+            }, 250);
         }, duration);
     }
 

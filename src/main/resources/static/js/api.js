@@ -178,6 +178,24 @@ const gameAPI = {
     async getQuests() {
         return await api.get('/quests');
     },
+    async getDailyQuests() {
+        return await api.get('/quests/daily');
+    },
+    async refreshDailyQuests() {
+        return await api.post('/quests/daily/refresh');
+    },
+    async getWeeklyQuests() {
+        return await api.get('/quests/weekly');
+    },
+    async refreshWeeklyQuests() {
+        return await api.post('/quests/weekly/refresh');
+    },
+    async getMonthlyQuests() {
+        return await api.get('/quests/monthly');
+    },
+    async refreshMonthlyQuests() {
+        return await api.post('/quests/monthly/refresh');
+    },
     
     // 领取任务奖励
     async claimQuestReward(playerQuestId) {
@@ -193,6 +211,26 @@ const gameAPI = {
     async useSkill(playerSkillId) {
         return await api.post(`/skills/${playerSkillId}/use`);
     }
+    ,
+    async upgradeSkillByPoints(playerSkillId) {
+        return await api.post(`/skills/${playerSkillId}/upgrade-by-points`);
+    }
+    ,
+    async allocateAttributes(payload) {
+        return await api.post('/player/attributes/allocate', payload);
+    }
+    ,
+    async getSkillShop() {
+        return await api.get('/shop/skills');
+    }
+    ,
+    async buySkill(shopItemId) {
+        return await api.post(`/shop/skills/${shopItemId}/buy`);
+    }
+    ,
+    async sellSkill(playerSkillId) {
+        return await api.post(`/shop/skills/sell/${playerSkillId}`);
+    }
 };
 
 // 导出到全局
@@ -204,84 +242,56 @@ window.claimQuest = async function(playerQuestId) {
     try {
         const response = await gameAPI.claimQuestReward(playerQuestId);
         if (response && response.success) {
-            // 刷新任务列表
-            await gameManager.loadQuests();
-            // 刷新玩家数据
-            await gameManager.loadPlayerData();
-            gameManager.showToast('任务奖励领取成功', 'success');
+            if (window.authManager && window.authManager.loadPlayerProfile) {
+                await window.authManager.loadPlayerProfile();
+            }
+            if (window.gameManager && window.gameManager.addCultivationLog) {
+                window.gameManager.addCultivationLog('任务奖励领取成功');
+            }
         } else {
             throw new Error(response?.message || '领取任务奖励失败');
         }
     } catch (error) {
         console.error('领取任务奖励失败:', error);
-        gameManager.showToast('领取任务奖励失败: ' + error.message, 'error');
+        if (window.gameManager && window.gameManager.addCultivationLog) {
+            window.gameManager.addCultivationLog('领取任务奖励失败: ' + error.message);
+        }
     }
 };
 
 // 全局技能使用函数
 window.useSkill = async function(skillId) {
     try {
-        // 获取玩家技能列表
-        const playerSkillsResponse = await gameAPI.getPlayerSkills();
-        
+        const playerSkillsResponse = await gameAPI.getSkills();
         if (!playerSkillsResponse || !playerSkillsResponse.success) {
             throw new Error('获取玩家技能失败');
         }
-        
-        // 检查是否已经学习过该技能
         const existingSkill = playerSkillsResponse.data?.find(ps => ps.skill?.id === skillId);
-        
         if (existingSkill) {
-            // 如果已经学习过，直接使用技能
             const useResult = await gameAPI.useSkill(existingSkill.id);
-            console.log('技能使用成功:', useResult);
-            
-            // 更新修炼任务进度
-            try {
-                await gameAPI.updateQuestProgressByType('MAIN', 1);
-            } catch (questError) {
-                console.warn('更新任务进度失败:', questError);
+            if (!useResult || !useResult.success) {
+                throw new Error(useResult?.message || '技能使用失败');
             }
-            
-            // 刷新技能列表和任务列表
-            if (window.gameManager) {
-                await window.gameManager.loadSkills();
-                await window.gameManager.loadQuests();
-                await window.gameManager.loadPlayerData();
-            }
-            
-            alert('技能使用成功！');
         } else {
-            // 如果没有学习过，先学习再使用
             const learnResult = await gameAPI.learnSkill(skillId);
-            console.log('技能学习结果:', learnResult);
-            
-            if (learnResult && learnResult.success) {
-                // 学习成功，使用技能
-                const useResult = await gameAPI.useSkill(learnResult.data.id);
-                console.log('技能使用成功:', useResult);
-                
-                // 更新修炼任务进度
-                try {
-                    await gameAPI.updateQuestProgressByType('MAIN', 1);
-                } catch (questError) {
-                    console.warn('更新任务进度失败:', questError);
-                }
-                
-                // 刷新技能列表和任务列表
-                if (window.gameManager) {
-                    await window.gameManager.loadSkills();
-                    await window.gameManager.loadQuests();
-                    await window.gameManager.loadPlayerData();
-                }
-                
-                alert('技能使用成功！');
-            } else {
+            if (!learnResult || !learnResult.success) {
                 throw new Error('技能学习失败: ' + (learnResult?.message || '未知错误'));
             }
+            const useResult = await gameAPI.useSkill(learnResult.data.id);
+            if (!useResult || !useResult.success) {
+                throw new Error(useResult?.message || '技能使用失败');
+            }
+        }
+        if (window.authManager && window.authManager.loadPlayerProfile) {
+            await window.authManager.loadPlayerProfile();
+        }
+        if (window.gameManager && window.gameManager.addCultivationLog) {
+            window.gameManager.addCultivationLog('技能使用成功');
         }
     } catch (error) {
         console.error('技能使用失败:', error);
-        alert('技能使用失败: ' + error.message);
+        if (window.gameManager && window.gameManager.addCultivationLog) {
+            window.gameManager.addCultivationLog('技能使用失败: ' + error.message);
+        }
     }
 };

@@ -308,6 +308,8 @@ CREATE TABLE `player_profiles` (
   `spirit_stones` bigint NOT NULL DEFAULT '1000',
   `cultivation_points` bigint NOT NULL DEFAULT '0',
   `contribution_points` bigint NOT NULL DEFAULT '0',
+  `attribute_points` int NOT NULL DEFAULT '0',
+  `skill_points` int NOT NULL DEFAULT '0',
   `last_online_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `total_cultivation_time` bigint NOT NULL DEFAULT '0',
   `attack` int NOT NULL DEFAULT '10',
@@ -337,8 +339,14 @@ CREATE TABLE `player_profiles` (
 -- ----------------------------
 -- Records of player_profiles
 -- ----------------------------
-INSERT INTO `player_profiles` VALUES ('4', '4', 'shaun', '601', '3702', '元婴期', '1.00', '1004', '4', '0', '2025-11-07 14:43:06', '65', '3010', '1810', '12100', '6050', '610', '2025-11-07 14:43:06', '2025-11-12 17:09:17', '0', '0', '0', '0', '0', '', '2025-11-12 17:00:20.228000', '2025-11-12 17:09:17.042000', '0');
-INSERT INTO `player_profiles` VALUES ('5', '5', 'shaun1', '1', '31', '练气期', '1.00', '1000', '0', '0', '2025-11-12 11:05:59', '0', '10', '5', '100', '50', '10', '2025-11-12 11:05:59', '2025-11-12 11:06:53', '0', '0', '0', '0', '0', '\0', '2025-11-12 11:06:52.748000', '2025-11-12 11:06:32.957000', '100');
+INSERT INTO `player_profiles`
+(`id`,`user_id`,`nickname`,`level`,`exp`,`realm`,`cultivation_speed`,`spirit_stones`,`cultivation_points`,`contribution_points`,`attribute_points`,`skill_points`,`last_online_time`,`total_cultivation_time`,`attack`,`defense`,`health`,`mana`,`speed`,`created_at`,`updated_at`,`equipment_attack_bonus`,`equipment_defense_bonus`,`equipment_health_bonus`,`equipment_mana_bonus`,`equipment_speed_bonus`,`is_cultivating`,`last_cultivation_end`,`last_cultivation_start`,`exp_to_next`)
+VALUES
+(4, 4, 'shaun', 601, 3702, '元婴期', 1.00, 1004, 4, 0, 0, 0, '2025-11-07 14:43:06', 65, 3010, 1810, 12100, 6050, 610, '2025-11-07 14:43:06', '2025-11-12 17:09:17', 0, 0, 0, 0, 0, 1, '2025-11-12 17:00:20.228000', '2025-11-12 17:09:17.042000', 0);
+INSERT INTO `player_profiles`
+(`id`,`user_id`,`nickname`,`level`,`exp`,`realm`,`cultivation_speed`,`spirit_stones`,`cultivation_points`,`contribution_points`,`attribute_points`,`skill_points`,`last_online_time`,`total_cultivation_time`,`attack`,`defense`,`health`,`mana`,`speed`,`created_at`,`updated_at`,`equipment_attack_bonus`,`equipment_defense_bonus`,`equipment_health_bonus`,`equipment_mana_bonus`,`equipment_speed_bonus`,`is_cultivating`,`last_cultivation_end`,`last_cultivation_start`,`exp_to_next`)
+VALUES
+(5, 5, 'shaun1', 1, 31, '练气期', 1.00, 1000, 0, 0, 0, 0, '2025-11-12 11:05:59', 0, 10, 5, 100, 50, 10, '2025-11-12 11:05:59', '2025-11-12 11:06:53', 0, 0, 0, 0, 0, 0, '2025-11-12 11:06:52.748000', '2025-11-12 11:06:32.957000', 100);
 
 -- ----------------------------
 -- Table structure for player_quests
@@ -568,3 +576,163 @@ INSERT INTO `users` VALUES ('5', 'shaun1', '$2a$10$MJnZPdecBDHriZlvYTPZXeX2r64y1
 -- ----------------------------
 DROP VIEW IF EXISTS `v_player_summary`;
 CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `v_player_summary` AS select `pp`.`id` AS `id`,`pp`.`user_id` AS `user_id`,`u`.`username` AS `username`,`pp`.`nickname` AS `nickname`,`pp`.`level` AS `level`,`pp`.`exp` AS `exp`,`pp`.`realm` AS `realm`,`pp`.`spirit_stones` AS `spirit_stones`,`pp`.`cultivation_points` AS `cultivation_points`,`pp`.`contribution_points` AS `contribution_points`,`pp`.`attack` AS `attack`,`pp`.`defense` AS `defense`,`pp`.`health` AS `health`,`pp`.`mana` AS `mana`,`pp`.`speed` AS `speed`,`pp`.`total_cultivation_time` AS `total_cultivation_time`,`pp`.`last_online_time` AS `last_online_time`,`pp`.`created_at` AS `created_at`,`pp`.`updated_at` AS `updated_at`,(`pp`.`attack` + coalesce(`equ`.`attack_bonus`,0)) AS `total_attack`,(`pp`.`defense` + coalesce(`equ`.`defense_bonus`,0)) AS `total_defense`,(`pp`.`health` + coalesce(`equ`.`health_bonus`,0)) AS `total_health`,(`pp`.`mana` + coalesce(`equ`.`mana_bonus`,0)) AS `total_mana`,(`pp`.`speed` + coalesce(`equ`.`speed_bonus`,0)) AS `total_speed` from ((`player_profiles` `pp` join `users` `u` on((`pp`.`user_id` = `u`.`id`))) left join (select `pe`.`player_id` AS `player_id`,sum(`e`.`attack_bonus`) AS `attack_bonus`,sum(`e`.`defense_bonus`) AS `defense_bonus`,sum(`e`.`health_bonus`) AS `health_bonus`,sum(`e`.`mana_bonus`) AS `mana_bonus`,sum(`e`.`speed_bonus`) AS `speed_bonus` from (`player_equipment` `pe` join `equipments` `e` on((`pe`.`equipment_id` = `e`.`id`))) where (`pe`.`is_equipped` = true) group by `pe`.`player_id`) `equ` on((`pp`.`id` = `equ`.`player_id`))) ;
+-- ----------------------------
+-- Table structure for users
+-- ----------------------------
+DROP TABLE IF EXISTS `users`;
+CREATE TABLE `users` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `username` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_username` (`username`),
+  UNIQUE KEY `uk_email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------
+-- Table structure for player_profiles
+-- ----------------------------
+DROP TABLE IF EXISTS `player_profiles`;
+CREATE TABLE `player_profiles` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `nickname` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `level` int NOT NULL DEFAULT '1',
+  `exp` bigint NOT NULL DEFAULT '0',
+  `exp_to_next` bigint NOT NULL DEFAULT '100',
+  `realm` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '练气期',
+  `cultivation_speed` decimal(10,2) NOT NULL DEFAULT '1.00',
+  `spirit_stones` bigint NOT NULL DEFAULT '1000',
+  `cultivation_points` bigint NOT NULL DEFAULT '0',
+  `contribution_points` bigint NOT NULL DEFAULT '0',
+  `last_online_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `total_cultivation_time` bigint NOT NULL DEFAULT '0',
+  `is_cultivating` tinyint(1) NOT NULL DEFAULT '0',
+  `last_cultivation_start` timestamp NULL DEFAULT NULL,
+  `last_cultivation_end` timestamp NULL DEFAULT NULL,
+  `attack` int NOT NULL DEFAULT '10',
+  `defense` int NOT NULL DEFAULT '5',
+  `health` int NOT NULL DEFAULT '100',
+  `mana` int NOT NULL DEFAULT '50',
+  `speed` int NOT NULL DEFAULT '10',
+  `attribute_points` int NOT NULL DEFAULT '0',
+  `skill_points` int NOT NULL DEFAULT '0',
+  `equipment_attack_bonus` int NOT NULL DEFAULT '0',
+  `equipment_defense_bonus` int NOT NULL DEFAULT '0',
+  `equipment_health_bonus` int NOT NULL DEFAULT '0',
+  `equipment_mana_bonus` int NOT NULL DEFAULT '0',
+  `equipment_speed_bonus` int NOT NULL DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`),
+  CONSTRAINT `fk_player_profiles_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------
+-- Table structure for skills
+-- ----------------------------
+DROP TABLE IF EXISTS `skills`;
+CREATE TABLE `skills` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` text COLLATE utf8mb4_unicode_ci,
+  `level` int NOT NULL,
+  `max_level` int NOT NULL,
+  `base_damage` double DEFAULT NULL,
+  `damage_per_level` double DEFAULT NULL,
+  `cooldown` int DEFAULT NULL,
+  `mana_cost` int DEFAULT NULL,
+  `skill_type` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `element` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `unlock_level` int DEFAULT NULL,
+  `required_spirit_stones` int DEFAULT NULL,
+  `icon` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `animation` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `active` tinyint(1) DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_skill_type` (`skill_type`),
+  KEY `idx_element` (`element`),
+  KEY `idx_unlock_level` (`unlock_level`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------
+-- Table structure for quests
+-- ----------------------------
+DROP TABLE IF EXISTS `quests`;
+CREATE TABLE `quests` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `title` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` text COLLATE utf8mb4_unicode_ci,
+  `type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `required_amount` int NOT NULL DEFAULT '1',
+  `reward_exp` int NOT NULL DEFAULT '0',
+  `reward_spirit_stones` int NOT NULL DEFAULT '0',
+  `reward_contribution_points` int NOT NULL DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_quest_type` (`type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------
+-- Table structure for player_quests
+-- ----------------------------
+DROP TABLE IF EXISTS `player_quests`;
+CREATE TABLE `player_quests` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `player_id` int NOT NULL,
+  `quest_id` int NOT NULL,
+  `current_progress` int NOT NULL DEFAULT '0',
+  `completed` tinyint(1) NOT NULL DEFAULT '0',
+  `reward_claimed` tinyint(1) NOT NULL DEFAULT '0',
+  `completed_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_quest_id` (`quest_id`),
+  CONSTRAINT `fk_player_quests_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_player_quests_quest` FOREIGN KEY (`quest_id`) REFERENCES `quests` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------
+-- Records of quests templates
+-- ----------------------------
+INSERT INTO `quests` (`title`,`description`,`type`,`required_amount`,`reward_exp`,`reward_spirit_stones`,`reward_contribution_points`,`created_at`,`updated_at`) VALUES
+('每日修炼','完成一次修炼','DAILY',1,100,50,10,NOW(),NOW()),
+('每日收集灵石','获得100灵石','DAILY',100,120,80,12,NOW(),NOW()),
+('每周修炼进度','累计修炼300秒','WEEKLY',300,800,500,50,NOW(),NOW()),
+('每周升级一次','提升1级','WEEKLY',1,1000,600,60,NOW(),NOW()),
+('每月突破境界','突破一次境界','MONTHLY',1,3000,2000,200,NOW(),NOW());
+-- ----------------------------
+-- Table structure for skill_shop
+-- ----------------------------
+DROP TABLE IF EXISTS `skill_shop`;
+CREATE TABLE `skill_shop` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `skill_id` int NOT NULL,
+  `price` bigint NOT NULL,
+  `required_level` int NOT NULL DEFAULT '1',
+  `available` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_skill_id` (`skill_id`),
+  CONSTRAINT `fk_skill_shop_skill` FOREIGN KEY (`skill_id`) REFERENCES `skills` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------
+-- Records of skill_shop
+-- ----------------------------
+INSERT INTO `skill_shop` (`skill_id`,`price`,`required_level`,`available`) VALUES
+(1, 500, 1, 1),
+(2, 1200, 5, 1),
+(3, 1000, 8, 1),
+(4, 1600, 12, 1),
+(5, 1400, 10, 1);

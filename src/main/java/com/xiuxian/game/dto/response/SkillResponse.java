@@ -5,25 +5,30 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class SkillResponse {
     private Long id;
-    private String name;
-    private String description;
     private Integer level;
-    private Integer maxLevel;
-    private Double baseDamage;
-    private Double damagePerLevel;
+    private Boolean equipped;
+    private Integer slotNumber;
     private Integer cooldown;
     private Integer manaCost;
-    private String skillType;
-    private String element;
-    private Integer unlockLevel;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private SkillSummary skill;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SkillSummary {
+        private Long id;
+        private String name;
+        private String description;
+        private String type;
+        private Integer unlockLevel;
+        private Integer maxLevel;
+    }
 }
+

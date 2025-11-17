@@ -57,6 +57,14 @@ public class PlayerProfile {
     @Builder.Default
     private Long contributionPoints = 0L;
 
+    @TableField(value = "attribute_points")
+    @Builder.Default
+    private Integer attributePoints = 0;
+
+    @TableField(value = "skill_points")
+    @Builder.Default
+    private Integer skillPoints = 0;
+
     @TableField(value = "last_online_time")
     @Builder.Default
     private LocalDateTime lastOnlineTime = LocalDateTime.now();

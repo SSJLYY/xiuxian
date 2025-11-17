@@ -3,6 +3,9 @@ package com.xiuxian.game.config;
 import com.xiuxian.game.entity.Skill;
 import com.xiuxian.game.mapper.SkillMapper;
 import lombok.RequiredArgsConstructor;
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.Statement;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
@@ -17,12 +20,14 @@ public class DataInitializer implements CommandLineRunner {
     private static final Logger logger = LoggerFactory.getLogger(DataInitializer.class);
 
     private final SkillMapper skillMapper;
+    private final DataSource dataSource;
 
     @Override
     public void run(String... args) {
         logger.info("开始初始化游戏数据...");
         
         try {
+            ensureSkillsTableExists();
             // 初始化技能数据
             logger.info("初始化技能数据...");
             initializeDefaultSkills();
@@ -31,7 +36,7 @@ public class DataInitializer implements CommandLineRunner {
             logger.info("游戏数据初始化全部完成！");
         } catch (Exception e) {
             logger.error("游戏数据初始化失败", e);
-            throw new RuntimeException("数据初始化失败", e);
+            // 启动不中断：记录错误但不阻止应用启动
         }
     }
 
@@ -132,6 +137,38 @@ public class DataInitializer implements CommandLineRunner {
             skillMapper.insert(waterShield);
             skillMapper.insert(earthSpike);
             skillMapper.insert(windSlash);
+        }
+    }
+
+    /**
+     * 确保技能表存在（MySQL）
+     */
+    private void ensureSkillsTableExists() {
+        String ddl = "CREATE TABLE IF NOT EXISTS skills (" +
+                "id INT AUTO_INCREMENT PRIMARY KEY," +
+                "name VARCHAR(255)," +
+                "description TEXT," +
+                "level INT," +
+                "max_level INT," +
+                "base_damage DOUBLE," +
+                "damage_per_level DOUBLE," +
+                "cooldown INT," +
+                "mana_cost INT," +
+                "skill_type VARCHAR(50)," +
+                "element VARCHAR(50)," +
+                "unlock_level INT," +
+                "required_spirit_stones INT," +
+                "icon VARCHAR(255)," +
+                "animation VARCHAR(255)," +
+                "active TINYINT(1)," +
+                "created_at DATETIME," +
+                "updated_at DATETIME" +
+                ") ENGINE=InnoDB DEFAULT CHARSET=utf8";
+        try (Connection conn = dataSource.getConnection(); Statement st = conn.createStatement()) {
+            st.execute(ddl);
+            logger.info("检测并创建技能表成功（如不存在）");
+        } catch (Exception e) {
+            logger.warn("技能表检测/创建失败: {}", e.getMessage());
         }
     }
 }

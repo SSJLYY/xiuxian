@@ -29,13 +29,11 @@ public class QuestService {
     private final QuestMapper questMapper;
     private final PlayerQuestMapper playerQuestMapper;
     private final PlayerProfileMapper playerProfileMapper;
-    private final PlayerService playerService;
     private final GameCalculator gameCalculator;
     private final Random random = new Random();
 
-    public List<PlayerQuest> getPlayerDailyQuests() {
-        PlayerProfile player = playerService.getCurrentPlayerProfile();
-        List<PlayerQuest> allQuests = playerQuestMapper.selectByPlayerId(player.getId());
+    public List<PlayerQuest> getPlayerDailyQuests(Integer playerId) {
+        List<PlayerQuest> allQuests = playerQuestMapper.selectByPlayerId(playerId);
         
         // 过滤出日常任务
         List<PlayerQuest> dailyQuests = allQuests.stream()
@@ -47,25 +45,57 @@ public class QuestService {
         
         // 如果玩家没有日常任务，自动生成
         if (dailyQuests == null || dailyQuests.isEmpty()) {
-            return generateDailyQuestsForPlayer(player);
+            return generateDailyQuestsForPlayer(playerId);
         }
         
         // 检查是否需要刷新日常任务（每天凌晨刷新）
         if (needsRefreshDailyQuests(dailyQuests)) {
-            return refreshDailyQuests();
+            return refreshDailyQuests(playerId);
         }
         
         return dailyQuests;
     }
-    
-    public List<PlayerQuest> getPlayerAllQuests() {
-        PlayerProfile player = playerService.getCurrentPlayerProfile();
-        return playerQuestMapper.selectByPlayerId(player.getId());
+
+    public List<PlayerQuest> getPlayerWeeklyQuests(Integer playerId) {
+        List<PlayerQuest> allQuests = playerQuestMapper.selectByPlayerId(playerId);
+        List<PlayerQuest> weeklyQuests = allQuests.stream()
+                .filter(pq -> {
+                    Quest quest = questMapper.selectById(pq.getQuestId());
+                    return quest != null && "WEEKLY".equals(quest.getType());
+                })
+                .collect(Collectors.toList());
+        if (weeklyQuests == null || weeklyQuests.isEmpty()) {
+            return generateWeeklyQuestsForPlayer(playerId);
+        }
+        if (needsRefreshWeeklyQuests(weeklyQuests)) {
+            return refreshWeeklyQuests(playerId);
+        }
+        return weeklyQuests;
     }
 
-    public List<PlayerQuestDetailResponse> getPlayerAllQuestsDetail() {
-        PlayerProfile player = playerService.getCurrentPlayerProfile();
-        List<PlayerQuest> list = playerQuestMapper.selectByPlayerId(player.getId());
+    public List<PlayerQuest> getPlayerMonthlyQuests(Integer playerId) {
+        List<PlayerQuest> allQuests = playerQuestMapper.selectByPlayerId(playerId);
+        List<PlayerQuest> monthlyQuests = allQuests.stream()
+                .filter(pq -> {
+                    Quest quest = questMapper.selectById(pq.getQuestId());
+                    return quest != null && "MONTHLY".equals(quest.getType());
+                })
+                .collect(Collectors.toList());
+        if (monthlyQuests == null || monthlyQuests.isEmpty()) {
+            return generateMonthlyQuestsForPlayer(playerId);
+        }
+        if (needsRefreshMonthlyQuests(monthlyQuests)) {
+            return refreshMonthlyQuests(playerId);
+        }
+        return monthlyQuests;
+    }
+    
+    public List<PlayerQuest> getPlayerAllQuests(Integer playerId) {
+        return playerQuestMapper.selectByPlayerId(playerId);
+    }
+
+    public List<PlayerQuestDetailResponse> getPlayerAllQuestsDetail(Integer playerId) {
+        List<PlayerQuest> list = playerQuestMapper.selectByPlayerId(playerId);
         return list.stream().map(this::toDetail).collect(Collectors.toList());
     }
     
@@ -80,16 +110,43 @@ public class QuestService {
         return lastQuestDate.isBefore(today);
     }
 
+    private boolean needsRefreshWeeklyQuests(List<PlayerQuest> weeklyQuests) {
+        if (weeklyQuests == null || weeklyQuests.isEmpty()) {
+            return false;
+        }
+        LocalDateTime last = weeklyQuests.get(0).getCreatedAt().toLocalDate().atStartOfDay();
+        LocalDateTime startOfWeek = LocalDate.now().with(java.time.DayOfWeek.MONDAY).atStartOfDay();
+        return last.isBefore(startOfWeek);
+    }
+
+    private boolean needsRefreshMonthlyQuests(List<PlayerQuest> monthlyQuests) {
+        if (monthlyQuests == null || monthlyQuests.isEmpty()) {
+            return false;
+        }
+        LocalDateTime last = monthlyQuests.get(0).getCreatedAt().toLocalDate().atStartOfDay();
+        LocalDateTime startOfMonth = LocalDate.now().withDayOfMonth(1).atStartOfDay();
+        return last.isBefore(startOfMonth);
+    }
+
     @Transactional
-    public List<PlayerQuest> refreshDailyQuests() {
-        PlayerProfile player = playerService.getCurrentPlayerProfile();
-        return generateDailyQuestsForPlayer(player);
+    public List<PlayerQuest> refreshDailyQuests(Integer playerId) {
+        return generateDailyQuestsForPlayer(playerId);
+    }
+
+    @Transactional
+    public List<PlayerQuest> refreshWeeklyQuests(Integer playerId) {
+        return generateWeeklyQuestsForPlayer(playerId);
+    }
+
+    @Transactional
+    public List<PlayerQuest> refreshMonthlyQuests(Integer playerId) {
+        return generateMonthlyQuestsForPlayer(playerId);
     }
     
     @Transactional
-    public List<PlayerQuest> generateDailyQuestsForPlayer(PlayerProfile player) {
+    public List<PlayerQuest> generateDailyQuestsForPlayer(Integer playerId) {
         // 删除当前所有日常任务
-        List<PlayerQuest> existingDailyQuests = playerQuestMapper.selectByPlayerId(player.getId());
+        List<PlayerQuest> existingDailyQuests = playerQuestMapper.selectByPlayerId(playerId);
         for (PlayerQuest pq : existingDailyQuests) {
             Quest quest = questMapper.selectById(pq.getQuestId());
             if (quest != null && "DAILY".equals(quest.getType())) {
@@ -117,7 +174,7 @@ public class QuestService {
         List<PlayerQuest> newQuests = selectedQuests.stream()
                 .map(quest -> {
                     PlayerQuest pq = PlayerQuest.builder()
-                            .playerId(player.getId())
+                            .playerId(playerId)
                             .questId(quest.getId())
                             .currentProgress(0)
                             .completed(false)
@@ -131,6 +188,60 @@ public class QuestService {
                 .collect(Collectors.toList());
         
         return newQuests;
+    }
+
+    @Transactional
+    public List<PlayerQuest> generateWeeklyQuestsForPlayer(Integer playerId) {
+        List<PlayerQuest> existing = playerQuestMapper.selectByPlayerId(playerId);
+        for (PlayerQuest pq : existing) {
+            Quest quest = questMapper.selectById(pq.getQuestId());
+            if (quest != null && "WEEKLY".equals(quest.getType())) {
+                playerQuestMapper.deleteById(pq.getId());
+            }
+        }
+        List<Quest> templates = questMapper.selectByType("WEEKLY");
+        return templates.stream()
+                .map(quest -> {
+                    PlayerQuest pq = PlayerQuest.builder()
+                            .playerId(playerId)
+                            .questId(quest.getId())
+                            .currentProgress(0)
+                            .completed(false)
+                            .rewardClaimed(false)
+                            .createdAt(LocalDateTime.now())
+                            .updatedAt(LocalDateTime.now())
+                            .build();
+                    playerQuestMapper.insert(pq);
+                    return playerQuestMapper.selectById(pq.getId());
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public List<PlayerQuest> generateMonthlyQuestsForPlayer(Integer playerId) {
+        List<PlayerQuest> existing = playerQuestMapper.selectByPlayerId(playerId);
+        for (PlayerQuest pq : existing) {
+            Quest quest = questMapper.selectById(pq.getQuestId());
+            if (quest != null && "MONTHLY".equals(quest.getType())) {
+                playerQuestMapper.deleteById(pq.getId());
+            }
+        }
+        List<Quest> templates = questMapper.selectByType("MONTHLY");
+        return templates.stream()
+                .map(quest -> {
+                    PlayerQuest pq = PlayerQuest.builder()
+                            .playerId(playerId)
+                            .questId(quest.getId())
+                            .currentProgress(0)
+                            .completed(false)
+                            .rewardClaimed(false)
+                            .createdAt(LocalDateTime.now())
+                            .updatedAt(LocalDateTime.now())
+                            .build();
+                    playerQuestMapper.insert(pq);
+                    return playerQuestMapper.selectById(pq.getId());
+                })
+                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -168,13 +279,11 @@ public class QuestService {
     }
 
     @Transactional
-    public PlayerQuest updateQuestProgress(Integer questId, Integer progress) {
-        PlayerProfile player = playerService.getCurrentPlayerProfile();
-        return updateQuestProgress(player.getId(), questId, progress);
+    public PlayerQuest updateQuestProgress(Integer playerId, Integer questId, Integer progress) {
+        return updateQuestProgressInternal(playerId, questId, progress);
     }
     
-    @Transactional
-    public PlayerQuest updateQuestProgress(Integer playerId, Integer questId, Integer progress) {
+    private PlayerQuest updateQuestProgressInternal(Integer playerId, Integer questId, Integer progress) {
         PlayerQuest playerQuest = playerQuestMapper.selectByPlayerIdAndQuestId(playerId, questId);
         if (playerQuest == null) {
             throw new IllegalArgumentException("任务不存在");
@@ -183,21 +292,13 @@ public class QuestService {
         Quest quest = questMapper.selectById(questId);
         playerQuest.setCurrentProgress(playerQuest.getCurrentProgress() + progress);
         
-        // 检查是否完成
         if (playerQuest.getCurrentProgress() >= quest.getRequiredAmount()) {
             playerQuest.setCompleted(true);
-            playerQuest.setCompletedAt(LocalDateTime.now());
         }
         
         playerQuest.setUpdatedAt(LocalDateTime.now());
         playerQuestMapper.updateById(playerQuest);
         return playerQuestMapper.selectById(playerQuest.getId());
-    }
-
-    @Transactional
-    public void claimQuestReward(Integer questId) {
-        PlayerProfile player = playerService.getCurrentPlayerProfile();
-        claimQuestReward(player.getId(), questId);
     }
 
     @Transactional
@@ -230,10 +331,21 @@ public class QuestService {
         playerQuestMapper.updateById(playerQuest);
     }
 
+    @Transactional
+    public void claimQuestRewardByPlayerQuestId(Integer playerId, Integer playerQuestId) {
+        PlayerQuest playerQuest = playerQuestMapper.selectById(playerQuestId);
+        if (playerQuest == null) {
+            throw new IllegalArgumentException("任务不存在");
+        }
+        if (!playerQuest.getPlayerId().equals(playerId)) {
+            throw new IllegalArgumentException("无权操作其他玩家的任务");
+        }
+        claimQuestReward(playerId, playerQuest.getQuestId());
+    }
+
     // 根据类型获取玩家任务
-    public List<PlayerQuest> getPlayerQuestsByType(Quest.QuestType type) {
-        PlayerProfile player = playerService.getCurrentPlayerProfile();
-        List<PlayerQuest> allQuests = playerQuestMapper.selectByPlayerId(player.getId());
+    public List<PlayerQuest> getPlayerQuestsByType(Integer playerId, Quest.QuestType type) {
+        List<PlayerQuest> allQuests = playerQuestMapper.selectByPlayerId(playerId);
         
         return allQuests.stream()
                 .filter(pq -> {
@@ -243,20 +355,19 @@ public class QuestService {
                 .collect(Collectors.toList());
     }
 
-    public List<PlayerQuestDetailResponse> getPlayerQuestsDetailByType(Quest.QuestType type) {
-        return getPlayerQuestsByType(type).stream().map(this::toDetail).collect(Collectors.toList());
+    public List<PlayerQuestDetailResponse> getPlayerQuestsDetailByType(Integer playerId, Quest.QuestType type) {
+        return getPlayerQuestsByType(playerId, type).stream().map(this::toDetail).collect(Collectors.toList());
     }
 
     // 批量领取所有已完成任务的奖励
     @Transactional
-    public int claimAllCompletedQuestRewards() {
-        PlayerProfile player = playerService.getCurrentPlayerProfile();
-        List<PlayerQuest> allQuests = playerQuestMapper.selectByPlayerId(player.getId());
+    public int claimAllCompletedQuestRewards(Integer playerId) {
+        List<PlayerQuest> allQuests = playerQuestMapper.selectByPlayerId(playerId);
         
         int claimedCount = 0;
         for (PlayerQuest pq : allQuests) {
             if (pq.getCompleted() && !pq.getRewardClaimed()) {
-                claimQuestReward(player.getId(), pq.getQuestId());
+                claimQuestReward(playerId, pq.getQuestId());
                 claimedCount++;
             }
         }
@@ -265,17 +376,15 @@ public class QuestService {
     }
 
     // 检查是否有未完成的任务
-    public boolean hasIncompleteQuests() {
-        PlayerProfile player = playerService.getCurrentPlayerProfile();
-        List<PlayerQuest> allQuests = playerQuestMapper.selectByPlayerId(player.getId());
+    public boolean hasIncompleteQuests(Integer playerId) {
+        List<PlayerQuest> allQuests = playerQuestMapper.selectByPlayerId(playerId);
         
         return allQuests.stream().anyMatch(pq -> !pq.getCompleted());
     }
 
     // 获取未领取奖励的已完成任务数量
-    public long getUnclaimedCompletedQuestsCount() {
-        PlayerProfile player = playerService.getCurrentPlayerProfile();
-        List<PlayerQuest> allQuests = playerQuestMapper.selectByPlayerId(player.getId());
+    public long getUnclaimedCompletedQuestsCount(Integer playerId) {
+        List<PlayerQuest> allQuests = playerQuestMapper.selectByPlayerId(playerId);
         
         return allQuests.stream()
                 .filter(pq -> pq.getCompleted() && !pq.getRewardClaimed())
@@ -284,13 +393,12 @@ public class QuestService {
 
     // 根据任务类型更新进度
     @Transactional
-    public void updateQuestProgressByType(Quest.QuestType questType, int progress) {
-        PlayerProfile player = playerService.getCurrentPlayerProfile();
-        List<PlayerQuest> quests = getPlayerQuestsByType(questType);
+    public void updateQuestProgressByType(Integer playerId, Quest.QuestType questType, int progress) {
+        List<PlayerQuest> quests = getPlayerQuestsByType(playerId, questType);
         
         for (PlayerQuest pq : quests) {
             if (!pq.getCompleted()) {
-                updateQuestProgress(player.getId(), pq.getQuestId(), progress);
+                updateQuestProgressInternal(playerId, pq.getQuestId(), progress);
             }
         }
     }

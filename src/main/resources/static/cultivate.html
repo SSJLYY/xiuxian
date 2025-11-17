@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>修仙挂机游戏 - 修炼</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+</head>
+<body>
+    <div id="gamePage" class="container active">
+        <header class="game-header">
+            <div class="player-info">
+                <h2><i class="fa-solid fa-user"></i> <span id="playerName">修仙者</span></h2>
+                <div class="player-stats">
+                    <span><i class="fa-solid fa-star"></i> 等级: <span id="playerLevel">1</span></span>
+                    <span><i class="fa-solid fa-gem"></i> 境界: <span id="playerRealm">练气期</span></span>
+                    <span><i class="fa-solid fa-chart-line"></i> 进度: <span id="playerExp">0</span>/<span id="expToNext">100</span></span>
+                    <span><i class="fa-solid fa-gem"></i> 灵石: <span id="playerSpiritStones">0</span></span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> 退出</button>
+            </div>
+        </header>
+        <main class="game-main">
+            <section class="game-area">
+                <div class="cultivation-area">
+                    <h3><i class="fa-solid fa-yin-yang"></i> 修炼区域</h3>
+                    <div class="cultivation-status">
+                        <p id="cultivationStatus">点击开始修炼</p>
+                        <div class="progress-bar"><div class="progress" id="expProgress" style="width: 0%"></div></div>
+                        <div class="flex justify-center gap-2"><span id="expText">0/100</span><span id="cycleCount">小周期 0 次</span></div>
+                        <div class="mt-3 flex gap-3 justify-center">
+                            <button id="cultivation-btn" class="btn btn-success"><i class="fa-solid fa-play"></i> 开始修炼</button>
+                            <button id="stop-cultivation-btn" class="btn btn-secondary" onclick="stopCultivation()" style="display:none;"><i class="fa-solid fa-stop"></i> 停止修炼</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <aside class="right-panel">
+                <div class="panel-section">
+                    <div class="flex gap-2 mb-3">
+                        <button class="btn btn-secondary btn-sm" onclick="switchTab('attributes')">属性</button>
+                        <button class="btn btn-secondary btn-sm" onclick="switchTab('skills')">技能</button>
+                        <button class="btn btn-secondary btn-sm" onclick="switchTab('inventory')">背包</button>
+                        <button class="btn btn-secondary btn-sm" onclick="switchTab('quests')">任务</button>
+                    </div>
+                    <div id="tab-attributes" class="tab-pane">
+                        <div class="attributes">
+                            <div class="attribute"><span>自由属性点</span><span id="attributePoints">0</span></div>
+                            <div class="attribute"><span>生命值</span><span id="playerHealth">100</span> <button class="btn btn-secondary btn-xs" data-attr="health">+</button></div>
+                            <div class="attribute"><span>法力值</span><span id="playerMana">100</span> <button class="btn btn-secondary btn-xs" data-attr="mana">+</button></div>
+                            <div class="attribute"><span>攻击力</span><span id="playerAttack">10</span> <button class="btn btn-secondary btn-xs" data-attr="attack">+</button></div>
+                            <div class="attribute"><span>防御力</span><span id="playerDefense">5</span> <button class="btn btn-secondary btn-xs" data-attr="defense">+</button></div>
+                            <div class="attribute"><span>速度</span><span id="playerSpeed">10</span> <button class="btn btn-secondary btn-xs" data-attr="speed">+</button></div>
+                        </div>
+                    </div>
+                    <div id="tab-skills" class="tab-pane hidden"><div id="skillsList" class="skills-list"></div></div>
+                    <div id="tab-inventory" class="tab-pane hidden"><div id="inventoryGrid" class="inventory-grid"></div></div>
+                    <div id="tab-quests" class="tab-pane hidden"><div id="questsList" class="quest-list"></div></div>
+                </div>
+            </aside>
+        </main>
+    </div>
+    <div id="toast" class="toast hidden"><span id="toastMessage"></span></div>
+    <div id="loading" class="loading hidden"><div class="spinner"></div><span>加载中...</span></div>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/utils.js"></script>
+    <script>
+        function switchTab(key){
+            ['attributes','skills','inventory','quests'].forEach(k=>{
+                const el=document.getElementById('tab-'+k);
+                if(el){ el.classList.toggle('hidden', k!==key); }
+            });
+        }
+        switchTab('attributes');
+        document.addEventListener('DOMContentLoaded', async()=>{
+            if(window.initGameManager){ await window.initGameManager(); }
+            if(window.authManager){ await window.authManager.loadGameData(); }
+            const attrs = document.querySelectorAll('button[data-attr]');
+            attrs.forEach(btn=>{
+                btn.addEventListener('click', async()=>{
+                    const key = btn.getAttribute('data-attr');
+                    const payload = {}; payload[key] = 1;
+                    try {
+                        const res = await gameAPI.allocateAttributes(payload);
+                        if(!res || !res.success) throw new Error(res?.message||'加点失败');
+                        await window.authManager.loadPlayerProfile();
+                        window.gameManager.showToast('加点成功','success');
+                    } catch(err){ window.gameManager.showToast('加点失败: '+err.message,'error'); throw err; }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
