@@ -1,8 +1,9 @@
 package com.xiuxian.game.controller;
 
 import com.xiuxian.game.dto.response.ApiResponse;
+import com.xiuxian.game.entity.ShopItem;
 import com.xiuxian.game.entity.SkillShopItem;
-import com.xiuxian.game.service.SkillShopService;
+import com.xiuxian.game.service.ShopService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -11,38 +12,49 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/shop/skills")
+@RequestMapping("/api/shop")
 @RequiredArgsConstructor
 public class ShopController {
 
-    private final SkillShopService skillShopService;
+    private final ShopService shopService;
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<List<SkillShopItem>>> list() {
+    @GetMapping("/items")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<ShopItem>>> listItems(@RequestParam(required = false) String type) {
         try {
-            return ResponseEntity.ok(ApiResponse.success("获取技能商店成功", skillShopService.listAvailable()));
+            return ResponseEntity.ok(ApiResponse.success("获取商品成功", shopService.listItems(type)));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
 
-    @PostMapping("/{shopItemId}/buy")
+    @PostMapping("/items/{id}/buy")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Void>> buy(@PathVariable Integer shopItemId) {
+    public ResponseEntity<ApiResponse<Void>> buyItem(@PathVariable Integer id, @RequestParam(defaultValue = "1") int quantity) {
         try {
-            skillShopService.buySkill(shopItemId);
+            shopService.buyItem(id, quantity);
             return ResponseEntity.ok(ApiResponse.success("购买成功", null));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
 
-    @PostMapping("/sell/{playerSkillId}")
+    @GetMapping("/skills")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Void>> sell(@PathVariable Integer playerSkillId) {
+    public ResponseEntity<ApiResponse<List<SkillShopItem>>> listSkills() {
         try {
-            skillShopService.sellSkill(playerSkillId);
-            return ResponseEntity.ok(ApiResponse.success("出售成功", null));
+            return ResponseEntity.ok(ApiResponse.success("获取技能商店成功", shopService.listSkillShop()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/skills/{skillId}/buy")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Void>> buySkill(@PathVariable Integer skillId) {
+        try {
+            shopService.buySkill(skillId);
+            return ResponseEntity.ok(ApiResponse.success("购买技能成功", null));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }

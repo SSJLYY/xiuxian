@@ -29,10 +29,12 @@ public class CustomUserDetailsService implements UserDetailsService {
         
         System.out.println("找到用户: " + user.getUsername() + ", ID: " + user.getId());
 
+        java.util.List<org.springframework.security.core.GrantedAuthority> authorities = new java.util.ArrayList<>();
+        authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + (user.getRole() == null ? "USER" : user.getRole())));
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getPassword(),
-                new ArrayList<>()
+                authorities
         );
     }
 }

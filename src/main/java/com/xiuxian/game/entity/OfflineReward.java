@@ -11,36 +11,37 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-@TableName("users")
+@TableName("offline_rewards")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class User {
-
+public class OfflineReward {
     @TableId(type = IdType.AUTO)
     private Integer id;
 
-    @TableField(value = "username")
-    private String username;
+    @TableField(value = "player_id")
+    private Integer playerId;
 
-    @TableField(value = "password")
-    private String password;
-
-    @TableField(value = "email")
-    private String email;
-
-    @TableField(value = "role")
+    @TableField(value = "offline_minutes")
     @Builder.Default
-    private String role = "USER";
+    private Integer offlineMinutes = 0;
 
-    @TableField(value = "must_change_password")
+    @TableField(value = "exp_gained")
     @Builder.Default
-    private Boolean mustChangePassword = false;
+    private Integer expGained = 0;
+
+    @TableField(value = "spirit_stones_gained")
+    @Builder.Default
+    private Integer spiritStonesGained = 0;
+
+    @TableField(value = "claimed")
+    @Builder.Default
+    private Boolean claimed = false;
+
+    @TableField(value = "claimed_at")
+    private LocalDateTime claimedAt;
 
     @TableField(value = "created_at")
     private LocalDateTime createdAt;
-
-    @TableField(value = "updated_at")
-    private LocalDateTime updatedAt;
 }

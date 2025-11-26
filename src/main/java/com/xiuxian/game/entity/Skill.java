@@ -63,6 +63,22 @@ public class Skill {
     @TableField(value = "animation")
     private String animation;
 
+    // 新增：技能被动属性加成
+    @TableField(value = "health_bonus")
+    private Integer healthBonus = 0; // 生命值加成
+
+    @TableField(value = "mana_bonus")
+    private Integer manaBonus = 0; // 法力值加成
+
+    @TableField(value = "attack_bonus")
+    private Integer attackBonus = 0; // 攻击力加成
+
+    @TableField(value = "defense_bonus")
+    private Integer defenseBonus = 0; // 防御力加成
+
+    @TableField(value = "speed_bonus")
+    private Integer speedBonus = 0; // 速度加成
+
     @TableField(value = "active")
     @Builder.Default
     private Boolean active = true;

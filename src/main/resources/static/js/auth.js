@@ -369,7 +369,11 @@ class AuthManager {
             'expToNext': this.player.expToNext || 100,
             'playerSpiritStones': this.player.spiritStones || 0,
             'attributePoints': this.player.attributePoints || 0,
-            'playerSpeed': this.player.speed || 0
+            'playerHealth': this.player.health || 100,
+            'playerMana': this.player.mana || 50,
+            'playerAttack': this.player.attack || 10,
+            'playerDefense': this.player.defense || 5,
+            'playerSpeed': this.player.speed || 10
         };
 
         // 更新文本内容
@@ -379,6 +383,18 @@ class AuthManager {
                 element.textContent = value;
             }
         });
+
+        // 更新经验条
+        const expProgress = document.getElementById('expProgress');
+        const expText = document.getElementById('expText');
+        if (expProgress && expText) {
+            const currentExp = this.player.exp || 0;
+            const expToNext = this.player.expToNext || 100;
+            const expPercent = Math.min((currentExp / expToNext) * 100, 100);
+
+            expProgress.style.width = expPercent + '%';
+            expText.textContent = `${currentExp}/${expToNext}`;
+        }
 
         console.log('玩家UI更新完成');
     }

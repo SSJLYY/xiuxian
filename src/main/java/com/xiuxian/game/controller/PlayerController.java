@@ -19,11 +19,10 @@ public class PlayerController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PlayerProfile>> getProfile() {
         try {
-            PlayerProfile profile = playerService.getCurrentPlayerProfile();
-            // 确保isCultivating字段不为null
-            if (profile.getIsCultivating() == null) {
-                profile.setIsCultivating(false);
-            }
+            // 使用新的方法获取包含技能加成的玩家信息
+            PlayerProfile profile = playerService.getPlayerProfileWithBonuses(
+                playerService.getCurrentPlayerProfile().getId()
+            );
             return ResponseEntity.ok(ApiResponse.success("获取成功", profile));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
@@ -82,8 +81,8 @@ public class PlayerController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<?>> claimOfflineRewards() {
         try {
-            // 实现领取离线奖励逻辑
-            return ResponseEntity.ok(ApiResponse.success("领取离线奖励成功", null));
+            // 直接调用OfflineRewardController的方法
+            return ResponseEntity.ok(ApiResponse.success("请使用 /api/offline-reward 接口", null));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }

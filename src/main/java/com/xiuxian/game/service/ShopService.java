@@ -1,227 +1,139 @@
 package com.xiuxian.game.service;
 
-import com.xiuxian.game.entity.Equipment;
-import com.xiuxian.game.entity.Item;
+import com.xiuxian.game.entity.PlayerItem;
 import com.xiuxian.game.entity.PlayerProfile;
+import com.xiuxian.game.entity.PlayerSkill;
 import com.xiuxian.game.entity.ShopItem;
-import com.xiuxian.game.dto.response.ShopItemResponse;
-import com.xiuxian.game.mapper.ItemMapper;
-import com.xiuxian.game.mapper.ShopItemMapper;
-import com.xiuxian.game.mapper.EquipmentMapper;
+import com.xiuxian.game.entity.SkillShopItem;
+import com.xiuxian.game.mapper.PlayerItemMapper;
 import com.xiuxian.game.mapper.PlayerProfileMapper;
-import com.xiuxian.game.util.GameConstants;
+import com.xiuxian.game.mapper.PlayerSkillMapper;
+import com.xiuxian.game.mapper.ShopItemMapper;
+import com.xiuxian.game.mapper.SkillShopMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Arrays;
 
 @Service
-@ConditionalOnProperty(value = "app.features.shop.enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class ShopService {
 
-    private final ItemMapper itemMapper;
     private final ShopItemMapper shopItemMapper;
+    private final SkillShopMapper skillShopMapper;
     private final PlayerProfileMapper playerProfileMapper;
-    private final InventoryService inventoryService;
-    private final EquipmentService equipmentService;
-    private final EquipmentMapper equipmentMapper;
+    private final PlayerItemMapper playerItemMapper;
+    private final PlayerSkillMapper playerSkillMapper;
+    private final PlayerService playerService;
 
-    public List<ShopItemResponse> getShopItems() {
-        return shopItemMapper.selectAvailableItems().stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
-    }
-
-    public List<ShopItemResponse> getShopItemsByType(String shopType) {
-        return shopItemMapper.selectByShopType(shopType).stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
-    }
-
-    public List<String> getShopCategories() {
-        return Arrays.asList(
-                "general",     // 消耗品
-                "equipment",   // 装备
-                "materials",   // 材料
-                "special"      // 特殊物品
-        );
-    }
-
-    public String getCategoryDisplayName(String category) {
-        switch (category) {
-            case "general": return "消耗品";
-            case "equipment": return "装备";
-            case "materials": return "材料";
-            case "special": return "特殊物品";
-            default: return "未知分类";
+    public List<ShopItem> listItems(String shopType) {
+        if (shopType == null || shopType.isEmpty()) {
+            return shopItemMapper.selectAvailableItems();
         }
+        return shopItemMapper.selectByShopType(shopType);
     }
 
-    public Map<String, List<ShopItemResponse>> getShopItemsGroupedByCategory() {
-        return getShopItems().stream()
-                .collect(Collectors.groupingBy(ShopItemResponse::getShopType));
-    }
-
-    public Map<String, Object> getShopStatistics() {
-        Map<String, Object> stats = new HashMap<>();
-
-        List<ShopItem> availableItems = shopItemMapper.selectAvailableItems();
-
-        // 按分类统计商品数量
-        Map<String, Long> categoryCount = availableItems.stream()
-                .collect(Collectors.groupingBy(
-                        ShopItem::getShopType,
-                        Collectors.counting()
-                ));
-
-        stats.put("totalItems", shopItemMapper.selectList(null).size());
-        stats.put("availableItems", availableItems.size());
-        stats.put("categoryCount", categoryCount);
-
-        return stats;
+    public List<SkillShopItem> listSkillShop() {
+        return skillShopMapper.selectAvailable();
     }
 
     @Transactional
-    public void buyShopItem(Integer playerId, Integer shopItemId, Integer quantity) {
-        PlayerProfile player = playerProfileMapper.selectById(playerId);
-        if (player == null) {
-            throw new IllegalArgumentException("玩家不存在");
+    public void buyItem(Integer shopItemId, int quantity) {
+        if (quantity <= 0) throw new RuntimeException("购买数量必须大于0");
+        ShopItem item = shopItemMapper.selectById(shopItemId);
+        if (item == null || !Boolean.TRUE.equals(item.getIsAvailable())) {
+            throw new RuntimeException("商品不可用");
+        }
+        if (!item.hasStock(quantity)) {
+            throw new RuntimeException("库存不足");
         }
 
-        ShopItem shopItem = shopItemMapper.selectById(shopItemId);
-        if (shopItem == null) {
-            throw new IllegalArgumentException("商品不存在");
+        PlayerProfile profile = playerService.getCurrentPlayerProfile();
+
+        long needSpirit = (long) item.getPriceSpiritStones() * quantity;
+        long needContribution = (long) item.getPriceContributionPoints() * quantity;
+
+        if (needSpirit > 0) {
+            if (profile.getSpiritStones() < needSpirit) throw new RuntimeException("灵石不足");
+            profile.setSpiritStones(profile.getSpiritStones() - needSpirit);
+        }
+        if (needContribution > 0) {
+            if (profile.getContributionPoints() < needContribution) throw new RuntimeException("贡献点不足");
+            profile.setContributionPoints(profile.getContributionPoints() - needContribution);
         }
 
-        if (!shopItem.getIsAvailable()) {
-            throw new IllegalArgumentException("商品已下架");
+        playerProfileMapper.updateById(profile);
+
+        if (item.getItemId() != null) {
+            PlayerItem existing = playerItemMapper.selectByPlayerIdAndItemId(profile.getId(), item.getItemId());
+            if (existing == null) {
+                PlayerItem pi = PlayerItem.builder()
+                        .playerId(profile.getId())
+                        .itemId(item.getItemId())
+                        .quantity(quantity)
+                        .createdAt(LocalDateTime.now())
+                        .updatedAt(LocalDateTime.now())
+                        .build();
+                playerItemMapper.insert(pi);
+            } else {
+                existing.setQuantity(existing.getQuantity() + quantity);
+                existing.setUpdatedAt(LocalDateTime.now());
+                playerItemMapper.updateById(existing);
+            }
         }
 
-        // 检查库存
-        if (!shopItem.hasStock(quantity)) {
-            throw new IllegalArgumentException("库存不足");
-        }
+        item.decreaseStock(quantity);
+        shopItemMapper.updateById(item);
+    }
 
-        // 计算总价
-        long totalPrice = shopItem.getTotalPrice(quantity);
+    @Transactional
+    public void buySkill(Integer skillId) {
+        PlayerProfile profile = playerService.getCurrentPlayerProfile();
         
-        // 检查玩家灵石
-        if (player.getSpiritStones() < totalPrice) {
-            throw new IllegalArgumentException("灵石不足");
+        // 查询技能商店中是否有该技能
+        SkillShopItem ssi = skillShopMapper.selectById(skillId);
+        if (ssi == null) {
+            // 如果使用skillId查不到，尝试通过skill_id查找
+            List<SkillShopItem> allItems = skillShopMapper.selectAvailable();
+            ssi = allItems.stream()
+                    .filter(item -> item.getSkillId().equals(skillId))
+                    .findFirst()
+                    .orElse(null);
         }
-
-        // 扣除灵石
-        player.setSpiritStones(player.getSpiritStones() - totalPrice);
-        playerProfileMapper.updateById(player);
-
-        // 减少库存
-        shopItem.decreaseStock(quantity);
-        shopItemMapper.updateById(shopItem);
-
-        // 添加物品到背包或装备
-        if (shopItem.getItemId() != null) {
-            inventoryService.addItemToInventory(playerId, shopItem.getItemId(), quantity);
-        } else if (shopItem.getEquipmentId() != null) {
-            equipmentService.acquireEquipment(shopItem.getEquipmentId(), playerId);
+        
+        if (ssi == null || !Boolean.TRUE.equals(ssi.getAvailable())) {
+            throw new RuntimeException("技能不可购买");
         }
-    }
-
-    // Controller调用的buyItem方法
-    @Transactional
-    public void buyItem(Integer shopItemId, Integer quantity, Integer playerId) {
-        buyShopItem(playerId, shopItemId, quantity);
-    }
-
-    // 出售物品
-    @Transactional
-    public void sellItem(Long playerItemId, Integer quantity, Integer playerId) {
-        PlayerProfile player = playerProfileMapper.selectById(playerId);
-        if (player == null) {
-            throw new IllegalArgumentException("玩家不存在");
+        if (profile.getLevel() < ssi.getRequiredLevel()) {
+            throw new RuntimeException("等级不足，需要 " + ssi.getRequiredLevel() + " 级");
         }
-
-        // 调用背包服务出售物品
-        inventoryService.sellItem(playerId, Integer.valueOf(playerItemId.intValue()), quantity);
-    }
-
-    @Transactional
-    public void initializeShopItems() {
-        long count = shopItemMapper.selectList(null).size();
-        if (count == 0) {
-            // 从items表获取物品并添加到商店
-            List<Item> items = itemMapper.selectList(null);
-            for (Item item : items) {
-                ShopItem shopItem = ShopItem.builder()
-                        .itemId(item.getId())
-                        .shopType("general")
-                        .priceSpiritStones(item.getPrice())
-                        .priceContributionPoints(0)
-                        .stock(-1)
-                        .isAvailable(true)
-                        .createdAt(LocalDateTime.now())
-                        .updatedAt(LocalDateTime.now())
-                        .build();
-                shopItemMapper.insert(shopItem);
-            }
-
-            // 从equipments表获取装备并添加到商店
-            List<Equipment> equipments = equipmentMapper.selectList(null);
-            for (Equipment equipment : equipments) {
-                ShopItem shopItem = ShopItem.builder()
-                        .equipmentId(equipment.getId())
-                        .shopType("equipment")
-                        .priceSpiritStones(equipment.getPrice())
-                        .priceContributionPoints(0)
-                        .stock(-1)
-                        .isAvailable(true)
-                        .createdAt(LocalDateTime.now())
-                        .updatedAt(LocalDateTime.now())
-                        .build();
-                shopItemMapper.insert(shopItem);
-            }
+        if (profile.getSpiritStones() < ssi.getPrice()) {
+            throw new RuntimeException("灵石不足，需要 " + ssi.getPrice() + " 灵石");
         }
-    }
-
-    private ShopItemResponse convertToResponse(ShopItem shopItem) {
-        ShopItemResponse response = new ShopItemResponse();
-        response.setId(shopItem.getId().longValue());
-        response.setShopType(shopItem.getShopType());
-        response.setPriceSpiritStones(shopItem.getPriceSpiritStones());
-        response.setPriceContributionPoints(shopItem.getPriceContributionPoints());
-        response.setStock(shopItem.getStock());
-        response.setIsAvailable(shopItem.getIsAvailable());
-
-        if (shopItem.getItemId() != null) {
-            Item item = itemMapper.selectById(shopItem.getItemId());
-            if (item != null) {
-                response.setItemId(item.getId().longValue());
-                response.setItemName(item.getName());
-                response.setItemDescription(item.getDescription());
-                response.setItemType(item.getType());
-                response.setItemQuality(item.getQuality());
-            }
+        
+        // 检查是否已经拥有该技能
+        PlayerSkill existing = playerSkillMapper.selectByPlayerIdAndSkillId(profile.getId(), skillId);
+        if (existing != null) {
+            throw new RuntimeException("已拥有该技能");
         }
+        
+        // 扣10灵石
+        profile.setSpiritStones(profile.getSpiritStones() - ssi.getPrice());
+        playerProfileMapper.updateById(profile);
 
-        if (shopItem.getEquipmentId() != null) {
-            Equipment equipment = equipmentMapper.selectById(shopItem.getEquipmentId());
-            if (equipment != null) {
-                response.setEquipmentId(equipment.getId().longValue());
-                response.setEquipmentName(equipment.getName());
-                response.setEquipmentDescription(equipment.getDescription());
-                response.setEquipmentType(equipment.getType());
-                response.setEquipmentQuality(equipment.getQuality());
-                response.setRequiredLevel(equipment.getRequiredLevel());
-            }
-        }
-
-        return response;
+        // 学习技能
+        PlayerSkill ps = PlayerSkill.builder()
+                .playerId(profile.getId())
+                .skillId(skillId)
+                .level(1)
+                .experience(0)
+                .equipped(false)
+                .slotNumber(0)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+        playerSkillMapper.insert(ps);
     }
 }

@@ -8,17 +8,23 @@ import com.xiuxian.game.mapper.PlayerEquipmentMapper;
 import com.xiuxian.game.mapper.PlayerProfileMapper;
 import com.xiuxian.game.util.GameConstants;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @ConditionalOnProperty(value = "app.features.equipment.enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class EquipmentService {
+
+    private static final Logger log = LoggerFactory.getLogger(EquipmentService.class);
 
     private final EquipmentMapper equipmentMapper;
     private final PlayerEquipmentMapper playerEquipmentMapper;
@@ -54,43 +60,49 @@ public class EquipmentService {
 
     @Transactional
     public PlayerEquipment acquireEquipment(Integer equipmentId, Integer playerId) {
-        PlayerProfile player = playerProfileMapper.selectById(playerId);
-        if (player == null) {
-            throw new IllegalArgumentException("玩家不存在");
+        try {
+            PlayerProfile player = playerProfileMapper.selectById(playerId);
+            if (player == null) {
+                throw new IllegalArgumentException("玩家不存在");
+            }
+
+            Equipment equipment = equipmentMapper.selectById(equipmentId);
+            if (equipment == null) {
+                throw new IllegalArgumentException("装备不存在");
+            }
+
+            // 检查等级要求
+            if (player.getLevel() < equipment.getRequiredLevel()) {
+                throw new IllegalArgumentException("等级不足，无法获取此装备");
+            }
+
+            // 检查是否已拥有该装备
+            List<PlayerEquipment> playerEquipments = playerEquipmentMapper.selectByPlayerId(playerId);
+            boolean alreadyOwned = playerEquipments.stream()
+                    .anyMatch(pe -> pe.getEquipmentId().equals(equipmentId));
+
+            if (alreadyOwned) {
+                throw new IllegalArgumentException("已经拥有该装备");
+            }
+
+            PlayerEquipment playerEquipment = PlayerEquipment.builder()
+                    .playerId(playerId)
+                    .equipmentId(equipmentId)
+                    .equipped(false)
+                    .slot("")
+                    .durability(100)
+                    .maxDurability(100)
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+
+            playerEquipmentMapper.insert(playerEquipment);
+            return playerEquipmentMapper.selectById(playerEquipment.getId());
+        } catch (Exception e) {
+            // 记录详细错误信息
+            log.error("获取装备失败 - 装备ID: {}, 玩家ID: {}, 错误: {}", equipmentId, playerId, e.getMessage(), e);
+            throw e;
         }
-
-        Equipment equipment = equipmentMapper.selectById(equipmentId);
-        if (equipment == null) {
-            throw new IllegalArgumentException("装备不存在");
-        }
-
-        // 检查等级要求
-        if (player.getLevel() < equipment.getRequiredLevel()) {
-            throw new IllegalArgumentException("等级不足，无法获取此装备");
-        }
-
-        // 检查是否已拥有该装备
-        List<PlayerEquipment> playerEquipments = playerEquipmentMapper.selectByPlayerId(playerId);
-        boolean alreadyOwned = playerEquipments.stream()
-                .anyMatch(pe -> pe.getEquipmentId().equals(equipmentId));
-
-        if (alreadyOwned) {
-            throw new IllegalArgumentException("已经拥有该装备");
-        }
-
-        PlayerEquipment playerEquipment = PlayerEquipment.builder()
-                .playerId(playerId)
-                .equipmentId(equipmentId)
-                .equipped(false)
-                .slot("")
-                .durability(100)
-                .maxDurability(100)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
-
-        playerEquipmentMapper.insert(playerEquipment);
-        return playerEquipmentMapper.selectById(playerEquipment.getId());
     }
 
     @Transactional
@@ -266,5 +278,103 @@ public class EquipmentService {
             equipmentMapper.insert(woodenSword);
             equipmentMapper.insert(clothArmor);
         }
+    }
+
+    /**
+     * 强化装备
+     */
+    @Transactional
+    public PlayerEquipment enhanceEquipment(Integer playerEquipmentId, Integer playerId) {
+        PlayerProfile player = playerProfileMapper.selectById(playerId);
+        if (player == null) {
+            throw new IllegalArgumentException("玩家不存在");
+        }
+
+        PlayerEquipment playerEquipment = playerEquipmentMapper.selectById(playerEquipmentId);
+        if (playerEquipment == null) {
+            throw new IllegalArgumentException("玩家装备不存在");
+        }
+
+        if (!playerEquipment.getPlayerId().equals(playerId)) {
+            throw new IllegalArgumentException("无权操作该装备");
+        }
+
+        Equipment equipment = equipmentMapper.selectById(playerEquipment.getEquipmentId());
+        int currentLevel = playerEquipment.getEnhanceLevel();
+        
+        // 强化上限为20级
+        if (currentLevel >= 20) {
+            throw new IllegalArgumentException("装备已达最大强化等级");
+        }
+
+        // 计算强化所需灵石：基础100 + 等级*50 + 品质*100
+        int enhanceCost = 100 + currentLevel * 50 + equipment.getQuality() * 100;
+        
+        if (player.getSpiritStones() < enhanceCost) {
+            throw new IllegalArgumentException("灵石不足，需要 " + enhanceCost + " 灵石");
+        }
+
+        // 强化成功率：100% - 强化等级*3%
+        int successRate = Math.max(50, 100 - currentLevel * 3);
+        boolean success = new java.util.Random().nextInt(100) < successRate;
+
+        // 扣除灵石
+        player.setSpiritStones(player.getSpiritStones() - enhanceCost);
+        playerProfileMapper.updateById(player);
+
+        if (success) {
+            // 强化成功
+            playerEquipment.setEnhanceLevel(currentLevel + 1);
+            
+            // 每级强化增加属性：基础属性的 5%
+            int attackBonus = (int)(equipment.getAttackBonus() * 0.05);
+            int defenseBonus = (int)(equipment.getDefenseBonus() * 0.05);
+            int healthBonus = (int)(equipment.getHealthBonus() * 0.05);
+            
+            playerEquipment.setEnhanceAttackBonus(playerEquipment.getEnhanceAttackBonus() + attackBonus);
+            playerEquipment.setEnhanceDefenseBonus(playerEquipment.getEnhanceDefenseBonus() + defenseBonus);
+            playerEquipment.setEnhanceHealthBonus(playerEquipment.getEnhanceHealthBonus() + healthBonus);
+            
+            playerEquipment.setUpdatedAt(LocalDateTime.now());
+            playerEquipmentMapper.updateById(playerEquipment);
+            
+            // 如果装备已装备，更新玩家属性
+            if (playerEquipment.getEquipped()) {
+                player.setEquipmentAttackBonus(player.getEquipmentAttackBonus() + attackBonus);
+                player.setEquipmentDefenseBonus(player.getEquipmentDefenseBonus() + defenseBonus);
+                player.setEquipmentHealthBonus(player.getEquipmentHealthBonus() + healthBonus);
+                playerProfileMapper.updateById(player);
+            }
+        } else {
+            // 强化失败，不降级，但消耗灵石
+            throw new IllegalArgumentException("强化失败！已消耗 " + enhanceCost + " 灵石");
+        }
+
+        return playerEquipmentMapper.selectById(playerEquipmentId);
+    }
+
+    /**
+     * 获取强化所需成本和成功率
+     */
+    public Map<String, Object> getEnhanceInfo(Integer playerEquipmentId, Integer playerId) {
+        PlayerEquipment playerEquipment = playerEquipmentMapper.selectById(playerEquipmentId);
+        if (playerEquipment == null || !playerEquipment.getPlayerId().equals(playerId)) {
+            throw new IllegalArgumentException("装备不存在或无权访问");
+        }
+
+        Equipment equipment = equipmentMapper.selectById(playerEquipment.getEquipmentId());
+        int currentLevel = playerEquipment.getEnhanceLevel();
+        
+        int enhanceCost = 100 + currentLevel * 50 + equipment.getQuality() * 100;
+        int successRate = Math.max(50, 100 - currentLevel * 3);
+        
+        Map<String, Object> info = new HashMap<>();
+        info.put("currentLevel", currentLevel);
+        info.put("maxLevel", 20);
+        info.put("cost", enhanceCost);
+        info.put("successRate", successRate);
+        info.put("canEnhance", currentLevel < 20);
+        
+        return info;
     }
 }

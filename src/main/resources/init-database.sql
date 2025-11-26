@@ -230,6 +230,10 @@ CREATE TABLE `player_equipment` (
   `is_equipped` tinyint(1) NOT NULL DEFAULT '0',
   `durability` int NOT NULL DEFAULT '100',
   `max_durability` int NOT NULL DEFAULT '100',
+  `enhance_level` int NOT NULL DEFAULT '0' COMMENT '强化等级',
+  `enhance_attack_bonus` int NOT NULL DEFAULT '0' COMMENT '强化攻击加成',
+  `enhance_defense_bonus` int NOT NULL DEFAULT '0' COMMENT '强化防御加成',
+  `enhance_health_bonus` int NOT NULL DEFAULT '0' COMMENT '强化生命加成',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -279,8 +283,8 @@ CREATE TABLE `player_items` (
   `player_id` int NOT NULL,
   `item_id` int NOT NULL,
   `quantity` int NOT NULL DEFAULT '1',
-  `created_at` timestamp NOT NULL,
-  `updated_at` timestamp NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_player_item` (`player_id`,`item_id`),
   KEY `idx_player_id` (`player_id`),
@@ -394,8 +398,8 @@ CREATE TABLE `player_skills` (
   `current_level` int NOT NULL DEFAULT '1',
   `experience` int NOT NULL DEFAULT '0',
   `is_equipped` tinyint(1) NOT NULL DEFAULT '0',
-  `created_at` timestamp NOT NULL,
-  `updated_at` timestamp NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `equipped` bit(1) NOT NULL,
   `level` int NOT NULL,
   `slot_number` int NOT NULL,
@@ -479,28 +483,28 @@ CREATE TABLE `shop_items` (
 -- ----------------------------
 -- Records of shop_items
 -- ----------------------------
-INSERT INTO `shop_items` VALUES ('1', 'general', '1', null, '50', '100', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '50');
-INSERT INTO `shop_items` VALUES ('2', 'general', '2', null, '50', '100', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '50');
-INSERT INTO `shop_items` VALUES ('3', 'general', '5', null, '10', '500', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '10');
-INSERT INTO `shop_items` VALUES ('4', 'general', '6', null, '100', '100', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '100');
-INSERT INTO `shop_items` VALUES ('5', 'skill', null, null, '1000', '10', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '1000');
-INSERT INTO `shop_items` VALUES ('6', 'skill', null, null, '2000', '5', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '2000');
-INSERT INTO `shop_items` VALUES ('7', 'skill', null, null, '5000', '1', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '5000');
-INSERT INTO `shop_items` VALUES ('8', 'equipment', null, '1', '100', '50', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '100');
-INSERT INTO `shop_items` VALUES ('9', 'equipment', null, '2', '150', '50', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '150');
-INSERT INTO `shop_items` VALUES ('10', 'equipment', null, '6', '500', '20', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '500');
-INSERT INTO `shop_items` VALUES ('11', 'equipment', null, '11', '1200', '10', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', '\0', '0', '1200');
-INSERT INTO `shop_items` VALUES ('12', 'general', '1', null, '50', '100', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '50');
-INSERT INTO `shop_items` VALUES ('13', 'general', '2', null, '50', '100', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '50');
-INSERT INTO `shop_items` VALUES ('14', 'general', '5', null, '10', '500', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '10');
-INSERT INTO `shop_items` VALUES ('15', 'general', '6', null, '100', '100', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '100');
-INSERT INTO `shop_items` VALUES ('16', 'skill', null, null, '1000', '10', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '1000');
-INSERT INTO `shop_items` VALUES ('17', 'skill', null, null, '2000', '5', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '2000');
-INSERT INTO `shop_items` VALUES ('18', 'skill', null, null, '5000', '1', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '5000');
-INSERT INTO `shop_items` VALUES ('19', 'equipment', null, '1', '100', '50', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '100');
-INSERT INTO `shop_items` VALUES ('20', 'equipment', null, '2', '150', '50', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '150');
-INSERT INTO `shop_items` VALUES ('21', 'equipment', null, '6', '500', '20', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '500');
-INSERT INTO `shop_items` VALUES ('22', 'equipment', null, '11', '1200', '10', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', '\0', '0', '1200');
+INSERT INTO `shop_items` VALUES ('1', 'general', '1', null, '50', '100', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', b'1', '0', '50');
+INSERT INTO `shop_items` VALUES ('2', 'general', '2', null, '50', '100', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', b'1', '0', '50');
+INSERT INTO `shop_items` VALUES ('3', 'general', '5', null, '10', '500', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', b'1', '0', '10');
+INSERT INTO `shop_items` VALUES ('4', 'general', '6', null, '100', '100', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', b'1', '0', '100');
+INSERT INTO `shop_items` VALUES ('5', 'skill', null, null, '1000', '10', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', b'1', '0', '1000');
+INSERT INTO `shop_items` VALUES ('6', 'skill', null, null, '2000', '5', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', b'1', '0', '2000');
+INSERT INTO `shop_items` VALUES ('7', 'skill', null, null, '5000', '1', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', b'1', '0', '5000');
+INSERT INTO `shop_items` VALUES ('8', 'equipment', null, '1', '100', '50', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', b'1', '0', '100');
+INSERT INTO `shop_items` VALUES ('9', 'equipment', null, '2', '150', '50', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', b'1', '0', '150');
+INSERT INTO `shop_items` VALUES ('10', 'equipment', null, '6', '500', '20', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', b'1', '0', '500');
+INSERT INTO `shop_items` VALUES ('11', 'equipment', null, '11', '1200', '10', '1', '2025-10-31 18:37:33', '2025-10-31 18:37:33', b'1', '0', '1200');
+INSERT INTO `shop_items` VALUES ('12', 'general', '1', null, '50', '100', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', b'1', '0', '50');
+INSERT INTO `shop_items` VALUES ('13', 'general', '2', null, '50', '100', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', b'1', '0', '50');
+INSERT INTO `shop_items` VALUES ('14', 'general', '5', null, '10', '500', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', b'1', '0', '10');
+INSERT INTO `shop_items` VALUES ('15', 'general', '6', null, '100', '100', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', b'1', '0', '100');
+INSERT INTO `shop_items` VALUES ('16', 'skill', null, null, '1000', '10', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', b'1', '0', '1000');
+INSERT INTO `shop_items` VALUES ('17', 'skill', null, null, '2000', '5', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', b'1', '0', '2000');
+INSERT INTO `shop_items` VALUES ('18', 'skill', null, null, '5000', '1', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', b'1', '0', '5000');
+INSERT INTO `shop_items` VALUES ('19', 'equipment', null, '1', '100', '50', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', b'1', '0', '100');
+INSERT INTO `shop_items` VALUES ('20', 'equipment', null, '2', '150', '50', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', b'1', '0', '150');
+INSERT INTO `shop_items` VALUES ('21', 'equipment', null, '6', '500', '20', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', b'1', '0', '500');
+INSERT INTO `shop_items` VALUES ('22', 'equipment', null, '11', '1200', '10', '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50', b'1', '0', '1200');
 
 -- ----------------------------
 -- Table structure for skills
@@ -548,30 +552,6 @@ INSERT INTO `skills` VALUES ('11', '地刺术', '从地面召唤尖刺，对敌�
 INSERT INTO `skills` VALUES ('12', '风刃术', '释放锋利的风刃,对敌人造成风属性伤害', '1', '10', '15', '7', '2', '8', 'attack', '风', '10', '0', NULL, NULL, '1', '2025-10-31 18:37:50', '2025-10-31 18:37:50');
 
 -- ----------------------------
--- Table structure for users
--- ----------------------------
-DROP TABLE IF EXISTS `users`;
-CREATE TABLE `users` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `username` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `email` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `username` (`username`),
-  UNIQUE KEY `email` (`email`),
-  KEY `idx_username` (`username`),
-  KEY `idx_email` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ----------------------------
--- Records of users
--- ----------------------------
-INSERT INTO `users` VALUES ('4', 'shaun', '$2a$10$3VYcas8oeb7vWVzVzpEbquZBO/ZHRD3CuXRghlWa.sKEhx8YDSlFO', 'shaun88@88.com', '2025-11-07 14:43:06', '2025-11-12 16:59:47');
-INSERT INTO `users` VALUES ('5', 'shaun1', '$2a$10$MJnZPdecBDHriZlvYTPZXeX2r64y14AyX26OGc7XT9cLKCSjrFMhG', 'shaun18@88.com', '2025-11-12 11:05:59', '2025-11-12 11:06:03');
-
--- ----------------------------
 -- View structure for v_player_summary
 -- ----------------------------
 DROP VIEW IF EXISTS `v_player_summary`;
@@ -585,6 +565,8 @@ CREATE TABLE `users` (
   `username` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `role` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'USER',
+  `must_change_password` tinyint(1) NOT NULL DEFAULT '0',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -625,6 +607,9 @@ CREATE TABLE `player_profiles` (
   `equipment_health_bonus` int NOT NULL DEFAULT '0',
   `equipment_mana_bonus` int NOT NULL DEFAULT '0',
   `equipment_speed_bonus` int NOT NULL DEFAULT '0',
+  `experience` bigint NOT NULL DEFAULT '0',
+  `required_experience` int NOT NULL DEFAULT '100',
+  `last_login_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -652,6 +637,12 @@ CREATE TABLE `skills` (
   `required_spirit_stones` int DEFAULT NULL,
   `icon` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `animation` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  // 新增：技能被动属性加成字段
+  `health_bonus` int DEFAULT '0' COMMENT '生命值加成',
+  `mana_bonus` int DEFAULT '0' COMMENT '法力值加成',
+  `attack_bonus` int DEFAULT '0' COMMENT '攻击力加成',
+  `defense_bonus` int DEFAULT '0' COMMENT '防御力加成',
+  `speed_bonus` int DEFAULT '0' COMMENT '速度加成',
   `active` tinyint(1) DEFAULT '1',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -702,14 +693,17 @@ CREATE TABLE `player_quests` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------
--- Records of quests templates
+-- Records of quests templates  
 -- ----------------------------
+-- 清空旧数据并插入新数据
+DELETE FROM `quests` WHERE type IN ('DAILY', 'WEEKLY', 'MONTHLY');
+
 INSERT INTO `quests` (`title`,`description`,`type`,`required_amount`,`reward_exp`,`reward_spirit_stones`,`reward_contribution_points`,`created_at`,`updated_at`) VALUES
 ('每日修炼','完成一次修炼','DAILY',1,100,50,10,NOW(),NOW()),
 ('每日收集灵石','获得100灵石','DAILY',100,120,80,12,NOW(),NOW()),
 ('每周修炼进度','累计修炼300秒','WEEKLY',300,800,500,50,NOW(),NOW()),
 ('每周升级一次','提升1级','WEEKLY',1,1000,600,60,NOW(),NOW()),
-('每月突破境界','突破一次境界','MONTHLY',1,3000,2000,200,NOW(),NOW());
+('每月突破境界','完成10次修炼','MONTHLY',10,3000,2000,200,NOW(),NOW());
 -- ----------------------------
 -- Table structure for skill_shop
 -- ----------------------------
@@ -736,3 +730,103 @@ INSERT INTO `skill_shop` (`skill_id`,`price`,`required_level`,`available`) VALUE
 (3, 1000, 8, 1),
 (4, 1600, 12, 1),
 (5, 1400, 10, 1);
+
+-- ----------------------------
+-- Table structure for monsters
+-- ----------------------------
+DROP TABLE IF EXISTS `monsters`;
+CREATE TABLE `monsters` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` text COLLATE utf8mb4_unicode_ci,
+  `level` int NOT NULL DEFAULT '1',
+  `type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '普通',
+  `health` int NOT NULL DEFAULT '100',
+  `attack` int NOT NULL DEFAULT '10',
+  `defense` int NOT NULL DEFAULT '5',
+  `speed` int NOT NULL DEFAULT '10',
+  `exp_reward` int NOT NULL DEFAULT '50',
+  `spirit_stones_reward` int NOT NULL DEFAULT '10',
+  `drop_rate` int NOT NULL DEFAULT '10',
+  `drop_equipment_id` int DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_monster_level` (`level`),
+  KEY `idx_monster_type` (`type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------
+-- Records of monsters
+-- ----------------------------
+INSERT INTO `monsters` (`name`,`description`,`level`,`type`,`health`,`attack`,`defense`,`speed`,`exp_reward`,`spirit_stones_reward`,`drop_rate`,`drop_equipment_id`) VALUES
+('野狼','常见的野生狼',1,'普通',100,10,5,10,50,10,10,1),
+('山贼','路边的小贼',2,'普通',120,12,6,12,60,12,10,2),
+('妖怪','低级妖怪',3,'普通',150,15,8,15,80,15,10,3),
+('邪修','修炼邪法的修士',5,'普通',200,20,10,18,120,20,15,6),
+('狂暴野狼','狂暴的野生狼',5,'精英',300,30,15,20,200,40,20,7),
+('山贼头目','贼寸的首领',8,'精英',450,40,20,25,300,60,25,12),
+('狼王','BOSS级别的狼群首领',10,'BOSS',800,60,30,30,500,100,50,18),
+('千年妖怪','修炼千年的强大妖怪',15,'BOSS',1500,90,45,40,800,150,50,24);
+
+-- ----------------------------
+-- Table structure for combat_logs
+-- ----------------------------
+DROP TABLE IF EXISTS `combat_logs`;
+CREATE TABLE `combat_logs` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `player_id` int NOT NULL,
+  `monster_id` int DEFAULT NULL,
+  `result` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `rounds` int NOT NULL DEFAULT '0',
+  `exp_gained` int NOT NULL DEFAULT '0',
+  `spirit_stones_gained` int NOT NULL DEFAULT '0',
+  `equipment_dropped` int DEFAULT NULL,
+  `battle_details` text COLLATE utf8mb4_unicode_ci,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_combat_player_id` (`player_id`),
+  KEY `idx_combat_created_at` (`created_at`),
+  CONSTRAINT `fk_combat_logs_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------
+-- Table structure for offline_rewards
+-- ----------------------------
+DROP TABLE IF EXISTS `offline_rewards`;
+CREATE TABLE `offline_rewards` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `player_id` int NOT NULL,
+  `offline_minutes` int NOT NULL DEFAULT '0',
+  `exp_gained` int NOT NULL DEFAULT '0',
+  `spirit_stones_gained` int NOT NULL DEFAULT '0',
+  `claimed` tinyint(1) NOT NULL DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `claimed_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_offline_player_id` (`player_id`),
+  KEY `idx_offline_claimed` (`claimed`),
+  CONSTRAINT `fk_offline_rewards_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------
+-- Alter table player_equipment - 添加强化相关字段
+-- ----------------------------
+-- ALTER TABLE `player_equipment` 
+-- ADD COLUMN `enhance_level` int NOT NULL DEFAULT '0' COMMENT '强化等级' AFTER `max_durability`,
+-- ADD COLUMN `enhance_attack_bonus` int NOT NULL DEFAULT '0' COMMENT '强化攻击加成' AFTER `enhance_level`,
+-- ADD COLUMN `enhance_defense_bonus` int NOT NULL DEFAULT '0' COMMENT '强化防御加成' AFTER `enhance_attack_bonus`,
+-- ADD COLUMN `enhance_health_bonus` int NOT NULL DEFAULT '0' COMMENT '强化生命加成' AFTER `enhance_defense_bonus`;
+
+-- ----------------------------
+-- Alter table player_profiles - 添加最后登录时间
+-- ----------------------------
+-- ALTER TABLE `player_profiles`
+-- ADD COLUMN `last_login_at` timestamp NULL DEFAULT NULL COMMENT '最后登录时间' AFTER `updated_at`;
+
+-- ----------------------------
+-- 添加索引优化查询性能
+-- ----------------------------
+ALTER TABLE `player_items` ADD INDEX `idx_player_items_player_id` (`player_id`);
+ALTER TABLE `player_skills` ADD INDEX `idx_player_skills_player_id` (`player_id`);
+ALTER TABLE `player_quests` ADD INDEX `idx_quest_progress_player_quest` (`player_id`, `quest_id`);

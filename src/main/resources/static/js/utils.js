@@ -483,10 +483,28 @@ class AuthManager {
             'playerExp': this.player.exp || this.player.currentExp || 0,
             'expToNext': this.player.expToNext || 100,
             'playerSpiritStones': this.player.spiritStones || 0,
-            'playerHealth': this.player.health || 100,
-            'playerMana': this.player.mana || 50,
-            'playerAttack': this.player.attack || 10,
-            'playerDefense': this.player.defense || 5
+            'playerHealth': this.player.totalHealth || this.player.health || 100,
+            'playerMana': this.player.totalMana || this.player.mana || 50,
+            'playerAttack': this.player.totalAttack || this.player.attack || 10,
+            'playerDefense': this.player.totalDefense || this.player.defense || 5,
+            'playerSpeed': this.player.totalSpeed || this.player.speed || 10,
+            'attributePoints': this.player.attributePoints || 0,
+            // 基础属性
+            'baseAttack': this.player.attack || 10,
+            'baseDefense': this.player.defense || 5,
+            'baseHealth': this.player.health || 100,
+            // 装备加成
+            'equipmentAttackBonus': this.player.equipmentAttackBonus || 0,
+            'equipmentDefenseBonus': this.player.equipmentDefenseBonus || 0,
+            'equipmentHealthBonus': this.player.equipmentHealthBonus || 0,
+            // 技能加成
+            'skillAttackBonus': this.player.skillAttackBonus || 0,
+            'skillDefenseBonus': this.player.skillDefenseBonus || 0,
+            'skillHealthBonus': this.player.skillHealthBonus || 0,
+            // 总属性
+            'totalAttack': this.player.totalAttack || this.player.attack || 10,
+            'totalDefense': this.player.totalDefense || this.player.defense || 5,
+            'totalHealth': this.player.totalHealth || this.player.health || 100
         };
 
         // 更新文本内容

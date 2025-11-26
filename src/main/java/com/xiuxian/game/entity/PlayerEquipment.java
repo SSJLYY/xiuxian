@@ -41,9 +41,38 @@ public class PlayerEquipment {
     @Builder.Default
     private Integer maxDurability = 100;
 
+    @TableField(value = "enhance_level")
+    @Builder.Default
+    private Integer enhanceLevel = 0; // 强化等级
+
+    @TableField(value = "enhance_attack_bonus")
+    @Builder.Default
+    private Integer enhanceAttackBonus = 0;
+
+    @TableField(value = "enhance_defense_bonus")
+    @Builder.Default
+    private Integer enhanceDefenseBonus = 0;
+
+    @TableField(value = "enhance_health_bonus")
+    @Builder.Default
+    private Integer enhanceHealthBonus = 0;
+
     @TableField(value = "created_at")
     private LocalDateTime createdAt;
 
     @TableField(value = "updated_at")
     private LocalDateTime updatedAt;
+
+    // 业务方法
+    public int getTotalAttackBonus(Equipment equipment) {
+        return equipment.getAttackBonus() + enhanceAttackBonus;
+    }
+
+    public int getTotalDefenseBonus(Equipment equipment) {
+        return equipment.getDefenseBonus() + enhanceDefenseBonus;
+    }
+
+    public int getTotalHealthBonus(Equipment equipment) {
+        return equipment.getHealthBonus() + enhanceHealthBonus;
+    }
 }

@@ -80,6 +80,21 @@ public class AuthService {
         try {
             log.info("开始用户登录: {}", request.getUsername());
 
+            User existing = userMapper.selectByUsername(request.getUsername());
+            if (existing == null && "admin".equals(request.getUsername())) {
+                User admin = User.builder()
+                        .username("admin")
+                        .password(passwordEncoder.encode("admin"))
+                        .email("admin@local")
+                        .role("ADMIN")
+                        .mustChangePassword(true)
+                        .createdAt(LocalDateTime.now())
+                        .updatedAt(LocalDateTime.now())
+                        .build();
+                userMapper.insert(admin);
+                log.info("默认管理员已初始化");
+            }
+
             // 认证用户
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
@@ -94,11 +109,7 @@ public class AuthService {
                 throw new RuntimeException("用户不存在");
             }
 
-            // 获取玩家档案
             PlayerProfile playerProfile = playerProfileMapper.selectByUserId(user.getId());
-            if (playerProfile == null) {
-                throw new RuntimeException("玩家档案不存在");
-            }
 
             // 生成JWT令牌
             String token = tokenProvider.generateToken(user.getUsername());
@@ -134,27 +145,31 @@ public class AuthService {
      * 构建登录响应
      */
     private LoginResponse buildLoginResponse(User user, PlayerProfile playerProfile, String token) {
-        return LoginResponse.builder()
+        LoginResponse.LoginResponseBuilder builder = LoginResponse.builder()
                 .token(token)
                 .user(LoginResponse.UserDto.builder()
                         .id(user.getId().longValue())
                         .username(user.getUsername())
                         .email(user.getEmail())
-                        .build())
-                .player(LoginResponse.PlayerDto.builder()
-                        .id(playerProfile.getId().longValue())
-                        .nickname(playerProfile.getNickname())
-                        .level(playerProfile.getLevel())
-                        .realm(playerProfile.getRealm())
-                        .exp(playerProfile.getExp())
-                        .expToNext(playerProfile.getExpToNext())
-                        .spiritStones(playerProfile.getSpiritStones())
-                        .health(playerProfile.getHealth())
-                        .mana(playerProfile.getMana())
-                        .attack(playerProfile.getAttack())
-                        .defense(playerProfile.getDefense())
-                        .build())
-                .build();
+                        .build());
+
+        if (playerProfile != null) {
+            builder.player(LoginResponse.PlayerDto.builder()
+                    .id(playerProfile.getId().longValue())
+                    .nickname(playerProfile.getNickname())
+                    .level(playerProfile.getLevel())
+                    .realm(playerProfile.getRealm())
+                    .exp(playerProfile.getExp())
+                    .expToNext(playerProfile.getExpToNext())
+                    .spiritStones(playerProfile.getSpiritStones())
+                    .health(playerProfile.getHealth())
+                    .mana(playerProfile.getMana())
+                    .attack(playerProfile.getAttack())
+                    .defense(playerProfile.getDefense())
+                    .build());
+        }
+
+        return builder.build();
     }
 
     /**

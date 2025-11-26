@@ -3,26 +3,39 @@ package com.xiuxian.game.service;
 import com.xiuxian.game.entity.PlayerProfile;
 import com.xiuxian.game.entity.User;
 import com.xiuxian.game.mapper.PlayerProfileMapper;
-import com.xiuxian.game.mapper.UserMapper;
+import com.xiuxian.game.mapper.QuestMapper;
+import com.xiuxian.game.mapper.QuestProgressMapper;
+import com.xiuxian.game.service.SkillService;
+import com.xiuxian.game.util.GameCalculator;
+import com.xiuxian.game.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PlayerService {
 
     private final PlayerProfileMapper playerProfileMapper;
-    private final UserMapper userMapper;
-    private final QuestProgressService questProgressService;
+    private final QuestMapper questMapper;
+    private final QuestProgressMapper questProgressMapper;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
+    private final AuthenticationManager authenticationManager;
+    private final GameCalculator gameCalculator;
+    private final SkillService skillService; // 新增：注入技能服务
 
     /**
      * 创建新玩家档案
@@ -56,6 +69,10 @@ public class PlayerService {
             playerProfileMapper.insert(playerProfile);
             PlayerProfile savedProfile = playerProfileMapper.selectById(playerProfile.getId());
             log.info("玩家档案创建成功: ID={}", savedProfile.getId());
+
+            awardStarterItems(savedProfile.getId());
+
+            // 不在创建时初始化任务，由前端第一次查询时自动初始化
 
             return savedProfile;
 
@@ -101,12 +118,19 @@ public class PlayerService {
                 throw new RuntimeException("用户不存在");
             }
             
-            // 然后通过用户ID获取玩家档案
-            PlayerProfile profile = playerProfileMapper.selectByUserId(user.getId());
-            if (profile == null) {
-                throw new RuntimeException("玩家档案不存在");
-            }
-            return profile;
+        // 然后通过用户ID获取玩家档案
+        PlayerProfile profile = playerProfileMapper.selectByUserId(user.getId());
+        if (profile == null) {
+            throw new RuntimeException("玩家档案不存在");
+        }
+        if (profile.getIsCultivating() == null) {
+            profile.setIsCultivating(false);
+        }
+        java.util.List<com.xiuxian.game.entity.PlayerItem> items = playerItemMapper.selectByPlayerId(profile.getId());
+        if (items == null || items.isEmpty()) {
+            awardStarterItems(profile.getId());
+        }
+        return profile;
         } catch (Exception e) {
             log.error("获取当前玩家档案失败", e);
             throw new RuntimeException("获取当前玩家档案失败: " + e.getMessage());
@@ -141,7 +165,8 @@ public class PlayerService {
             }
             
             if (profile.getIsCultivating()) {
-                throw new RuntimeException("已经在修炼中");
+                log.info("玩家已在修炼中，忽略重复请求: ID={}", profile.getId());
+                return;
             }
 
             profile.setIsCultivating(true);
@@ -165,10 +190,10 @@ public class PlayerService {
             log.info("停止修炼前，玩家 {} 的修炼状态: {}", profile.getId(), profile.getIsCultivating());
 
             if (!profile.getIsCultivating()) {
-                // 即使状态已经是false，也尝试重置以防万一
                 profile.setIsCultivating(false);
                 playerProfileMapper.updateById(profile);
-                throw new RuntimeException("当前没有在修炼");
+                log.info("未在修炼中，忽略停止请求: ID={}", profile.getId());
+                return;
             }
 
             LocalDateTime now = LocalDateTime.now();
@@ -202,12 +227,16 @@ public class PlayerService {
                 // 检查是否升级
                 checkLevelUp(profile);
 
+                // 更新任务进度
                 try {
+                    // 更新每日修炼任务进度（完成1次修炼）
                     questProgressService.updateQuestProgressByType(profile.getId(), com.xiuxian.game.entity.Quest.QuestType.DAILY, 1);
+                    // 更新每周修炼进度（累计修炼时间）
                     questProgressService.updateQuestProgressByType(profile.getId(), com.xiuxian.game.entity.Quest.QuestType.WEEKLY, (int) actualCultivationTime);
+                    // 更新每月任务进度（完成1次修炼）
                     questProgressService.updateQuestProgressByType(profile.getId(), com.xiuxian.game.entity.Quest.QuestType.MONTHLY, 1);
                 } catch (Exception qe) {
-                    log.warn("更新任务进度失败: {}", qe.getMessage());
+                    log.error("更新任务进度失败: {}", qe.getMessage(), qe);
                 }
             }
 
@@ -286,5 +315,46 @@ public class PlayerService {
         else if (level >= 201) profile.setRealm("金丹期");
         else if (level >= 101) profile.setRealm("筑基期");
         else profile.setRealm("练气期");
+    }
+
+    private void awardStarterItems(Integer playerId) {
+        com.xiuxian.game.entity.PlayerItem sword = com.xiuxian.game.entity.PlayerItem.builder()
+                .playerId(playerId)
+                .itemId(1)
+                .quantity(1)
+                .build();
+        com.xiuxian.game.entity.PlayerItem cloth = com.xiuxian.game.entity.PlayerItem.builder()
+                .playerId(playerId)
+                .itemId(2)
+                .quantity(5)
+                .build();
+        try {
+            playerItemMapper.insert(sword);
+            playerItemMapper.insert(cloth);
+        } catch (Exception e) {
+            log.warn("发放新手物品失败: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * 获取玩家详细信息，包含所有属性加成
+     */
+    public PlayerProfile getPlayerProfileWithBonuses(Integer playerId) {
+        PlayerProfile profile = playerProfileMapper.selectById(playerId);
+        if (profile == null) {
+            throw new IllegalArgumentException("玩家不存在");
+        }
+        
+        // 计算技能加成
+        Map<String, Integer> skillBonuses = skillService.calculateSkillBonuses(playerId);
+        
+        // 设置技能加成到玩家属性中
+        profile.setSkillHealthBonus(skillBonuses.get("health"));
+        profile.setSkillManaBonus(skillBonuses.get("mana"));
+        profile.setSkillAttackBonus(skillBonuses.get("attack"));
+        profile.setSkillDefenseBonus(skillBonuses.get("defense"));
+        profile.setSkillSpeedBonus(skillBonuses.get("speed"));
+        
+        return profile;
     }
 }

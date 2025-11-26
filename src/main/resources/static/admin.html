@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>后台管理</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="adminLogin">
+    <h2>管理员登录</h2>
+    <input id="adminUsername" placeholder="用户名" value="admin">
+    <input id="adminPassword" type="password" placeholder="密码">
+    <button id="adminLoginBtn">登录</button>
+</div>
+<div id="forceChange" style="display:none;">
+    <h3>首次登录需要修改密码</h3>
+    <input id="newPassword" type="password" placeholder="新密码">
+    <button id="changeBtn">修改密码</button>
+</div>
+<div id="adminConsole" style="display:none;">
+    <h2>管理控制台</h2>
+    <div>
+        <h3>用户</h3>
+        <div id="userList"></div>
+    </div>
+    <div>
+        <h3>商店商品</h3>
+        <div id="shopItems"></div>
+    </div>
+    <div>
+        <h3>技能商店</h3>
+        <div id="skillShop"></div>
+    </div>
+</div>
+<script src="js/api.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

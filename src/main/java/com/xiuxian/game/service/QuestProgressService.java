@@ -39,7 +39,7 @@ public class QuestProgressService {
             playerQuests.stream()
                 .filter(pq -> {
                     Quest quest = questMapper.selectById(pq.getQuestId());
-                    return quest != null && quest.getType() == questType.name();
+                    return quest != null && questType.name().equals(quest.getType());
                 })
                 .forEach(playerQuest -> {
                     try {
@@ -61,11 +61,11 @@ public class QuestProgressService {
                         // 更新数据库
                         playerQuestMapper.updateById(playerQuest);
                     } catch (Exception e) {
-                        log.warn("更新任务 {} 进度失败: {}", playerQuest.getId(), e.getMessage());
+                        log.error("更新任务 {} 进度失败: {}", playerQuest.getId(), e.getMessage(), e);
                     }
                 });
         } catch (Exception e) {
-            log.warn("更新玩家 {} 的任务进度失败: {}", playerId, e.getMessage());
+            log.error("更新玩家 {} 的任务进度失败: {}", playerId, e.getMessage(), e);
         }
     }
 }

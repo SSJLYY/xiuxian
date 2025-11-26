@@ -20,6 +20,9 @@ class GameManager {
         await this.initCultivationStatus();
         await this.loadQuests();
         await this.loadSkillShop();
+        await this.loadInventory();
+        await this.loadShopItems();
+        await this.loadQuestTabs();
         this.isInitialized = true;
     }
 
@@ -112,6 +115,97 @@ class GameManager {
                 });
             });
         } catch (error) { /* 忽略渲染错误 */ }
+    }
+
+    async loadShopItems() {
+        try {
+            const res = await gameAPI.getShopItems('general');
+            if (!res || !res.success) {
+                throw new Error(res?.message || '获取商城失败');
+            }
+            const list = document.getElementById('shopList');
+            if (!list) return;
+            list.innerHTML = '';
+            const items = res.data || [];
+            if (items.length === 0) {
+                list.innerHTML = '<div class="empty">暂无商品</div>';
+                return;
+            }
+            items.forEach(it => {
+                const el = document.createElement('div');
+                el.className = 'shop-item';
+                el.innerHTML = `物品ID: ${it.itemId || ''} 价格: ${it.priceSpiritStones} 库存: ${it.stock} <button class="btn btn-primary btn-sm" data-id="${it.id}">购买</button>`;
+                list.appendChild(el);
+            });
+            list.querySelectorAll('button[data-id]').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.currentTarget.getAttribute('data-id');
+                    try {
+                        const r = await gameAPI.buyItem(id, 1);
+                        if (!r || !r.success) throw new Error(r?.message || '购买失败');
+                        await this.loadInventory();
+                        if (window.authManager && window.authManager.loadPlayerProfile) await window.authManager.loadPlayerProfile();
+                        this.showToast('购买成功','success');
+                    } catch(err){ this.showToast('购买失败: '+err.message,'error'); throw err; }
+                });
+            });
+        } catch (e) { this.showToast('获取商城失败: '+e.message,'error'); throw e; }
+    }
+
+    async loadInventory() {
+        try {
+            const res = await gameAPI.getInventory();
+            if (!res || !res.success) {
+                throw new Error(res?.message || '获取背包失败');
+            }
+            const grid = document.getElementById('inventoryGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            const items = res.data || [];
+            if (items.length === 0) {
+                grid.innerHTML = '<div class="empty">空</div>';
+                return;
+            }
+            items.forEach(it => {
+                const cell = document.createElement('div');
+                cell.className = 'inventory-cell';
+                cell.innerHTML = `Item ${it.itemId} x${it.quantity}`;
+                grid.appendChild(cell);
+            });
+        } catch (e) { this.showToast('获取背包失败: '+e.message,'error'); throw e; }
+    }
+
+    async loadQuestTabs() {
+        const list = document.getElementById('questsList');
+        if (!list) return;
+        const render = (title, arr) => {
+            const section = document.createElement('div');
+            section.className = 'quest-section';
+            const h = document.createElement('h4');
+            h.textContent = title;
+            section.appendChild(h);
+            (arr||[]).forEach(q => {
+                const item = document.createElement('div');
+                item.className = 'quest-item';
+                const progress = Math.min(q.currentProgress || 0, q.quest.requiredAmount || 1);
+                const done = !!q.completed;
+                item.innerHTML = `<div><strong>${q.quest.title}</strong> [${q.quest.type}]</div><div>进度 ${progress}/${q.quest.requiredAmount}</div><div>${done?'已完成':'未完成'}</div>`;
+                section.appendChild(item);
+            });
+            list.appendChild(section);
+        };
+        try {
+            const daily = await gameAPI.getDailyQuests();
+            const weekly = await gameAPI.getWeeklyQuests();
+            const monthly = await gameAPI.getMonthlyQuests();
+            list.innerHTML = '';
+            if (!daily?.success) throw new Error(daily?.message || '每日任务获取失败');
+            if (!weekly?.success) throw new Error(weekly?.message || '每周任务获取失败');
+            if (!monthly?.success) throw new Error(monthly?.message || '每月任务获取失败');
+            render('每日任务', daily.data);
+            render('每周任务', weekly.data);
+            render('每月任务', monthly.data);
+        } catch(e) { this.showToast('任务列表加载失败: '+e.message,'error'); throw e; }
     }
 
     async loadQuests() {

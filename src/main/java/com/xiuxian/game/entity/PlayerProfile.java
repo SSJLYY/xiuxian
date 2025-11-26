@@ -32,6 +32,7 @@ public class PlayerProfile {
     @Builder.Default
     private Integer level = 1;
 
+    @TableField(value = "exp")
     @Builder.Default
     private Long exp = 0L;
 
@@ -68,6 +69,9 @@ public class PlayerProfile {
     @TableField(value = "last_online_time")
     @Builder.Default
     private LocalDateTime lastOnlineTime = LocalDateTime.now();
+
+    @TableField(value = "last_login_at")
+    private LocalDateTime lastLoginAt;
 
     @TableField(value = "total_cultivation_time")
     @Builder.Default
@@ -121,6 +125,27 @@ public class PlayerProfile {
     @TableField(value = "equipment_speed_bonus")
     @Builder.Default
     private Integer equipmentSpeedBonus = 0;
+    
+    // 新增：技能加成属性
+    @TableField(value = "skill_attack_bonus")
+    @Builder.Default
+    private Integer skillAttackBonus = 0;
+
+    @TableField(value = "skill_defense_bonus")
+    @Builder.Default
+    private Integer skillDefenseBonus = 0;
+
+    @TableField(value = "skill_health_bonus")
+    @Builder.Default
+    private Integer skillHealthBonus = 0;
+
+    @TableField(value = "skill_mana_bonus")
+    @Builder.Default
+    private Integer skillManaBonus = 0;
+
+    @TableField(value = "skill_speed_bonus")
+    @Builder.Default
+    private Integer skillSpeedBonus = 0;
 
     @TableField(value = "created_at")
     private LocalDateTime createdAt;
@@ -171,5 +196,67 @@ public class PlayerProfile {
 
     public void setEquipmentSpeedBonus(Integer equipmentSpeedBonus) {
         this.equipmentSpeedBonus = equipmentSpeedBonus;
+    }
+    
+    // 新增：技能加成getter/setter方法
+    public Integer getSkillAttackBonus() {
+        return this.skillAttackBonus;
+    }
+
+    public void setSkillAttackBonus(Integer skillAttackBonus) {
+        this.skillAttackBonus = skillAttackBonus;
+    }
+
+    public Integer getSkillDefenseBonus() {
+        return this.skillDefenseBonus;
+    }
+
+    public void setSkillDefenseBonus(Integer skillDefenseBonus) {
+        this.skillDefenseBonus = skillDefenseBonus;
+    }
+
+    public Integer getSkillHealthBonus() {
+        return this.skillHealthBonus;
+    }
+
+    public void setSkillHealthBonus(Integer skillHealthBonus) {
+        this.skillHealthBonus = skillHealthBonus;
+    }
+
+    public Integer getSkillManaBonus() {
+        return this.skillManaBonus;
+    }
+
+    public void setSkillManaBonus(Integer skillManaBonus) {
+        this.skillManaBonus = skillManaBonus;
+    }
+
+    public Integer getSkillSpeedBonus() {
+        return this.skillSpeedBonus;
+    }
+
+    public void setSkillSpeedBonus(Integer skillSpeedBonus) {
+        this.skillSpeedBonus = skillSpeedBonus;
+    }
+    
+    // 新增：获取总属性的方法
+    public Integer getTotalAttack() {
+        return this.attack + getEquipmentAttackBonus() + getSkillAttackBonus();
+    }
+    
+    public Integer getTotalDefense() {
+        return this.defense + getEquipmentDefenseBonus() + getSkillDefenseBonus();
+    }
+    
+    public Integer getTotalHealth() {
+        return this.health + getEquipmentHealthBonus() + getSkillHealthBonus();
+    }
+    
+    public Integer getTotalMana() {
+        return this.mana + getEquipmentManaBonus() + getSkillManaBonus();
+    }
+    
+    public Integer getTotalSpeed() {
+        return this.speed + getEquipmentSpeedBonus() + getSkillSpeedBonus();
     }
 }

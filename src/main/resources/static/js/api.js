@@ -143,7 +143,11 @@ const gameAPI = {
     },
 
     async claimOfflineRewards() {
-        return await api.post('/player/claim-offline-rewards');
+        return await api.post('/offline-reward/calculate');
+    },
+
+    async claimOfflineRewardById(rewardId) {
+        return await api.post(`/offline-reward/claim/${rewardId}`);
     },
 
     async resetCultivation() {
@@ -228,8 +232,69 @@ const gameAPI = {
         return await api.post(`/shop/skills/${shopItemId}/buy`);
     }
     ,
+    async getShopItems(type) {
+        const params = type ? { type } : {};
+        return await api.get('/shop/items', params);
+    }
+    ,
+    async buyItem(id, quantity = 1) {
+        return await api.post(`/shop/items/${id}/buy?quantity=${quantity}`);
+    }
+    ,
     async sellSkill(playerSkillId) {
         return await api.post(`/shop/skills/sell/${playerSkillId}`);
+    }
+    ,
+    async adminListUsers() { return await api.get('/admin/users'); }
+    ,
+    async adminSetUserRole(id, role) { return await api.post(`/admin/users/${id}/role?role=${role}`); }
+    ,
+    async adminListShopItems() { return await api.get('/admin/shop/items'); }
+    ,
+    async adminUpsertShopItem(item) { return await api.post('/admin/shop/items', item); }
+    ,
+    async adminListSkillShop() { return await api.get('/admin/shop/skills'); }
+    ,
+    async adminUpsertSkillShop(item) { return await api.post('/admin/shop/skills', item); }
+    ,
+    async adminChangePassword(newPassword) { return await api.post(`/admin/change-password?newPassword=${encodeURIComponent(newPassword)}`); }
+    ,
+    // 战斗系统API
+    async generateMonster(mapId) {
+        const params = mapId ? { mapId } : {};
+        return await api.get('/combat/generate-monster', params);
+    }
+    ,
+    async startCombat(monsterId, mapId) {
+        const payload = { mapId };
+        return await api.post(`/combat/start/${monsterId}`, payload);
+    }
+    ,
+    async startCombatGenerate(mapId) {
+        const payload = mapId ? { mapId } : {};
+        return await api.post('/combat/start', payload);
+    }
+    ,
+    // 新增带地图参数的战斗函数别名，保持向后兼容
+    async startCombatWithMap(monsterId, mapId) {
+        return await this.startCombat(monsterId, mapId);
+    }
+    ,
+    async startCombatGenerateWithMap(mapId) {
+        return await this.startCombatGenerate(mapId);
+    }
+    ,
+    async getCombatHistory(limit = 10) {
+        return await api.get(`/combat/history?limit=${limit}`);
+    }
+    ,
+    // 装备强化API
+    async enhanceEquipment(playerEquipmentId) {
+        return await api.post(`/equipment/enhance/${playerEquipmentId}`);
+    }
+    ,
+    async getEnhanceInfo(playerEquipmentId) {
+        return await api.get(`/equipment/enhance-info/${playerEquipmentId}`);
     }
 };
 
@@ -256,6 +321,61 @@ window.claimQuest = async function(playerQuestId) {
         if (window.gameManager && window.gameManager.addCultivationLog) {
             window.gameManager.addCultivationLog('领取任务奖励失败: ' + error.message);
         }
+    }
+};
+
+// 全局战斗函数
+window.startBattle = async function() {
+    try {
+        // 生成怪物
+        const monsterResponse = await gameAPI.generateMonster();
+        if (!monsterResponse || !monsterResponse.success) {
+            throw new Error(monsterResponse?.message || '生成怪物失败');
+        }
+        
+        const monster = monsterResponse.data;
+        
+        // 确认战斗
+        const confirmed = confirm(`遭遇 ${monster.name} (等级${monster.level} ${monster.type})
+生命: ${monster.health}
+攻击: ${monster.attack}
+防御: ${monster.defense}
+
+是否开始战斗?`);
+        
+        if (!confirmed) {
+            return;
+        }
+        
+        // 开始战斗
+        const combatResponse = monster.id ? await gameAPI.startCombat(monster.id) : await gameAPI.startCombatGenerate();
+        if (!combatResponse || !combatResponse.success) {
+            throw new Error(combatResponse?.message || '战斗失败');
+        }
+        
+        const result = combatResponse.data;
+        
+        // 显示战斗结果
+        let message = `战斗${result.result === 'WIN' ? '胜利' : '失败'}！\n`;
+        message += `回合数: ${result.rounds}\n`;
+        if (result.result === 'WIN') {
+            message += `获得经验: ${result.expGained}\n`;
+            message += `获得灵石: ${result.spiritStonesGained}\n`;
+            if (result.droppedEquipment) {
+                message += `获得装备掉落!\n`;
+            }
+        }
+        
+        alert(message);
+        
+        // 刷新玩家数据
+        if (window.authManager && window.authManager.loadPlayerProfile) {
+            await window.authManager.loadPlayerProfile();
+        }
+        
+    } catch (error) {
+        console.error('战斗失败:', error);
+        alert('战斗失败: ' + error.message);
     }
 };
 

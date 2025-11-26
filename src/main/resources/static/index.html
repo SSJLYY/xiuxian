@@ -3,12 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>demo-项目</title>
+    <title>修仙挂机游戏 - 水墨风格</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
     <link rel="alternate icon" type="image/x-icon" href="images/favicon.svg">
     <link rel="stylesheet" href="css/style.css">
+    
+    <!-- 配置Tailwind自定义颜色和字体 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#8B4513',      // 棕色 - 木质/竹简感
+                        secondary: '#2F4F4F',    // 深灰绿 - 水墨画风格
+                        accent: '#CD5C5C',       // 朱砂红 - 强调色
+                        light: '#F5F5DC',        // 米白 - 背景
+                        dark: '#2C3E50',         // 墨黑 - 文字
+                    },
+                    fontFamily: {
+                        ancient: ['"Ma Shan Zheng"', '"Noto Serif SC"', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
     <!-- 使用本地Font Awesome图标作为备用 -->
     <style>
         /* 备用图标样式 */
@@ -35,7 +56,8 @@
 <!-- 登录界面 -->
 <div id="loginPage" class="container" style="display: block;">
     <div class="login-form">
-        <h1><i class="fas fa-magic"></i> 修仙挂机游戏</h1>
+        <h1 class="text-shadow"><i class="fas fa-magic"></i> 修仙挂机游戏</h1>
+        <p class="text-secondary italic mb-6">大道争锋,始于足下</p>
         <div class="tabs">
             <button class="tab-btn active" onclick="showLogin()">登录</button>
             <button class="tab-btn" onclick="showRegister()">注册</button>
@@ -144,6 +166,11 @@
                 <h3><i class="fas fa-magic"></i> 技能</h3>
                 <div id="skillsList" class="skills-list"></div>
             </div>
+
+            <div class="panel-section">
+                <h3><i class="fas fa-gem"></i> 商城</h3>
+                <div id="shopList" class="shop-list"></div>
+            </div>
         </aside>
 
         <!-- 中央游戏区域 -->
@@ -152,7 +179,7 @@
                 <div class="cultivation-area">
                     <h3><i class="fas fa-yin-yang"></i> 修炼区域</h3>
                     <div class="cultivation-status">
-                        <p id="cultivation-status">点击开始修炼</p>
+                        <p id="cultivationStatus">点击开始修炼</p>
                         <button id="cultivation-btn" class="btn btn-success" onclick="startCultivation()">
                             <i class="fas fa-play"></i> 开始修炼
                         </button>

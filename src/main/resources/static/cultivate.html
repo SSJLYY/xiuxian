@@ -3,11 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>修仙挂机游戏 - 修炼</title>
+    <title>修仙挂机游戏 - 修炼 - 水墨风格</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
     <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+    
+    <!-- 配置Tailwind自定义颜色和字体 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#8B4513',
+                        secondary: '#2F4F4F',
+                        accent: '#CD5C5C',
+                        light: '#F5F5DC',
+                        dark: '#2C3E50',
+                    },
+                    fontFamily: {
+                        ancient: ['"Ma Shan Zheng"', '"Noto Serif SC"', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
 </head>
 <body>
     <div id="gamePage" class="container active">
@@ -42,25 +63,133 @@
             </section>
             <aside class="right-panel">
                 <div class="panel-section">
-                    <div class="flex gap-2 mb-3">
-                        <button class="btn btn-secondary btn-sm" onclick="switchTab('attributes')">属性</button>
-                        <button class="btn btn-secondary btn-sm" onclick="switchTab('skills')">技能</button>
-                        <button class="btn btn-secondary btn-sm" onclick="switchTab('inventory')">背包</button>
-                        <button class="btn btn-secondary btn-sm" onclick="switchTab('quests')">任务</button>
-                    </div>
-                    <div id="tab-attributes" class="tab-pane">
-                        <div class="attributes">
-                            <div class="attribute"><span>自由属性点</span><span id="attributePoints">0</span></div>
-                            <div class="attribute"><span>生命值</span><span id="playerHealth">100</span> <button class="btn btn-secondary btn-xs" data-attr="health">+</button></div>
-                            <div class="attribute"><span>法力值</span><span id="playerMana">100</span> <button class="btn btn-secondary btn-xs" data-attr="mana">+</button></div>
-                            <div class="attribute"><span>攻击力</span><span id="playerAttack">10</span> <button class="btn btn-secondary btn-xs" data-attr="attack">+</button></div>
-                            <div class="attribute"><span>防御力</span><span id="playerDefense">5</span> <button class="btn btn-secondary btn-xs" data-attr="defense">+</button></div>
-                            <div class="attribute"><span>速度</span><span id="playerSpeed">10</span> <button class="btn btn-secondary btn-xs" data-attr="speed">+</button></div>
+                    <!-- 战斗区域 -->
+                    <div class="combat-section mb-6">
+                        <h3 class="text-lg font-bold mb-3">战斗区域</h3>
+                        
+                        <!-- 地图选择 -->
+                        <div class="mb-3">
+                            <label class="block text-sm font-medium mb-1">选择地图:</label>
+                            <select id="map-selector" class="w-full p-2 border rounded">
+                                <option value="1">新手村 (简单)</option>
+                                <option value="2">野外 (中等)</option>
+                            </select>
+                        </div>
+                        
+                        <!-- 怪物信息 -->
+                        <div class="combat-monster-info mb-3 p-3 bg-secondary/5 rounded">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="font-semibold" id="combat-monster-name">-</h4>
+                                <span class="text-sm" id="combat-monster-level">-</span>
+                                <span class="text-xs px-2 py-1 rounded bg-blue-100 text-blue-800" id="combat-monster-type">-</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 text-sm">
+                                <div>生命值: <span id="combat-monster-health">-</span></div>
+                                <div>攻击力: <span id="combat-monster-attack">-</span></div>
+                                <div>防御力: <span id="combat-monster-defense">-</span></div>
+                                <div>速度: <span id="combat-monster-speed">-</span></div>
+                            </div>
+                            <div class="mt-2">
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div id="combat-monster-health-bar" class="bg-red-600 h-2 rounded-full" style="width: 100%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 战斗按钮 -->
+                        <div class="flex gap-2 mb-3">
+                            <button id="fight-once-btn" class="flex-1 btn btn-primary">
+                                <i class="fa fa-fist-raised mr-1"></i> 战斗一次
+                            </button>
+                            <button id="fight-50-btn" class="flex-1 btn btn-accent">
+                                <i class="fa fa-fist-raised mr-1"></i> 战斗50次
+                            </button>
+                        </div>
+                        
+                        <!-- 战斗日志 -->
+                        <div class="combat-log">
+                            <h4 class="font-semibold mb-2">战斗日志</h4>
+                            <div id="combat-log-container" class="combat-log-container p-2 bg-black/10 rounded text-sm max-h-40 overflow-y-auto">
+                                <p class="text-secondary italic">暂无战斗记录</p>
+                            </div>
                         </div>
                     </div>
-                    <div id="tab-skills" class="tab-pane hidden"><div id="skillsList" class="skills-list"></div></div>
-                    <div id="tab-inventory" class="tab-pane hidden"><div id="inventoryGrid" class="inventory-grid"></div></div>
-                    <div id="tab-quests" class="tab-pane hidden"><div id="questsList" class="quest-list"></div></div>
+                    
+                    <!-- 新增标签页区域 -->
+                    <div class="tabs-section">
+                        <div class="flex gap-2 mb-3 border-b">
+                            <button class="btn btn-secondary btn-sm" onclick="switchTab('attributes')">属性</button>
+                            <button class="btn btn-secondary btn-sm" onclick="switchTab('skills')">技能</button>
+                            <button class="btn btn-secondary btn-sm" onclick="switchTab('inventory')">背包</button>
+                            <button class="btn btn-secondary btn-sm" onclick="switchTab('quests')">任务</button>
+                        </div>
+                        <div id="tab-attributes" class="tab-pane">
+                            <div class="attributes">
+                                <div class="attribute"><span>自由属性点</span><span id="attributePoints">0</span></div>
+                                <div class="attribute">
+                                    <span>生命值</span>
+                                    <div>
+                                        <span id="playerHealth">100</span>
+                                        <button class="btn btn-secondary btn-xs ml-2" data-attr="health">+</button>
+                                    </div>
+                                </div>
+                                <div class="attribute">
+                                    <span>法力值</span>
+                                    <div>
+                                        <span id="playerMana">100</span>
+                                        <button class="btn btn-secondary btn-xs ml-2" data-attr="mana">+</button>
+                                    </div>
+                                </div>
+                                <div class="attribute">
+                                    <span>攻击力</span>
+                                    <div>
+                                        <span id="playerAttack">10</span>
+                                        <button class="btn btn-secondary btn-xs ml-2" data-attr="attack">+</button>
+                                    </div>
+                                </div>
+                                <div class="attribute">
+                                    <span>防御力</span>
+                                    <div>
+                                        <span id="playerDefense">5</span>
+                                        <button class="btn btn-secondary btn-xs ml-2" data-attr="defense">+</button>
+                                    </div>
+                                </div>
+                                <div class="attribute">
+                                    <span>速度</span>
+                                    <div>
+                                        <span id="playerSpeed">10</span>
+                                        <button class="btn btn-secondary btn-xs ml-2" data-attr="speed">+</button>
+                                    </div>
+                                </div>
+                                
+                                <!-- 新增：显示属性来源详情 -->
+                                <div class="attribute-details mt-4 p-3 bg-gray-50 rounded">
+                                    <h4 class="font-semibold text-sm mb-2">属性详情:</h4>
+                                    <div class="text-xs space-y-1">
+                                        <div>基础攻击: <span id="baseAttack">10</span></div>
+                                        <div class="ml-2">装备加成: +<span id="equipmentAttackBonus">0</span></div>
+                                        <div class="ml-2">技能加成: +<span id="skillAttackBonus">0</span></div>
+                                        <div class="border-t pt-1 mt-1">总攻击力: <span id="totalAttack">10</span></div>
+                                    </div>
+                                    <div class="text-xs space-y-1 mt-2">
+                                        <div>基础防御: <span id="baseDefense">5</span></div>
+                                        <div class="ml-2">装备加成: +<span id="equipmentDefenseBonus">0</span></div>
+                                        <div class="ml-2">技能加成: +<span id="skillDefenseBonus">0</span></div>
+                                        <div class="border-t pt-1 mt-1">总防御力: <span id="totalDefense">5</span></div>
+                                    </div>
+                                    <div class="text-xs space-y-1 mt-2">
+                                        <div>基础生命: <span id="baseHealth">100</span></div>
+                                        <div class="ml-2">装备加成: +<span id="equipmentHealthBonus">0</span></div>
+                                        <div class="ml-2">技能加成: +<span id="skillHealthBonus">0</span></div>
+                                        <div class="border-t pt-1 mt-1">总生命值: <span id="totalHealth">100</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="tab-skills" class="tab-pane hidden"><div id="skillsList" class="skills-list"></div></div>
+                        <div id="tab-inventory" class="tab-pane hidden"><div id="inventoryGrid" class="inventory-grid"></div></div>
+                        <div id="tab-quests" class="tab-pane hidden"><div id="questsList" class="quest-list"></div></div>
+                    </div>
                 </div>
             </aside>
         </main>
@@ -79,6 +208,238 @@
             });
         }
         switchTab('attributes');
+        
+        // 战斗日志数组，最多保留50条记录
+        let combatLogs = [];
+        
+        // 添加战斗日志
+        function addCombatLog(message) {
+            combatLogs.push({
+                message: message,
+                timestamp: new Date()
+            });
+            
+            // 限制日志数量为50条
+            if (combatLogs.length > 50) {
+                combatLogs.shift();
+            }
+            
+            // 更新战斗日志显示
+            updateCombatLogDisplay();
+        }
+        
+        // 更新战斗日志显示
+        function updateCombatLogDisplay() {
+            const logContainer = document.getElementById('combat-log-container');
+            if (!logContainer) return;
+            
+            if (combatLogs.length === 0) {
+                logContainer.innerHTML = '<p class="text-secondary italic">暂无战斗记录</p>';
+                return;
+            }
+            
+            // 按时间倒序显示（最新的在最上面）
+            const logsHtml = combatLogs.slice().reverse().map(log => {
+                const timeStr = log.timestamp.toLocaleTimeString();
+                return `<p>[${timeStr}] ${log.message}</p>`;
+            }).join('');
+            
+            logContainer.innerHTML = logsHtml;
+            // 滚动到最底部
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        // 生成怪物
+        async function generateMonster() {
+            try {
+                // 获取当前选择的地图
+                const mapSelector = document.getElementById('map-selector');
+                const mapId = mapSelector ? parseInt(mapSelector.value) : 1;
+                
+                const response = await gameAPI.generateMonster(mapId);
+                if (!response || !response.success) {
+                    throw new Error(response?.message || '生成怪物失败');
+                }
+                
+                const monster = response.data;
+                updateMonsterDisplay(monster);
+                return monster;
+            } catch (error) {
+                console.error('生成怪物失败:', error);
+                addCombatLog(`<span class="text-red-600">生成怪物失败: ${error.message}</span>`);
+                return null;
+            }
+        }
+        
+        // 更新怪物显示
+        function updateMonsterDisplay(monster) {
+            if (!monster) return;
+            
+            document.getElementById('combat-monster-name').textContent = monster.name;
+            document.getElementById('combat-monster-level').textContent = `(等级${monster.level})`;
+            document.getElementById('combat-monster-type').textContent = monster.type;
+            document.getElementById('combat-monster-health').textContent = monster.health;
+            document.getElementById('combat-monster-attack').textContent = monster.attack;
+            document.getElementById('combat-monster-defense').textContent = monster.defense;
+            document.getElementById('combat-monster-speed').textContent = monster.speed;
+            
+            // 更新血条（初始为100%）
+            const healthBar = document.getElementById('combat-monster-health-bar');
+            if (healthBar) {
+                healthBar.style.width = '100%';
+            }
+        }
+        
+        // 战斗一次
+        async function fightOnce() {
+            try {
+                // 获取当前选择的地图
+                const mapSelector = document.getElementById('map-selector');
+                const mapId = mapSelector ? parseInt(mapSelector.value) : 1;
+                
+                // 生成怪物
+                const monsterResponse = await gameAPI.generateMonster(mapId);
+                if (!monsterResponse || !monsterResponse.success) {
+                    throw new Error(monsterResponse?.message || '生成怪物失败');
+                }
+                
+                const monster = monsterResponse.data;
+                addCombatLog(`遭遇 ${monster.name} (等级${monster.level} ${monster.type})`);
+                
+                // 开始战斗（直接调用API，不使用确认对话框以提高速度）
+                const combatResponse = monster.id ? 
+                    await gameAPI.startCombatWithMap(monster.id, mapId) : 
+                    await gameAPI.startCombatGenerateWithMap(mapId);
+                    
+                if (!combatResponse || !combatResponse.success) {
+                    throw new Error(combatResponse?.message || '战斗失败');
+                }
+                
+                const result = combatResponse.data;
+                
+                // 显示战斗结果
+                if (result.result === 'WIN') {
+                    addCombatLog(`<span class="text-green-600">战斗胜利！获得经验: ${result.expGained}, 灵石: ${result.spiritStonesGained}</span>`);
+                    if (result.droppedEquipment) {
+                        addCombatLog(`<span class="text-blue-600">获得装备掉落!</span>`);
+                    }
+                } else {
+                    addCombatLog(`<span class="text-red-600">战斗失败!</span>`);
+                }
+                
+                // 刷新玩家数据
+                if (window.authManager && window.authManager.loadPlayerProfile) {
+                    await window.authManager.loadPlayerProfile();
+                }
+                
+            } catch (error) {
+                console.error('战斗失败:', error);
+                addCombatLog(`<span class="text-red-600">战斗失败: ${error.message}</span>`);
+            }
+        }
+        
+        // 战斗50次
+        async function fight50Times() {
+            const fightButton = document.getElementById('fight-once-btn');
+            const fight50Button = document.getElementById('fight-50-btn');
+            
+            // 获取当前选择的地图
+            const mapSelector = document.getElementById('map-selector');
+            const mapId = mapSelector ? parseInt(mapSelector.value) : 1;
+            
+            // 禁用按钮
+            fightButton.disabled = true;
+            fight50Button.disabled = true;
+            fight50Button.innerHTML = '<i class="fa fa-spinner fa-spin mr-1"></i> 战斗中...';
+            
+            let winCount = 0;
+            let totalExp = 0;
+            let totalSpiritStones = 0;
+            
+            try {
+                addCombatLog(`<span class="text-blue-600">开始连续战斗50次...</span>`);
+                
+                // 使用Promise.all并行处理战斗，提高效率
+                const fightPromises = [];
+                for (let i = 1; i <= 50; i++) {
+                    // 创建战斗Promise
+                    const fightPromise = (async (index) => {
+                        try {
+                            // 生成怪物
+                            const monsterResponse = await gameAPI.generateMonster(mapId);
+                            if (!monsterResponse || !monsterResponse.success) {
+                                throw new Error(monsterResponse?.message || '生成怪物失败');
+                            }
+                            
+                            const monster = monsterResponse.data;
+                            
+                            // 开始战斗
+                            const combatResponse = monster.id ? 
+                                await gameAPI.startCombatWithMap(monster.id, mapId) : 
+                                await gameAPI.startCombatGenerateWithMap(mapId);
+                                
+                            if (!combatResponse || !combatResponse.success) {
+                                throw new Error(combatResponse?.message || '战斗失败');
+                            }
+                            
+                            return {
+                                index: index,
+                                success: true,
+                                result: combatResponse.data
+                            };
+                        } catch (error) {
+                            return {
+                                index: index,
+                                success: false,
+                                error: error.message
+                            };
+                        }
+                    })(i);
+                    
+                    fightPromises.push(fightPromise);
+                    
+                    // 控制并发数量，避免过多请求同时发送
+                    if (fightPromises.length >= 5) {
+                        await Promise.all(fightPromises.slice(-5));
+                    }
+                }
+                
+                // 等待所有战斗完成
+                const results = await Promise.all(fightPromises);
+                
+                // 处理战斗结果
+                for (const result of results) {
+                    if (result.success) {
+                        const combatResult = result.result;
+                        if (combatResult.result === 'WIN') {
+                            winCount++;
+                            totalExp += combatResult.expGained || 0;
+                            totalSpiritStones += combatResult.spiritStonesGained || 0;
+                        }
+                        addCombatLog(`第${result.index}次战斗: 战斗${combatResult.result === 'WIN' ? '胜利' : '失败'}${combatResult.result === 'WIN' ? ` - 获得经验: ${combatResult.expGained}, 灵石: ${combatResult.spiritStonesGained}` : ''}`);
+                    } else {
+                        addCombatLog(`第${result.index}次战斗: 战斗失败 - ${result.error}`);
+                    }
+                }
+                
+                addCombatLog(`<span class="text-green-600">连续战斗结束！胜利: ${winCount}/50次，获得经验: ${totalExp}，灵石: ${totalSpiritStones}</span>`);
+                
+            } catch (error) {
+                console.error('连续战斗失败:', error);
+                addCombatLog(`<span class="text-red-600">连续战斗失败: ${error.message}</span>`);
+            } finally {
+                // 启用按钮
+                fightButton.disabled = false;
+                fight50Button.disabled = false;
+                fight50Button.innerHTML = '<i class="fa fa-fist-raised mr-1"></i> 战斗50次';
+                
+                // 最后刷新一次玩家数据
+                if (window.authManager && window.authManager.loadPlayerProfile) {
+                    await window.authManager.loadPlayerProfile();
+                }
+            }
+        }
+        
         document.addEventListener('DOMContentLoaded', async()=>{
             if(window.initGameManager){ await window.initGameManager(); }
             if(window.authManager){ await window.authManager.loadGameData(); }
@@ -95,6 +456,21 @@
                     } catch(err){ window.gameManager.showToast('加点失败: '+err.message,'error'); throw err; }
                 });
             });
+            
+            // 绑定战斗按钮事件
+            const fightOnceBtn = document.getElementById('fight-once-btn');
+            const fight50Btn = document.getElementById('fight-50-btn');
+            
+            if (fightOnceBtn) {
+                fightOnceBtn.addEventListener('click', fightOnce);
+            }
+            
+            if (fight50Btn) {
+                fight50Btn.addEventListener('click', fight50Times);
+            }
+            
+            // 初始生成一个怪物
+            await generateMonster();
         });
     </script>
 </body>

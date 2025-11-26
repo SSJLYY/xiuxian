@@ -104,28 +104,33 @@ public class QuestService {
             return false;
         }
         
-        LocalDateTime lastQuestDate = dailyQuests.get(0).getCreatedAt().toLocalDate().atStartOfDay();
+        // 检查所有日常任务，如果有任何一个过期了，就需要刷新
         LocalDateTime today = LocalDate.now().atStartOfDay();
-        
-        return lastQuestDate.isBefore(today);
+        return dailyQuests.stream()
+                .map(pq -> pq.getCreatedAt().toLocalDate().atStartOfDay())
+                .anyMatch(date -> date.isBefore(today));
     }
 
     private boolean needsRefreshWeeklyQuests(List<PlayerQuest> weeklyQuests) {
         if (weeklyQuests == null || weeklyQuests.isEmpty()) {
             return false;
         }
-        LocalDateTime last = weeklyQuests.get(0).getCreatedAt().toLocalDate().atStartOfDay();
+        // 检查所有周常任务，如果有任何一个过期了，就需要刷新
         LocalDateTime startOfWeek = LocalDate.now().with(java.time.DayOfWeek.MONDAY).atStartOfDay();
-        return last.isBefore(startOfWeek);
+        return weeklyQuests.stream()
+                .map(pq -> pq.getCreatedAt().toLocalDate().atStartOfDay())
+                .anyMatch(date -> date.isBefore(startOfWeek));
     }
 
     private boolean needsRefreshMonthlyQuests(List<PlayerQuest> monthlyQuests) {
         if (monthlyQuests == null || monthlyQuests.isEmpty()) {
             return false;
         }
-        LocalDateTime last = monthlyQuests.get(0).getCreatedAt().toLocalDate().atStartOfDay();
+        // 检查所有月常任务，如果有任何一个过期了，就需要刷新
         LocalDateTime startOfMonth = LocalDate.now().withDayOfMonth(1).atStartOfDay();
-        return last.isBefore(startOfMonth);
+        return monthlyQuests.stream()
+                .map(pq -> pq.getCreatedAt().toLocalDate().atStartOfDay())
+                .anyMatch(date -> date.isBefore(startOfMonth));
     }
 
     @Transactional
@@ -200,11 +205,15 @@ public class QuestService {
             }
         }
         List<Quest> templates = questMapper.selectByType("WEEKLY");
+        if (templates == null || templates.isEmpty()) {
+            initializeDefaultQuests();
+            templates = questMapper.selectByType("WEEKLY");
+        }
         return templates.stream()
                 .map(quest -> {
                     PlayerQuest pq = PlayerQuest.builder()
-                            .playerId(playerId)
-                            .questId(quest.getId())
+                        .playerId(playerId)
+                        .questId(quest.getId())
                             .currentProgress(0)
                             .completed(false)
                             .rewardClaimed(false)
@@ -227,11 +236,15 @@ public class QuestService {
             }
         }
         List<Quest> templates = questMapper.selectByType("MONTHLY");
+        if (templates == null || templates.isEmpty()) {
+            initializeDefaultQuests();
+            templates = questMapper.selectByType("MONTHLY");
+        }
         return templates.stream()
                 .map(quest -> {
                     PlayerQuest pq = PlayerQuest.builder()
-                            .playerId(playerId)
-                            .questId(quest.getId())
+                        .playerId(playerId)
+                        .questId(quest.getId())
                             .currentProgress(0)
                             .completed(false)
                             .rewardClaimed(false)
@@ -246,9 +259,13 @@ public class QuestService {
 
     @Transactional
     public void initializeDefaultQuests() {
-        long questCount = questMapper.selectList(null).size();
-        if (questCount == 0) {
-            // 创建默认日常任务
+        java.util.List<Quest> all = questMapper.selectList(null);
+
+        boolean hasDaily = all.stream().anyMatch(q -> "DAILY".equals(q.getType()));
+        boolean hasWeekly = all.stream().anyMatch(q -> "WEEKLY".equals(q.getType()));
+        boolean hasMonthly = all.stream().anyMatch(q -> "MONTHLY".equals(q.getType()));
+
+        if (!hasDaily) {
             Quest quest1 = Quest.builder()
                     .title("每日修炼")
                     .description("完成一次修炼")
@@ -260,21 +277,63 @@ public class QuestService {
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
                     .build();
-
+            questMapper.insert(quest1);
+            
             Quest quest2 = Quest.builder()
-                    .title("击败妖兽")
-                    .description("击败一只妖兽")
+                    .title("每日收集灵石")
+                    .description("获得100灵石")
                     .type("DAILY")
-                    .requiredAmount(1)
-                    .rewardExp(200)
-                    .rewardSpiritStones(100)
-                    .rewardContributionPoints(20)
+                    .requiredAmount(100)
+                    .rewardExp(120)
+                    .rewardSpiritStones(80)
+                    .rewardContributionPoints(12)
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
                     .build();
-
-            questMapper.insert(quest1);
             questMapper.insert(quest2);
+        }
+
+        if (!hasWeekly) {
+            Quest w1 = Quest.builder()
+                    .title("每周勤修")
+                    .description("累计修炼300秒")
+                    .type("WEEKLY")
+                    .requiredAmount(300)
+                    .rewardExp(800)
+                    .rewardSpiritStones(500)
+                    .rewardContributionPoints(50)
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+            questMapper.insert(w1);
+            
+            Quest w2 = Quest.builder()
+                    .title("每周升级一次")
+                    .description("提升1级")
+                    .type("WEEKLY")
+                    .requiredAmount(1)
+                    .rewardExp(1000)
+                    .rewardSpiritStones(600)
+                    .rewardContributionPoints(60)
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+            questMapper.insert(w2);
+        }
+
+        if (!hasMonthly) {
+            Quest m1 = Quest.builder()
+                    .title("每月突破")
+                    .description("完成10次修炼")
+                    .type("MONTHLY")
+                    .requiredAmount(10)
+                    .rewardExp(10000)
+                    .rewardSpiritStones(3000)
+                    .rewardContributionPoints(300)
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+            questMapper.insert(m1);
         }
     }
 
@@ -323,6 +382,13 @@ public class QuestService {
         player.setExp(player.getExp() + quest.getRewardExp());
         player.setSpiritStones(player.getSpiritStones() + quest.getRewardSpiritStones());
         player.setContributionPoints(player.getContributionPoints() + quest.getRewardContributionPoints());
+        
+        // 增加属性点奖励（根据任务奖励设置）
+        int attributePointsReward = quest.getRewardExp() / 100; // 每100经验奖励1属性点
+        if (attributePointsReward > 0) {
+            player.setAttributePoints(player.getAttributePoints() + attributePointsReward);
+        }
+        
         playerProfileMapper.updateById(player);
 
         // 标记奖励已领取
@@ -346,13 +412,23 @@ public class QuestService {
     // 根据类型获取玩家任务
     public List<PlayerQuest> getPlayerQuestsByType(Integer playerId, Quest.QuestType type) {
         List<PlayerQuest> allQuests = playerQuestMapper.selectByPlayerId(playerId);
-        
-        return allQuests.stream()
+        List<PlayerQuest> filtered = allQuests.stream()
                 .filter(pq -> {
                     Quest quest = questMapper.selectById(pq.getQuestId());
                     return quest != null && quest.getType().equals(type.toString());
                 })
                 .collect(Collectors.toList());
+
+        if (filtered == null || filtered.isEmpty()) {
+            if (type == Quest.QuestType.DAILY) {
+                filtered = generateDailyQuestsForPlayer(playerId);
+            } else if (type == Quest.QuestType.WEEKLY) {
+                filtered = generateWeeklyQuestsForPlayer(playerId);
+            } else if (type == Quest.QuestType.MONTHLY) {
+                filtered = generateMonthlyQuestsForPlayer(playerId);
+            }
+        }
+        return filtered;
     }
 
     public List<PlayerQuestDetailResponse> getPlayerQuestsDetailByType(Integer playerId, Quest.QuestType type) {

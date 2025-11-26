@@ -14,7 +14,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -85,6 +88,16 @@ public class SkillService {
         if (existing != null) {
             throw new IllegalArgumentException(GameConstants.ERROR_INVALID_OPERATION + ": 已经学习过该技能");
         }
+        
+        // 检查是否需要灵石
+        if (skill.getRequiredSpiritStones() != null && skill.getRequiredSpiritStones() > 0) {
+            if (player.getSpiritStones() < skill.getRequiredSpiritStones()) {
+                throw new IllegalArgumentException("灵石不足，需要 " + skill.getRequiredSpiritStones() + " 灵石");
+            }
+            player.setSpiritStones(player.getSpiritStones() - skill.getRequiredSpiritStones());
+            playerProfileMapper.updateById(player);
+        }
+        
         PlayerSkill playerSkill = PlayerSkill.builder()
                 .playerId(playerId)
                 .skillId(skillId)
@@ -92,6 +105,8 @@ public class SkillService {
                 .experience(0)
                 .equipped(false)
                 .slotNumber(0)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
                 .build();
         playerSkillMapper.insert(playerSkill);
         return playerSkillMapper.selectById(playerSkill.getId());
@@ -262,6 +277,38 @@ public class SkillService {
         playerSkillMapper.updateById(playerSkill);
         return playerSkillMapper.selectById(playerSkillId);
     }
-
+    
+    
+    /**
+     * 计算玩家装备技能的总属性加成
+     */
+    public Map<String, Integer> calculateSkillBonuses(Integer playerId) {
+        List<PlayerSkill> equippedSkills = playerSkillMapper.selectByPlayerIdAndEquipped(playerId, true);
+        Map<String, Integer> bonuses = new HashMap<>();
+        
+        bonuses.put("health", 0);
+        bonuses.put("mana", 0);
+        bonuses.put("attack", 0);
+        bonuses.put("defense", 0);
+        bonuses.put("speed", 0);
+        
+        for (PlayerSkill playerSkill : equippedSkills) {
+            Skill skill = skillMapper.selectById(playerSkill.getSkillId());
+            if (skill != null) {
+                bonuses.put("health", bonuses.get("health") + 
+                    (skill.getHealthBonus() != null ? skill.getHealthBonus() * playerSkill.getLevel() : 0));
+                bonuses.put("mana", bonuses.get("mana") + 
+                    (skill.getManaBonus() != null ? skill.getManaBonus() * playerSkill.getLevel() : 0));
+                bonuses.put("attack", bonuses.get("attack") + 
+                    (skill.getAttackBonus() != null ? skill.getAttackBonus() * playerSkill.getLevel() : 0));
+                bonuses.put("defense", bonuses.get("defense") + 
+                    (skill.getDefenseBonus() != null ? skill.getDefenseBonus() * playerSkill.getLevel() : 0));
+                bonuses.put("speed", bonuses.get("speed") + 
+                    (skill.getSpeedBonus() != null ? skill.getSpeedBonus() * playerSkill.getLevel() : 0));
+            }
+        }
+        
+        return bonuses;
+    }
     
 }

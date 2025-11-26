@@ -8,9 +8,11 @@ import com.xiuxian.game.service.PlayerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/equipment")
@@ -22,6 +24,7 @@ public class EquipmentController {
     private final PlayerService playerService;
 
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<PlayerEquipment>>> getPlayerEquipment() {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
@@ -33,6 +36,7 @@ public class EquipmentController {
     }
 
     @GetMapping("/equipped")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<PlayerEquipment>>> getEquippedEquipment() {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
@@ -44,6 +48,7 @@ public class EquipmentController {
     }
 
     @GetMapping("/available")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<Equipment>>> getAvailableEquipment() {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
@@ -55,6 +60,7 @@ public class EquipmentController {
     }
 
     @GetMapping("/all")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<Equipment>>> getAllEquipment() {
         try {
             List<Equipment> equipment = equipmentService.getAllEquipments();
@@ -65,6 +71,7 @@ public class EquipmentController {
     }
 
     @PostMapping("/acquire")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PlayerEquipment>> acquireEquipment(@RequestParam Integer equipmentId) {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
@@ -76,6 +83,7 @@ public class EquipmentController {
     }
 
     @PostMapping("/equip")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PlayerEquipment>> equipEquipment(
             @RequestParam Integer playerEquipmentId,
             @RequestParam String slot) {
@@ -89,6 +97,7 @@ public class EquipmentController {
     }
 
     @PostMapping("/unequip")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PlayerEquipment>> unequipEquipment(
             @RequestParam Integer playerEquipmentId) {
         try {
@@ -101,12 +110,45 @@ public class EquipmentController {
     }
 
     @PostMapping("/repair")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PlayerEquipment>> repairEquipment(
             @RequestParam Integer playerEquipmentId) {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
             PlayerEquipment playerEquipment = equipmentService.repairEquipment(playerEquipmentId, playerId);
             return ResponseEntity.ok(ApiResponse.success("修复装备成功", playerEquipment));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    /**
+     * 强化装备
+     */
+    @PostMapping("/enhance/{playerEquipmentId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<PlayerEquipment>> enhanceEquipment(
+            @PathVariable Integer playerEquipmentId) {
+        try {
+            Integer playerId = playerService.getCurrentPlayerId();
+            PlayerEquipment playerEquipment = equipmentService.enhanceEquipment(playerEquipmentId, playerId);
+            return ResponseEntity.ok(ApiResponse.success("强化成功", playerEquipment));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    /**
+     * 获取强化信息
+     */
+    @GetMapping("/enhance-info/{playerEquipmentId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getEnhanceInfo(
+            @PathVariable Integer playerEquipmentId) {
+        try {
+            Integer playerId = playerService.getCurrentPlayerId();
+            Map<String, Object> info = equipmentService.getEnhanceInfo(playerEquipmentId, playerId);
+            return ResponseEntity.ok(ApiResponse.success("获取成功", info));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
