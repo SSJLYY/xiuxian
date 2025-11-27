@@ -13,6 +13,13 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * 玩家档案实体类
+ * 对应数据库 player_profiles 表，存储玩家的游戏数据和状态
+ * 
+ * @author xiuxian
+ * @version 1.0
+ */
 @TableName("player_profiles")
 @Data
 @Builder
@@ -20,15 +27,27 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class PlayerProfile {
 
+    /**
+     * 玩家档案ID，主键，自增长
+     */
     @TableId(type = IdType.AUTO)
     private Integer id;
 
+    /**
+     * 关联的用户ID，对应 users 表的 id
+     */
     @TableField(value = "user_id")
     private Integer userId;
 
+    /**
+     * 玩家昵称，游戏内显示的名称
+     */
     @TableField(value = "nickname")
     private String nickname;
 
+    /**
+     * 玩家等级，默认1级
+     */
     @Builder.Default
     private Integer level = 1;
 
@@ -153,110 +172,48 @@ public class PlayerProfile {
     @TableField(value = "updated_at")
     private LocalDateTime updatedAt;
 
-    // 装备加成计算方法
-    public Integer getTotalHealth() {
-        return this.health + getEquipmentHealthBonus();
-    }
-
-    public Integer getEquipmentAttackBonus() {
-        return this.equipmentAttackBonus;
-    }
-
-    public void setEquipmentAttackBonus(Integer equipmentAttackBonus) {
-        this.equipmentAttackBonus = equipmentAttackBonus;
-    }
-
-    public Integer getEquipmentDefenseBonus() {
-        return this.equipmentDefenseBonus;
-    }
-
-    public void setEquipmentDefenseBonus(Integer equipmentDefenseBonus) {
-        this.equipmentDefenseBonus = equipmentDefenseBonus;
-    }
-
-    public Integer getEquipmentHealthBonus() {
-        return this.equipmentHealthBonus;
-    }
-
-    public void setEquipmentHealthBonus(Integer equipmentHealthBonus) {
-        this.equipmentHealthBonus = equipmentHealthBonus;
-    }
-
-    public Integer getEquipmentManaBonus() {
-        return this.equipmentManaBonus;
-    }
-
-    public void setEquipmentManaBonus(Integer equipmentManaBonus) {
-        this.equipmentManaBonus = equipmentManaBonus;
-    }
-
-    public Integer getEquipmentSpeedBonus() {
-        return this.equipmentSpeedBonus;
-    }
-
-    public void setEquipmentSpeedBonus(Integer equipmentSpeedBonus) {
-        this.equipmentSpeedBonus = equipmentSpeedBonus;
-    }
-    
-    // 新增：技能加成getter/setter方法
-    public Integer getSkillAttackBonus() {
-        return this.skillAttackBonus;
-    }
-
-    public void setSkillAttackBonus(Integer skillAttackBonus) {
-        this.skillAttackBonus = skillAttackBonus;
-    }
-
-    public Integer getSkillDefenseBonus() {
-        return this.skillDefenseBonus;
-    }
-
-    public void setSkillDefenseBonus(Integer skillDefenseBonus) {
-        this.skillDefenseBonus = skillDefenseBonus;
-    }
-
-    public Integer getSkillHealthBonus() {
-        return this.skillHealthBonus;
-    }
-
-    public void setSkillHealthBonus(Integer skillHealthBonus) {
-        this.skillHealthBonus = skillHealthBonus;
-    }
-
-    public Integer getSkillManaBonus() {
-        return this.skillManaBonus;
-    }
-
-    public void setSkillManaBonus(Integer skillManaBonus) {
-        this.skillManaBonus = skillManaBonus;
-    }
-
-    public Integer getSkillSpeedBonus() {
-        return this.skillSpeedBonus;
-    }
-
-    public void setSkillSpeedBonus(Integer skillSpeedBonus) {
-        this.skillSpeedBonus = skillSpeedBonus;
-    }
-    
-    // 新增：获取总属性的方法
+    /**
+     * 获取总攻击力（基础 + 装备加成 + 技能加成）
+     */
     public Integer getTotalAttack() {
-        return this.attack + getEquipmentAttackBonus() + getSkillAttackBonus();
+        return this.attack + 
+               (this.equipmentAttackBonus != null ? this.equipmentAttackBonus : 0) + 
+               (this.skillAttackBonus != null ? this.skillAttackBonus : 0);
     }
     
+    /**
+     * 获取总防御力（基础 + 装备加成 + 技能加成）
+     */
     public Integer getTotalDefense() {
-        return this.defense + getEquipmentDefenseBonus() + getSkillDefenseBonus();
+        return this.defense + 
+               (this.equipmentDefenseBonus != null ? this.equipmentDefenseBonus : 0) + 
+               (this.skillDefenseBonus != null ? this.skillDefenseBonus : 0);
     }
     
+    /**
+     * 获取总生命值（基础 + 装备加成 + 技能加成）
+     */
     public Integer getTotalHealth() {
-        return this.health + getEquipmentHealthBonus() + getSkillHealthBonus();
+        return this.health + 
+               (this.equipmentHealthBonus != null ? this.equipmentHealthBonus : 0) + 
+               (this.skillHealthBonus != null ? this.skillHealthBonus : 0);
     }
     
+    /**
+     * 获取总法力值（基础 + 装备加成 + 技能加成）
+     */
     public Integer getTotalMana() {
-        return this.mana + getEquipmentManaBonus() + getSkillManaBonus();
+        return this.mana + 
+               (this.equipmentManaBonus != null ? this.equipmentManaBonus : 0) + 
+               (this.skillManaBonus != null ? this.skillManaBonus : 0);
     }
     
+    /**
+     * 获取总速度（基础 + 装备加成 + 技能加成）
+     */
     public Integer getTotalSpeed() {
-        return this.speed + getEquipmentSpeedBonus() + getSkillSpeedBonus();
+        return this.speed + 
+               (this.equipmentSpeedBonus != null ? this.equipmentSpeedBonus : 0) + 
+               (this.skillSpeedBonus != null ? this.skillSpeedBonus : 0);
     }
 }

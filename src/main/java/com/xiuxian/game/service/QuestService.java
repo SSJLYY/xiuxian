@@ -11,6 +11,7 @@ import com.xiuxian.game.mapper.PlayerProfileMapper;
 import com.xiuxian.game.util.GameCalculator;
 import com.xiuxian.game.util.GameConstants;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +22,20 @@ import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
 
+/**
+ * 任务服务类
+ * 负责任务系统的所有业务逻辑
+ * 
+ * 主要功能：
+ * - 任务生成和刷新（日常、周常、月常）
+ * - 任务进度更新
+ * - 任务奖励发放
+ * - 任务完成检查
+ * 
+ * @author xiuxian
+ * @version 1.0
+ */
+@Slf4j
 @Service
 @ConditionalOnProperty(value = "app.features.quests.enabled", havingValue = "true")
 @RequiredArgsConstructor

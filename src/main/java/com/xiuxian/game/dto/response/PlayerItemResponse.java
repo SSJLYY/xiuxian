@@ -23,7 +23,7 @@ public class PlayerItemResponse {
     private Boolean stackable;
     private Boolean usable;
     private String effect;
-    private Integer price;
+    private Long price;
     private Boolean sellable;
     private Boolean canUseMore;
     private Boolean stackFull;

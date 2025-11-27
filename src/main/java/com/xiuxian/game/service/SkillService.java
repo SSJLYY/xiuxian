@@ -10,6 +10,7 @@ import com.xiuxian.game.mapper.SkillMapper;
 import com.xiuxian.game.util.GameCalculator;
 import com.xiuxian.game.util.GameConstants;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * 技能服务类
+ * 负责技能系统的所有业务逻辑
+ * 
+ * 主要功能：
+ * - 技能学习和升级
+ * - 技能装备和卸载
+ * - 技能属性加成计算
+ * - 技能伤害和效果计算
+ * - 技能经验管理
+ * 
+ * @author xiuxian
+ * @version 1.0
+ */
+@Slf4j
 @Service
 @ConditionalOnProperty(value = "app.features.skills.enabled", havingValue = "true")
 @RequiredArgsConstructor
@@ -75,29 +91,68 @@ public class SkillService {
         return playerSkillMapper.selectByPlayerIdAndEquipped(playerId, true);
     }
 
+    /**
+     * 学习技能
+     * 玩家学习新技能，需要满足等级要求和灵石消耗
+     * 
+     * @param skillId 技能ID
+     * @param playerId 玩家ID
+     * @return 学习后的玩家技能信息
+     * @throws IllegalArgumentException 当玩家不存在、技能不存在、等级不足、灵石不足或已学习该技能时抛出异常
+     */
     @Transactional
     public PlayerSkill learnSkill(Integer skillId, Integer playerId) {
+        log.info("========== 学习技能 ==========");
+        log.info("玩家ID: {}, 技能ID: {}", playerId, skillId);
+        
+        // 1. 验证玩家是否存在
         PlayerProfile player = playerProfileMapper.selectById(playerId);
-        if (player == null) throw new IllegalArgumentException("玩家不存在");
-        Skill skill = skillMapper.selectById(skillId);
-        if (skill == null) throw new IllegalArgumentException("技能不存在");
-        if (skill.getUnlockLevel() > player.getLevel()) {
-            throw new IllegalArgumentException(GameConstants.ERROR_REQUIREMENTS_NOT_MET + ": 角色等级不足，无法学习该技能");
+        if (player == null) {
+            log.error("玩家不存在: ID={}", playerId);
+            throw new IllegalArgumentException("玩家不存在");
         }
+        log.info("玩家信息: 昵称={}, 等级={}, 灵石={}", 
+                player.getNickname(), player.getLevel(), player.getSpiritStones());
+        
+        // 2. 验证技能是否存在
+        Skill skill = skillMapper.selectById(skillId);
+        if (skill == null) {
+            log.error("技能不存在: ID={}", skillId);
+            throw new IllegalArgumentException("技能不存在");
+        }
+        log.info("技能信息: 名称={}, 解锁等级={}, 所需灵石={}", 
+                skill.getName(), skill.getUnlockLevel(), skill.getRequiredSpiritStones());
+        
+        // 3. 检查等级要求
+        if (skill.getUnlockLevel() > player.getLevel()) {
+            log.warn("等级不足: 玩家等级={}, 需要等级={}", player.getLevel(), skill.getUnlockLevel());
+            throw new IllegalArgumentException(GameConstants.ERROR_REQUIREMENTS_NOT_MET + 
+                    ": 角色等级不足，需要" + skill.getUnlockLevel() + "级");
+        }
+        
+        // 4. 检查是否已学习
         PlayerSkill existing = playerSkillMapper.selectByPlayerIdAndSkillId(playerId, skillId);
         if (existing != null) {
+            log.warn("已学习该技能: 玩家ID={}, 技能ID={}", playerId, skillId);
             throw new IllegalArgumentException(GameConstants.ERROR_INVALID_OPERATION + ": 已经学习过该技能");
         }
         
-        // 检查是否需要灵石
+        // 5. 检查并扣除灵石
         if (skill.getRequiredSpiritStones() != null && skill.getRequiredSpiritStones() > 0) {
             if (player.getSpiritStones() < skill.getRequiredSpiritStones()) {
+                log.warn("灵石不足: 拥有={}, 需要={}", 
+                        player.getSpiritStones(), skill.getRequiredSpiritStones());
                 throw new IllegalArgumentException("灵石不足，需要 " + skill.getRequiredSpiritStones() + " 灵石");
             }
-            player.setSpiritStones(player.getSpiritStones() - skill.getRequiredSpiritStones());
+            
+            long oldSpiritStones = player.getSpiritStones();
+            player.setSpiritStones(oldSpiritStones - skill.getRequiredSpiritStones());
             playerProfileMapper.updateById(player);
+            log.info("扣除灵石: {} -> {} (-{})", 
+                    oldSpiritStones, player.getSpiritStones(), skill.getRequiredSpiritStones());
         }
         
+        // 6. 创建玩家技能记录
         PlayerSkill playerSkill = PlayerSkill.builder()
                 .playerId(playerId)
                 .skillId(skillId)
@@ -109,7 +164,13 @@ public class SkillService {
                 .updatedAt(LocalDateTime.now())
                 .build();
         playerSkillMapper.insert(playerSkill);
-        return playerSkillMapper.selectById(playerSkill.getId());
+        
+        PlayerSkill savedSkill = playerSkillMapper.selectById(playerSkill.getId());
+        log.info("技能学习成功: 玩家技能ID={}, 技能名称={}, 初始等级=1", 
+                savedSkill.getId(), skill.getName());
+        log.info("========== 学习技能完成 ==========");
+        
+        return savedSkill;
     }
 
     /**
