@@ -43,6 +43,12 @@
                 </div>
             </div>
             <div class="header-actions">
+                <button class="btn btn-primary" onclick="window.location.href='equipment.html'" title="装备系统">
+                    <i class="fa-solid fa-shield"></i> 装备
+                </button>
+                <button class="btn btn-primary" onclick="window.location.href='pets.html'" title="宠物系统" style="background: linear-gradient(135deg, #48bb78, #38a169);">
+                    <i class="fa-solid fa-paw"></i> 宠物
+                </button>
                 <button class="btn btn-secondary" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> 退出</button>
             </div>
         </header>
@@ -103,6 +109,9 @@
                             </button>
                             <button id="fight-50-btn" class="flex-1 btn btn-accent">
                                 <i class="fa fa-fist-raised mr-1"></i> 战斗50次
+                            </button>
+                            <button id="fight-100-btn" class="flex-1 btn btn-accent">
+                                <i class="fa fa-fist-raised mr-1"></i> 战斗100次
                             </button>
                         </div>
                         
@@ -340,98 +349,63 @@
         
         // 战斗50次
         async function fight50Times() {
+            await batchFight(50);
+        }
+        
+        // 战斗100次
+        async function fight100Times() {
+            await batchFight(100);
+        }
+        
+        // 批量战斗通用函数
+        async function batchFight(times) {
             const fightButton = document.getElementById('fight-once-btn');
             const fight50Button = document.getElementById('fight-50-btn');
+            const fight100Button = document.getElementById('fight-100-btn');
             
             // 获取当前选择的地图
             const mapSelector = document.getElementById('map-selector');
             const mapId = mapSelector ? parseInt(mapSelector.value) : 1;
             
-            // 禁用按钮
+            // 禁用所有按钮
             fightButton.disabled = true;
             fight50Button.disabled = true;
-            fight50Button.innerHTML = '<i class="fa fa-spinner fa-spin mr-1"></i> 战斗中...';
+            fight100Button.disabled = true;
             
-            let winCount = 0;
-            let totalExp = 0;
-            let totalSpiritStones = 0;
+            const targetButton = times === 50 ? fight50Button : fight100Button;
+            const originalText = targetButton.innerHTML;
+            targetButton.innerHTML = '<i class="fa fa-spinner fa-spin mr-1"></i> 战斗中...';
             
             try {
-                addCombatLog(`<span class="text-blue-600">开始连续战斗50次...</span>`);
+                addCombatLog(`<span class="text-blue-600">开始连续战斗${times}次...</span>`);
                 
-                // 使用Promise.all并行处理战斗，提高效率
-                const fightPromises = [];
-                for (let i = 1; i <= 50; i++) {
-                    // 创建战斗Promise
-                    const fightPromise = (async (index) => {
-                        try {
-                            // 生成怪物
-                            const monsterResponse = await gameAPI.generateMonster(mapId);
-                            if (!monsterResponse || !monsterResponse.success) {
-                                throw new Error(monsterResponse?.message || '生成怪物失败');
-                            }
-                            
-                            const monster = monsterResponse.data;
-                            
-                            // 开始战斗
-                            const combatResponse = monster.id ? 
-                                await gameAPI.startCombatWithMap(monster.id, mapId) : 
-                                await gameAPI.startCombatGenerateWithMap(mapId);
-                                
-                            if (!combatResponse || !combatResponse.success) {
-                                throw new Error(combatResponse?.message || '战斗失败');
-                            }
-                            
-                            return {
-                                index: index,
-                                success: true,
-                                result: combatResponse.data
-                            };
-                        } catch (error) {
-                            return {
-                                index: index,
-                                success: false,
-                                error: error.message
-                            };
-                        }
-                    })(i);
-                    
-                    fightPromises.push(fightPromise);
-                    
-                    // 控制并发数量，避免过多请求同时发送
-                    if (fightPromises.length >= 5) {
-                        await Promise.all(fightPromises.slice(-5));
-                    }
+                // 使用新的批量战斗API
+                const payload = { mapId: mapId };
+                const response = await gameAPI.batchCombat(times, payload);
+                
+                if (!response || !response.success) {
+                    throw new Error(response?.message || '批量战斗失败');
                 }
                 
-                // 等待所有战斗完成
-                const results = await Promise.all(fightPromises);
+                const result = response.data;
                 
-                // 处理战斗结果
-                for (const result of results) {
-                    if (result.success) {
-                        const combatResult = result.result;
-                        if (combatResult.result === 'WIN') {
-                            winCount++;
-                            totalExp += combatResult.expGained || 0;
-                            totalSpiritStones += combatResult.spiritStonesGained || 0;
-                        }
-                        addCombatLog(`第${result.index}次战斗: 战斗${combatResult.result === 'WIN' ? '胜利' : '失败'}${combatResult.result === 'WIN' ? ` - 获得经验: ${combatResult.expGained}, 灵石: ${combatResult.spiritStonesGained}` : ''}`);
-                    } else {
-                        addCombatLog(`第${result.index}次战斗: 战斗失败 - ${result.error}`);
-                    }
-                }
-                
-                addCombatLog(`<span class="text-green-600">连续战斗结束！胜利: ${winCount}/50次，获得经验: ${totalExp}，灵石: ${totalSpiritStones}</span>`);
+                // 显示汇总结果
+                addCombatLog(`<span class="text-green-600">连续战斗结束！</span>`);
+                addCombatLog(`总战斗次数: ${result.totalBattles}`);
+                addCombatLog(`胜利: ${result.wins}次，失败: ${result.losses}次`);
+                addCombatLog(`胜率: ${(result.winRate * 100).toFixed(2)}%`);
+                addCombatLog(`获得经验: ${result.totalExpGained}，灵石: ${result.totalSpiritStonesGained}`);
+                addCombatLog(`平均回合数: ${result.averageRounds.toFixed(2)}`);
                 
             } catch (error) {
                 console.error('连续战斗失败:', error);
                 addCombatLog(`<span class="text-red-600">连续战斗失败: ${error.message}</span>`);
             } finally {
-                // 启用按钮
+                // 启用所有按钮
                 fightButton.disabled = false;
                 fight50Button.disabled = false;
-                fight50Button.innerHTML = '<i class="fa fa-fist-raised mr-1"></i> 战斗50次';
+                fight100Button.disabled = false;
+                targetButton.innerHTML = originalText;
                 
                 // 最后刷新一次玩家数据
                 if (window.authManager && window.authManager.loadPlayerProfile) {
@@ -460,6 +434,7 @@
             // 绑定战斗按钮事件
             const fightOnceBtn = document.getElementById('fight-once-btn');
             const fight50Btn = document.getElementById('fight-50-btn');
+            const fight100Btn = document.getElementById('fight-100-btn');
             
             if (fightOnceBtn) {
                 fightOnceBtn.addEventListener('click', fightOnce);
@@ -467,6 +442,10 @@
             
             if (fight50Btn) {
                 fight50Btn.addEventListener('click', fight50Times);
+            }
+            
+            if (fight100Btn) {
+                fight100Btn.addEventListener('click', fight100Times);
             }
             
             // 初始生成一个怪物

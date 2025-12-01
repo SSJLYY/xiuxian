@@ -29,7 +29,28 @@ public class DataInitializer implements CommandLineRunner {
         logger.info("开始初始化游戏数据...");
         
         try {
-            ensureSkillsTableExists();
+            // 添加重试机制，尝试连接数据库
+            int retryCount = 0;
+            int maxRetries = 5;
+            while (retryCount < maxRetries) {
+                try {
+                    ensureSkillsTableExists();
+                    break;
+                } catch (Exception e) {
+                    retryCount++;
+                    logger.warn("数据库连接失败，第{}次重试: {}", retryCount, e.getMessage());
+                    if (retryCount >= maxRetries) {
+                        throw new RuntimeException("数据库连接失败，已重试"+maxRetries+"次，请检查数据库配置和网络连接", e);
+                    }
+                    try {
+                        Thread.sleep(5000); // 等待5秒后重试
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException("线程中断", ie);
+                    }
+                }
+            }
+            
             ensureUsersRoleColumn();
             ensureUsersForceChangeColumn();
             ensurePlayerSkillsDefaults();
@@ -222,6 +243,11 @@ public class DataInitializer implements CommandLineRunner {
                 "element VARCHAR(50)," +
                 "unlock_level INT," +
                 "required_spirit_stones INT," +
+                "health_bonus INT DEFAULT 0," +
+                "mana_bonus INT DEFAULT 0," +
+                "attack_bonus INT DEFAULT 0," +
+                "defense_bonus INT DEFAULT 0," +
+                "speed_bonus INT DEFAULT 0," +
                 "icon VARCHAR(255)," +
                 "animation VARCHAR(255)," +
                 "active TINYINT(1)," +
@@ -233,6 +259,7 @@ public class DataInitializer implements CommandLineRunner {
             logger.info("检测并创建技能表成功（如不存在）");
         } catch (Exception e) {
             logger.warn("技能表检测/创建失败: {}", e.getMessage());
+            throw new RuntimeException("数据库连接失败，请检查数据库配置和网络连接", e);
         }
     }
 

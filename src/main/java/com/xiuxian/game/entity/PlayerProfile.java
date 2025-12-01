@@ -144,26 +144,21 @@ public class PlayerProfile {
     @TableField(value = "equipment_speed_bonus")
     @Builder.Default
     private Integer equipmentSpeedBonus = 0;
-    
+
     // 新增：技能加成属性
-    @TableField(value = "skill_attack_bonus")
-    @Builder.Default
-    private Integer skillAttackBonus = 0;
-
-    @TableField(value = "skill_defense_bonus")
-    @Builder.Default
-    private Integer skillDefenseBonus = 0;
-
-    @TableField(value = "skill_health_bonus")
-    @Builder.Default
+    @TableField(exist = false)
     private Integer skillHealthBonus = 0;
-
-    @TableField(value = "skill_mana_bonus")
-    @Builder.Default
+    
+    @TableField(exist = false)
     private Integer skillManaBonus = 0;
-
-    @TableField(value = "skill_speed_bonus")
-    @Builder.Default
+    
+    @TableField(exist = false)
+    private Integer skillAttackBonus = 0;
+    
+    @TableField(exist = false)
+    private Integer skillDefenseBonus = 0;
+    
+    @TableField(exist = false)
     private Integer skillSpeedBonus = 0;
 
     @TableField(value = "created_at")
@@ -173,47 +168,78 @@ public class PlayerProfile {
     private LocalDateTime updatedAt;
 
     /**
-     * 获取总攻击力（基础 + 装备加成 + 技能加成）
+     * 获取总攻击力（基础 + 装备加成）
      */
     public Integer getTotalAttack() {
-        return this.attack + 
-               (this.equipmentAttackBonus != null ? this.equipmentAttackBonus : 0) + 
-               (this.skillAttackBonus != null ? this.skillAttackBonus : 0);
+        return this.attack + (this.equipmentAttackBonus != null ? this.equipmentAttackBonus : 0);
     }
     
     /**
-     * 获取总防御力（基础 + 装备加成 + 技能加成）
+     * 获取总防御力（基础 + 装备加成）
      */
     public Integer getTotalDefense() {
-        return this.defense + 
-               (this.equipmentDefenseBonus != null ? this.equipmentDefenseBonus : 0) + 
-               (this.skillDefenseBonus != null ? this.skillDefenseBonus : 0);
+        return this.defense + (this.equipmentDefenseBonus != null ? this.equipmentDefenseBonus : 0);
     }
     
     /**
-     * 获取总生命值（基础 + 装备加成 + 技能加成）
+     * 获取总生命值（基础 + 装备加成）
      */
     public Integer getTotalHealth() {
-        return this.health + 
-               (this.equipmentHealthBonus != null ? this.equipmentHealthBonus : 0) + 
-               (this.skillHealthBonus != null ? this.skillHealthBonus : 0);
+        return this.health + (this.equipmentHealthBonus != null ? this.equipmentHealthBonus : 0);
     }
     
     /**
-     * 获取总法力值（基础 + 装备加成 + 技能加成）
+     * 获取总法力值（基础 + 装备加成）
      */
     public Integer getTotalMana() {
-        return this.mana + 
-               (this.equipmentManaBonus != null ? this.equipmentManaBonus : 0) + 
-               (this.skillManaBonus != null ? this.skillManaBonus : 0);
+        return this.mana + (this.equipmentManaBonus != null ? this.equipmentManaBonus : 0);
     }
     
     /**
-     * 获取总速度（基础 + 装备加成 + 技能加成）
+     * 获取总速度（基础 + 装备加成）
      */
     public Integer getTotalSpeed() {
-        return this.speed + 
-               (this.equipmentSpeedBonus != null ? this.equipmentSpeedBonus : 0) + 
-               (this.skillSpeedBonus != null ? this.skillSpeedBonus : 0);
+        return this.speed + (this.equipmentSpeedBonus != null ? this.equipmentSpeedBonus : 0);
+    }
+    
+    // 新增：技能加成的setter和getter方法
+    public Integer getSkillHealthBonus() {
+        return skillHealthBonus;
+    }
+
+    public void setSkillHealthBonus(Integer skillHealthBonus) {
+        this.skillHealthBonus = skillHealthBonus;
+    }
+
+    public Integer getSkillManaBonus() {
+        return skillManaBonus;
+    }
+
+    public void setSkillManaBonus(Integer skillManaBonus) {
+        this.skillManaBonus = skillManaBonus;
+    }
+
+    public Integer getSkillAttackBonus() {
+        return skillAttackBonus;
+    }
+
+    public void setSkillAttackBonus(Integer skillAttackBonus) {
+        this.skillAttackBonus = skillAttackBonus;
+    }
+
+    public Integer getSkillDefenseBonus() {
+        return skillDefenseBonus;
+    }
+
+    public void setSkillDefenseBonus(Integer skillDefenseBonus) {
+        this.skillDefenseBonus = skillDefenseBonus;
+    }
+
+    public Integer getSkillSpeedBonus() {
+        return skillSpeedBonus;
+    }
+
+    public void setSkillSpeedBonus(Integer skillSpeedBonus) {
+        this.skillSpeedBonus = skillSpeedBonus;
     }
 }

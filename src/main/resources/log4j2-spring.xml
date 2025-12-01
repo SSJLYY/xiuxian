@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Log4j2配置文件
+    修仙挂机游戏项目日志配置
+    
+    日志级别：TRACE < DEBUG < INFO < WARN < ERROR < FATAL
+    
+    配置说明：
+    - Console: 控制台输出，开发环境使用
+    - RollingFile: 滚动文件输出，生产环境使用
+    - 按日期切分：每天0点自动切分日志文件
+    - 自动压缩：历史日志文件自动压缩为.gz格式
+    - 自动清理：超过保留期的日志文件自动删除
+    
+    日志保留策略：
+    - 应用日志：保留30天
+    - 错误日志：保留30天  
+    - SQL日志：保留7天
+    - 性能日志：保留7天
+-->
+<Configuration status="WARN" monitorInterval="30">
+    
+    <!-- 属性配置 -->
+    <Properties>
+        <!-- 日志文件路径 -->
+        <Property name="LOG_HOME">logs</Property>
+        <!-- 应用名称 -->
+        <Property name="APP_NAME">xiuxian-game</Property>
+        <!-- 日志格式 -->
+        <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Property>
+        <!-- 控制台日志格式（带颜色） -->
+        <Property name="CONSOLE_PATTERN">%d{HH:mm:ss.SSS} %highlight{%-5level} [%t] %style{%logger{36}}{cyan} - %msg%n</Property>
+    </Properties>
+    
+    <!-- 输出源配置 -->
+    <Appenders>
+        
+        <!-- 控制台输出 -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${CONSOLE_PATTERN}"/>
+            <!-- 只输出INFO及以上级别的日志到控制台 -->
+            <ThresholdFilter level="INFO" onMatch="ACCEPT" onMismatch="DENY"/>
+        </Console>
+        
+        <!-- 应用日志文件 - 按日期切分 -->
+        <RollingFile name="ApplicationFile" 
+                     fileName="${LOG_HOME}/${APP_NAME}.log"
+                     filePattern="${LOG_HOME}/${APP_NAME}-%d{yyyy-MM-dd}.log.gz">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <!-- 每天0点滚动 -->
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+            </Policies>
+            <!-- 保留30天的日志文件 -->
+            <DefaultRolloverStrategy max="30">
+                <!-- 删除超过30天的日志文件 -->
+                <Delete basePath="${LOG_HOME}" maxDepth="1">
+                    <IfFileName glob="${APP_NAME}-*.log.gz"/>
+                    <IfLastModified age="30d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+        
+        <!-- 错误日志文件 - 按日期切分 -->
+        <RollingFile name="ErrorFile" 
+                     fileName="${LOG_HOME}/${APP_NAME}-error.log"
+                     filePattern="${LOG_HOME}/${APP_NAME}-error-%d{yyyy-MM-dd}.log.gz">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <!-- 只记录ERROR级别的日志 -->
+            <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY"/>
+            <Policies>
+                <!-- 每天0点滚动 -->
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+            </Policies>
+            <!-- 保留30天的错误日志 -->
+            <DefaultRolloverStrategy max="30">
+                <Delete basePath="${LOG_HOME}" maxDepth="1">
+                    <IfFileName glob="${APP_NAME}-error-*.log.gz"/>
+                    <IfLastModified age="30d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+        
+        <!-- SQL日志文件 - 按日期切分 -->
+        <RollingFile name="SqlFile" 
+                     fileName="${LOG_HOME}/${APP_NAME}-sql.log"
+                     filePattern="${LOG_HOME}/${APP_NAME}-sql-%d{yyyy-MM-dd}.log.gz">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <!-- 每天0点滚动 -->
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+            </Policies>
+            <!-- 保留7天的SQL日志 -->
+            <DefaultRolloverStrategy max="7">
+                <Delete basePath="${LOG_HOME}" maxDepth="1">
+                    <IfFileName glob="${APP_NAME}-sql-*.log.gz"/>
+                    <IfLastModified age="7d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+        
+        <!-- 性能日志文件 - 按日期切分 -->
+        <RollingFile name="PerformanceFile" 
+                     fileName="${LOG_HOME}/${APP_NAME}-performance.log"
+                     filePattern="${LOG_HOME}/${APP_NAME}-performance-%d{yyyy-MM-dd}.log.gz">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <!-- 每天0点滚动 -->
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+            </Policies>
+            <!-- 保留7天的性能日志 -->
+            <DefaultRolloverStrategy max="7">
+                <Delete basePath="${LOG_HOME}" maxDepth="1">
+                    <IfFileName glob="${APP_NAME}-performance-*.log.gz"/>
+                    <IfLastModified age="7d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+        
+    </Appenders>
+    
+    <!-- 日志器配置 -->
+    <Loggers>
+        
+        <!-- 项目包日志配置 -->
+        <Logger name="com.xiuxian.game" level="DEBUG" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="ApplicationFile"/>
+            <AppenderRef ref="ErrorFile"/>
+        </Logger>
+        
+        <!-- MyBatis SQL日志 -->
+        <Logger name="com.xiuxian.game.mapper" level="DEBUG" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="SqlFile"/>
+        </Logger>
+        
+        <!-- MyBatis Plus SQL日志 -->
+        <Logger name="com.baomidou.mybatisplus" level="DEBUG" additivity="false">
+            <AppenderRef ref="SqlFile"/>
+        </Logger>
+        
+        <!-- Spring框架日志 -->
+        <Logger name="org.springframework" level="INFO" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="ApplicationFile"/>
+        </Logger>
+        
+        <!-- Spring Security日志 -->
+        <Logger name="org.springframework.security" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="ApplicationFile"/>
+        </Logger>
+        
+        <!-- Hibernate SQL日志 -->
+        <Logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
+            <AppenderRef ref="SqlFile"/>
+        </Logger>
+        
+        <!-- Hibernate参数日志 -->
+        <Logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="TRACE" additivity="false">
+            <AppenderRef ref="SqlFile"/>
+        </Logger>
+        
+        <!-- HikariCP连接池日志 -->
+        <Logger name="com.zaxxer.hikari" level="INFO" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="ApplicationFile"/>
+        </Logger>
+        
+        <!-- 性能监控日志 -->
+        <Logger name="performance" level="INFO" additivity="false">
+            <AppenderRef ref="PerformanceFile"/>
+        </Logger>
+        
+        <!-- 根日志器 -->
+        <Root level="INFO">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="ApplicationFile"/>
+            <AppenderRef ref="ErrorFile"/>
+        </Root>
+        
+    </Loggers>
+    
+</Configuration>

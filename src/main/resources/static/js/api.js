@@ -38,17 +38,32 @@ class ApiClient {
         }
 
         try {
+            console.log(`API请求: ${method} ${this.baseURL}${url}`);
             const response = await fetch(this.baseURL + url, config);
 
-            if (!response.ok) {
-                // 处理401未授权和403禁止访问
-                if (response.status === 401) {
-                    this.clearToken();
-                    throw new Error('未授权，请重新登录');
-                } else if (response.status === 403) {
-                    throw new Error('权限不足');
-                }
+            // 处理401未授权
+            if (response.status === 401) {
+                this.clearToken();
+                console.error('401未授权，清除token');
+                return {
+                    success: false,
+                    message: '未授权，请重新登录',
+                    data: null
+                };
+            }
 
+            // 处理403禁止访问
+            if (response.status === 403) {
+                console.error('403禁止访问');
+                return {
+                    success: false,
+                    message: '权限不足，访问被拒绝',
+                    data: null
+                };
+            }
+
+            // 处理其他HTTP错误
+            if (!response.ok) {
                 const errorText = await response.text();
                 let errorData;
                 try {
@@ -57,6 +72,7 @@ class ApiClient {
                     errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
                 }
 
+                console.error(`API错误 ${response.status}:`, errorData);
                 return {
                     success: false,
                     message: errorData.message || `HTTP ${response.status}`,
@@ -64,14 +80,16 @@ class ApiClient {
                 };
             }
 
+            // 解析成功响应
             const responseData = await response.json();
+            console.log(`API响应成功: ${method} ${url}`, responseData.success);
             return responseData;
 
         } catch (error) {
-            console.error('API请求错误:', error);
+            console.error('API请求异常:', method, url, error);
             return {
                 success: false,
-                message: error.message || '网络请求失败',
+                message: error.message || '网络请求失败，请检查网络连接',
                 data: null
             };
         }
@@ -170,7 +188,35 @@ const gameAPI = {
 
     // 装备相关API
     async getEquipment() {
+        return await api.get('/equipment');
+    },
+    
+    async getEquippedEquipment() {
         return await api.get('/equipment/equipped');
+    },
+    
+    async getAvailableEquipment() {
+        return await api.get('/equipment/available');
+    },
+    
+    async getAllEquipment() {
+        return await api.get('/equipment/all');
+    },
+    
+    async acquireEquipment(equipmentId) {
+        return await api.post(`/equipment/acquire?equipmentId=${equipmentId}`);
+    },
+    
+    async equipEquipment(playerEquipmentId, slot) {
+        return await api.post(`/equipment/equip?playerEquipmentId=${playerEquipmentId}&slot=${slot}`);
+    },
+    
+    async unequipEquipment(playerEquipmentId) {
+        return await api.post(`/equipment/unequip?playerEquipmentId=${playerEquipmentId}`);
+    },
+    
+    async repairEquipment(playerEquipmentId) {
+        return await api.post(`/equipment/repair?playerEquipmentId=${playerEquipmentId}`);
     },
 
     // 背包相关API
@@ -282,6 +328,11 @@ const gameAPI = {
     ,
     async startCombatGenerateWithMap(mapId) {
         return await this.startCombatGenerate(mapId);
+    }
+    ,
+    // 批量战斗API
+    async batchCombat(times, payload) {
+        return await api.post(`/combat/batch/${times}`, payload);
     }
     ,
     async getCombatHistory(limit = 10) {

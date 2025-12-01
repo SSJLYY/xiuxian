@@ -54,10 +54,10 @@ class AuthManager {
         }
 
         try {
-            // 验证token有效性
+            // 验证token有效性 - 必须从后端验证，不允许降级
             const validationResponse = await gameAPI.validateToken();
-            if (!validationResponse.success) {
-                throw new Error('Token无效');
+            if (!validationResponse || !validationResponse.success) {
+                throw new Error('Token验证失败，请重新登录');
             }
 
             await this.loadUserData();
@@ -69,10 +69,11 @@ class AuthManager {
             console.error('自动登录失败:', error);
             this.clearAuthData();
             this.showLoginPage();
+            this.showToast('认证失败: ' + error.message, 'error');
         }
     }
 
-    // 加载用户数据
+    // 加载用户数据 - 必须从后端加载，不允许降级
     async loadUserData() {
         if (this.isLoading) return;
 
@@ -80,51 +81,60 @@ class AuthManager {
         try {
             console.log('开始加载用户数据');
 
-            // 获取当前用户信息
+            // 获取当前用户信息 - 必须成功
             const userResponse = await gameAPI.getCurrentUser();
-            if (!userResponse.success) {
-                throw new Error(userResponse.message || '获取用户信息失败');
+            if (!userResponse || !userResponse.success) {
+                throw new Error(userResponse?.message || '获取用户信息失败，请检查网络连接');
             }
 
             this.currentUser = userResponse.data;
-            this.isAuthenticated = true;
+            if (!this.currentUser) {
+                throw new Error('用户数据为空');
+            }
 
+            this.isAuthenticated = true;
             console.log('用户数据加载成功:', this.currentUser.username);
 
-            // 加载玩家资料
+            // 加载玩家资料 - 必须成功
             await this.loadPlayerProfile();
 
         } catch (error) {
             console.error('加载用户数据失败:', error);
+            this.showToast('加载失败: ' + error.message, 'error');
             throw error;
         } finally {
             this.isLoading = false;
         }
     }
 
-    // 加载玩家资料
+    // 加载玩家资料 - 必须从后端加载，不允许降级
     async loadPlayerProfile() {
         try {
             console.log('开始加载玩家资料');
 
             const response = await gameAPI.getCurrentPlayerProfile();
-            if (!response.success) {
-                throw new Error(response.message || '获取玩家资料失败');
+            if (!response || !response.success) {
+                throw new Error(response?.message || '获取玩家资料失败，请检查后端服务');
             }
 
             this.player = response.data;
-            this.loginTime = Date.now();
+            if (!this.player) {
+                throw new Error('玩家资料数据为空');
+            }
 
-            console.log('玩家资料加载成功:', this.player.nickname);
+            this.loginTime = Date.now();
+            console.log('玩家资料加载成功:', this.player.nickname, '等级:', this.player.level);
+            
             this.updatePlayerUI();
 
         } catch (error) {
             console.error('加载玩家资料失败:', error);
+            this.showToast('加载玩家资料失败: ' + error.message, 'error');
             throw error;
         }
     }
 
-    // 登录 - 修复认证流程
+    // 登录 - 必须从后端认证，不允许降级
     async login() {
         if (this.isLoading) return;
 
@@ -144,30 +154,33 @@ class AuthManager {
 
             const response = await gameAPI.login(username, password);
 
-            if (!response.success) {
-                throw new Error(response.message || '登录失败');
+            if (!response || !response.success) {
+                throw new Error(response?.message || '登录失败，请检查用户名和密码');
             }
 
-            if (!response.data) {
-                throw new Error('登录响应数据为空');
+            if (!response.data || !response.data.token) {
+                throw new Error('登录响应数据异常，缺少token');
             }
 
             // 设置认证状态
-            this.isAuthenticated = true;
+            this.token = response.data.token;
             this.currentUser = response.data.user;
             this.player = response.data.player;
+            this.isAuthenticated = true;
             this.loginTime = Date.now();
-            this.token = response.data.token;
 
-            // 保存token到localStorage
+            // 保存token到localStorage和API实例
             if (window.api) {
                 window.api.setToken(this.token);
             }
 
+            console.log('登录成功，用户:', username, '玩家:', this.player?.nickname);
             this.showToast('登录成功', 'success');
-            console.log('登录成功，用户:', username);
 
-            window.location.href = '/cultivate.html';
+            // 跳转到修炼页面
+            setTimeout(() => {
+                window.location.href = '/cultivate.html';
+            }, 500);
 
         } catch (error) {
             console.error('登录错误:', error);
@@ -179,7 +192,7 @@ class AuthManager {
         }
     }
 
-    // 注册
+    // 注册 - 必须从后端注册，不允许降级
     async register() {
         if (this.isLoading) return;
 
@@ -192,6 +205,11 @@ class AuthManager {
         // 验证输入
         if (!username || !nickname || !email || !password || !confirmPassword) {
             this.showToast('请填写所有字段', 'warning');
+            return;
+        }
+
+        if (username.length < 3) {
+            this.showToast('用户名长度至少3位', 'warning');
             return;
         }
 
@@ -214,6 +232,8 @@ class AuthManager {
         this.showLoading(true);
 
         try {
+            console.log('开始注册:', username);
+
             const response = await gameAPI.register({
                 username,
                 nickname,
@@ -221,12 +241,32 @@ class AuthManager {
                 password
             });
 
-            if (!response.success) {
-                throw new Error(response.message || '注册失败');
+            if (!response || !response.success) {
+                throw new Error(response?.message || '注册失败，请检查网络连接');
             }
 
-            this.showToast('注册成功，请登录', 'success');
-            this.showLoginForm();
+            console.log('注册成功:', username);
+            this.showToast('注册成功！正在自动登录...', 'success');
+            
+            // 注册成功后自动登录
+            if (response.data && response.data.token) {
+                this.token = response.data.token;
+                this.currentUser = response.data.user;
+                this.player = response.data.player;
+                this.isAuthenticated = true;
+                this.loginTime = Date.now();
+
+                if (window.api) {
+                    window.api.setToken(this.token);
+                }
+
+                setTimeout(() => {
+                    window.location.href = '/cultivate.html';
+                }, 1000);
+            } else {
+                // 如果没有返回token，切换到登录表单
+                this.showLoginForm();
+            }
 
         } catch (error) {
             console.error('注册错误:', error);
@@ -458,11 +498,12 @@ class AuthManager {
         }
     }
 
-    // 加载游戏数据
+    // 加载游戏数据 - 必须从后端加载，不允许降级
     async loadGameData() {
         if (!this.isAuthenticated) {
             console.warn('用户未认证，无法加载游戏数据');
             this.showToast('请先登录', 'warning');
+            this.showLoginPage();
             return;
         }
 
@@ -471,20 +512,27 @@ class AuthManager {
         try {
             console.log('开始加载游戏数据');
             
-            // 加载玩家资料数据
+            // 加载玩家资料数据 - 必须成功
             const profileResponse = await gameAPI.getCurrentPlayerProfile();
-            if (profileResponse && profileResponse.success) {
-                console.log('玩家资料加载成功');
-                this.player = profileResponse.data;
-                this.updatePlayerUI();
+            if (!profileResponse || !profileResponse.success) {
+                throw new Error(profileResponse?.message || '加载玩家资料失败');
             }
 
+            this.player = profileResponse.data;
+            if (!this.player) {
+                throw new Error('玩家资料数据为空');
+            }
+
+            console.log('玩家资料加载成功:', this.player.nickname);
+            this.updatePlayerUI();
             this.showToast('游戏数据加载完成', 'success');
-            console.log('游戏数据加载完成');
 
         } catch (error) {
             console.error('加载游戏数据失败:', error);
             this.showToast('加载游戏数据失败: ' + error.message, 'error');
+            // 加载失败时清除认证状态并返回登录页
+            this.clearAuthData();
+            this.showLoginPage();
         } finally {
             this.showLoading(false);
         }

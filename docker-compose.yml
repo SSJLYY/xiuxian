@@ -9,7 +9,7 @@ services:
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://47.103.87.55:3306/xiuxian_game?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=1qaz@WSX
+      - SPRING_DATASOURCE_PASSWORD=vA8!zLd2#pFqR6$sXkNg9@bYwTmC3*eH
       - JAVA_OPTS=-Xms512m -Xmx1024m
     restart: unless-stopped
     healthcheck:

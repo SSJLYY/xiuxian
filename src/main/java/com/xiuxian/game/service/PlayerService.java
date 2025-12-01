@@ -90,17 +90,12 @@ public class PlayerService {
                     .isCultivating(false)
                     .lastOnlineTime(LocalDateTime.now())
                     .totalCultivationTime(0L)
-                    // 装备和技能加成（初始为0）
+                    // 装备加成（初始为0）
                     .equipmentAttackBonus(0)
                     .equipmentDefenseBonus(0)
                     .equipmentHealthBonus(0)
                     .equipmentManaBonus(0)
                     .equipmentSpeedBonus(0)
-                    .skillAttackBonus(0)
-                    .skillDefenseBonus(0)
-                    .skillHealthBonus(0)
-                    .skillManaBonus(0)
-                    .skillSpeedBonus(0)
                     .build();
 
             // 2. 保存到数据库

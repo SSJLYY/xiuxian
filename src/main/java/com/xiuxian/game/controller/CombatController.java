@@ -84,6 +84,43 @@ public class CombatController {
         }
     }
 
+    /**
+     * 批量战斗 - 一次执行多次战斗并返回汇总结果
+     */
+    @PostMapping("/batch/{times}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> batchCombat(@PathVariable Integer times, @RequestBody Map<String, Object> request) {
+        try {
+            // 限制最大战斗次数
+            int maxTimes = Math.min(times, 100);
+            
+            Integer playerId = playerService.getCurrentPlayerId();
+            Integer playerLevel = playerService.getCurrentPlayerProfile().getLevel();
+            
+            // 获取地图ID（如果提供）
+            Integer mapId = null;
+            if (request != null && request.containsKey("mapId")) {
+                Object mapIdObj = request.get("mapId");
+                if (mapIdObj instanceof Number) {
+                    mapId = ((Number) mapIdObj).intValue();
+                } else if (mapIdObj instanceof String) {
+                    try {
+                        mapId = Integer.parseInt((String) mapIdObj);
+                    } catch (NumberFormatException e) {
+                        // 忽略无效的mapId
+                    }
+                }
+            }
+            
+            // 执行批量战斗
+            Map<String, Object> result = combatService.batchCombat(playerId, playerLevel, mapId, maxTimes);
+            return ResponseEntity.ok(ApiResponse.success("批量战斗完成", result));
+        } catch (Exception e) {
+            log.error("批量战斗失败 - 玩家ID: {}, 次数: {}", playerService.getCurrentPlayerId(), times, e);
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
     @GetMapping("/history")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<CombatLog>>> getCombatHistory(@RequestParam(defaultValue = "10") Integer limit) {

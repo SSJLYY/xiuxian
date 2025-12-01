@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>装备系统 - 修仙挂机</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- 配置Tailwind自定义颜色和字体 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#8B4513',
+                        secondary: '#2F4F4F',
+                        accent: '#CD5C5C',
+                        light: '#F5F5DC',
+                        dark: '#2C3E50',
+                    },
+                    fontFamily: {
+                        ancient: ['"Ma Shan Zheng"', '"Noto Serif SC"', 'serif'],
+                    }
+                },
+            }
+        }
+    </script>
+    
+    <!-- 引入中文字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* 水墨画风格样式 */
+        body {
+            background-color: #F5F5DC;
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%238b4513' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
+            font-family: 'Noto Serif SC', serif;
+            color: #2C3E50;
+        }
+
+        .paper-bg {
+            background-color: rgba(245, 245, 220, 0.95);
+            border: 2px solid #8B4513;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), inset 0 0 20px rgba(139, 69, 19, 0.05);
+        }
+
+        .ink-text {
+            color: #2C3E50;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .accent-border {
+            border: 2px solid #CD5C5C;
+        }
+
+        .quality-1 { border-color: #9E9E9E !important; }
+        .quality-2 { border-color: #4CAF50 !important; }
+        .quality-3 { border-color: #2196F3 !important; }
+        .quality-4 { border-color: #9C27B0 !important; }
+        .quality-5 { border-color: #FF9800 !important; }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(245, 245, 220, 0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #8B4513;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #CD5C5C;
+        }
+    </style>
+</head>
+<body>
+    <div class="equipment-container">
+        <div class="header">
+            <h1><i class="fas fa-shield-alt"></i> 装备系统</h1>
+            <button class="btn btn-secondary" onclick="window.location.href='cultivate.html'">
+                <i class="fas fa-arrow-left"></i> 返回主页
+            </button>
+        </div>
+
+        <div class="equipment-grid">
+            <!-- 左侧：装备槽位 -->
+            <div class="equipment-slots">
+                <h2><i class="fas fa-user"></i> 当前装备</h2>
+                <div id="equipmentSlots">
+                    <div class="equipment-slot" data-slot="weapon">
+                        <div class="slot-name"><i class="fas fa-sword"></i> 武器</div>
+                        <div class="slot-content">未装备</div>
+                    </div>
+                    <div class="equipment-slot" data-slot="helmet">
+                        <div class="slot-name"><i class="fas fa-hat-wizard"></i> 头盔</div>
+                        <div class="slot-content">未装备</div>
+                    </div>
+                    <div class="equipment-slot" data-slot="chest">
+                        <div class="slot-name"><i class="fas fa-vest"></i> 胸甲</div>
+                        <div class="slot-content">未装备</div>
+                    </div>
+                    <div class="equipment-slot" data-slot="boots">
+                        <div class="slot-name"><i class="fas fa-shoe-prints"></i> 靴子</div>
+                        <div class="slot-content">未装备</div>
+                    </div>
+                    <div class="equipment-slot" data-slot="shield">
+                        <div class="slot-name"><i class="fas fa-shield"></i> 盾牌</div>
+                        <div class="slot-content">未装备</div>
+                    </div>
+                    <div class="equipment-slot" data-slot="ring">
+                        <div class="slot-name"><i class="fas fa-ring"></i> 戒指</div>
+                        <div class="slot-content">未装备</div>
+                    </div>
+                </div>
+
+                <div class="stats-summary" style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+                    <h3>装备加成</h3>
+                    <div id="equipmentBonus">
+                        <div>攻击: <span id="bonusAttack">0</span></div>
+                        <div>防御: <span id="bonusDefense">0</span></div>
+                        <div>生命: <span id="bonusHealth">0</span></div>
+                        <div>法力: <span id="bonusMana">0</span></div>
+                        <div>速度: <span id="bonusSpeed">0</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：装备背包 -->
+            <div class="equipment-inventory">
+                <h2><i class="fas fa-backpack"></i> 装备背包</h2>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="loadEquipment()">
+                        <i class="fas fa-sync"></i> 刷新
+                    </button>
+                    <button class="btn btn-info" onclick="showShop()">
+                        <i class="fas fa-store"></i> 装备商店
+                    </button>
+                </div>
+                <div id="equipmentList" class="equipment-list">
+                    <!-- 装备列表将在这里动态加载 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 强化区域 -->
+        <div class="enhance-section" id="enhanceSection" style="display: none;">
+            <h2><i class="fas fa-hammer"></i> 装备强化</h2>
+            <div id="enhanceContent">
+                <!-- 强化内容将在这里动态加载 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 装备详情模态框 -->
+    <div id="equipmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">装备详情</h2>
+                <span class="modal-close" onclick="closeModal()">&times;</span>
+            </div>
+            <div id="modalBody">
+                <!-- 装备详情内容 -->
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        let currentEquipment = [];
+        let equippedItems = [];
+        let selectedEquipment = null;
+
+        // 页面加载时初始化
+        window.addEventListener('DOMContentLoaded', async () => {
+            if (!window.authManager) {
+                window.authManager = new AuthManager();
+            }
+            
+            const isAuth = await window.authManager.checkAuthStatus();
+            if (!isAuth) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            await loadEquipment();
+            await loadEquippedItems();
+        });
+
+        // 加载装备列表
+        async function loadEquipment() {
+            try {
+                const response = await gameAPI.getEquipment();
+                if (!response.success) {
+                    throw new Error(response.message || '获取装备失败');
+                }
+
+                currentEquipment = response.data || [];
+                renderEquipmentList();
+            } catch (error) {
+                console.error('加载装备失败:', error);
+                showToast('加载装备失败: ' + error.message, 'error');
+            }
+        }
+
+        // 加载已装备物品
+        async function loadEquippedItems() {
+            try {
+                const response = await gameAPI.getEquipment();
+                if (!response.success) {
+                    throw new Error(response.message || '获取装备失败');
+                }
+
+                equippedItems = (response.data || []).filter(item => item.equipped);
+                renderEquippedSlots();
+                updateBonusStats();
+            } catch (error) {
+                console.error('加载已装备物品失败:', error);
+            }
+        }
+
+        // 渲染装备列表
+        function renderEquipmentList() {
+            const container = document.getElementById('equipmentList');
+            if (!container) return;
+
+            if (currentEquipment.length === 0) {
+                container.innerHTML = '<div class="empty">暂无装备</div>';
+                return;
+            }
+
+            container.innerHTML = currentEquipment.map(item => `
+                <div class="equipment-item quality-${item.quality || 1}" onclick="showEquipmentDetail(${item.id})">
+                    <div class="equipment-name">${item.name || '未知装备'}</div>
+                    <div class="equipment-type">${item.type || '未知类型'}</div>
+                    ${item.enhanceLevel > 0 ? `<div class="enhance-level">+${item.enhanceLevel}</div>` : ''}
+                    <div class="equipment-stats">
+                        ${item.attackBonus > 0 ? `<div>攻击: +${item.attackBonus}</div>` : ''}
+                        ${item.defenseBonus > 0 ? `<div>防御: +${item.defenseBonus}</div>` : ''}
+                        ${item.healthBonus > 0 ? `<div>生命: +${item.healthBonus}</div>` : ''}
+                        ${item.manaBonus > 0 ? `<div>法力: +${item.manaBonus}</div>` : ''}
+                        ${item.speedBonus > 0 ? `<div>速度: +${item.speedBonus}</div>` : ''}
+                    </div>
+                    <div class="btn-group" style="margin-top: 10px;">
+                        ${item.equipped ? 
+                            `<button class="btn btn-warning btn-sm" onclick="event.stopPropagation(); unequipItem(${item.id})">卸下</button>` :
+                            `<button class="btn btn-success btn-sm" onclick="event.stopPropagation(); equipItem(${item.id}, '${item.slot || item.type}')">装备</button>`
+                        }
+                        <button class="btn btn-info btn-sm" onclick="event.stopPropagation(); showEnhance(${item.id})">强化</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 渲染装备槽位
+        function renderEquippedSlots() {
+            const slots = document.querySelectorAll('.equipment-slot');
+            slots.forEach(slot => {
+                const slotType = slot.dataset.slot;
+                const equipped = equippedItems.find(item => item.slot === slotType);
+                
+                const contentDiv = slot.querySelector('.slot-content');
+                if (equipped) {
+                    slot.classList.add('equipped');
+                    contentDiv.innerHTML = `
+                        <div>${equipped.name}</div>
+                        <div class="equipment-stats">
+                            ${equipped.attackBonus > 0 ? `<div>攻击: +${equipped.attackBonus}</div>` : ''}
+                            ${equipped.defenseBonus > 0 ? `<div>防御: +${equipped.defenseBonus}</div>` : ''}
+                        </div>
+                    `;
+                } else {
+                    slot.classList.remove('equipped');
+                    contentDiv.textContent = '未装备';
+                }
+            });
+        }
+
+        // 更新加成统计
+        function updateBonusStats() {
+            let totalAttack = 0, totalDefense = 0, totalHealth = 0, totalMana = 0, totalSpeed = 0;
+            
+            equippedItems.forEach(item => {
+                totalAttack += item.attackBonus || 0;
+                totalDefense += item.defenseBonus || 0;
+                totalHealth += item.healthBonus || 0;
+                totalMana += item.manaBonus || 0;
+                totalSpeed += item.speedBonus || 0;
+            });
+
+            document.getElementById('bonusAttack').textContent = totalAttack;
+            document.getElementById('bonusDefense').textContent = totalDefense;
+            document.getElementById('bonusHealth').textContent = totalHealth;
+            document.getElementById('bonusMana').textContent = totalMana;
+            document.getElementById('bonusSpeed').textContent = totalSpeed;
+        }
+
+        // 装备物品
+        async function equipItem(playerEquipmentId, slot) {
+            try {
+                const response = await gameAPI.equipEquipment(playerEquipmentId, slot);
+                if (!response.success) {
+                    throw new Error(response.message || '装备失败');
+                }
+
+                showToast('装备成功', 'success');
+                await loadEquipment();
+                await loadEquippedItems();
+                
+                if (window.authManager && window.authManager.loadPlayerProfile) {
+                    await window.authManager.loadPlayerProfile();
+                }
+            } catch (error) {
+                console.error('装备失败:', error);
+                showToast('装备失败: ' + error.message, 'error');
+            }
+        }
+
+        // 卸下装备
+        async function unequipItem(playerEquipmentId) {
+            try {
+                const response = await gameAPI.unequipEquipment(playerEquipmentId);
+                if (!response.success) {
+                    throw new Error(response.message || '卸下失败');
+                }
+
+                showToast('卸下成功', 'success');
+                await loadEquipment();
+                await loadEquippedItems();
+                
+                if (window.authManager && window.authManager.loadPlayerProfile) {
+                    await window.authManager.loadPlayerProfile();
+                }
+            } catch (error) {
+                console.error('卸下失败:', error);
+                showToast('卸下失败: ' + error.message, 'error');
+            }
+        }
+
+        // 显示强化界面
+        async function showEnhance(playerEquipmentId) {
+            try {
+                const response = await gameAPI.getEnhanceInfo(playerEquipmentId);
+                if (!response.success) {
+                    throw new Error(response.message || '获取强化信息失败');
+                }
+
+                const info = response.data;
+                const equipment = currentEquipment.find(e => e.id === playerEquipmentId);
+                
+                const enhanceSection = document.getElementById('enhanceSection');
+                const enhanceContent = document.getElementById('enhanceContent');
+                
+                enhanceContent.innerHTML = `
+                    <h3>${equipment.name} 强化</h3>
+                    <div class="enhance-info">
+                        <div class="enhance-info-item">
+                            <div>当前等级</div>
+                            <div style="font-size: 24px; font-weight: bold;">+${info.currentLevel}</div>
+                        </div>
+                        <div class="enhance-info-item">
+                            <div>成功率</div>
+                            <div style="font-size: 24px; font-weight: bold; color: ${info.successRate >= 70 ? '#4CAF50' : info.successRate >= 50 ? '#FF9800' : '#F44336'};">${info.successRate}%</div>
+                        </div>
+                        <div class="enhance-info-item">
+                            <div>所需灵石</div>
+                            <div style="font-size: 24px; font-weight: bold;">${info.cost}</div>
+                        </div>
+                        <div class="enhance-info-item">
+                            <div>最大等级</div>
+                            <div style="font-size: 24px; font-weight: bold;">${info.maxLevel}</div>
+                        </div>
+                    </div>
+                    <div class="enhance-progress">
+                        <div class="enhance-progress-bar" style="width: ${(info.currentLevel / info.maxLevel) * 100}%"></div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-primary" onclick="enhanceEquipment(${playerEquipmentId})" ${!info.canEnhance ? 'disabled' : ''}>
+                            <i class="fas fa-hammer"></i> 强化
+                        </button>
+                        <button class="btn btn-secondary" onclick="document.getElementById('enhanceSection').style.display='none'">
+                            <i class="fas fa-times"></i> 取消
+                        </button>
+                    </div>
+                `;
+                
+                enhanceSection.style.display = 'block';
+                enhanceSection.scrollIntoView({ behavior: 'smooth' });
+            } catch (error) {
+                console.error('获取强化信息失败:', error);
+                showToast('获取强化信息失败: ' + error.message, 'error');
+            }
+        }
+
+        // 强化装备
+        async function enhanceEquipment(playerEquipmentId) {
+            try {
+                const response = await gameAPI.enhanceEquipment(playerEquipmentId);
+                if (!response.success) {
+                    throw new Error(response.message || '强化失败');
+                }
+
+                showToast('强化成功！', 'success');
+                await loadEquipment();
+                await loadEquippedItems();
+                document.getElementById('enhanceSection').style.display = 'none';
+                
+                if (window.authManager && window.authManager.loadPlayerProfile) {
+                    await window.authManager.loadPlayerProfile();
+                }
+            } catch (error) {
+                console.error('强化失败:', error);
+                showToast(error.message, 'error');
+                await showEnhance(playerEquipmentId); // 刷新强化信息
+            }
+        }
+
+        // 显示装备详情
+        function showEquipmentDetail(equipmentId) {
+            const equipment = currentEquipment.find(e => e.id === equipmentId);
+            if (!equipment) return;
+
+            const modal = document.getElementById('equipmentModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
+
+            modalTitle.textContent = equipment.name;
+            modalBody.innerHTML = `
+                <div class="equipment-detail">
+                    <p><strong>类型:</strong> ${equipment.type}</p>
+                    <p><strong>品质:</strong> ${getQualityName(equipment.quality)}</p>
+                    <p><strong>等级:</strong> ${equipment.level}</p>
+                    ${equipment.enhanceLevel > 0 ? `<p><strong>强化:</strong> +${equipment.enhanceLevel}</p>` : ''}
+                    <p><strong>描述:</strong> ${equipment.description || '无'}</p>
+                    <hr>
+                    <h3>属性加成</h3>
+                    ${equipment.attackBonus > 0 ? `<p>攻击: +${equipment.attackBonus}</p>` : ''}
+                    ${equipment.defenseBonus > 0 ? `<p>防御: +${equipment.defenseBonus}</p>` : ''}
+                    ${equipment.healthBonus > 0 ? `<p>生命: +${equipment.healthBonus}</p>` : ''}
+                    ${equipment.manaBonus > 0 ? `<p>法力: +${equipment.manaBonus}</p>` : ''}
+                    ${equipment.speedBonus > 0 ? `<p>速度: +${equipment.speedBonus}</p>` : ''}
+                </div>
+            `;
+
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('equipmentModal').classList.remove('active');
+        }
+
+        function getQualityName(quality) {
+            const names = ['', '普通', '精良', '稀有', '史诗', '传说'];
+            return names[quality] || '未知';
+        }
+
+        function showShop() {
+            window.location.href = 'cultivate.html#shop';
+        }
+
+        function showToast(message, type = 'info') {
+            // 简单的提示实现
+            alert(message);
+        }
+    </script>
+</body>
+</html>

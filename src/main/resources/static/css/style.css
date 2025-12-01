@@ -363,7 +363,7 @@ body {
     color: #CD5C5C;
 }
 
-/* 属性显示 */
+/* 属性显示 - 水墨画风格 */
 .attributes {
     display: flex;
     flex-direction: column;
@@ -378,7 +378,7 @@ body {
 
 .attribute span:first-child {
     font-weight: 500;
-    color: #4a5568;
+    color: #2C3E50;  /* 墨黑色 */
     font-size: 14px;
 }
 
@@ -391,15 +391,16 @@ body {
 .progress-bar {
     flex: 1;
     height: 10px;
-    background: #e2e8f0;
+    background: rgba(139, 69, 19, 0.1);  /* 淡棕色背景 */
     border-radius: 5px;
     overflow: hidden;
     position: relative;
+    border: 1px solid rgba(139, 69, 19, 0.2);  /* 棕色边框 */
 }
 
 .progress {
     height: 100%;
-    background: linear-gradient(90deg, #8B4513, #CD5C5C);
+    background: linear-gradient(90deg, #8B4513, #CD5C5C);  /* 棕色到红色渐变 */
     border-radius: 5px;
     transition: width 0.3s ease;
     position: relative;
@@ -419,12 +420,12 @@ body {
 
 .progress-text {
     font-size: 12px;
-    color: #718096;
+    color: #2C3E50;  /* 墨黑色 */
     min-width: 60px;
     text-align: right;
 }
 
-/* 修炼区域 */
+/* 修炼区域 - 水墨画风格 */
 .cultivation-area {
     text-align: center;
     height: 100%;
@@ -433,56 +434,60 @@ body {
     justify-content: center;
     animation: pulse 2s infinite;
     min-height: 300px;
+    background: rgba(245, 245, 220, 0.3);  /* 淡米白色 */
+    border-radius: 15px;
+    padding: 20px;
 }
 
 .cultivation-area h3 {
-    color: #4a5568;
+    color: #8B4513;  /* 棕色 */
     margin-bottom: 20px;
     font-size: 20px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .cultivation-status {
     margin-bottom: 30px;
     padding: 20px;
-    background: #f7fafc;
+    background: rgba(139, 69, 19, 0.05);  /* 淡棕色背景 */
     border-radius: 10px;
-    border: 2px dashed #e2e8f0;
+    border: 2px dashed rgba(139, 69, 19, 0.3);  /* 棕色虚线边框 */
 }
 
 .cultivation-status p {
     font-size: 18px;
-    color: #718096;
+    color: #2C3E50;  /* 墨黑色 */
     margin-bottom: 15px;
 }
 
 .cultivation-log {
     flex: 1;
-    background: #f7fafc;
+    background: rgba(47, 79, 79, 0.05);  /* 淡墨绿色 */
     border-radius: 10px;
     padding: 15px;
     overflow-y: auto;
     max-height: 300px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid rgba(139, 69, 19, 0.2);  /* 棕色边框 */
 }
 
 .cultivation-log p {
     margin-bottom: 8px;
     font-size: 14px;
-    color: #4a5568;
+    color: #2C3E50;  /* 墨黑色 */
     padding: 5px;
     border-radius: 5px;
     transition: background-color 0.3s ease;
 }
 
 .cultivation-log p:hover {
-    background: #edf2f7;
+    background: rgba(139, 69, 19, 0.1);  /* 悬停时淡棕色 */
 }
 
 .cultivation-log p:nth-child(even) {
-    background: #fafafa;
+    background: rgba(245, 245, 220, 0.3);  /* 偶数行淡米白色 */
 }
 
-/* 技能和物品列表 */
+/* 技能和物品列表 - 水墨画风格 */
 .skills-list, .inventory-list, .quest-list {
     display: flex;
     flex-direction: column;
@@ -492,47 +497,47 @@ body {
 }
 
 .skill-item, .inventory-item, .quest-item {
-    background: #f7fafc;
+    background: rgba(245, 245, 220, 0.5);  /* 淡米白色 */
     padding: 12px;
     border-radius: 8px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid rgba(139, 69, 19, 0.2);  /* 棕色边框 */
     transition: all 0.3s ease;
     cursor: pointer;
 }
 
 .skill-item:hover, .inventory-item:hover, .quest-item:hover {
-    background: #edf2f7;
+    background: rgba(139, 69, 19, 0.1);  /* 悬停时淡棕色 */
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 5px 15px rgba(139, 69, 19, 0.2);  /* 棕色阴影 */
 }
 
 .skill-item.active, .inventory-item.active, .quest-item.active {
-    border-color: #8B4513;
-    background: rgba(139, 69, 19, 0.1);
+    border-color: #8B4513;  /* 棕色边框 */
+    background: rgba(139, 69, 19, 0.15);  /* 深棕色背景 */
 }
 
-/* 任务项样式 - 修复未定义问题 */
+/* 任务项样式 - 水墨画风格 */
 .quest-item {
     display: flex;
     flex-direction: column;
     gap: 12px;
     padding: 15px;
     border-radius: 8px;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
+    background: rgba(245, 245, 220, 0.5);  /* 淡米白色 */
+    border: 1px solid rgba(139, 69, 19, 0.2);  /* 棕色边框 */
     transition: all 0.3s ease;
 }
 
 .quest-item:hover {
-    background: #f1f5f9;
-    border-color: #cbd5e1;
+    background: rgba(139, 69, 19, 0.1);  /* 悬停时淡棕色 */
+    border-color: rgba(139, 69, 19, 0.4);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(139, 69, 19, 0.2);  /* 棕色阴影 */
 }
 
 .quest-item.completed {
-    background: #f0fff4;
-    border-color: #9ae6b4;
+    background: rgba(72, 187, 120, 0.1);  /* 淡绿色 */
+    border-color: rgba(72, 187, 120, 0.4);  /* 绿色边框 */
 }
 
 .quest-header {
@@ -1249,3 +1254,174 @@ body {
 .ink-spread {
     animation: inkSpread 2s ease-out infinite;
 }
+
+
+/* ========================================
+   强制水墨画风格覆盖
+   ======================================== */
+
+/* 确保所有内容区域都不是纯白色 */
+.content, .main-content, .game-content, 
+.battle-area, .combat-area, .fight-area {
+    background: rgba(245, 245, 220, 0.3) !important;  /* 淡米白色 */
+    border-radius: 10px;
+    padding: 15px;
+}
+
+/* 所有卡片和面板 */
+.card, .panel, .box, .section {
+    background: rgba(245, 245, 220, 0.5) !important;  /* 淡米白色 */
+    border: 1px solid rgba(139, 69, 19, 0.2) !important;  /* 棕色边框 */
+}
+
+/* 所有列表项 */
+.list-item, .item, .entry {
+    background: rgba(245, 245, 220, 0.4) !important;
+    border: 1px solid rgba(139, 69, 19, 0.15) !important;
+}
+
+/* 所有输入框和文本区域 */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+textarea,
+select {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 2px solid rgba(139, 69, 19, 0.3) !important;
+}
+
+/* 所有按钮保持渐变色 */
+button:not(.btn-primary):not(.btn-secondary):not(.btn-success) {
+    background: linear-gradient(135deg, #8B4513, #CD5C5C) !important;
+    color: white !important;
+    border: none !important;
+}
+
+/* 确保没有纯白色背景 */
+* {
+    /* 移除所有可能的纯白色背景 */
+}
+
+*[style*="background: white"],
+*[style*="background: #fff"],
+*[style*="background-color: white"],
+*[style*="background-color: #fff"] {
+    background: rgba(245, 245, 220, 0.5) !important;
+}
+
+/* 战斗日志和修炼日志特殊样式 */
+.log, .log-area, .log-container,
+.battle-log, .combat-log, .cultivation-log {
+    background: rgba(47, 79, 79, 0.05) !important;  /* 淡墨绿色 */
+    border: 1px solid rgba(139, 69, 19, 0.2) !important;
+    border-radius: 10px;
+    padding: 15px;
+}
+
+.log p, .log-area p, .log-container p,
+.battle-log p, .combat-log p {
+    color: #2C3E50 !important;  /* 墨黑色 */
+    background: transparent;
+}
+
+.log p:hover, .log-area p:hover, .log-container p:hover,
+.battle-log p:hover, .combat-log p:hover {
+    background: rgba(139, 69, 19, 0.1) !important;
+}
+
+/* 状态显示区域 */
+.status, .status-area, .status-display {
+    background: rgba(139, 69, 19, 0.05) !important;
+    border: 2px dashed rgba(139, 69, 19, 0.3) !important;
+    border-radius: 10px;
+    padding: 15px;
+}
+
+/* 信息面板 */
+.info, .info-panel, .info-box {
+    background: rgba(245, 245, 220, 0.4) !important;
+    border: 1px solid rgba(139, 69, 19, 0.2) !important;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+/* 确保所有白色背景都变成米白色 */
+.bg-white, .background-white {
+    background: rgba(245, 245, 220, 0.5) !important;
+}
+
+/* Tailwind的白色背景覆盖 */
+.bg-white {
+    background-color: rgba(245, 245, 220, 0.5) !important;
+}
+
+.bg-gray-50 {
+    background-color: rgba(245, 245, 220, 0.3) !important;
+}
+
+.bg-gray-100 {
+    background-color: rgba(245, 245, 220, 0.4) !important;
+}
+
+/* 确保游戏主区域使用水墨画风格 */
+#gamePage, #gameArea, #mainGame {
+    background: transparent !important;
+}
+
+/* 修炼按钮区域 */
+.cultivation-controls, .battle-controls {
+    background: rgba(245, 245, 220, 0.3) !important;
+    padding: 15px;
+    border-radius: 10px;
+    margin-top: 15px;
+}
+
+/* 统计信息显示 */
+.stats, .statistics, .stat-display {
+    background: rgba(139, 69, 19, 0.05) !important;
+    border: 1px solid rgba(139, 69, 19, 0.2) !important;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+/* 确保模态框也使用水墨画风格 */
+.modal, .dialog, .popup {
+    background: rgba(255, 255, 255, 0.98) !important;
+    border: 2px solid rgba(139, 69, 19, 0.3) !important;
+}
+
+/* 表格样式 */
+table {
+    background: rgba(245, 245, 220, 0.3) !important;
+}
+
+table th {
+    background: rgba(139, 69, 19, 0.1) !important;
+    color: #8B4513 !important;
+}
+
+table td {
+    background: rgba(245, 245, 220, 0.2) !important;
+    border: 1px solid rgba(139, 69, 19, 0.1) !important;
+}
+
+table tr:hover td {
+    background: rgba(139, 69, 19, 0.1) !important;
+}
+
+/* 确保所有容器都有正确的背景 */
+.container, .wrapper, .main {
+    background: transparent !important;
+}
+
+/* 调试：如果还有白色，添加红色边框便于识别 */
+/* 取消注释以下代码来调试白色区域 */
+/*
+*[style*="background: white"],
+*[style*="background: #fff"],
+*[style*="background-color: white"],
+*[style*="background-color: #fff"] {
+    border: 2px solid red !important;
+}
+*/

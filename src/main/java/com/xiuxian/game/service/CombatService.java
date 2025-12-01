@@ -51,9 +51,9 @@ public class CombatService {
         String monsterType;
         
         switch (mapId) {
-            case 1: // 新手村 - 简单地图
-                minLevel = Math.max(1, playerLevel - 3);
-                maxLevel = Math.max(1, playerLevel - 1);
+            case 1: // 新手村 - 简单地图（怪物等级低于玩家）
+                minLevel = Math.max(1, playerLevel - 5);
+                maxLevel = Math.max(1, playerLevel - 2);
                 break;
             case 2: // 野外 - 中等难度地图
                 minLevel = Math.max(1, playerLevel - 1);
@@ -68,13 +68,11 @@ public class CombatService {
         // 根据地图调整怪物类型概率
         int typeRoll = random.nextInt(100);
         if (mapId == 1) {
-            // 新手村：90%普通，8%精英，2%BOSS
-            if (typeRoll < 90) {
+            // 新手村：95%普通，5%精英，0%BOSS
+            if (typeRoll < 95) {
                 monsterType = "普通";
-            } else if (typeRoll < 98) {
-                monsterType = "精英";
             } else {
-                monsterType = "BOSS";
+                monsterType = "精英";
             }
         } else if (mapId == 2) {
             // 野外：70%普通，25%精英，5%BOSS
@@ -108,11 +106,46 @@ public class CombatService {
             }
         }
         
+        // 如果还是没有怪物，生成临时怪物
+        if (monster == null) {
+            int targetLevel = (minLevel + maxLevel) / 2;
+            monster = generateTemporaryMonster(targetLevel, monsterType);
+        }
+        
+        // 对于新手村，进一步降低怪物属性（70%）
+        if (mapId == 1) {
+            monster = weakenMonster(monster, 0.7);
+        }
+        
         return monster;
+    }
+    
+    /**
+     * 削弱怪物属性
+     */
+    private Monster weakenMonster(Monster monster, double factor) {
+        Monster weakened = Monster.builder()
+                .id(monster.getId())
+                .name(monster.getName())
+                .description(monster.getDescription())
+                .level(monster.getLevel())
+                .type(monster.getType())
+                .health((int)(monster.getHealth() * factor))
+                .attack((int)(monster.getAttack() * factor))
+                .defense((int)(monster.getDefense() * factor))
+                .speed(monster.getSpeed())
+                .expReward(monster.getExpReward())
+                .spiritStonesReward(monster.getSpiritStonesReward())
+                .dropRate(monster.getDropRate())
+                .dropEquipmentId(monster.getDropEquipmentId())
+                .createdAt(monster.getCreatedAt())
+                .updatedAt(monster.getUpdatedAt())
+                .build();
+        return weakened;
     }
 
     /**
-     * 生成临时怪物（当数据库没有对应怪物时）
+     * 生成临时怪物（当数据库没有对应怪物时）- 优化平衡性
      */
     private Monster generateTemporaryMonster(Integer level, String type) {
         String[] normalNames = {"野狼", "山贼", "妖怪", "邪修", "恶灵"};
@@ -123,18 +156,19 @@ public class CombatService {
                         type.equals("精英") ? eliteNames : normalNames;
         String name = names[random.nextInt(names.length)];
         
-        double typeMultiplier = type.equals("BOSS") ? 3.0 : 
-                               type.equals("精英") ? 1.5 : 1.0;
+        double typeMultiplier = type.equals("BOSS") ? 2.5 : 
+                               type.equals("精英") ? 1.3 : 0.8;
         
+        // 优化属性计算，降低怪物强度
         return Monster.builder()
                 .name(name)
                 .description("等级" + level + "的" + type + "怪物")
                 .level(level)
                 .type(type)
-                .health((int)(100 + level * 20 * typeMultiplier))
-                .attack((int)(10 + level * 3 * typeMultiplier))
-                .defense((int)(5 + level * 2 * typeMultiplier))
-                .speed(10 + level)
+                .health((int)(80 + level * 15 * typeMultiplier))
+                .attack((int)(8 + level * 2 * typeMultiplier))
+                .defense((int)(3 + level * 1 * typeMultiplier))
+                .speed(10 + level / 2)
                 .expReward((int)(50 + level * 10 * typeMultiplier))
                 .spiritStonesReward((int)(10 + level * 2 * typeMultiplier))
                 .dropRate(type.equals("BOSS") ? 50 : type.equals("精英") ? 20 : 10)
@@ -307,15 +341,16 @@ public class CombatService {
     }
 
     /**
-     * 计算伤害
+     * 计算伤害 - 优化后的平衡公式
      */
     private int calculateDamage(int attack, int defense, int attackerLevel, int defenderLevel) {
-        // 等级压制
-        double levelFactor = 1.0 + (attackerLevel - defenderLevel) * 0.05;
-        levelFactor = Math.max(0.5, Math.min(1.5, levelFactor));
+        // 等级压制（降低影响）
+        double levelFactor = 1.0 + (attackerLevel - defenderLevel) * 0.03;
+        levelFactor = Math.max(0.7, Math.min(1.3, levelFactor));
         
-        // 防御减伤
-        double damageReduction = defense / (defense + 100.0);
+        // 防御减伤（优化公式，降低防御影响）
+        // 新公式：减伤 = 防御 / (防御 + 200)，最大减伤50%
+        double damageReduction = Math.min(0.5, defense / (defense + 200.0));
         
         // 基础伤害
         int baseDamage = (int)(attack * levelFactor);
@@ -323,12 +358,15 @@ public class CombatService {
         // 应用防御
         int finalDamage = (int)(baseDamage * (1 - damageReduction));
         
-        // 随机波动 ±10%
-        int variance = (int)(finalDamage * 0.1);
-        finalDamage += random.nextInt(variance * 2 + 1) - variance;
+        // 随机波动 ±15%（增加随机性）
+        int variance = (int)(finalDamage * 0.15);
+        if (variance > 0) {
+            finalDamage += random.nextInt(variance * 2 + 1) - variance;
+        }
         
-        // 保证最小伤害
-        return Math.max(1, finalDamage);
+        // 保证最小伤害（至少造成攻击力的20%）
+        int minDamage = Math.max(1, attack / 5);
+        return Math.max(minDamage, finalDamage);
     }
 
     /**
@@ -379,5 +417,112 @@ public class CombatService {
      */
     public List<CombatLog> getCombatHistory(Integer playerId, Integer limit) {
         return combatLogMapper.selectRecentByPlayerId(playerId, limit != null ? limit : 10);
+    }
+    
+    /**
+     * 批量战斗 - 只战斗一次，但奖励翻倍（减少日志输出）
+     * @param playerId 玩家ID
+     * @param playerLevel 玩家等级
+     * @param mapId 地图ID
+     * @param times 战斗次数（奖励倍数）
+     * @return 战斗汇总结果
+     */
+    @Transactional
+    public Map<String, Object> batchCombat(Integer playerId, Integer playerLevel, Integer mapId, int times) {
+        log.info("========== 开始批量战斗 ==========");
+        log.info("玩家ID: {}, 战斗次数: {}, 地图ID: {}", playerId, times, mapId);
+        
+        PlayerProfile player = playerProfileMapper.selectById(playerId);
+        if (player == null) {
+            throw new IllegalArgumentException("玩家不存在");
+        }
+        
+        // 限制最大战斗次数
+        if (times > 100) {
+            times = 100;
+            log.warn("战斗次数超过上限，限制为100次");
+        }
+        
+        // 生成一个怪物
+        Monster monster = generateMonster(playerLevel, mapId);
+        log.info("生成怪物: {} (等级{}, 类型{})", monster.getName(), monster.getLevel(), monster.getType());
+        
+        // 执行一次战斗
+        Map<String, Object> singleResult = startCombat(playerId, monster);
+        String combatResult = (String) singleResult.get("result");
+        int rounds = (Integer) singleResult.get("rounds");
+        
+        // 计算倍数奖励
+        int baseExpGained = (Integer) singleResult.get("expGained");
+        int baseSpiritStonesGained = (Integer) singleResult.get("spiritStonesGained");
+        
+        // 如果战斗胜利，应用倍数奖励
+        int totalExpGained = 0;
+        int totalSpiritStonesGained = 0;
+        int wins = 0;
+        
+        if ("WIN".equals(combatResult)) {
+            // 胜利：应用完整倍数
+            wins = times;
+            totalExpGained = baseExpGained * times;
+            totalSpiritStonesGained = baseSpiritStonesGained * times;
+            
+            // 更新玩家数据（减去单次战斗已经加的，再加上总的）
+            player = playerProfileMapper.selectById(playerId);
+            player.setExp(player.getExp() - baseExpGained + totalExpGained);
+            player.setSpiritStones(player.getSpiritStones() - baseSpiritStonesGained + totalSpiritStonesGained);
+            
+            // 检查升级
+            int levelUps = 0;
+            while (player.getExp() >= player.getExpToNext() && levelUps < 100) {
+                player.setExp(player.getExp() - player.getExpToNext());
+                player.setLevel(player.getLevel() + 1);
+                player.setExpToNext((long)(player.getExpToNext() * 1.5));
+                
+                // 升级属性增长
+                player.setHealth(player.getHealth() + 10);
+                player.setMana(player.getMana() + 5);
+                player.setAttack(player.getAttack() + 2);
+                player.setDefense(player.getDefense() + 1);
+                player.setAttributePoints(player.getAttributePoints() + 5);
+                
+                levelUps++;
+            }
+            
+            if (levelUps > 0) {
+                log.info("玩家升级 {} 次，当前等级: {}", levelUps, player.getLevel());
+            }
+            
+            playerProfileMapper.updateById(player);
+            
+            log.info("批量战斗完成: 全胜 {}/{}, 获得经验: {}, 灵石: {}", wins, times, totalExpGained, totalSpiritStonesGained);
+        } else {
+            // 失败：不应用倍数
+            wins = 0;
+            totalExpGained = 0;
+            totalSpiritStonesGained = 0;
+            log.info("批量战斗完成: 全败 0/{}", times);
+        }
+        
+        // 返回汇总结果
+        Map<String, Object> resultMap = new HashMap<>();
+        resultMap.put("totalBattles", times);
+        resultMap.put("wins", wins);
+        resultMap.put("losses", times - wins);
+        resultMap.put("winRate", wins > 0 ? 1.0 : 0.0);
+        resultMap.put("totalExpGained", totalExpGained);
+        resultMap.put("totalSpiritStonesGained", totalSpiritStonesGained);
+        resultMap.put("averageRounds", (double) rounds);
+        resultMap.put("battleLog", singleResult.get("battleLog"));
+        resultMap.put("monsterName", monster.getName());
+        resultMap.put("monsterLevel", monster.getLevel());
+        resultMap.put("monsterType", monster.getType());
+        resultMap.put("playerLevel", player.getLevel());
+        resultMap.put("playerExp", player.getExp());
+        resultMap.put("playerSpiritStones", player.getSpiritStones());
+        
+        log.info("========== 批量战斗结束 ==========");
+        
+        return resultMap;
     }
 }

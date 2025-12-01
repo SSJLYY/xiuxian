@@ -65,18 +65,23 @@ public class Skill {
 
     // 新增：技能被动属性加成
     @TableField(value = "health_bonus")
+    @Builder.Default
     private Integer healthBonus = 0; // 生命值加成
 
     @TableField(value = "mana_bonus")
+    @Builder.Default
     private Integer manaBonus = 0; // 法力值加成
 
     @TableField(value = "attack_bonus")
+    @Builder.Default
     private Integer attackBonus = 0; // 攻击力加成
 
     @TableField(value = "defense_bonus")
+    @Builder.Default
     private Integer defenseBonus = 0; // 防御力加成
 
     @TableField(value = "speed_bonus")
+    @Builder.Default
     private Integer speedBonus = 0; // 速度加成
 
     @TableField(value = "active")

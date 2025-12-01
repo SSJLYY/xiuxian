@@ -169,7 +169,8 @@ class GameManager {
             items.forEach(it => {
                 const cell = document.createElement('div');
                 cell.className = 'inventory-cell';
-                cell.innerHTML = `Item ${it.itemId} x${it.quantity}`;
+                // 修复背包显示，使用物品的实际名称而不是"Item itemId"的格式
+                cell.innerHTML = `${it.itemName || '未知物品'} x${it.quantity}`;
                 grid.appendChild(cell);
             });
         } catch (e) { this.showToast('获取背包失败: '+e.message,'error'); throw e; }
