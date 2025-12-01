@@ -19,7 +19,7 @@ spring:
     url: jdbc:mysql://47.103.87.55:3306/xiuxian_game?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
-    password: "vA8!zLd2#pFqR6$sXkNg9@bYwTmC3*eH"
+    password: 'vA8!zLd2#pFqR6$sXkNg9@bYwTmC3*eH'
     
     # HikariCP数据库连接池配置
     hikari:
