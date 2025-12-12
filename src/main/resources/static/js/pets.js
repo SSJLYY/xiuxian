@@ -28,7 +28,7 @@ async function loadPlayerInfo() {
         const response = await apiRequest('/api/player/profile', 'GET');
         if (response.success) {
             const player = response.data;
-            document.getElementById('playerName').textContent = player.nickname || '修仙者';
+            document.getElementById('playerName').textContent = player.nickname || 'xiuxian者';
             document.getElementById('playerLevel').textContent = player.level || 1;
             document.getElementById('playerSpiritStones').textContent = player.spiritStones || 0;
         }

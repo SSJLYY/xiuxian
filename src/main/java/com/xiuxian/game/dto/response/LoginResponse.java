@@ -19,9 +19,10 @@ public class LoginResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class UserDto {
-        private Long id;
+        private Integer id;
         private String username;
         private String email;
+        private String role;
     }
 
     @Data
@@ -29,7 +30,7 @@ public class LoginResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class PlayerDto {
-        private Long id;
+        private Integer id;
         private String nickname;
         private Integer level;
         private String realm;

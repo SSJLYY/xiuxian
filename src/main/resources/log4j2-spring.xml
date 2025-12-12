@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
     Log4j2配置文件
-    修仙挂机游戏项目日志配置
+    xiuxian挂机游戏项目日志配置
     
     日志级别：TRACE < DEBUG < INFO < WARN < ERROR < FATAL
     

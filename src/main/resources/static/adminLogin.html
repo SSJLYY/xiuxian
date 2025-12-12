@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员登录 - xiuxian挂机游戏</title>
+    <!-- Font Awesome icons replaced with Unicode symbols for offline use -->
+    <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', 'SimHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 2px solid #4A5568;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+        }
+        
+        .admin-header {
+            color: #4A5568;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            margin-bottom: 30px;
+        }
+        
+        .admin-header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .admin-header .crown {
+            color: #E53E3E;
+            margin-right: 12px;
+            font-size: 36px;
+        }
+        
+        /* Unicode icons for offline use */
+        .icon-shield::before { content: "🛡️"; }
+        .icon-crown::before { content: "👑"; }
+        .icon-user::before { content: "👤"; }
+        .icon-key::before { content: "🔑"; }
+        .icon-eye::before { content: "👁️"; }
+        .icon-eye-slash::before { content: "🙈"; }
+        .icon-warning::before { content: "⚠️"; }
+        .icon-login::before { content: "🔐"; }
+        .icon-arrow-left::before { content: "←"; }
+        
+        .admin-header p {
+            font-size: 14px;
+            color: #4A5568;
+        }
+        
+        .security-notice {
+            background: rgba(229, 62, 62, 0.1);
+            border: 1px solid #E53E3E;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #E53E3E;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+            text-align: left;
+        }
+        
+        .form-group i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #4A5568;
+            font-size: 18px;
+            z-index: 2;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 15px 15px 15px 45px;
+            border: 2px solid #4A5568;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group input:focus {
+            border-color: #2D3748;
+            box-shadow: 0 0 0 3px rgba(74, 85, 104, 0.1);
+        }
+        
+        .form-group input::placeholder {
+            color: #a0aec0;
+        }
+        
+        .password-toggle {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #4A5568;
+            font-size: 18px;
+            z-index: 2;
+        }
+        
+        .password-toggle:hover {
+            color: #E53E3E;
+        }
+        
+        .form-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .remember-me {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .remember-me input {
+            margin-right: 8px;
+        }
+        
+        .forgot-password {
+            color: #E53E3E;
+            text-decoration: none;
+        }
+        
+        .forgot-password:hover {
+            text-decoration: underline;
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, #4A5568, #2D3748);
+            border: none;
+            color: white;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .login-btn:hover {
+            background: linear-gradient(45deg, #2D3748, #1A202C);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .back-link {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .back-link a {
+            color: #4A5568;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+        
+        .back-link a:hover {
+            color: #E53E3E;
+        }
+        
+        .version-info {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #718096;
+        }
+        
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .loading.show {
+            display: flex;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(74, 85, 104, 0.2);
+            border-top: 4px solid #4A5568;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            z-index: 10000;
+            max-width: 300px;
+            word-wrap: break-word;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .message.show {
+            transform: translateX(0);
+        }
+        
+        .message.success {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+        }
+        
+        .message.error {
+            background: linear-gradient(135deg, #f56565, #e53e3e);
+        }
+        
+        .message.info {
+            background: linear-gradient(135deg, #4299e1, #3182ce);
+        }
+        
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 30px 20px;
+                margin: 10px;
+            }
+            
+            .admin-header h1 {
+                font-size: 28px;
+            }
+            
+            .form-group input {
+                padding: 12px 12px 12px 40px;
+                font-size: 15px;
+            }
+            
+            .login-btn {
+                padding: 14px;
+                font-size: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <!-- 管理员标识 -->
+        <div class="admin-header">
+            <div style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; background: #4A5568; color: white; border-radius: 50%; margin-bottom: 16px; font-size: 24px;">
+                🛡️
+            </div>
+            <h1>
+                <span class="crown">👑</span>管理员登录
+            </h1>
+            <p>xiuxian挂机游戏 - 管理后台</p>
+        </div>
+
+        <!-- 安全提示 -->
+        <div class="security-notice">
+            <span style="margin-right: 8px;">⚠️</span>
+            仅限授权管理员访问，所有操作将被记录
+        </div>
+
+        <!-- 登录表单 -->
+        <form id="adminLoginForm" onsubmit="adminLogin(event)">
+            <div class="form-group">
+                <span style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); font-size: 18px; z-index: 2;">👤</span>
+                <input 
+                    type="text" 
+                    id="adminUsername" 
+                    placeholder="管理员用户名" 
+                    required
+                    autocomplete="username"
+                    style="padding-left: 45px;"
+                >
+            </div>
+            
+            <div class="form-group">
+                <span style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); font-size: 18px; z-index: 2;">🔑</span>
+                <input 
+                    type="password" 
+                    id="adminPassword" 
+                    placeholder="管理员密码" 
+                    required
+                    autocomplete="current-password"
+                    style="padding-left: 45px;"
+                >
+                <button 
+                    type="button" 
+                    class="password-toggle"
+                    onclick="togglePasswordVisibility('adminPassword', this)"
+                >
+                    <span>👁️</span>
+                </button>
+            </div>
+            
+            <!-- 记住登录状态 -->
+            <div class="form-options">
+                <label class="remember-me">
+                    <input type="checkbox" id="rememberMe">
+                    <span>记住登录状态</span>
+                </label>
+                <a href="#" class="forgot-password" onclick="showForgotPassword()">
+                    忘记密码？
+                </a>
+            </div>
+            
+            <button type="submit" class="login-btn">
+                <span>🔐</span>
+                <span>安全登录</span>
+            </button>
+        </form>
+
+        <!-- 返回普通登录 -->
+        <div class="back-link">
+            <a href="login.html">
+                <span style="margin-right: 4px;">←</span>
+                返回普通用户登录
+            </a>
+        </div>
+
+        <!-- 版本信息 -->
+        <div class="version-info">
+            <p>管理后台 v2.0 | 安全登录</p>
+        </div>
+    </div>
+
+    <!-- 加载动画 -->
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <span>验证中...</span>
+    </div>
+
+    <!-- 管理员专用脚本 -->
+    <script src="js/admin-api.js"></script>
+    <script src="js/admin-auth.js"></script>
+    <script>
+        // 切换密码可见性
+        function togglePasswordVisibility(inputId, button) {
+            const input = document.getElementById(inputId);
+            const icon = button.querySelector('span');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                icon.textContent = '👁️';
+            }
+        }
+        
+        // 显示忘记密码
+        function showForgotPassword() {
+            if (window.adminAuthManager) {
+                window.adminAuthManager.showToast('请联系系统管理员重置密码', 'info');
+            }
+        }
+    </script>
+</body>
+</html>

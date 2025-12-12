@@ -22,6 +22,16 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     /**
+     * 处理业务异常
+     */
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException ex) {
+        log.warn("业务异常: code={}, message={}", ex.getCode(), ex.getMessage());
+        return ResponseEntity.ok()
+                .body(ApiResponse.error(ex.getCode(), ex.getMessage()));
+    }
+
+    /**
      * 处理参数校验异常
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)

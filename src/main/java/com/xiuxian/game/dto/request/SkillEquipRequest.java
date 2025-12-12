@@ -9,7 +9,7 @@ import lombok.Data;
 public class SkillEquipRequest {
     @NotNull(message = "技能ID不能为空")
     @Min(value = 1, message = "技能ID必须大于0")
-    private Long playerSkillId;
+    private Integer playerSkillId;
 
     @NotNull(message = "槽位号不能为空")
     @Min(value = 1, message = "槽位号必须大于0")

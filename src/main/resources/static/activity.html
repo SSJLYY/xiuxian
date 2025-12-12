@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>活动系统 - xiuxian挂机游戏</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#8B4513',
+                        secondary: '#2F4F4F',
+                        accent: '#CD5C5C',
+                        light: '#F5F5DC',
+                        dark: '#2C3E50',
+                    },
+                    fontFamily: {
+                        ancient: ['"Ma Shan Zheng"', '"Noto Serif SC"', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .fa-calendar:before { content: "📅"; }
+        .fa-trophy:before { content: "🏆"; }
+        .fa-clock-o:before { content: "⏰"; }
+        .fa-flag-checkered:before { content: "🏁"; }
+        .countdown-timer {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <!-- 游戏主界面 -->
+    <div id="gamePage" class="container" style="display: flex; flex-direction: column;">
+        <!-- 顶部导航 -->
+        <header class="game-header">
+            <div class="player-info">
+                <h2><i class="fas fa-user-circle"></i> <span id="playerName">xiuxian者</span></h2>
+                <div class="player-stats">
+                    <span><i class="fas fa-star"></i> 等级: <span id="playerLevel">1</span></span>
+                    <span><i class="fas fa-gem"></i> 境界: <span id="playerRealm">练气期</span></span>
+                    <span><i class="fas fa-coins"></i> 灵石: <span id="playerSpiritStones">1000</span></span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="goBack()">
+                    <i class="fas fa-arrow-left"></i> 返回游戏
+                </button>
+            </div>
+        </header>
+
+        <!-- 主菜单导航 -->
+        <nav class="main-nav">
+            <ul class="nav-tabs">
+                <li class="nav-tab active" data-module="current">
+                    <button onclick="showTab('current')">
+                        <i class="fas fa-calendar"></i> 当前活动
+                    </button>
+                </li>
+                <li class="nav-tab" data-module="history">
+                    <button onclick="showTab('history')">
+                        <i class="fas fa-history"></i> 历史活动
+                    </button>
+                </li>
+                <li class="nav-tab" data-module="ranking">
+                    <button onclick="showTab('ranking')">
+                        <i class="fas fa-trophy"></i> 活动排行
+                    </button>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- 主内容区 -->
+        <main class="game-main">
+            <!-- 当前活动 -->
+            <div id="current-tab" class="tab-content active">
+                <div class="module-header">
+                    <h2><i class="fas fa-calendar"></i> 当前活动</h2>
+                    <p>参与正在进行的限时活动</p>
+                </div>
+                
+                <!-- 活动列表 -->
+                <div class="panel-section">
+                    <div id="activeActivitiesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- 活动将通过JavaScript动态加载 -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 历史活动 -->
+            <div id="history-tab" class="tab-content" style="display: none;">
+                <div class="module-header">
+                    <h2><i class="fas fa-history"></i> 历史活动</h2>
+                    <p>查看已结束的活动和获得的奖励</p>
+                </div>
+                
+                <!-- 历史活动列表 -->
+                <div class="panel-section">
+                    <div id="historyActivitiesContainer" class="grid grid-cols-1 gap-4">
+                        <!-- 历史活动将通过JavaScript动态加载 -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 活动排行 -->
+            <div id="ranking-tab" class="tab-content" style="display: none;">
+                <div class="module-header">
+                    <h2><i class="fas fa-trophy"></i> 活动排行</h2>
+                    <p>查看活动排行榜</p>
+                </div>
+                
+                <!-- 排行榜选择 -->
+                <div class="panel-section mb-4">
+                    <div class="flex items-center gap-4">
+                        <label for="activitySelect" class="font-medium">选择活动:</label>
+                        <select id="activitySelect" class="form-control" onchange="loadActivityRanking()">
+                            <!-- 活动选项将通过JavaScript动态加载 -->
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- 排行榜 -->
+                <div class="panel-section">
+                    <div id="rankingContainer" class="space-y-3">
+                        <!-- 排行榜将通过JavaScript动态加载 -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 活动详情模态框 -->
+    <div id="activityModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeActivityModal()">&times;</span>
+            <div id="activityModalBody">
+                <!-- 活动详情将通过JavaScript动态加载 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 消息提示 -->
+    <div id="toast" class="toast hidden">
+        <span id="toastMessage"></span>
+    </div>
+
+    <!-- 加载动画 -->
+    <div id="loading" class="loading hidden">
+        <div class="spinner"></div>
+        <span>加载中...</span>
+    </div>
+
+    <!-- 脚本 -->
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/activity.js"></script>
+    <script>
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPlayerData();
+            loadActiveActivities();
+        });
+        
+        // 返回游戏主界面
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>

@@ -12,9 +12,9 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ShopItemResponse {
-    private Long id;
-    private Long itemId;
-    private Long equipmentId;
+    private Integer id;
+    private Integer itemId;
+    private Integer equipmentId;
     private String itemName;
     private String itemDescription;
     private String itemType;

@@ -1,11 +1,13 @@
 package com.xiuxian.game.controller;
 
+import com.xiuxian.game.annotation.RateLimit;
 import com.xiuxian.game.dto.request.LoginRequest;
 import com.xiuxian.game.dto.request.RegisterRequest;
 import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.dto.response.LoginResponse;
 import com.xiuxian.game.entity.User;
 import com.xiuxian.game.service.AuthService;
+import com.xiuxian.game.service.PlayerLoginLogService;
 import com.xiuxian.game.util.LogUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,6 +54,11 @@ public class AuthController {
      * 认证服务
      */
     private final AuthService authService;
+    
+    /**
+     * 玩家登录日志服务
+     */
+    private final PlayerLoginLogService playerLoginLogService;
 
     /**
      * 用户注册
@@ -73,6 +80,7 @@ public class AuthController {
      * @return 注册响应，包含JWT Token和用户信息
      */
     @PostMapping("/register")
+    @RateLimit(keyType = RateLimit.KeyType.IP, maxRequests = 3, windowSeconds = 300, message = "注册过于频繁，请5分钟后再试")
     public ResponseEntity<ApiResponse<LoginResponse>> register(
             @Valid @RequestBody RegisterRequest request,
             HttpServletRequest httpRequest) {
@@ -126,6 +134,7 @@ public class AuthController {
      * @return 登录响应，包含JWT Token和用户信息
      */
     @PostMapping("/login")
+    @RateLimit(keyType = RateLimit.KeyType.IP, maxRequests = 5, windowSeconds = 60, message = "登录过于频繁，请1分钟后再试")
     public ResponseEntity<ApiResponse<LoginResponse>> login(
             @Valid @RequestBody LoginRequest request,
             HttpServletRequest httpRequest) {
@@ -139,6 +148,11 @@ public class AuthController {
             
             // 执行登录逻辑
             LoginResponse response = authService.login(request);
+            
+            // 记录玩家登录日志
+            if (response.getPlayer() != null && response.getPlayer().getId() != null) {
+                playerLoginLogService.recordLogin(response.getPlayer().getId(), httpRequest);
+            }
             
             // 记录登录成功日志
             LogUtils.logUserAction(request.getUsername(), "LOGIN", "用户登录成功");
@@ -230,17 +244,19 @@ public class AuthController {
      * @return Token验证结果
      */
     @GetMapping("/validate")
-    public ResponseEntity<ApiResponse<Boolean>> validateToken() {
+    public ResponseEntity<ApiResponse<User>> validateToken() {
         try {
             log.debug("验证Token有效性");
             
             // 如果能够执行到这里，说明token有效
             // 因为Spring Security已经验证过了
-            return ResponseEntity.ok(ApiResponse.success("Token有效", true));
+            // 返回当前用户信息
+            User currentUser = authService.getCurrentUser();
+            return ResponseEntity.ok(ApiResponse.success("Token有效", currentUser));
             
         } catch (Exception e) {
             log.warn("Token验证失败: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(ApiResponse.error("Token无效", false));
+            return ResponseEntity.badRequest().body(ApiResponse.error("Token无效"));
         }
     }
     

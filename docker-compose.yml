@@ -1,20 +1,119 @@
 version: '3.8'
 
 services:
+  mysql:
+    image: mysql:8.0
+    container_name: xiuxian-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123456
+      MYSQL_DATABASE: xiuxian_game
+      MYSQL_USER: xiuxian
+      MYSQL_PASSWORD: xiuxian123
+      TZ: Asia/Shanghai
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - mysql_logs:/var/log/mysql
+      - ./src/main/resources/init-database.sql:/docker-entrypoint-initdb.d/01-init-database.sql:ro
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+    ports:
+      - "3306:3306"
+    networks:
+      - xiuxian-network
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot123456"]
+      timeout: 20s
+      retries: 10
+      interval: 30s
+      start_period: 60s
+
   xiuxian-game:
     build: .
     container_name: xiuxian-game
-    ports:
-      - "8080:8080"
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://47.103.87.55:3306/xiuxian_game?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=vA8!zLd2#pFqR6$sXkNg9@bYwTmC3*eH
-      - JAVA_OPTS=-Xms512m -Xmx1024m
     restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      # 数据库配置
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/xiuxian_game?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root123456
+      
+      # 服务器配置
+      SERVER_PORT: 8081
+      SPRING_PROFILES_ACTIVE: prod
+      
+      # JVM配置
+      JAVA_OPTS: -Xms512m -Xmx1024m -XX:+UseG1GC -XX:MaxGCPauseMillis=200
+      
+      # 时区配置
+      TZ: Asia/Shanghai
+      
+      # 日志配置
+      LOGGING_LEVEL_COM_XIUXIAN_GAME: INFO
+      LOGGING_FILE_PATH: /app/logs
+      
+      # 安全配置
+      JWT_SECRET: xiuxian-game-jwt-secret-key-2024
+      JWT_EXPIRATION: 86400000
+      ADMIN_PASSWORD: SecureAdminPassword2024!
+      
+      # 缓存配置
+      SPRING_CACHE_TYPE: simple
+      
+      # 异步任务配置
+      SPRING_TASK_EXECUTION_POOL_CORE_SIZE: 5
+      SPRING_TASK_EXECUTION_POOL_MAX_SIZE: 20
+      
+    volumes:
+      - app_logs:/app/logs
+      - app_data:/app/data
+    ports:
+      - "8081:8081"
+    networks:
+      - xiuxian-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  # Redis缓存服务（可选）
+  redis:
+    image: redis:7-alpine
+    container_name: xiuxian-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass redis123456
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - xiuxian-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+
+volumes:
+  mysql_data:
+    driver: local
+  mysql_logs:
+    driver: local
+  app_logs:
+    driver: local
+  app_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  xiuxian-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

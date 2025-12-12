@@ -37,6 +37,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String username = tokenProvider.getUsernameFromToken(jwt);
                 log.debug("从token中提取的用户名: {}", username);
 
+                // 跳过管理员token，由AdminSecurityFilter处理
+                if (username != null && username.startsWith("admin_")) {
+                    log.debug("跳过管理员token，由AdminSecurityFilter处理: {}", username);
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     UserDetails userDetails = userDetailsService.loadUserByUsername(username);
                     log.debug("成功加载用户: {}", username);

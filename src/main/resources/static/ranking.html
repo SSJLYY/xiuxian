@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>排行榜 - xiuxian挂机游戏</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+    <link rel="stylesheet" href="css/style.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#8B4513',
+                        secondary: '#2F4F4F',
+                        accent: '#CD5C5C',
+                        light: '#F5F5DC',
+                        dark: '#2C3E50',
+                    },
+                    fontFamily: {
+                        ancient: ['"Ma Shan Zheng"', '"Noto Serif SC"', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="font-ancient">
+    <!-- 排行榜页面 -->
+    <div class="container mx-auto px-4 py-6">
+        <!-- 页面头部 -->
+        <header class="game-header mb-6">
+            <div class="flex justify-between items-center">
+                <h1 class="text-3xl font-bold text-primary">
+                    <i class="fa fa-trophy"></i> 排行榜
+                </h1>
+                <button class="btn btn-secondary" onclick="window.location.href='index.html'">
+                    <i class="fa fa-arrow-left"></i> 返回主页
+                </button>
+            </div>
+        </header>
+
+        <!-- 排行榜内容 -->
+        <div class="ranking-container">
+            <!-- 排行榜标签 -->
+            <div class="ranking-tabs mb-6">
+                <button class="ranking-tab-btn active" data-type="level" onclick="switchRankingTab('level')">
+                    <i class="fa fa-star"></i> 等级排行
+                </button>
+                <button class="ranking-tab-btn" data-type="power" onclick="switchRankingTab('power')">
+                    <i class="fa fa-bolt"></i> 战力排行
+                </button>
+                <button class="ranking-tab-btn" data-type="wealth" onclick="switchRankingTab('wealth')">
+                    <i class="fa fa-money"></i> 财富排行
+                </button>
+                <button class="ranking-tab-btn" data-type="pet" onclick="switchRankingTab('pet')">
+                    <i class="fa fa-paw"></i> 宠物排行
+                </button>
+            </div>
+
+            <!-- 我的排名 -->
+            <div class="my-rank-card mb-6">
+                <div class="flex justify-between items-center">
+                    <span class="text-lg font-semibold text-dark">我的排名:</span>
+                    <span id="myRankDisplay" class="text-2xl font-bold text-accent">加载中...</span>
+                </div>
+            </div>
+
+            <!-- 排行榜列表 -->
+            <div class="ranking-list-container">
+                <div id="rankingList" class="ranking-list">
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                        <p>加载排行榜数据...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 消息提示 -->
+    <div id="toast" class="toast hidden">
+        <span id="toastMessage"></span>
+    </div>
+
+    <!-- 加载动画 -->
+    <div id="loading" class="loading hidden">
+        <div class="spinner"></div>
+        <span>加载中...</span>
+    </div>
+
+    <!-- 加载脚本 -->
+    <script src="js/api.js"></script>
+    <script src="js/ranking.js"></script>
+</body>
+</html>

@@ -58,6 +58,14 @@ public class User {
     private String role = "USER";
 
     /**
+     * 用户状态，默认值为 ACTIVE
+     * 可选值：ACTIVE, BANNED, INACTIVE
+     */
+    @TableField(value = "status")
+    @Builder.Default
+    private String status = "ACTIVE";
+
+    /**
      * 是否需要修改密码标志
      * 首次登录或密码过期时需要修改
      */

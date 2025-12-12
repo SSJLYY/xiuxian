@@ -22,7 +22,7 @@ public class SkillShopItem {
     private Integer skillId;
 
     @TableField("price")
-    private Long price;
+    private Integer price;
 
     @TableField("required_level")
     private Integer requiredLevel;

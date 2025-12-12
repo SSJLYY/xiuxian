@@ -8,7 +8,7 @@ import lombok.Data;
 public class ShopBuyRequest {
     @NotNull(message = "商店物品ID不能为空")
     @Min(value = 1, message = "商店物品ID必须大于0")
-    private Long shopItemId;
+    private Integer shopItemId;
 
     @NotNull(message = "数量不能为空")
     @Min(value = 1, message = "数量必须大于0")

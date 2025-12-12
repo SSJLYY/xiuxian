@@ -1,19 +1,50 @@
-# 使用JRE基础镜像
+# 使用官方OpenJDK 8 JRE slim镜像作为基础镜像
 FROM openjdk:8-jre-slim
-WORKDIR /app
 
-# 设置时区
+# 设置维护者信息
+LABEL maintainer="xiuxian-game-team"
+LABEL version="1.1.0"
+LABEL description="xiuxian挂机游戏 - 完善与扩展版本"
+
+# 安装必要的工具
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置时区为上海
 ENV TZ=Asia/Shanghai
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# 复制本地构建的jar包
-COPY target/xiuxian-game.jar /app/xiuxian-game.jar
+# 创建应用目录和日志目录
+WORKDIR /app
+RUN mkdir -p /app/logs
 
-# 暴露端口
-EXPOSE 8080
+# 创建非root用户
+RUN groupadd -r xiuxian && useradd -r -g xiuxian xiuxian
+RUN chown -R xiuxian:xiuxian /app
 
-# 设置JVM参数
-ENV JAVA_OPTS="-Xms128m -Xmx256m -Djava.security.egd=file:/dev/./urandom"
+# 复制JAR文件到容器中
+COPY target/xiuxian-game-*.jar app.jar
+
+# 暴露端口8081
+EXPOSE 8081
+
+# 设置JVM参数和应用参数（增加内存以支持新功能）
+ENV JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+ENV SERVER_PORT=8081
+ENV SPRING_PROFILES_ACTIVE=prod
+
+# 切换到非root用户
+USER xiuxian
 
 # 启动应用
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/xiuxian-game.jar"]
+ENTRYPOINT exec java $JAVA_OPTS \
+  -Dserver.port=$SERVER_PORT \
+  -Dspring.profiles.active=$SPRING_PROFILES_ACTIVE \
+  -Dlogging.file.path=/app/logs \
+  -Djava.security.egd=file:/dev/./urandom \
+  -jar app.jar
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:$SERVER_PORT/actuator/health || exit 1

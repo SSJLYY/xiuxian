@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VIP系统 - xiuxian挂机游戏</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#8B4513',
+                        secondary: '#2F4F4F',
+                        accent: '#CD5C5C',
+                        light: '#F5F5DC',
+                        dark: '#2C3E50',
+                        gold: '#FFD700',
+                        silver: '#C0C0C0',
+                        bronze: '#CD7F32'
+                    },
+                    fontFamily: {
+                        ancient: ['"Ma Shan Zheng"', '"Noto Serif SC"', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .fa-crown:before { content: "👑"; }
+        .fa-gem:before { content: "💎"; }
+        .fa-gift:before { content: "🎁"; }
+        .fa-coins:before { content: "💰"; }
+        .fa-percentage:before { content: "%%*/"; }
+        .vip-gold { color: #FFD700; }
+        .vip-silver { color: #C0C0C0; }
+        .vip-bronze { color: #CD7F32; }
+        .vip-level-0 { background: linear-gradient(135deg, #f5f5f5, #e0e0e0); }
+        .vip-level-1 { background: linear-gradient(135deg, #CD7F32, #8B4513); }
+        .vip-level-2 { background: linear-gradient(135deg, #C0C0C0, #808080); }
+        .vip-level-3 { background: linear-gradient(135deg, #FFD700, #FFA500); }
+    </style>
+</head>
+<body>
+    <!-- 游戏主界面 -->
+    <div id="gamePage" class="container" style="display: flex; flex-direction: column;">
+        <!-- 顶部导航 -->
+        <header class="game-header">
+            <div class="player-info">
+                <h2><i class="fas fa-user-circle"></i> <span id="playerName">xiuxian者</span></h2>
+                <div class="player-stats">
+                    <span><i class="fas fa-star"></i> 等级: <span id="playerLevel">1</span></span>
+                    <span><i class="fas fa-gem"></i> 境界: <span id="playerRealm">练气期</span></span>
+                    <span><i class="fas fa-coins"></i> 灵石: <span id="playerSpiritStones">1000</span></span>
+                    <span><i class="fas fa-gem"></i> 元宝: <span id="playerYuanbao">0</span></span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="goBack()">
+                    <i class="fas fa-arrow-left"></i> 返回游戏
+                </button>
+            </div>
+        </header>
+
+        <!-- 主菜单导航 -->
+        <nav class="main-nav">
+            <ul class="nav-tabs">
+                <li class="nav-tab active" data-module="vip-info">
+                    <button onclick="showTab('vip-info')">
+                        <i class="fas fa-crown"></i> VIP信息
+                    </button>
+                </li>
+                <li class="nav-tab" data-module="recharge">
+                    <button onclick="showTab('recharge')">
+                        <i class="fas fa-coins"></i> 充值中心
+                    </button>
+                </li>
+                <li class="nav-tab" data-module="privileges">
+                    <button onclick="showTab('privileges')">
+                        <i class="fas fa-gem"></i> VIP特权
+                    </button>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- 主内容区 -->
+        <main class="game-main">
+            <!-- VIP信息 -->
+            <div id="vip-info-tab" class="tab-content active">
+                <div class="module-header">
+                    <h2><i class="fas fa-crown"></i> VIP信息</h2>
+                    <p>查看您的VIP等级和特权</p>
+                </div>
+                
+                <!-- VIP等级卡片 -->
+                <div class="panel-section mb-6">
+                    <div id="vipCard" class="vip-level-0 rounded-xl p-6 text-center shadow-lg">
+                        <div class="flex justify-center mb-4">
+                            <i class="fas fa-crown text-5xl"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-2">VIP <span id="currentVipLevel">0</span></h3>
+                        <p class="text-lg mb-4">当前等级</p>
+                        <div class="mb-4">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span>充值进度</span>
+                                <span id="rechargeProgressText">0 / 100</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-4">
+                                <div id="rechargeProgressBar" class="bg-blue-600 h-4 rounded-full" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <p class="text-sm">累计充值: <span id="totalRecharge">0</span> 灵石</p>
+                    </div>
+                </div>
+                
+                <!-- 每日奖励 -->
+                <div class="panel-section">
+                    <h3 class="text-xl font-bold mb-4"><i class="fas fa-gift"></i> 每日奖励</h3>
+                    <div class="flex flex-col items-center">
+                        <button id="dailyRewardBtn" class="btn btn-primary px-8 py-3 mb-4" onclick="claimDailyReward()">
+                            <i class="fas fa-gift"></i> 领取今日奖励
+                        </button>
+                        <p id="dailyRewardStatus" class="text-sm text-gray-600">每日可领取VIP专属奖励</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 充值中心 -->
+            <div id="recharge-tab" class="tab-content" style="display: none;">
+                <div class="module-header">
+                    <h2><i class="fas fa-coins"></i> 充值中心</h2>
+                    <p>选择充值档位，获得更多元宝和奖励</p>
+                </div>
+                
+                <!-- 首充奖励提示 -->
+                <div class="panel-section mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-gift text-yellow-500 text-xl"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-yellow-700">
+                                <strong>首充奖励：</strong> 首次充值可获得额外50%元宝奖励！
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 充值档位 -->
+                <div class="panel-section">
+                    <h3 class="text-xl font-bold mb-4"><i class="fas fa-percentage"></i> 充值档位</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- 档位1 -->
+                        <div class="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                            <div class="text-center mb-3">
+                                <h4 class="font-bold text-lg">初级档位</h4>
+                                <p class="text-2xl text-blue-600 font-bold">10元</p>
+                            </div>
+                            <ul class="text-sm mb-4 space-y-1">
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                                    <span>获得100元宝</span>
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                                    <span>VIP经验值+100</span>
+                                </li>
+                            </ul>
+                            <button class="btn btn-primary w-full" onclick="recharge(1000)">
+                                立即充值
+                            </button>
+                        </div>
+                        
+                        <!-- 档位2 -->
+                        <div class="border rounded-lg p-4 hover:shadow-md transition-shadow relative">
+                            <div class="absolute top-0 right-0 bg-red-500 text-white text-xs px-2 py-1 rounded-bl-lg">
+                                热门
+                            </div>
+                            <div class="text-center mb-3">
+                                <h4 class="font-bold text-lg">中级档位</h4>
+                                <p class="text-2xl text-blue-600 font-bold">50元</p>
+                            </div>
+                            <ul class="text-sm mb-4 space-y-1">
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                                    <span>获得500元宝</span>
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                                    <span>VIP经验值+500</span>
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                                    <span>额外赠送50元宝</span>
+                                </li>
+                            </ul>
+                            <button class="btn btn-primary w-full" onclick="recharge(5000)">
+                                立即充值
+                            </button>
+                        </div>
+                        
+                        <!-- 档位3 -->
+                        <div class="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                            <div class="text-center mb-3">
+                                <h4 class="font-bold text-lg">高级档位</h4>
+                                <p class="text-2xl text-blue-600 font-bold">100元</p>
+                            </div>
+                            <ul class="text-sm mb-4 space-y-1">
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                                    <span>获得1000元宝</span>
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                                    <span>VIP经验值+1000</span>
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                                    <span>额外赠送200元宝</span>
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                                    <span>VIP等级+1</span>
+                                </li>
+                            </ul>
+                            <button class="btn btn-primary w-full" onclick="recharge(10000)">
+                                立即充值
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 元宝说明 -->
+                <div class="panel-section mt-6">
+                    <h3 class="text-xl font-bold mb-4"><i class="fas fa-info-circle"></i> 元宝说明</h3>
+                    <ul class="list-disc pl-5 space-y-2 text-sm">
+                        <li>1元人民币 = 10元宝</li>
+                        <li>首次充值额外获得50%元宝奖励</li>
+                        <li>元宝可用于购买商城中的特殊物品</li>
+                        <li>元宝余额永久有效，不会清空</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- VIP特权 -->
+            <div id="privileges-tab" class="tab-content" style="display: none;">
+                <div class="module-header">
+                    <h2><i class="fas fa-gem"></i> VIP特权</h2>
+                    <p>查看各级VIP享有的特权</p>
+                </div>
+                
+                <!-- 特权说明 -->
+                <div class="panel-section mb-6">
+                    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-info-circle text-blue-500 text-xl"></i>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-blue-700">
+                                    VIP等级越高，享有的特权越多，游戏体验越好！
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="vipPrivilegesList">
+                        <!-- 特权列表将通过JavaScript动态加载 -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 消息提示 -->
+    <div id="toast" class="toast hidden">
+        <span id="toastMessage"></span>
+    </div>
+
+    <!-- 加载动画 -->
+    <div id="loading" class="loading hidden">
+        <div class="spinner"></div>
+        <span>加载中...</span>
+    </div>
+
+    <!-- 脚本 -->
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/vip.js"></script>
+    <script>
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPlayerData();
+            loadVipInfo();
+            loadVipLevels();
+        });
+        
+        // 返回游戏主界面
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>

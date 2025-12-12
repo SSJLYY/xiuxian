@@ -63,6 +63,15 @@ public class PlayerEquipment {
     @TableField(value = "updated_at")
     private LocalDateTime updatedAt;
 
+    // Getter and Setter methods for Lombok compatibility
+    public Boolean getEquipped() {
+        return equipped;
+    }
+
+    public void setEquipped(Boolean equipped) {
+        this.equipped = equipped;
+    }
+
     // 业务方法
     public int getTotalAttackBonus(Equipment equipment) {
         return equipment.getAttackBonus() + enhanceAttackBonus;

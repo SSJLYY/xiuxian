@@ -10,4 +10,9 @@ public class LoginRequest {
 
     @NotBlank(message = "密码不能为空")
     private String password;
+    
+    /**
+     * 用户类型：player(普通用户) 或 admin(管理员)
+     */
+    private String userType = "player";
 }

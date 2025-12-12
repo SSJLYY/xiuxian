@@ -237,7 +237,7 @@ public class InventoryService {
         }
 
         // 计算出售价格（通常是购买价格的50%）
-        long sellPrice = (item.getPrice() * quantity) / 2;
+        long sellPrice = ((long)item.getPrice() * quantity) / 2;
         
         // 增加玩家灵石
         player.setSpiritStones(player.getSpiritStones() + sellPrice);
@@ -274,8 +274,8 @@ public class InventoryService {
         Item item = itemMapper.selectById(playerItem.getItemId());
         
         PlayerItemResponse response = new PlayerItemResponse();
-        response.setId(playerItem.getId().longValue());
-        response.setItemId(playerItem.getItemId().longValue());
+        response.setId(playerItem.getId());
+        response.setItemId(playerItem.getItemId());
         response.setQuantity(playerItem.getQuantity());
         response.setCreatedAt(playerItem.getCreatedAt());
         response.setUpdatedAt(playerItem.getUpdatedAt());

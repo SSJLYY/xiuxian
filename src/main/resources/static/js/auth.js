@@ -61,7 +61,7 @@ class AuthManager {
             }
 
             await this.loadUserData();
-            this.redirectToCultivate();
+            // 不再自动跳转，loadUserData中会处理跳转逻辑
             
             console.log('自动登录成功');
 
@@ -93,7 +93,10 @@ class AuthManager {
             }
 
             this.isAuthenticated = true;
-            console.log('用户数据加载成功:', this.currentUser.username);
+            console.log('用户数据加载成功:', this.currentUser.username, '角色:', this.currentUser.role);
+
+            // 根据用户角色跳转到相应的页面
+            this.redirectToAppropriatePage();
 
             // 加载玩家资料 - 必须成功
             await this.loadPlayerProfile();
@@ -140,6 +143,7 @@ class AuthManager {
 
         const username = document.getElementById('loginUsername')?.value.trim();
         const password = document.getElementById('loginPassword')?.value;
+        const userType = 'player'; // 普通用户登录页面固定为player类型
 
         if (!username || !password) {
             this.showToast('请输入用户名和密码', 'warning');
@@ -150,9 +154,9 @@ class AuthManager {
         this.showLoading(true);
 
         try {
-            console.log('开始登录:', username);
+            console.log('开始登录:', username, '用户类型:', userType);
 
-            const response = await gameAPI.login(username, password);
+            const response = await gameAPI.login(username, password, userType);
 
             if (!response || !response.success) {
                 throw new Error(response?.message || '登录失败，请检查用户名和密码');
@@ -174,12 +178,20 @@ class AuthManager {
                 window.api.setToken(this.token);
             }
 
-            console.log('登录成功，用户:', username, '玩家:', this.player?.nickname);
+            console.log('登录成功，用户:', username, '玩家:', this.player?.nickname, '角色:', this.currentUser.role);
             this.showToast('登录成功', 'success');
 
-            // 跳转到修炼页面
+            // 根据用户角色跳转到相应的页面
             setTimeout(() => {
-                window.location.href = '/cultivate.html';
+                console.log('准备显示游戏页面');
+                this.showGamePage();
+                this.updatePlayerUI();
+                
+                // 通知现代UI系统登录成功
+                if (window.simpleUI && typeof window.simpleUI.switchToGamePage === 'function') {
+                    console.log('通知现代UI系统切换到游戏页面');
+                    window.simpleUI.switchToGamePage();
+                }
             }, 500);
 
         } catch (error) {
@@ -261,7 +273,8 @@ class AuthManager {
                 }
 
                 setTimeout(() => {
-                    window.location.href = '/cultivate.html';
+                    this.showGamePage();
+                    this.updatePlayerUI();
                 }, 1000);
             } else {
                 // 如果没有返回token，切换到登录表单
@@ -293,10 +306,13 @@ class AuthManager {
             loginPage.classList.remove('active');
         }
         if (gamePage) {
-            gamePage.style.display = 'flex';
+            gamePage.style.display = '';  // 清除内联样式
             gamePage.classList.add('active');
             window.scrollTo(0, 0);
         }
+
+        // 添加游戏模式样式
+        document.body.classList.add('game-mode');
 
         console.log('显示游戏页面');
     }
@@ -318,20 +334,44 @@ class AuthManager {
             window.location.href = '/login.html';
         }
 
+        // 移除游戏模式样式
+        document.body.classList.remove('game-mode');
+
         console.log('显示登录页面');
     }
 
-    // 跳转到修炼页面
-    redirectToCultivate() {
+    // 跳转到相应的页面（根据用户角色）
+    redirectToAppropriatePage() {
         try {
             const currentPath = window.location.pathname || '';
-            if (currentPath.endsWith('/cultivate.html') || currentPath.endsWith('cultivate.html')) {
-                return;
+            
+            // 如果用户是管理员，跳转到管理员页面
+            if (this.currentUser && this.currentUser.role === 'ADMIN') {
+                if (!currentPath.endsWith('/admin.html') && !currentPath.endsWith('admin.html')) {
+                    console.log('管理员用户，跳转到管理后台');
+                    window.location.href = 'admin.html';
+                    return;
+                }
             }
-            window.location.href = 'cultivate.html';
+            // 如果用户是普通用户，跳转到游戏主页
+            else {
+                if (!currentPath.endsWith('/index.html') && !currentPath.endsWith('index.html') && currentPath !== '/') {
+                    console.log('普通用户，跳转到游戏主页');
+                    window.location.href = 'index.html';
+                    return;
+                }
+            }
         } catch (e) {
-            window.location.href = 'cultivate.html';
+            console.error('页面跳转失败:', e);
+            // 默认跳转到登录页面
+            window.location.href = 'login.html';
         }
+    }
+
+    // 跳转到修炼页面（保持向后兼容）
+    redirectToCultivate() {
+        // 调用新的跳转方法
+        this.redirectToAppropriatePage();
     }
 
     // 切换到登录表单
@@ -525,6 +565,10 @@ class AuthManager {
 
             console.log('玩家资料加载成功:', this.player.nickname);
             this.updatePlayerUI();
+            
+            // 加载未读邮件数量
+            this.loadUnreadMailCount();
+            
             this.showToast('游戏数据加载完成', 'success');
 
         } catch (error) {
@@ -535,6 +579,37 @@ class AuthManager {
             this.showLoginPage();
         } finally {
             this.showLoading(false);
+        }
+    }
+
+    // 加载未读邮件数量
+    async loadUnreadMailCount() {
+        try {
+            const response = await fetch('/api/mail/unread-count', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${this.token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success && result.data > 0) {
+                    const badge = document.getElementById('mailBadge');
+                    if (badge) {
+                        badge.textContent = result.data;
+                        badge.style.display = 'inline';
+                    }
+                } else if (result.success && result.data === 0) {
+                    const badge = document.getElementById('mailBadge');
+                    if (badge) {
+                        badge.style.display = 'none';
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('加载未读邮件数量失败:', error);
         }
     }
 }

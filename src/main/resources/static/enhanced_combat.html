@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>增强战斗 - xiuxian挂机游戏</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#8B4513',
+                        secondary: '#2F4F4F',
+                        accent: '#CD5C5C',
+                        light: '#F5F5DC',
+                        dark: '#2C3E50',
+                    },
+                    fontFamily: {
+                        ancient: ['"Ma Shan Zheng"', '"Noto Serif SC"', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .fa-fist-raised:before { content: "✊"; }
+        .fa-magic:before { content: "✨"; }
+        .fa-heart:before { content: "❤️"; }
+        .combat-area {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 20px;
+            height: 70vh;
+        }
+        .character-card {
+            background: rgba(245, 245, 220, 0.5);
+            border: 1px solid rgba(139, 69, 19, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        .health-bar {
+            height: 20px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ef4444, #f87171);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+        .battle-log {
+            background: rgba(47, 79, 79, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            overflow-y: auto;
+            height: 100%;
+            border: 1px solid rgba(139, 69, 19, 0.2);
+        }
+        .battle-log-entry {
+            padding: 5px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            background: rgba(245, 245, 220, 0.3);
+        }
+        .battle-log-entry.critical {
+            background: rgba(239, 68, 68, 0.2);
+            font-weight: bold;
+        }
+        .action-button {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 8px;
+            border: none;
+            background: linear-gradient(135deg, #8B4513, #CD5C5C);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 69, 19, 0.3);
+        }
+        .action-button:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- 游戏主界面 -->
+    <div id="gamePage" class="container" style="display: flex; flex-direction: column;">
+        <!-- 顶部导航 -->
+        <header class="game-header">
+            <div class="player-info">
+                <h2><i class="fas fa-user-circle"></i> <span id="playerName">xiuxian者</span></h2>
+                <div class="player-stats">
+                    <span><i class="fas fa-star"></i> 等级: <span id="playerLevel">1</span></span>
+                    <span><i class="fas fa-gem"></i> 境界: <span id="playerRealm">练气期</span></span>
+                    <span><i class="fas fa-coins"></i> 灵石: <span id="playerSpiritStones">1000</span></span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="goBack()">
+                    <i class="fas fa-arrow-left"></i> 返回游戏
+                </button>
+            </div>
+        </header>
+
+        <!-- 战斗区域 -->
+        <main class="combat-area">
+            <!-- 玩家信息 -->
+            <div class="character-card">
+                <h3 id="playerDisplayName">玩家</h3>
+                <div class="health-bar">
+                    <div id="playerHealthBar" class="health-fill" style="width: 100%;"></div>
+                </div>
+                <p>生命值: <span id="playerHealth">100</span>/<span id="playerMaxHealth">100</span></p>
+                <p>法力值: <span id="playerMana">50</span>/<span id="playerMaxMana">50</span></p>
+                <div id="playerPetInfo" class="mt-3 p-2 bg-yellow-50 rounded">
+                    <p class="text-sm">宠物: <span id="petName">无</span></p>
+                    <p class="text-sm">生命值: <span id="petHealth">0</span></p>
+                </div>
+            </div>
+            
+            <!-- 战斗日志 -->
+            <div class="battle-log" id="battleLog">
+                <div class="battle-log-entry">欢迎来到增强战斗系统！</div>
+                <div class="battle-log-entry">在这里你可以使用技能、道具和宠物进行战斗。</div>
+            </div>
+            
+            <!-- 怪物信息 -->
+            <div class="character-card">
+                <h3 id="monsterName">怪物</h3>
+                <div class="health-bar">
+                    <div id="monsterHealthBar" class="health-fill" style="width: 100%; background: linear-gradient(90deg, #3b82f6, #60a5fa);"></div>
+                </div>
+                <p>生命值: <span id="monsterHealth">100</span>/<span id="monsterMaxHealth">100</span></p>
+                <p>等级: <span id="monsterLevel">1</span></p>
+                <p>类型: <span id="monsterType">普通</span></p>
+            </div>
+        </main>
+        
+        <!-- 操作区域 -->
+        <div class="panel-section mt-4">
+            <div class="flex flex-wrap justify-center">
+                <button class="action-button" onclick="performNormalAttack()">
+                    <i class="fas fa-fist-raised"></i> 普通攻击
+                </button>
+                <button class="action-button" onclick="showSkills()">
+                    <i class="fas fa-magic"></i> 使用技能
+                </button>
+                <button class="action-button" onclick="showItems()">
+                    <i class="fas fa-heart"></i> 使用道具
+                </button>
+                <button class="action-button" onclick="generateMonster()">
+                    <i class="fas fa-sync"></i> 更换对手
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 技能选择模态框 -->
+    <div id="skillsModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeSkillsModal()">&times;</span>
+            <h2 class="text-2xl font-bold mb-4">选择技能</h2>
+            <div id="skillsList" class="grid grid-cols-1 gap-3">
+                <!-- 技能将通过JavaScript动态加载 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 道具选择模态框 -->
+    <div id="itemsModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeItemsModal()">&times;</span>
+            <h2 class="text-2xl font-bold mb-4">选择道具</h2>
+            <div id="itemsList" class="grid grid-cols-1 gap-3">
+                <!-- 道具将通过JavaScript动态加载 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 消息提示 -->
+    <div id="toast" class="toast hidden">
+        <span id="toastMessage"></span>
+    </div>
+
+    <!-- 加载动画 -->
+    <div id="loading" class="loading hidden">
+        <div class="spinner"></div>
+        <span>加载中...</span>
+    </div>
+
+    <!-- 脚本 -->
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/enhanced_combat.js"></script>
+    <script>
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPlayerData();
+            generateMonster();
+        });
+        
+        // 返回游戏主界面
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>

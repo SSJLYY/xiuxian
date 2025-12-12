@@ -1,6 +1,8 @@
 package com.xiuxian.game.config;
 
+import com.xiuxian.game.security.AdminSecurityFilter;
 import com.xiuxian.game.security.JwtAuthenticationFilter;
+import com.xiuxian.game.security.SecurityFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,6 +29,8 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final SecurityFilter securityFilter;
+    private final AdminSecurityFilter adminSecurityFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -62,15 +66,20 @@ public class SecurityConfig {
                         // 静态资源允许匿名访问
                         .antMatchers(
                                 "/",
+                                "/**/*.html",
                                 "/index.html",
                                 "/login.html",
+                                "/adminLogin.html",
                                 "/cultivate.html",
                                 "/equipment.html",
                                 "/pets.html",
                                 "/admin.html",
+                                "/test.html",
                                 "/xiuxian-game/",
+                                "/xiuxian-game/**/*.html",
                                 "/xiuxian-game/index.html",
                                 "/xiuxian-game/login.html",
+                                "/xiuxian-game/adminLogin.html",
                                 "/xiuxian-game/cultivate.html",
                                 "/xiuxian-game/equipment.html",
                                 "/xiuxian-game/pets.html",
@@ -92,6 +101,11 @@ public class SecurityConfig {
                                 "/api/auth/validate"
                         ).permitAll()
 
+                        // 管理员认证API允许匿名访问
+                        .antMatchers(
+                                "/api/admin/auth/login"
+                        ).permitAll()
+
                         // 公共API允许匿名访问（只读操作）
                         .antMatchers(
                                 "/api/players/public/**",
@@ -105,6 +119,8 @@ public class SecurityConfig {
                         // 其他所有API需要认证
                         .anyRequest().authenticated()
                 )
+                .addFilterBefore(adminSecurityFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

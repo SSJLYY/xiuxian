@@ -4,6 +4,7 @@ import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.entity.CombatLog;
 import com.xiuxian.game.entity.Monster;
 import com.xiuxian.game.service.CombatService;
+import com.xiuxian.game.service.EnhancedCombatService;
 import com.xiuxian.game.service.PlayerService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -23,6 +24,7 @@ public class CombatController {
     private static final Logger log = LoggerFactory.getLogger(CombatController.class);
 
     private final CombatService combatService;
+    private final EnhancedCombatService enhancedCombatService;
     private final PlayerService playerService;
 
     @GetMapping("/generate-monster")
@@ -85,6 +87,26 @@ public class CombatController {
     }
 
     /**
+     * 增强战斗 - 支持技能、宠物、道具
+     */
+    @PostMapping("/enhanced")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> enhancedCombat(@RequestBody EnhancedCombatRequest request) {
+        try {
+            Integer playerId = playerService.getCurrentPlayerId();
+            Integer playerLevel = playerService.getCurrentPlayerProfile().getLevel();
+            Monster monster = combatService.generateMonster(playerLevel, request.getMapId());
+            
+            Map<String, Object> result = enhancedCombatService.enhancedCombat(
+                    playerId, monster, request.getSkillId(), request.getItemId());
+            return ResponseEntity.ok(ApiResponse.success("战斗完成", result));
+        } catch (Exception e) {
+            log.error("增强战斗失败 - 玩家ID: {}", playerService.getCurrentPlayerId(), e);
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    /**
      * 批量战斗 - 一次执行多次战斗并返回汇总结果
      */
     @PostMapping("/batch/{times}")
@@ -130,6 +152,40 @@ public class CombatController {
             return ResponseEntity.ok(ApiResponse.success("获取战斗历史成功", logs));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+    
+    /**
+     * 增强战斗请求DTO
+     */
+    public static class EnhancedCombatRequest {
+        private Integer mapId;
+        private Integer skillId;
+        private Integer itemId;
+        
+        // Getters and Setters
+        public Integer getMapId() {
+            return mapId;
+        }
+        
+        public void setMapId(Integer mapId) {
+            this.mapId = mapId;
+        }
+        
+        public Integer getSkillId() {
+            return skillId;
+        }
+        
+        public void setSkillId(Integer skillId) {
+            this.skillId = skillId;
+        }
+        
+        public Integer getItemId() {
+            return itemId;
+        }
+        
+        public void setItemId(Integer itemId) {
+            this.itemId = itemId;
         }
     }
 }

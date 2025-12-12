@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SkillResponse {
-    private Long id;
+    private Integer id;
     private Integer level;
     private Boolean equipped;
     private Integer slotNumber;
@@ -23,7 +23,7 @@ public class SkillResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class SkillSummary {
-        private Long id;
+        private Integer id;
         private String name;
         private String description;
         private String type;

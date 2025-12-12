@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>背包系统 - xiuxian挂机游戏</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#8B4513',
+                        secondary: '#2F4F4F',
+                        accent: '#CD5C5C',
+                        light: '#F5F5DC',
+                        dark: '#2C3E50',
+                    },
+                    fontFamily: {
+                        ancient: ['"Ma Shan Zheng"', '"Noto Serif SC"', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .fa-backpack:before { content: "🎒"; }
+        .fa-search:before { content: "🔍"; }
+        .fa-sort:before { content: "⇅"; }
+        .fa-sync:before { content: "🔄"; }
+        .item-quality-1 { border-left: 4px solid #cccccc; } /* 普通 */
+        .item-quality-2 { border-left: 4px solid #00ff00; } /* 精良 */
+        .item-quality-3 { border-left: 4px solid #0066ff; } /* 稀有 */
+        .item-quality-4 { border-left: 4px solid #cc00ff; } /* 史诗 */
+        .item-quality-5 { border-left: 4px solid #ff9900; } /* 传说 */
+        .locked-item {
+            opacity: 0.7;
+            position: relative;
+        }
+        .locked-item::after {
+            content: "🔒";
+            position: absolute;
+            top: 5px;
+            right: 5px;
+        }
+        .item-card {
+            transition: transform 0.2s ease-in-out;
+        }
+        .item-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- 游戏主界面 -->
+    <div id="gamePage" class="container" style="display: flex; flex-direction: column;">
+        <!-- 顶部导航 -->
+        <header class="game-header">
+            <div class="player-info">
+                <h2><i class="fas fa-user-circle"></i> <span id="playerName">xiuxian者</span></h2>
+                <div class="player-stats">
+                    <span><i class="fas fa-star"></i> 等级: <span id="playerLevel">1</span></span>
+                    <span><i class="fas fa-gem"></i> 境界: <span id="playerRealm">练气期</span></span>
+                    <span><i class="fas fa-coins"></i> 灵石: <span id="playerSpiritStones">1000</span></span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="goBack()">
+                    <i class="fas fa-arrow-left"></i> 返回游戏
+                </button>
+            </div>
+        </header>
+
+        <!-- 主菜单导航 -->
+        <nav class="main-nav">
+            <ul class="nav-tabs">
+                <li class="nav-tab active" data-module="items">
+                    <button onclick="showTab('items')">
+                        <i class="fas fa-backpack"></i> 背包物品
+                    </button>
+                </li>
+                <li class="nav-tab" data-module="organize">
+                    <button onclick="showTab('organize')">
+                        <i class="fas fa-sync"></i> 整理背包
+                    </button>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- 主内容区 -->
+        <main class="game-main">
+            <!-- 物品列表 -->
+            <div id="items-tab" class="tab-content active">
+                <div class="module-header">
+                    <h2><i class="fas fa-backpack"></i> 背包物品</h2>
+                    <p>管理你的物品和装备</p>
+                </div>
+                
+                <!-- 搜索和过滤 -->
+                <div class="panel-section mb-4">
+                    <div class="flex flex-wrap gap-4 items-center">
+                        <div class="flex-1 min-w-[200px]">
+                            <div class="relative">
+                                <input type="text" id="searchInput" class="form-control pl-10" placeholder="搜索物品...">
+                                <div class="absolute left-3 top-3 text-gray-400">
+                                    <i class="fas fa-search"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <select id="typeFilter" class="form-control" onchange="filterItems()">
+                                <option value="">全部类型</option>
+                                <option value="装备">装备</option>
+                                <option value="消耗品">消耗品</option>
+                                <option value="材料">材料</option>
+                                <option value="任务物品">任务物品</option>
+                            </select>
+                        </div>
+                        <div>
+                            <select id="sortSelect" class="form-control" onchange="sortItems()">
+                                <option value="">默认排序</option>
+                                <option value="quality">品质</option>
+                                <option value="quantity">数量</option>
+                                <option value="created">获取时间</option>
+                            </select>
+                        </div>
+                        <div>
+                            <select id="orderSelect" class="form-control" onchange="sortItems()">
+                                <option value="desc">降序</option>
+                                <option value="asc">升序</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 物品列表 -->
+                <div class="panel-section">
+                    <div id="itemsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        <!-- 物品将通过JavaScript动态加载 -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 整理背包 -->
+            <div id="organize-tab" class="tab-content" style="display: none;">
+                <div class="module-header">
+                    <h2><i class="fas fa-sync"></i> 整理背包</h2>
+                    <p>自动整理和管理你的背包</p>
+                </div>
+                
+                <!-- 整理选项 -->
+                <div class="panel-section mb-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <h3 class="font-bold text-lg mb-2">自动堆叠</h3>
+                            <p class="text-sm text-gray-600 mb-3">将相同物品自动合并堆叠</p>
+                            <button class="btn btn-primary" onclick="organizeInventory()">
+                                <i class="fas fa-layer-group"></i> 开始堆叠
+                            </button>
+                        </div>
+                        
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <h3 class="font-bold text-lg mb-2">按类型排序</h3>
+                            <p class="text-sm text-gray-600 mb-3">按物品类型重新排列背包</p>
+                            <button class="btn btn-primary" onclick="sortByType()">
+                                <i class="fas fa-sort-alpha-down"></i> 按类型排序
+                            </button>
+                        </div>
+                        
+                        <div class="bg-purple-50 p-4 rounded-lg">
+                            <h3 class="font-bold text-lg mb-2">按品质排序</h3>
+                            <p class="text-sm text-gray-600 mb-3">按物品品质重新排列背包</p>
+                            <button class="btn btn-primary" onclick="sortByQuality()">
+                                <i class="fas fa-sort-numeric-down"></i> 按品质排序
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 背包统计 -->
+                <div class="panel-section">
+                    <h3 class="text-xl font-bold mb-4">背包统计</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-white p-4 rounded-lg border">
+                            <div class="text-2xl font-bold text-blue-600" id="totalCount">0</div>
+                            <div class="text-gray-600">总物品数</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg border">
+                            <div class="text-2xl font-bold text-green-600" id="stackableCount">0</div>
+                            <div class="text-gray-600">可堆叠物品</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg border">
+                            <div class="text-2xl font-bold text-purple-600" id="uniqueCount">0</div>
+                            <div class="text-gray-600">唯一物品</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg border">
+                            <div class="text-2xl font-bold text-red-600" id="lockedCount">0</div>
+                            <div class="text-gray-600">已锁定</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 物品详情模态框 -->
+    <div id="itemDetailModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeItemDetailModal()">&times;</span>
+            <div id="itemDetailContent">
+                <!-- 物品详情将通过JavaScript动态加载 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 批量操作模态框 -->
+    <div id="batchActionModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeBatchActionModal()">&times;</span>
+            <h2 class="text-2xl font-bold mb-4" id="batchActionTitle">批量操作</h2>
+            <div id="batchActionContent">
+                <!-- 批量操作内容将通过JavaScript动态加载 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 消息提示 -->
+    <div id="toast" class="toast hidden">
+        <span id="toastMessage"></span>
+    </div>
+
+    <!-- 加载动画 -->
+    <div id="loading" class="loading hidden">
+        <div class="spinner"></div>
+        <span>加载中...</span>
+    </div>
+
+    <!-- 脚本 -->
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/inventory.js"></script>
+    <script>
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPlayerData();
+            loadInventoryItems();
+        });
+        
+        // 搜索输入事件
+        document.getElementById('searchInput').addEventListener('input', function() {
+            filterItems();
+        });
+        
+        // 返回游戏主界面
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+        
+        // 显示物品详情
+        function showItemDetails(itemId) {
+            showLoading();
+            api.get(`/api/inventory/details/${itemId}`)
+                .then(response => {
+                    hideLoading();
+                    if (response.code === 200) {
+                        const item = response.data;
+                        let detailHtml = `
+                            <div class="item-detail">
+                                <h2 class="text-2xl font-bold mb-4">${item.name}</h2>
+                                <div class="mb-4">
+                                    <span class="inline-block px-2 py-1 rounded text-xs font-semibold mr-2 
+                                        ${item.quality === 1 ? 'bg-gray-200 text-gray-800' : ''} 
+                                        ${item.quality === 2 ? 'bg-green-200 text-green-800' : ''} 
+                                        ${item.quality === 3 ? 'bg-blue-200 text-blue-800' : ''} 
+                                        ${item.quality === 4 ? 'bg-purple-200 text-purple-800' : ''} 
+                                        ${item.quality === 5 ? 'bg-yellow-200 text-yellow-800' : ''}">
+                                        品质: ${getQualityText(item.quality)}
+                                    </span>
+                                    <span class="inline-block px-2 py-1 rounded text-xs font-semibold bg-gray-200 text-gray-800">
+                                        类型: ${item.type}
+                                    </span>
+                                </div>
+                                <div class="mb-4">
+                                    <p class="text-gray-700">${item.description}</p>
+                                </div>
+                                <div class="mb-4">
+                                    <h3 class="font-bold mb-2">属性:</h3>
+                                    <ul class="list-disc pl-5">
+                                        <li>价格: ${item.price} 灵石</li>
+                                        <li>可堆叠: ${item.stackable ? '是' : '否'}</li>
+                                        <li>可出售: ${item.sellable ? '是' : '否'}</li>
+                                        <li>可使用: ${item.usable ? '是' : '否'}</li>
+                                        ${item.maxStack ? `<li>最大堆叠: ${item.maxStack}</li>` : ''}
+                                    </ul>
+                                </div>
+                                <div class="flex justify-end space-x-2">
+                                    <button class="btn btn-secondary" onclick="closeItemDetailModal()">关闭</button>
+                                </div>
+                            </div>
+                        `;
+                        document.getElementById('itemDetailContent').innerHTML = detailHtml;
+                        document.getElementById('itemDetailModal').style.display = 'block';
+                    } else {
+                        showToast('获取物品详情失败: ' + response.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    showToast('获取物品详情失败: ' + error.message, 'error');
+                });
+        }
+        
+        // 获取品质文本
+        function getQualityText(quality) {
+            const qualities = {
+                1: '普通',
+                2: '精良',
+                3: '稀有',
+                4: '史诗',
+                5: '传说'
+            };
+            return qualities[quality] || '未知';
+        }
+        
+        // 切换物品锁定状态
+        function toggleItemLock(playerItemId) {
+            showLoading();
+            api.post(`/api/inventory/lock/${playerItemId}`)
+                .then(response => {
+                    hideLoading();
+                    if (response.code === 200) {
+                        showToast('物品锁定状态已切换', 'success');
+                        loadInventoryItems(); // 重新加载物品列表
+                    } else {
+                        showToast('切换锁定状态失败: ' + response.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    showToast('切换锁定状态失败: ' + error.message, 'error');
+                });
+        }
+    </script>
+</body>
+</html>

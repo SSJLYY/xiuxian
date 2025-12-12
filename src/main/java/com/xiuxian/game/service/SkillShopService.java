@@ -76,7 +76,7 @@ public class SkillShopService {
                         .eq("skill_id", ps.getSkillId())
                         .last("LIMIT 1")
         ).stream().findFirst().orElse(null);
-        long refund = item != null ? Math.max(1, item.getPrice() / 2) : 100; // 没有定价则最低退款
+        long refund = item != null ? Math.max(1, (long)item.getPrice() / 2) : 100; // 没有定价则最低退款
         player.setSpiritStones(player.getSpiritStones() + refund);
         playerProfileMapper.updateById(player);
         playerSkillMapper.deleteById(playerSkillId);

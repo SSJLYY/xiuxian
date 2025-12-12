@@ -120,8 +120,8 @@ const api = new ApiClient();
 // 游戏API方法
 const gameAPI = {
     // 认证相关
-    async login(username, password) {
-        const response = await api.post('/auth/login', { username, password });
+    async login(username, password, userType = 'player') {
+        const response = await api.post('/auth/login', { username, password, userType });
         if (response.success && response.data?.token) {
             api.setToken(response.data.token);
         }

@@ -30,6 +30,10 @@ public class ShopItem {
     @TableField(value = "shop_type")
     private String shopType; // general, equipment, materials, special
 
+    @TableField(value = "price")
+    @Builder.Default
+    private Integer price = 0;
+
     @TableField(value = "price_spirit_stones")
     @Builder.Default
     private Integer priceSpiritStones = 0;

@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class QuestResponse {
-    private Long id;
+    private Integer id;
     private String title;
     private String description;
     private String type;

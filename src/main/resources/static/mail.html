@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>邮件系统 - xiuxian挂机游戏</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+    <link rel="stylesheet" href="css/style.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#8B4513',
+                        secondary: '#2F4F4F',
+                        accent: '#CD5C5C',
+                        light: '#F5F5DC',
+                        dark: '#2C3E50',
+                    },
+                    fontFamily: {
+                        ancient: ['"Ma Shan Zheng"', '"Noto Serif SC"', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body>
+    <!-- 邮件页面 -->
+    <div class="container" style="display: block; max-width: 1200px; margin: 0 auto; padding: 20px;">
+        <!-- 返回按钮 -->
+        <div style="margin-bottom: 20px;">
+            <button onclick="goBack()" class="btn btn-secondary">
+                ← 返回游戏
+            </button>
+        </div>
+
+        <!-- 邮件容器 -->
+        <div class="mail-container">
+            <!-- 邮件头部 -->
+            <div class="mail-header">
+                <div>
+                    <h2>📬 邮件系统</h2>
+                    <div class="mail-stats">
+                        <span>未读邮件: <strong id="unreadCount">0</strong></span>
+                        <span>总邮件: <strong id="totalCount">0</strong></span>
+                    </div>
+                </div>
+                <button onclick="refreshMails()" class="btn-refresh">
+                    🔄 刷新
+                </button>
+            </div>
+
+            <!-- 邮件列表 -->
+            <div class="mail-list">
+                <div id="mailItems" class="mail-items">
+                    <!-- 邮件项将通过JavaScript动态加载 -->
+                </div>
+                
+                <!-- 空状态 -->
+                <div id="emptyState" class="empty-message" style="display: none;">
+                    <p>📭 暂无邮件</p>
+                </div>
+
+                <!-- 加载状态 -->
+                <div id="loadingState" class="empty-message" style="display: none;">
+                    <p>⏳ 加载中...</p>
+                </div>
+            </div>
+
+            <!-- 分页 -->
+            <div class="pagination" id="pagination" style="display: none;">
+                <div class="pagination-buttons">
+                    <button onclick="previousPage()" id="prevBtn">上一页</button>
+                    <span id="pageInfo">第 1 页</span>
+                    <button onclick="nextPage()" id="nextBtn">下一页</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 邮件详情模态框 -->
+    <div id="mailDetailModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeMailDetail()">&times;</span>
+            <div id="mailDetailContent">
+                <!-- 邮件详情将通过JavaScript动态加载 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 消息提示 -->
+    <div id="toast" class="toast hidden">
+        <span id="toastMessage"></span>
+    </div>
+
+    <!-- 加载动画 -->
+    <div id="loading" class="loading hidden">
+        <div class="spinner"></div>
+        <span>加载中...</span>
+    </div>
+
+    <!-- 加载脚本 -->
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/mail.js"></script>
+</body>
+</html>

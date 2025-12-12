@@ -30,6 +30,10 @@ public class PlayerItem {
     @TableField(value = "quantity")
     private Integer quantity;
 
+    @TableField(value = "locked")
+    @Builder.Default
+    private Boolean locked = false;
+
     @TableField(value = "created_at")
     private LocalDateTime createdAt;
 

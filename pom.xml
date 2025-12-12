@@ -17,7 +17,7 @@
     <version>1.0.0</version>
     <packaging>jar</packaging>
     <name>xiuxian-game</name>
-    <description>修仙挂机游戏 - Spring Boot版本</description>
+    <description>xiuxian挂机游戏 - Spring Boot版本</description>
 
     <properties>
         <java.version>1.8</java.version>
@@ -137,11 +137,32 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- JUnit QuickCheck for Property-Based Testing -->
+        <dependency>
+            <groupId>com.pholser</groupId>
+            <artifactId>junit-quickcheck-core</artifactId>
+            <version>1.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.pholser</groupId>
+            <artifactId>junit-quickcheck-generators</artifactId>
+            <version>1.0</version>
+            <scope>test</scope>
+        </dependency>
+
         <!-- 配置处理器 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-configuration-processor</artifactId>
             <optional>true</optional>
+        </dependency>
+        
+        <!-- OSHI系统信息库 -->
+        <dependency>
+            <groupId>com.github.oshi</groupId>
+            <artifactId>oshi-core</artifactId>
+            <version>6.4.8</version>
         </dependency>
     </dependencies>
 

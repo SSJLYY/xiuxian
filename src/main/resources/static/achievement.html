@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>成就系统 - xiuxian挂机游戏</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+    <link rel="stylesheet" href="css/style.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#8B4513',
+                        secondary: '#2F4F4F',
+                        accent: '#CD5C5C',
+                        light: '#F5F5DC',
+                        dark: '#2C3E50',
+                    },
+                    fontFamily: {
+                        ancient: ['"Ma Shan Zheng"', '"Noto Serif SC"', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* 成就系统特定样式 */
+        .achievement-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .achievement-stats-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(139, 69, 19, 0.2);
+            margin-bottom: 20px;
+        }
+        
+        .achievement-stat-item {
+            text-align: center;
+            padding: 15px;
+        }
+        
+        .achievement-stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #8B4513;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .achievement-stat-label {
+            font-size: 14px;
+            color: #718096;
+        }
+        
+        .achievement-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .achievement-tab-btn {
+            padding: 10px 20px;
+            border: 2px solid rgba(139, 69, 19, 0.3);
+            background: rgba(245, 245, 220, 0.5);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            color: #2C3E50;
+        }
+        
+        .achievement-tab-btn:hover {
+            background: rgba(139, 69, 19, 0.1);
+            border-color: #8B4513;
+        }
+        
+        .achievement-tab-btn.active {
+            background: linear-gradient(135deg, #8B4513, #CD5C5C);
+            color: white;
+            border-color: #8B4513;
+        }
+        
+        .achievement-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .achievement-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid rgba(139, 69, 19, 0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .achievement-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(139, 69, 19, 0.3);
+        }
+        
+        .achievement-card.completed {
+            border-color: #48bb78;
+            background: rgba(72, 187, 120, 0.05);
+        }
+        
+        .achievement-card.claimed {
+            opacity: 0.8;
+            border-color: #a0aec0;
+        }
+        
+        .achievement-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #8B4513, #CD5C5C);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 10px rgba(139, 69, 19, 0.3);
+        }
+        
+        .achievement-card.completed .achievement-icon {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+        }
+        
+        .achievement-card.claimed .achievement-icon {
+            background: linear-gradient(135deg, #a0aec0, #718096);
+        }
+        
+        .achievement-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2C3E50;
+            margin-bottom: 10px;
+        }
+        
+        .achievement-description {
+            font-size: 14px;
+            color: #718096;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        
+        .achievement-progress-container {
+            margin-bottom: 15px;
+        }
+        
+        .achievement-progress-bar {
+            height: 8px;
+            background: rgba(139, 69, 19, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+        
+        .achievement-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #8B4513, #CD5C5C);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .achievement-card.completed .achievement-progress-fill {
+            background: linear-gradient(90deg, #48bb78, #38a169);
+        }
+        
+        .achievement-progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+        
+        .achievement-progress-text {
+            font-size: 12px;
+            color: #4a5568;
+            text-align: right;
+        }
+        
+        .achievement-rewards {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .achievement-reward-item {
+            background: rgba(139, 69, 19, 0.1);
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            color: #8B4513;
+            font-weight: 500;
+        }
+        
+        .achievement-status-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .achievement-status-badge.in-progress {
+            background: rgba(139, 69, 19, 0.2);
+            color: #8B4513;
+        }
+        
+        .achievement-status-badge.completed {
+            background: #c6f6d5;
+            color: #276749;
+        }
+        
+        .achievement-status-badge.claimed {
+            background: #e2e8f0;
+            color: #718096;
+        }
+        
+        .achievement-claim-btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .achievement-claim-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(72, 187, 120, 0.4);
+        }
+        
+        .achievement-claim-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* 成就解锁动画 */
+        @keyframes achievementUnlock {
+            0% {
+                transform: scale(0.8) rotate(-5deg);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.1) rotate(5deg);
+            }
+            100% {
+                transform: scale(1) rotate(0deg);
+                opacity: 1;
+            }
+        }
+        
+        .achievement-unlock-animation {
+            animation: achievementUnlock 0.6s ease-out;
+        }
+        
+        /* 成就完成特效 */
+        @keyframes achievementGlow {
+            0%, 100% {
+                box-shadow: 0 0 10px rgba(72, 187, 120, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 25px rgba(72, 187, 120, 0.8);
+            }
+        }
+        
+        .achievement-card.completed.new-completion {
+            animation: achievementGlow 2s ease-in-out;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #a0aec0;
+        }
+        
+        .loading-spinner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(139, 69, 19, 0.2);
+            border-top: 4px solid #8B4513;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="font-ancient">
+    <!-- 成就页面 -->
+    <div class="container mx-auto px-4 py-6">
+        <!-- 页面头部 -->
+        <header class="game-header mb-6">
+            <div class="flex justify-between items-center">
+                <h1 class="text-3xl font-bold text-primary">
+                    <i class="fa fa-trophy"></i> 成就系统
+                </h1>
+                <button class="btn btn-secondary" onclick="window.location.href='index.html'">
+                    <i class="fa fa-arrow-left"></i> 返回主页
+                </button>
+            </div>
+        </header>
+
+        <!-- 成就统计 -->
+        <div class="achievement-stats-card">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="achievement-stat-item">
+                    <span id="totalAchievements" class="achievement-stat-value">0</span>
+                    <span class="achievement-stat-label">总成就数</span>
+                </div>
+                <div class="achievement-stat-item">
+                    <span id="completedAchievements" class="achievement-stat-value">0</span>
+                    <span class="achievement-stat-label">已完成</span>
+                </div>
+                <div class="achievement-stat-item">
+                    <span id="claimedAchievements" class="achievement-stat-value">0</span>
+                    <span class="achievement-stat-label">已领取</span>
+                </div>
+                <div class="achievement-stat-item">
+                    <span id="completionRate" class="achievement-stat-value">0%</span>
+                    <span class="achievement-stat-label">完成率</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 成就分类标签 -->
+        <div class="achievement-tabs">
+            <button class="achievement-tab-btn active" data-type="all" onclick="filterAchievements('all')">
+                <i class="fa fa-th"></i> 全部
+            </button>
+            <button class="achievement-tab-btn" data-type="LEVEL" onclick="filterAchievements('LEVEL')">
+                <i class="fa fa-star"></i> 等级成就
+            </button>
+            <button class="achievement-tab-btn" data-type="COMBAT" onclick="filterAchievements('COMBAT')">
+                <i class="fa fa-bolt"></i> 战斗成就
+            </button>
+            <button class="achievement-tab-btn" data-type="CULTIVATION" onclick="filterAchievements('CULTIVATION')">
+                <i class="fa fa-leaf"></i> 修炼成就
+            </button>
+            <button class="achievement-tab-btn" data-type="COLLECTION" onclick="filterAchievements('COLLECTION')">
+                <i class="fa fa-cubes"></i> 收集成就
+            </button>
+            <button class="achievement-tab-btn" data-type="completed" onclick="filterAchievements('completed')">
+                <i class="fa fa-check-circle"></i> 已完成
+            </button>
+            <button class="achievement-tab-btn" data-type="unclaimed" onclick="filterAchievements('unclaimed')">
+                <i class="fa fa-gift"></i> 可领取
+            </button>
+        </div>
+
+        <!-- 成就列表 -->
+        <div id="achievementList" class="achievement-list">
+            <div class="loading-spinner">
+                <div class="spinner"></div>
+                <p style="margin-top: 15px; color: #718096;">加载成就数据...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 消息提示 -->
+    <div id="toast" class="toast hidden">
+        <span id="toastMessage"></span>
+    </div>
+
+    <!-- 加载动画 -->
+    <div id="loading" class="loading hidden">
+        <div class="spinner"></div>
+        <span>处理中...</span>
+    </div>
+
+    <!-- 加载脚本 -->
+    <script src="js/api.js"></script>
+    <script src="js/achievement.js"></script>
+</body>
+</html>

@@ -62,6 +62,7 @@ public class PlayerProfile {
     @Builder.Default
     private String realm = "练气期";
 
+    @TableField(value = "cultivation_speed")
     @Builder.Default
     private BigDecimal cultivationSpeed = BigDecimal.ONE;
 
@@ -147,18 +148,23 @@ public class PlayerProfile {
 
     // 新增：技能加成属性
     @TableField(exist = false)
+    @Builder.Default
     private Integer skillHealthBonus = 0;
     
     @TableField(exist = false)
+    @Builder.Default
     private Integer skillManaBonus = 0;
     
     @TableField(exist = false)
+    @Builder.Default
     private Integer skillAttackBonus = 0;
     
     @TableField(exist = false)
+    @Builder.Default
     private Integer skillDefenseBonus = 0;
     
     @TableField(exist = false)
+    @Builder.Default
     private Integer skillSpeedBonus = 0;
 
     @TableField(value = "created_at")

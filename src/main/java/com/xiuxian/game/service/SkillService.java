@@ -66,7 +66,7 @@ public class SkillService {
         for (PlayerSkill ps : list) {
             Skill s = skillMapper.selectById(ps.getSkillId());
             SkillResponse.SkillSummary summary = SkillResponse.SkillSummary.builder()
-                    .id(s.getId().longValue())
+                    .id(s.getId())
                     .name(s.getName())
                     .description(s.getDescription())
                     .type(s.getSkillType())
@@ -74,7 +74,7 @@ public class SkillService {
                     .maxLevel(s.getMaxLevel())
                     .build();
             SkillResponse sr = SkillResponse.builder()
-                    .id(ps.getId().longValue())
+                    .id(ps.getId())
                     .level(ps.getLevel())
                     .equipped(ps.getEquipped())
                     .slotNumber(ps.getSlotNumber())

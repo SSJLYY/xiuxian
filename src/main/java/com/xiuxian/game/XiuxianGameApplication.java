@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.Environment;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -12,9 +13,9 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 /**
- * 修仙挂机游戏主应用类
+ * xiuxian挂机游戏主应用类
  * 
- * <p>这是一个基于Spring Boot的修仙主题挂机游戏后端应用。</p>
+ * <p>这是一个基于Spring Boot的xiuxian主题挂机游戏后端应用。</p>
  * 
  * <p>主要功能模块：</p>
  * <ul>
@@ -48,6 +49,7 @@ import java.net.UnknownHostException;
 @SpringBootApplication
 @MapperScan("com.xiuxian.game.mapper")
 @EnableScheduling
+@EnableCaching
 public class XiuxianGameApplication {
 
     /**
@@ -57,7 +59,7 @@ public class XiuxianGameApplication {
      */
     public static void main(String[] args) {
         log.info("========================================");
-        log.info("修仙挂机游戏应用启动中...");
+        log.info("xiuxian挂机游戏应用启动中...");
         log.info("========================================");
         
         try {
@@ -83,7 +85,7 @@ public class XiuxianGameApplication {
             
             // 打印启动成功信息
             log.info("========================================");
-            log.info("🎮 修仙挂机游戏应用启动成功！");
+            log.info("🎮 xiuxian挂机游戏应用启动成功！");
             log.info("========================================");
             log.info("📊 系统信息:");
             log.info("  Java版本: {}", System.getProperty("java.version"));
@@ -92,23 +94,16 @@ public class XiuxianGameApplication {
             log.info("🌐 访问地址:");
             log.info("  本地访问: {}://localhost:{}{}", protocol, serverPort, contextPath);
             log.info("  外部访问: {}://{}:{}{}", protocol, hostAddress, serverPort, contextPath);
-            log.info("🎯 游戏页面:");
-            log.info("  🔐 登录页面: {}://localhost:{}{}/login.html", protocol, serverPort, contextPath);
-            log.info("  ⚡ 修炼页面: {}://localhost:{}{}/cultivate.html", protocol, serverPort, contextPath);
-            log.info("  ⚔️ 装备页面: {}://localhost:{}{}/equipment.html", protocol, serverPort, contextPath);
-            log.info("  🐾 宠物页面: {}://localhost:{}{}/pets.html", protocol, serverPort, contextPath);
-            log.info("  👑 管理页面: {}://localhost:{}{}/admin.html", protocol, serverPort, contextPath);
-            log.info("🔧 监控端点:");
-            log.info("  📈 Actuator: {}://localhost:{}{}/actuator", protocol, serverPort, contextPath);
-            log.info("  💾 健康检查: {}://localhost:{}{}/actuator/health", protocol, serverPort, contextPath);
-            log.info("  📊 指标监控: {}://localhost:{}{}/actuator/metrics", protocol, serverPort, contextPath);
+            log.info("🎯 游戏入口:");
+            log.info("  🔐 玩家登录: {}://localhost:{}{}/login.html", protocol, serverPort, contextPath);
+            log.info("  👑 后台管理: {}://localhost:{}{}/admin.html (包含监控端点)", protocol, serverPort, contextPath);
             log.info("📝 日志文件:");
             log.info("  应用日志: logs/xiuxian-game.log");
             log.info("  错误日志: logs/xiuxian-game-error.log");
             log.info("  SQL日志: logs/xiuxian-game-sql.log");
             log.info("  性能日志: logs/xiuxian-game-performance.log");
             log.info("========================================");
-            log.info("🚀 应用已就绪，开始你的修仙之旅吧！");
+            log.info("🚀 应用已就绪，开始你的xiuxian之旅吧！");
             log.info("========================================");
             
         } catch (Exception e) {

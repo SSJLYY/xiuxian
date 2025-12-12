@@ -289,10 +289,10 @@ public class DataInitializer implements CommandLineRunner {
             if (admin == null) {
                 com.xiuxian.game.entity.User u = com.xiuxian.game.entity.User.builder()
                         .username("admin")
-                        .password(passwordEncoder.encode("admin"))
-                        .email("admin@example.com")
+                        .password(passwordEncoder.encode("admin123"))
+                        .email("admin@xiuxian.com")
                         .role("ADMIN")
-                        .mustChangePassword(true)
+                        .mustChangePassword(false)
                         .build();
                 userMapper.insert(u);
                 logger.info("创建默认管理员成功");

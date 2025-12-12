@@ -12,8 +12,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PlayerSkillResponse {
-    private Long id;
-    private Long skillId;
+    private Integer id;
+    private Integer skillId;
     private String skillName;
     private String skillDescription;
     private Integer level;

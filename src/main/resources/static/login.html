@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>修仙挂机游戏 - 登录 - 水墨风格</title>
+    <title>xiuxian - login - 水墨风格</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
@@ -33,7 +33,7 @@
 <body>
     <div id="loginPage" class="container active">
         <div class="login-form">
-            <h1 class="text-shadow"><i class="fa-solid fa-wand-magic-sparkles"></i> 修仙挂机游戏</h1>
+            <h1 class="text-shadow"><i class="fa-solid fa-wand-magic-sparkles"></i> xiuxian挂机游戏</h1>
             <p class="text-secondary italic mb-6">大道争锋,始于足下</p>
             <div class="tabs">
                 <button class="tab-btn active" onclick="showLogin()">登录</button>
@@ -49,6 +49,14 @@
                     <input type="password" id="loginPassword" placeholder="密码" required>
                 </div>
                 <button class="btn btn-primary" onclick="login(event)"><i class="fa-solid fa-right-to-bracket"></i> 登录</button>
+                
+                <!-- 管理员登录链接 -->
+                <div class="text-center mt-4">
+                    <a href="adminLogin.html" class="text-sm text-secondary hover:text-accent transition-colors">
+                        <i class="fas fa-shield-alt mr-1"></i>
+                        管理员登录
+                    </a>
+                </div>
             </div>
             <div id="registerForm" class="form-content" style="display: none;">
                 <div class="input-group">

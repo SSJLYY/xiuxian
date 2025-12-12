@@ -44,7 +44,7 @@ public class Item {
 
     @TableField(value = "price")
     @Builder.Default
-    private Long price = 0L; // 价格（灵石）
+    private Integer price = 0; // 价格（灵石）
 
     @TableField(value = "sellable")
     @Builder.Default

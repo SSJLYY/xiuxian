@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拍卖行 - xiuxian挂机游戏</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#8B4513',
+                        secondary: '#2F4F4F',
+                        accent: '#CD5C5C',
+                        light: '#F5F5DC',
+                        dark: '#2C3E50',
+                    },
+                    fontFamily: {
+                        ancient: ['"Ma Shan Zheng"', '"Noto Serif SC"', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .fa-gavel:before { content: "🔨"; }
+        .fa-coins:before { content: "💰"; }
+        .fa-history:before { content: "📜"; }
+        .fa-filter:before { content: "🔍"; }
+        .fa-tag:before { content: "🏷️"; }
+    </style>
+</head>
+<body>
+    <!-- 游戏主界面 -->
+    <div id="gamePage" class="container" style="display: flex; flex-direction: column;">
+        <!-- 顶部导航 -->
+        <header class="game-header">
+            <div class="player-info">
+                <h2><i class="fas fa-user-circle"></i> <span id="playerName">xiuxian者</span></h2>
+                <div class="player-stats">
+                    <span><i class="fas fa-star"></i> 等级: <span id="playerLevel">1</span></span>
+                    <span><i class="fas fa-gem"></i> 境界: <span id="playerRealm">练气期</span></span>
+                    <span><i class="fas fa-coins"></i> 灵石: <span id="playerSpiritStones">1000</span></span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="goBack()">
+                    <i class="fas fa-arrow-left"></i> 返回游戏
+                </button>
+            </div>
+        </header>
+
+        <!-- 主菜单导航 -->
+        <nav class="main-nav">
+            <ul class="nav-tabs">
+                <li class="nav-tab active" data-module="browse">
+                    <button onclick="showTab('browse')">
+                        <i class="fas fa-gavel"></i> 浏览拍卖
+                    </button>
+                </li>
+                <li class="nav-tab" data-module="my-auctions">
+                    <button onclick="showTab('my-auctions')">
+                        <i class="fas fa-history"></i> 我的拍卖
+                    </button>
+                </li>
+                <li class="nav-tab" data-module="list-item">
+                    <button onclick="showTab('list-item')">
+                        <i class="fas fa-tag"></i> 上架物品
+                    </button>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- 主内容区 -->
+        <main class="game-main">
+            <!-- 浏览拍卖物品 -->
+            <div id="browse-tab" class="tab-content active">
+                <div class="module-header">
+                    <h2><i class="fas fa-gavel"></i> 拍卖行</h2>
+                    <p>在这里可以购买其他玩家拍卖的物品</p>
+                </div>
+                
+                <!-- 搜索和过滤 -->
+                <div class="panel-section mb-4">
+                    <div class="flex flex-wrap gap-4 items-center">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">物品类型</label>
+                            <select id="itemTypeFilter" class="form-control">
+                                <option value="">全部类型</option>
+                                <option value="ITEM">普通物品</option>
+                                <option value="EQUIPMENT">装备</option>
+                                <option value="PET">宠物</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">最低价格</label>
+                            <input type="number" id="minPriceFilter" class="form-control" placeholder="0">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">最高价格</label>
+                            <input type="number" id="maxPriceFilter" class="form-control" placeholder="无限">
+                        </div>
+                        <div class="self-end">
+                            <button class="btn btn-primary" onclick="loadAuctionItems(1)">
+                                <i class="fas fa-filter"></i> 筛选
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 拍卖物品列表 -->
+                <div class="panel-section">
+                    <div id="auctionItemsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- 拍卖物品将通过JavaScript动态加载 -->
+                    </div>
+                    
+                    <!-- 分页 -->
+                    <div id="pagination" class="mt-6 flex justify-center">
+                        <!-- 分页控件将通过JavaScript动态加载 -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 我的拍卖 -->
+            <div id="my-auctions-tab" class="tab-content" style="display: none;">
+                <div class="module-header">
+                    <h2><i class="fas fa-history"></i> 我的拍卖</h2>
+                    <p>查看和管理您拍卖的物品</p>
+                </div>
+                
+                <!-- 状态过滤 -->
+                <div class="panel-section mb-4">
+                    <div class="flex flex-wrap gap-4">
+                        <button class="btn btn-secondary" onclick="loadMyAuctions('')">全部</button>
+                        <button class="btn btn-secondary" onclick="loadMyAuctions('ON_SALE')">拍卖中</button>
+                        <button class="btn btn-secondary" onclick="loadMyAuctions('SOLD')">已售出</button>
+                        <button class="btn btn-secondary" onclick="loadMyAuctions('CANCELLED')">已取消</button>
+                        <button class="btn btn-secondary" onclick="loadMyAuctions('EXPIRED')">已过期</button>
+                    </div>
+                </div>
+                
+                <!-- 我的拍卖物品列表 -->
+                <div class="panel-section">
+                    <div id="myAuctionsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- 我的拍卖物品将通过JavaScript动态加载 -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 上架物品 -->
+            <div id="list-item-tab" class="tab-content" style="display: none;">
+                <div class="module-header">
+                    <h2><i class="fas fa-tag"></i> 上架物品</h2>
+                    <p>将您的物品放到拍卖行进行拍卖</p>
+                </div>
+                
+                <div class="panel-section">
+                    <form id="listItemForm">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium mb-1">物品类型 *</label>
+                                    <select id="itemType" class="form-control" required onchange="loadPlayerItems()">
+                                        <option value="">请选择物品类型</option>
+                                        <option value="ITEM">普通物品</option>
+                                        <option value="EQUIPMENT">装备</option>
+                                        <option value="PET">宠物</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium mb-1">选择物品 *</label>
+                                    <select id="playerItemId" class="form-control" required>
+                                        <option value="">请先选择物品类型</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium mb-1">数量 *</label>
+                                    <input type="number" id="quantity" class="form-control" min="1" value="1" required>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium mb-1">起拍价格 (灵石) *</label>
+                                    <input type="number" id="price" class="form-control" min="1" required>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium mb-1">拍卖时长 (小时) *</label>
+                                    <select id="duration" class="form-control" required>
+                                        <option value="24">24小时</option>
+                                        <option value="48">48小时</option>
+                                        <option value="72">72小时</option>
+                                        <option value="168">1周</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium mb-1">手续费</label>
+                                    <div class="bg-yellow-50 border border-yellow-200 rounded p-3">
+                                        <p>手续费: <span id="feeAmount">0</span> 灵石 (售价的5%)</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <button type="submit" class="btn btn-primary w-full py-3">
+                                <i class="fas fa-tag"></i> 确认上架
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 消息提示 -->
+    <div id="toast" class="toast hidden">
+        <span id="toastMessage"></span>
+    </div>
+
+    <!-- 加载动画 -->
+    <div id="loading" class="loading hidden">
+        <div class="spinner"></div>
+        <span>加载中...</span>
+    </div>
+
+    <!-- 脚本 -->
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/auction.js"></script>
+    <script>
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPlayerData();
+            loadAuctionItems(1);
+        });
+        
+        // 表单提交事件
+        document.getElementById('listItemForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            listItem();
+        });
+        
+        // 价格变化时计算手续费
+        document.getElementById('price').addEventListener('input', function() {
+            const price = parseInt(this.value) || 0;
+            const fee = Math.max(1, Math.floor(price * 0.05));
+            document.getElementById('feeAmount').textContent = fee;
+        });
+        
+        // 返回游戏主界面
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>

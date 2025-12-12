@@ -12,8 +12,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PlayerQuestResponse {
-    private Long id;
-    private Long questId;
+    private Integer id;
+    private Integer questId;
     private String questTitle;
     private String questDescription;
     private String questType;

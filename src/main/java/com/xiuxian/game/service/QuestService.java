@@ -497,7 +497,7 @@ public class QuestService {
     private PlayerQuestDetailResponse toDetail(PlayerQuest pq) {
         Quest q = questMapper.selectById(pq.getQuestId());
         QuestResponse qr = QuestResponse.builder()
-                .id(q.getId().longValue())
+                .id(q.getId())
                 .title(q.getTitle())
                 .description(q.getDescription())
                 .type(q.getType())
