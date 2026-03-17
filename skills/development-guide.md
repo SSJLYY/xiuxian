@@ -402,3 +402,15 @@ A: 检查 `GameCalculator.calculateSkillUpgradeCost()` 方法
 
 ### Q4: 前端不显示技能？
 A: 检查 API 接口是否正确返回数据
+
+### Q5: 技能伤害计算不正确？
+A: 检查 `SkillService.calculateSkillDamage()` 方法
+
+### Q6: 技能经验获取不正确？
+A: 检查 `SkillService.addSkillExperience()` 方法
+
+### Q7: 技能装备失败？
+A: 检查槽位是否已被占用，检查技能是否已学习
+
+### Q8: 技能升级后属性未更新？
+A: 检查是否正确调用了 `playerProfileMapper.updateById()`
