@@ -9,7 +9,7 @@ echo.
 :: JVM参数配置
 set JAVA_OPTS=-Xms128m -Xmx256m -XX:+UseG1GC -Dfile.encoding=UTF-8
 :: 应用端口配置
-set APP_PORT=6000
+set APP_PORT=8082
 :: 日志目录
 set LOG_DIR=.\logs
 :: 应用名称

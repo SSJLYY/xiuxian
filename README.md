@@ -210,24 +210,51 @@ xiuxian-game/
 - ☕ Java 8+ (推荐Java 11)
 - 🐬 MySQL 5.7+ (推荐MySQL 8.0)
 - 📦 Maven 3.6+ (用于构建项目)
+- 🐳 Docker & Docker Compose (推荐用于快速启动)
 
-#### 2. 数据库配置
-``sql
--- 创建数据库
-CREATE DATABASE xiuxian_game CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+#### 2. 快速启动（推荐使用 Docker）
 
--- 修改application.properties中的数据库连接配置
-spring.datasource.url=jdbc:mysql://localhost:3306/xiuxian_game?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
-spring.datasource.username=your_username
-spring.datasource.password=your_password
+使用 Docker Compose 一键启动所有服务：
+
+```bash
+# 在项目根目录执行
+docker-compose up -d
+
+# 查看服务状态
+docker-compose ps
+
+# 查看日志
+docker-compose logs -f xiuxian-game
 ```
 
-#### 3. 项目构建与启动
-```bash
-# 克隆项目
-git clone <repository_url>
-cd xiuxian-game
+这将启动：
+- MySQL 8.0 数据库（端口 3306）
+- Redis 缓存服务（端口 6379，可选）
+- 修仙游戏应用（端口 8081）
 
+#### 3. 本地启动（不使用 Docker）
+
+##### 3.1 安装并配置 MySQL
+1. 下载并安装 MySQL 8.0
+2. 创建数据库：
+   ```sql
+   CREATE DATABASE xiuxian_game CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   ```
+3. 执行初始化脚本：
+   ```bash
+   mysql -u root -p xiuxian_game < src/main/resources/init-database.sql
+   ```
+
+##### 3.2 配置数据库连接
+编辑 `src/main/resources/application.properties`：
+```properties
+spring.datasource.url=jdbc:mysql://localhost:3306/xiuxian_game?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+spring.datasource.username=root
+spring.datasource.password=你的密码
+```
+
+##### 3.3 项目构建与启动
+```bash
 # 编译项目
 mvn clean package -DskipTests
 
@@ -236,8 +263,8 @@ java -jar target/xiuxian-game.jar
 ```
 
 #### 4. 访问游戏
-- 🎮 玩家游戏登录：http://192.168.215.144:8082/login.html
-- 👑 管理员后台登录：http://192.168.215.144:8082/adminLogin.html (独立认证系统)
+- 🎮 玩家游戏登录：http://localhost:8081/login.html (Docker) 或 http://localhost:8082/login.html (本地)
+- 👑 管理员后台登录：http://localhost:8081/admin.html (Docker) 或 http://localhost:8082/admin.html (本地)
 
 
 
