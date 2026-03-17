@@ -280,8 +280,8 @@ public class PlayerService {
                 double cultivationSpeedMultiplier = profile.getCultivationSpeed().doubleValue();
                 long expGained = (long) (actualCultivationTime * baseExpPerSecond * cultivationSpeedMultiplier);
                 
-                // 5. 限制单次修炼最大经验获得
-                long maxExpPerCultivation = 3600; // 单次修炼最多获得3600经验（1小时）
+                // 5. 限制单次修炼最大经验获得（根据配置的最大修炼时间）
+                long maxExpPerCultivation = 24 * 60 * 60 * (long) baseExpPerSecond * (long) cultivationSpeedMultiplier; // 24小时最大经验
                 if (expGained > maxExpPerCultivation) {
                     log.warn("单次修炼经验超过上限，限制为{}: 原始={}, 实际={}", 
                             maxExpPerCultivation, expGained, maxExpPerCultivation);
