@@ -139,6 +139,12 @@
 
 ```
 xiuxian-game/
+├── skills/                            # 技能系统文档
+│   ├── README.md                      # 技能系统概述
+│   ├── skill-config.md                # 技能配置文档
+│   ├── implementation.md              # 技能实现文档
+│   ├── test-guide.md                  # 技能测试指南
+│   └── development-guide.md           # 技能开发指南
 ├── src/main/java/com/xiuxian/game/
 │   ├── XiuxianGameApplication.java    # 主启动类
 │   ├── controller/                    # REST API控制器层
