@@ -275,7 +275,6 @@ public class SkillService {
         }
         playerSkill.setExperience(playerSkill.getExperience() - requiredExp);
         playerSkill.setLevel(currentLevel + 1);
-        playerSkill.setExperience(playerSkill.getExperience() + 10);
         playerSkillMapper.updateById(playerSkill);
         return playerSkillMapper.selectById(playerSkillId);
     }

@@ -268,8 +268,14 @@ const gameAPI = {
     // 使用技能
     async useSkill(playerSkillId) {
         return await api.post(`/skills/${playerSkillId}/use`);
-    }
-    ,
+    },
+    
+    // 升级技能（使用灵石）
+    async upgradeSkill(playerSkillId) {
+        return await api.post(`/skills/${playerSkillId}/upgrade`);
+    },
+    
+    // 升级技能（使用技能点）
     async upgradeSkillByPoints(playerSkillId) {
         return await api.post(`/skills/${playerSkillId}/upgrade-by-points`);
     }
