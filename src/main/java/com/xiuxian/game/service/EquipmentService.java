@@ -1,5 +1,6 @@
 package com.xiuxian.game.service;
 
+import com.xiuxian.game.dto.response.PlayerEquipmentResponse;
 import com.xiuxian.game.entity.Equipment;
 import com.xiuxian.game.entity.PlayerEquipment;
 import com.xiuxian.game.entity.PlayerProfile;
@@ -15,6 +16,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,12 +52,110 @@ public class EquipmentService {
         return playerEquipmentMapper.selectByPlayerId(playerId);
     }
 
+    public List<PlayerEquipmentResponse> getPlayerEquipmentsWithDetails(Integer playerId) {
+        PlayerProfile player = playerProfileMapper.selectById(playerId);
+        if (player == null) {
+            throw new IllegalArgumentException("玩家不存在");
+        }
+        
+        List<PlayerEquipment> playerEquipments = playerEquipmentMapper.selectByPlayerId(playerId);
+        List<PlayerEquipmentResponse> responses = new ArrayList<>();
+        
+        for (PlayerEquipment pe : playerEquipments) {
+            Equipment equipment = equipmentMapper.selectById(pe.getEquipmentId());
+            if (equipment == null) {
+                continue;
+            }
+            
+            PlayerEquipmentResponse response = PlayerEquipmentResponse.builder()
+                    .id(pe.getId())
+                    .playerId(pe.getPlayerId())
+                    .equipmentId(pe.getEquipmentId())
+                    .slot(pe.getSlot())
+                    .equipped(pe.getEquipped())
+                    .durability(pe.getDurability())
+                    .maxDurability(pe.getMaxDurability())
+                    .enhanceLevel(pe.getEnhanceLevel())
+                    .enhanceAttackBonus(pe.getEnhanceAttackBonus())
+                    .enhanceDefenseBonus(pe.getEnhanceDefenseBonus())
+                    .enhanceHealthBonus(pe.getEnhanceHealthBonus())
+                    .createdAt(pe.getCreatedAt())
+                    .updatedAt(pe.getUpdatedAt())
+                    .name(equipment.getName())
+                    .description(equipment.getDescription())
+                    .type(equipment.getType())
+                    .level(equipment.getLevel())
+                    .quality(equipment.getQuality())
+                    .attackBonus(equipment.getAttackBonus())
+                    .defenseBonus(equipment.getDefenseBonus())
+                    .healthBonus(equipment.getHealthBonus())
+                    .manaBonus(equipment.getManaBonus())
+                    .speedBonus(equipment.getSpeedBonus())
+                    .requiredLevel(equipment.getRequiredLevel())
+                    .price(equipment.getPrice())
+                    .build();
+            
+            responses.add(response);
+        }
+        
+        return responses;
+    }
+
     public List<PlayerEquipment> getEquippedItems(Integer playerId) {
         PlayerProfile player = playerProfileMapper.selectById(playerId);
         if (player == null) {
             throw new IllegalArgumentException("玩家不存在");
         }
         return playerEquipmentMapper.selectEquippedByPlayerId(playerId);
+    }
+
+    public List<PlayerEquipmentResponse> getEquippedItemsWithDetails(Integer playerId) {
+        PlayerProfile player = playerProfileMapper.selectById(playerId);
+        if (player == null) {
+            throw new IllegalArgumentException("玩家不存在");
+        }
+        
+        List<PlayerEquipment> playerEquipments = playerEquipmentMapper.selectEquippedByPlayerId(playerId);
+        List<PlayerEquipmentResponse> responses = new ArrayList<>();
+        
+        for (PlayerEquipment pe : playerEquipments) {
+            Equipment equipment = equipmentMapper.selectById(pe.getEquipmentId());
+            if (equipment == null) {
+                continue;
+            }
+            
+            PlayerEquipmentResponse response = PlayerEquipmentResponse.builder()
+                    .id(pe.getId())
+                    .playerId(pe.getPlayerId())
+                    .equipmentId(pe.getEquipmentId())
+                    .slot(pe.getSlot())
+                    .equipped(pe.getEquipped())
+                    .durability(pe.getDurability())
+                    .maxDurability(pe.getMaxDurability())
+                    .enhanceLevel(pe.getEnhanceLevel())
+                    .enhanceAttackBonus(pe.getEnhanceAttackBonus())
+                    .enhanceDefenseBonus(pe.getEnhanceDefenseBonus())
+                    .enhanceHealthBonus(pe.getEnhanceHealthBonus())
+                    .createdAt(pe.getCreatedAt())
+                    .updatedAt(pe.getUpdatedAt())
+                    .name(equipment.getName())
+                    .description(equipment.getDescription())
+                    .type(equipment.getType())
+                    .level(equipment.getLevel())
+                    .quality(equipment.getQuality())
+                    .attackBonus(equipment.getAttackBonus())
+                    .defenseBonus(equipment.getDefenseBonus())
+                    .healthBonus(equipment.getHealthBonus())
+                    .manaBonus(equipment.getManaBonus())
+                    .speedBonus(equipment.getSpeedBonus())
+                    .requiredLevel(equipment.getRequiredLevel())
+                    .price(equipment.getPrice())
+                    .build();
+            
+            responses.add(response);
+        }
+        
+        return responses;
     }
 
     @Transactional

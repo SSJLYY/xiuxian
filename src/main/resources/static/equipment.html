@@ -199,7 +199,7 @@
         // 加载装备列表
         async function loadEquipment() {
             try {
-                const response = await gameAPI.getEquipment();
+                const response = await gameAPI.getPlayerEquipmentWithDetails();
                 if (!response.success) {
                     throw new Error(response.message || '获取装备失败');
                 }
@@ -215,12 +215,12 @@
         // 加载已装备物品
         async function loadEquippedItems() {
             try {
-                const response = await gameAPI.getEquipment();
+                const response = await gameAPI.getEquippedEquipmentWithDetails();
                 if (!response.success) {
-                    throw new Error(response.message || '获取装备失败');
+                    throw new Error(response.message || '获取已装备装备失败');
                 }
 
-                equippedItems = (response.data || []).filter(item => item.equipped);
+                equippedItems = response.data || [];
                 renderEquippedSlots();
                 updateBonusStats();
             } catch (error) {
@@ -253,7 +253,7 @@
                     <div class="btn-group" style="margin-top: 10px;">
                         ${item.equipped ? 
                             `<button class="btn btn-warning btn-sm" onclick="event.stopPropagation(); unequipItem(${item.id})">卸下</button>` :
-                            `<button class="btn btn-success btn-sm" onclick="event.stopPropagation(); equipItem(${item.id}, '${item.slot || item.type}')">装备</button>`
+                            `<button class="btn btn-success btn-sm" onclick="event.stopPropagation(); equipItem(${item.id}, '${getSlotByType(item.type)}')">装备</button>`
                         }
                         <button class="btn btn-info btn-sm" onclick="event.stopPropagation(); showEnhance(${item.id})">强化</button>
                     </div>
@@ -461,6 +461,18 @@
         function getQualityName(quality) {
             const names = ['', '普通', '精良', '稀有', '史诗', '传说'];
             return names[quality] || '未知';
+        }
+
+        function getSlotByType(type) {
+            const slotMap = {
+                '武器': 'weapon',
+                '头盔': 'helmet',
+                '胸甲': 'chest',
+                '靴子': 'boots',
+                '盾牌': 'shield',
+                '戒指': 'ring'
+            };
+            return slotMap[type] || 'weapon'; // 默认为武器槽位
         }
 
         function showShop() {

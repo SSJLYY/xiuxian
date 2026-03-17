@@ -1,6 +1,7 @@
 package com.xiuxian.game.controller;
 
 import com.xiuxian.game.dto.response.ApiResponse;
+import com.xiuxian.game.dto.response.PlayerEquipmentResponse;
 import com.xiuxian.game.entity.Equipment;
 import com.xiuxian.game.entity.PlayerEquipment;
 import com.xiuxian.game.service.EquipmentService;
@@ -35,12 +36,36 @@ public class EquipmentController {
         }
     }
 
+    @GetMapping("/details")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<PlayerEquipmentResponse>>> getPlayerEquipmentWithDetails() {
+        try {
+            Integer playerId = playerService.getCurrentPlayerId();
+            List<PlayerEquipmentResponse> equipment = equipmentService.getPlayerEquipmentsWithDetails(playerId);
+            return ResponseEntity.ok(ApiResponse.success("获取成功", equipment));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
     @GetMapping("/equipped")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<PlayerEquipment>>> getEquippedEquipment() {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
             List<PlayerEquipment> equipment = equipmentService.getEquippedItems(playerId);
+            return ResponseEntity.ok(ApiResponse.success("获取成功", equipment));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/equipped/details")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<PlayerEquipmentResponse>>> getEquippedEquipmentWithDetails() {
+        try {
+            Integer playerId = playerService.getCurrentPlayerId();
+            List<PlayerEquipmentResponse> equipment = equipmentService.getEquippedItemsWithDetails(playerId);
             return ResponseEntity.ok(ApiResponse.success("获取成功", equipment));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));

@@ -191,8 +191,16 @@ const gameAPI = {
         return await api.get('/equipment');
     },
     
+    async getPlayerEquipmentWithDetails() {
+        return await api.get('/equipment/details');
+    },
+    
     async getEquippedEquipment() {
         return await api.get('/equipment/equipped');
+    },
+    
+    async getEquippedEquipmentWithDetails() {
+        return await api.get('/equipment/equipped/details');
     },
     
     async getAvailableEquipment() {
