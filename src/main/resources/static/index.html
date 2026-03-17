@@ -4,22 +4,61 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>xiuxian挂机游戏</title>
-    <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/modern-style.css">
+    <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
 </head>
 <body>
     <!-- 登录界面 -->
-    <div id="loginPage" class="login-container">
-        <div class="login-card">
-            <div class="login-header">
-                <h1>⚡ xiuxian挂机</h1>
-                <p>踏上xiuxian之路，成就无上道果</p>
+    <div id="loginPage" class="container active">
+        <div class="login-form">
+            <h1><i class="fa-solid fa-wand-magic-sparkles"></i> xiuxian挂机</h1>
+            <p>大道争锋,始于足下</p>
+            
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="login">登录</button>
+                <button class="tab-btn" data-tab="register">注册</button>
             </div>
             
-            <div class="login-tabs">
-                <button class="tab-button active" data-tab="login">登录</button>
-                <button class="tab-button" data-tab="register">注册</button>
-            </div>
+            <!-- 登录表单 -->
+            <form id="loginForm" class="form-content active">
+                <div class="input-group">
+                    <i class="fa-solid fa-user"></i>
+                    <input type="text" id="loginUsername" placeholder="用户名" required>
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" id="loginPassword" placeholder="密码" required>
+                </div>
+                <button type="submit" class="btn-primary">开始xiuxian</button>
+            </form>
+            
+            <!-- 注册表单 -->
+            <form id="registerForm" class="form-content">
+                <div class="input-group">
+                    <i class="fa-solid fa-user"></i>
+                    <input type="text" id="registerUsername" placeholder="用户名" required>
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-user"></i>
+                    <input type="text" id="registerNickname" placeholder="昵称" required>
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-envelope"></i>
+                    <input type="email" id="registerEmail" placeholder="邮箱" required>
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" id="registerPassword" placeholder="密码" required>
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" id="registerConfirmPassword" placeholder="确认密码" required>
+                </div>
+                <button type="submit" class="btn-primary">踏入仙途</button>
+            </form>
+        </div>
+    </div>
             
             <!-- 登录表单 -->
             <form id="loginForm" class="auth-form active">
@@ -55,10 +94,10 @@
     </div>
 
     <!-- 游戏界面 -->
-    <div id="gamePage" class="game-container">
+    <div id="gamePage">
         <!-- 顶部导航栏 -->
         <header class="game-header">
-            <div class="logo">⚡ xiuxian挂机</div>
+            <div class="logo"><i class="fa-solid fa-wand-magic-sparkles"></i> xiuxian挂机</div>
             <div class="player-info">
                 <span id="playerName">xiuxian者</span>
                 <span>等级: <span id="playerLevel">1</span></span>
@@ -74,22 +113,22 @@
             <nav class="sidebar">
                 <ul class="nav-list">
                     <li class="nav-item active" data-module="dashboard">
-                        <button class="nav-button">🧘 修炼</button>
+                        <button class="nav-button"><i class="fa-solid fa-spa"></i> 修炼</button>
                     </li>
                     <li class="nav-item" data-module="combat">
-                        <button class="nav-button">⚔️ 战斗</button>
+                        <button class="nav-button"><i class="fa-solid fa-crosshairs"></i> 战斗</button>
                     </li>
                     <li class="nav-item" data-module="inventory">
-                        <button class="nav-button">🎒 背包</button>
+                        <button class="nav-button"><i class="fa-solid fa-backpack"></i> 背包</button>
                     </li>
                     <li class="nav-item" data-module="skills">
-                        <button class="nav-button">✨ 技能</button>
+                        <button class="nav-button"><i class="fa-solid fa-wand-magic-sparkles"></i> 技能</button>
                     </li>
                     <li class="nav-item" data-module="shop">
-                        <button class="nav-button">🛒 商城</button>
+                        <button class="nav-button"><i class="fa-solid fa-store"></i> 商城</button>
                     </li>
                     <li class="nav-item" data-module="quests">
-                        <button class="nav-button">📋 任务</button>
+                        <button class="nav-button"><i class="fa-solid fa-clipboard-list"></i> 任务</button>
                     </li>
                 </ul>
             </nav>
@@ -98,53 +137,38 @@
             <div class="content-area">
                 <!-- 修炼模块 -->
                 <div id="dashboard-module" class="module active">
-                    <h2>修炼系统</h2>
-                    <div class="cultivation-area">
-                        <div class="cultivation-status">
-                            <h3 id="cultivationStatus">点击开始修炼</h3>
-                            <button id="cultivation-btn" class="primary-button" onclick="startCultivation()">
-                                开始修炼
-                            </button>
-                            <button id="stop-cultivation-btn" class="secondary-button" onclick="stopCultivation()" style="display: none;">
-                                停止修炼
-                            </button>
-                        </div>
-                        
-                        <div class="cultivation-log">
-                            <h4>修炼日志</h4>
-                            <div class="log-content" id="cultivation-log">
-                                <div class="log-entry">欢迎来到xiuxian世界！</div>
-                            </div>
-                        </div>
+                    <div class="cultivation-status">
+                        <h2>修炼系统</h2>
+                        <p id="cultivationStatus">点击开始修炼</p>
                     </div>
                     
-                    <div class="stats-panel">
-                        <h4>角色属性</h4>
-                        <div class="stat-item">
-                            <span>生命值: <span id="playerHealth">100</span></span>
-                        </div>
-                        <div class="stat-item">
-                            <span>法力值: <span id="playerMana">100</span></span>
-                        </div>
-                        <div class="stat-item">
-                            <span>攻击力: <span id="playerAttack">10</span></span>
-                        </div>
-                        <div class="stat-item">
-                            <span>防御力: <span id="playerDefense">5</span></span>
+                    <div class="cultivation-buttons">
+                        <button id="cultivation-btn" class="cultivation-btn start" onclick="startCultivation()">
+                            <i class="fa-solid fa-play"></i> 开始修炼
+                        </button>
+                        <button id="stop-cultivation-btn" class="cultivation-btn stop" onclick="stopCultivation()" style="display: none;">
+                            <i class="fa-solid fa-stop"></i> 停止修炼
+                        </button>
+                    </div>
+                    
+                    <div class="cultivation-log">
+                        <h4>修炼日志</h4>
+                        <div class="log-content" id="cultivation-log">
+                            <div class="log-entry">欢迎来到xiuxian世界！</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- 其他模块 -->
                 <div id="combat-module" class="module">
-                    <div style="background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">
+                    <div style="padding: 2rem;">
                         <h2>战斗系统</h2>
                         <p>战斗功能开发中...</p>
                     </div>
                 </div>
 
                 <div id="inventory-module" class="module">
-                    <div style="background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">
+                    <div style="padding: 2rem;">
                         <h2>背包系统</h2>
                         <p>背包功能开发中...</p>
                     </div>

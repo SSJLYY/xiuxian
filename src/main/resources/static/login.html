@@ -3,38 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>xiuxian - login - 水墨风格</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>xiuxian - login</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/modern-style.css">
     <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
-    
-    <!-- 配置Tailwind自定义颜色和字体 -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#8B4513',
-                        secondary: '#2F4F4F',
-                        accent: '#CD5C5C',
-                        light: '#F5F5DC',
-                        dark: '#2C3E50',
-                    },
-                    fontFamily: {
-                        ancient: ['"Ma Shan Zheng"', '"Noto Serif SC"', 'serif'],
-                    }
-                }
-            }
-        }
-    </script>
 </head>
 <body>
     <div id="loginPage" class="container active">
         <div class="login-form">
-            <h1 class="text-shadow"><i class="fa-solid fa-wand-magic-sparkles"></i> xiuxian挂机游戏</h1>
-            <p class="text-secondary italic mb-6">大道争锋,始于足下</p>
+            <h1><i class="fa-solid fa-wand-magic-sparkles"></i> xiuxian挂机</h1>
+            <p>大道争锋,始于足下</p>
             <div class="tabs">
                 <button class="tab-btn active" onclick="showLogin()">登录</button>
                 <button class="tab-btn" onclick="showRegister()">注册</button>
@@ -79,7 +57,7 @@
                     <i class="fa-solid fa-lock"></i>
                     <input type="password" id="registerConfirmPassword" placeholder="确认密码" required>
                 </div>
-                <button class="btn btn-primary" onclick="register(event)"><i class="fa-solid fa-user-plus"></i> 注册</button>
+                <button class="btn-primary" onclick="register(event)"><i class="fa-solid fa-user-plus"></i> 注册</button>
             </div>
         </div>
     </div>
