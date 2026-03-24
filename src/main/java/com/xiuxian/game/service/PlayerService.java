@@ -2,6 +2,8 @@ package com.xiuxian.game.service;
 
 import com.xiuxian.game.entity.PlayerProfile;
 import com.xiuxian.game.entity.User;
+import com.xiuxian.game.exception.BusinessException;
+import com.xiuxian.game.exception.ErrorCode;
 import com.xiuxian.game.mapper.PlayerProfileMapper;
 import com.xiuxian.game.mapper.QuestMapper;
 import com.xiuxian.game.mapper.UserMapper;
@@ -115,9 +117,11 @@ public class PlayerService {
             log.info("========== 玩家档案创建完成 ==========");
             return savedProfile;
 
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
             log.error("创建玩家档案失败: 用户名={}", user.getUsername(), e);
-            throw new RuntimeException("创建玩家档案失败: " + e.getMessage());
+            throw new BusinessException(ErrorCode.PLAYER_CREATE_FAILED);
         }
     }
 
@@ -125,42 +129,33 @@ public class PlayerService {
      * 根据ID获取玩家档案
      */
     public PlayerProfile getPlayerProfileById(Integer playerId) {
-        try {
-            log.info("获取玩家档案: ID={}", playerId);
-            PlayerProfile profile = playerProfileMapper.selectById(playerId);
-            if (profile == null) {
-                throw new RuntimeException("玩家档案不存在");
-            }
-            return profile;
-        } catch (Exception e) {
-            log.error("获取玩家档案失败: ID={}", playerId, e);
-            throw new RuntimeException("获取玩家档案失败: " + e.getMessage());
+        PlayerProfile profile = playerProfileMapper.selectById(playerId);
+        if (profile == null) {
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
         }
+        return profile;
     }
 
     /**
      * 获取当前登录玩家的档案
      */
     public PlayerProfile getCurrentPlayerProfile() {
-        try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication == null || !authentication.isAuthenticated()) {
-                throw new RuntimeException("用户未登录");
-            }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new BusinessException(ErrorCode.USER_NOT_LOGIN);
+        }
 
-            String username = authentication.getName();
-            log.info("获取当前玩家档案: {}", username);
+        String username = authentication.getName();
+        log.info("获取当前玩家档案: {}", username);
 
-            // 先通过用户名获取用户信息
-            User user = userMapper.selectByUsername(username);
-            if (user == null) {
-                throw new RuntimeException("用户不存在");
-            }
-            
-        // 然后通过用户ID获取玩家档案
+        User user = userMapper.selectByUsername(username);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+
         PlayerProfile profile = playerProfileMapper.selectByUserId(user.getId());
         if (profile == null) {
-            throw new RuntimeException("玩家档案不存在");
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
         }
         if (profile.getIsCultivating() == null) {
             profile.setIsCultivating(false);
@@ -170,23 +165,14 @@ public class PlayerService {
             awardStarterItems(profile.getId());
         }
         return profile;
-        } catch (Exception e) {
-            log.error("获取当前玩家档案失败", e);
-            throw new RuntimeException("获取当前玩家档案失败: " + e.getMessage());
-        }
     }
 
     /**
      * 获取当前登录玩家的ID
      */
     public Integer getCurrentPlayerId() {
-        try {
-            PlayerProfile profile = getCurrentPlayerProfile();
-            return profile.getId();
-        } catch (Exception e) {
-            log.error("获取当前玩家ID失败", e);
-            throw new RuntimeException("获取当前玩家ID失败: " + e.getMessage());
-        }
+        PlayerProfile profile = getCurrentPlayerProfile();
+        return profile.getId();
     }
 
     /**
@@ -197,142 +183,81 @@ public class PlayerService {
      */
     @Transactional
     public void cultivate() {
-        try {
-            PlayerProfile profile = getCurrentPlayerProfile();
-            log.info("========== 开始修炼 ==========");
-            log.info("玩家ID: {}, 昵称: {}, 当前等级: {}, 境界: {}", 
-                    profile.getId(), profile.getNickname(), profile.getLevel(), profile.getRealm());
-            log.info("当前修炼状态: {}", profile.getIsCultivating());
+        PlayerProfile profile = getCurrentPlayerProfile();
+        log.info("玩家开始修炼: ID={}, 等级={}, 境界={}", profile.getId(), profile.getLevel(), profile.getRealm());
 
-            // 确保isCultivating不为null，防止空指针异常
-            if (profile.getIsCultivating() == null) {
-                log.warn("修炼状态为null，自动设置为false");
-                profile.setIsCultivating(false);
-            }
-            
-            // 检查是否已在修炼中
-            if (profile.getIsCultivating()) {
-                log.info("玩家已在修炼中，忽略重复请求: ID={}", profile.getId());
-                return;
-            }
-
-            // 设置修炼状态
-            profile.setIsCultivating(true);
-            profile.setLastCultivationStart(LocalDateTime.now());
-            playerProfileMapper.updateById(profile);
-            
-            log.info("玩家开始修炼成功: ID={}, 开始时间={}", 
-                    profile.getId(), profile.getLastCultivationStart());
-            log.info("========== 修炼开始完成 ==========");
-        } catch (Exception e) {
-            log.error("开始修炼失败", e);
-            throw new RuntimeException("开始修炼失败: " + e.getMessage());
+        if (profile.getIsCultivating() == null) {
+            profile.setIsCultivating(false);
         }
+
+        if (profile.getIsCultivating()) {
+            log.info("玩家已在修炼中，忽略重复请求: ID={}", profile.getId());
+            return;
+        }
+
+        profile.setIsCultivating(true);
+        profile.setLastCultivationStart(LocalDateTime.now());
+        playerProfileMapper.updateById(profile);
+
+        log.info("玩家开始修炼成功: ID={}, 开始时间={}", profile.getId(), profile.getLastCultivationStart());
     }
 
     /**
      * 停止修炼
      * 结束修炼状态，计算修炼收益（经验、灵石等），检查升级，更新任务进度
-     * 
-     * @throws RuntimeException 当操作失败时抛出异常
      */
     @Transactional
     public void stopCultivate() {
-        try {
-            PlayerProfile profile = getCurrentPlayerProfile();
-            log.info("========== 停止修炼 ==========");
-            log.info("玩家ID: {}, 昵称: {}, 当前修炼状态: {}", 
-                    profile.getId(), profile.getNickname(), profile.getIsCultivating());
+        PlayerProfile profile = getCurrentPlayerProfile();
+        log.info("玩家停止修炼: ID={}, 修炼状态={}", profile.getId(), profile.getIsCultivating());
 
-            // 检查是否在修炼中
-            if (!profile.getIsCultivating()) {
-                profile.setIsCultivating(false);
-                playerProfileMapper.updateById(profile);
-                log.info("玩家未在修炼中，忽略停止请求: ID={}", profile.getId());
-                return;
-            }
-
-            LocalDateTime now = LocalDateTime.now();
-            LocalDateTime startTime = profile.getLastCultivationStart();
-            
-            if (startTime != null) {
-                // 1. 计算修炼时间（秒）
-                long cultivationTimeSeconds = java.time.Duration.between(startTime, now).getSeconds();
-                log.info("修炼时长: {}秒 ({}分钟)", cultivationTimeSeconds, cultivationTimeSeconds / 60);
-                
-                // 2. 限制最大修炼时间为24小时（防止异常情况）
-                long maxCultivationTime = 24 * 60 * 60; // 24小时
-                long actualCultivationTime = Math.min(cultivationTimeSeconds, maxCultivationTime);
-                
-                if (actualCultivationTime < cultivationTimeSeconds) {
-                    log.warn("修炼时间超过24小时，限制为24小时: 原始={}秒, 实际={}秒", 
-                            cultivationTimeSeconds, actualCultivationTime);
-                }
-                
-                // 3. 更新总修炼时间（分钟）
-                long cultivationTimeMinutes = actualCultivationTime / 60;
-                long oldTotalTime = profile.getTotalCultivationTime();
-                profile.setTotalCultivationTime(oldTotalTime + cultivationTimeMinutes);
-                log.info("总修炼时间更新: {}分钟 -> {}分钟", oldTotalTime, profile.getTotalCultivationTime());
-                
-                // 4. 计算修炼收益（每秒获得基础经验 * 修炼速度）
-                double baseExpPerSecond = 1.0; // 每秒获得1经验
-                double cultivationSpeedMultiplier = profile.getCultivationSpeed().doubleValue();
-                long expGained = (long) (actualCultivationTime * baseExpPerSecond * cultivationSpeedMultiplier);
-                
-                // 5. 限制单次修炼最大经验获得（根据配置的最大修炼时间）
-                long maxExpPerCultivation = 24 * 60 * 60 * (long) baseExpPerSecond * (long) cultivationSpeedMultiplier; // 24小时最大经验
-                if (expGained > maxExpPerCultivation) {
-                    log.warn("单次修炼经验超过上限，限制为{}: 原始={}, 实际={}", 
-                            maxExpPerCultivation, expGained, maxExpPerCultivation);
-                    expGained = maxExpPerCultivation;
-                }
-                
-                // 6. 增加经验
-                long oldExp = profile.getExp();
-                profile.setExp(oldExp + expGained);
-                log.info("经验增加: {} -> {} (+{})", oldExp, profile.getExp(), expGained);
-                
-                // 7. 检查是否升级
-                int oldLevel = profile.getLevel();
-                String oldRealm = profile.getRealm();
-                checkLevelUp(profile);
-                if (profile.getLevel() > oldLevel) {
-                    log.info("玩家升级: {}级 -> {}级, 境界: {} -> {}", 
-                            oldLevel, profile.getLevel(), oldRealm, profile.getRealm());
-                }
-
-                // 8. 更新任务进度
-                try {
-                    log.info("更新任务进度...");
-                    // 更新每日修炼任务进度（完成1次修炼）
-                    questProgressService.updateQuestProgressByType(
-                            profile.getId(), com.xiuxian.game.entity.Quest.QuestType.DAILY, 1);
-                    // 更新每周修炼进度（累计修炼时间，单位：秒）
-                    questProgressService.updateQuestProgressByType(
-                            profile.getId(), com.xiuxian.game.entity.Quest.QuestType.WEEKLY, (int) actualCultivationTime);
-                    // 更新每月任务进度（完成1次修炼）
-                    questProgressService.updateQuestProgressByType(
-                            profile.getId(), com.xiuxian.game.entity.Quest.QuestType.MONTHLY, 1);
-                    log.info("任务进度更新成功");
-                } catch (Exception qe) {
-                    log.error("更新任务进度失败: {}", qe.getMessage(), qe);
-                }
-            } else {
-                log.warn("修炼开始时间为null，无法计算收益");
-            }
-
-            // 9. 更新修炼状态
+        if (!profile.getIsCultivating()) {
             profile.setIsCultivating(false);
-            profile.setLastCultivationEnd(now);
             playerProfileMapper.updateById(profile);
-            
-            log.info("玩家停止修炼成功: ID={}, 结束时间={}", profile.getId(), now);
-            log.info("========== 修炼停止完成 ==========");
-        } catch (Exception e) {
-            log.error("停止修炼失败", e);
-            throw new RuntimeException("停止修炼失败: " + e.getMessage());
+            log.info("玩家未在修炼中，忽略停止请求: ID={}", profile.getId());
+            return;
         }
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startTime = profile.getLastCultivationStart();
+
+        if (startTime != null) {
+            long cultivationTimeSeconds = java.time.Duration.between(startTime, now).getSeconds();
+            long maxCultivationTime = 24 * 60 * 60;
+            long actualCultivationTime = Math.min(cultivationTimeSeconds, maxCultivationTime);
+
+            long cultivationTimeMinutes = actualCultivationTime / 60;
+            long oldTotalTime = profile.getTotalCultivationTime() == null ? 0 : profile.getTotalCultivationTime();
+            profile.setTotalCultivationTime(oldTotalTime + cultivationTimeMinutes);
+
+            double baseExpPerSecond = 1.0;
+            double cultivationSpeedMultiplier = profile.getCultivationSpeed().doubleValue();
+            long expGained = (long) (actualCultivationTime * baseExpPerSecond * cultivationSpeedMultiplier);
+
+            profile.setExp(profile.getExp() + expGained);
+            log.info("修炼收益: 时长={}s, 经验+{}", actualCultivationTime, expGained);
+
+            int oldLevel = profile.getLevel();
+            checkLevelUp(profile);
+            if (profile.getLevel() > oldLevel) {
+                log.info("玩家升级: {}级 -> {}级", oldLevel, profile.getLevel());
+            }
+
+            try {
+                questProgressService.updateQuestProgressByType(profile.getId(), com.xiuxian.game.entity.Quest.QuestType.DAILY, 1);
+                questProgressService.updateQuestProgressByType(profile.getId(), com.xiuxian.game.entity.Quest.QuestType.WEEKLY, (int) actualCultivationTime);
+                questProgressService.updateQuestProgressByType(profile.getId(), com.xiuxian.game.entity.Quest.QuestType.MONTHLY, 1);
+            } catch (Exception qe) {
+                log.warn("更新任务进度失败: {}", qe.getMessage());
+            }
+        } else {
+            log.warn("修炼开始时间为null，无法计算收益");
+        }
+
+        profile.setIsCultivating(false);
+        profile.setLastCultivationEnd(now);
+        playerProfileMapper.updateById(profile);
+        log.info("玩家停止修炼成功: ID={}", profile.getId());
     }
 
     /**
@@ -340,13 +265,8 @@ public class PlayerService {
      */
     @Transactional
     public void savePlayerProfile(PlayerProfile playerProfile) {
-        try {
-            playerProfileMapper.updateById(playerProfile);
-            log.info("保存玩家档案成功: ID={}", playerProfile.getId());
-        } catch (Exception e) {
-            log.error("保存玩家档案失败: ID={}", playerProfile.getId(), e);
-            throw new RuntimeException("保存玩家档案失败: " + e.getMessage());
-        }
+        playerProfileMapper.updateById(playerProfile);
+        log.debug("保存玩家档案成功: ID={}", playerProfile.getId());
     }
 
     /**

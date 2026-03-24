@@ -4,6 +4,8 @@ import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.entity.PlayerProfile;
 import com.xiuxian.game.entity.PlayerSkill;
 import com.xiuxian.game.entity.Skill;
+import com.xiuxian.game.entity.SkillCombo;
+import com.xiuxian.game.dto.SkillComboResult;
 import com.xiuxian.game.service.PlayerService;
 import com.xiuxian.game.dto.response.SkillResponse;
 import com.xiuxian.game.service.SkillService;
@@ -15,6 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -192,6 +195,69 @@ public class SkillController {
             
             int manaCost = skillService.getSkillManaCost(targetSkill);
             return ResponseEntity.ok(ApiResponse.success("获取成功", manaCost));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    // ==================== 技能连招相关API ====================
+
+    /**
+     * 获取玩家可用的连招列表
+     */
+    @GetMapping("/combos/available")
+    public ResponseEntity<ApiResponse<List<SkillCombo>>> getAvailableCombos() {
+        try {
+            PlayerProfile player = getCurrentPlayerProfile();
+            List<SkillCombo> combos = skillService.getAvailableCombos(player.getId());
+            return ResponseEntity.ok(ApiResponse.success("获取成功", combos));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    /**
+     * 获取所有激活的连招
+     */
+    @GetMapping("/combos/all")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getAllCombos() {
+        try {
+            List<SkillCombo> combos = skillService.getAllActiveCombos();
+            List<Map<String, Object>> comboInfos = combos.stream()
+                    .map(skillService::getComboInfo)
+                    .toList();
+            return ResponseEntity.ok(ApiResponse.success("获取成功", comboInfos));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    /**
+     * 获取玩家的连招统计
+     */
+    @GetMapping("/combos/stats")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getComboStats() {
+        try {
+            PlayerProfile player = getCurrentPlayerProfile();
+            Map<String, Object> stats = skillService.getPlayerComboStats(player.getId());
+            return ResponseEntity.ok(ApiResponse.success("获取成功", stats));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    /**
+     * 检测技能使用后是否触发连招（用于战斗系统）
+     */
+    @PostMapping("/combos/check")
+    public ResponseEntity<ApiResponse<SkillComboResult>> checkCombo(
+            @RequestParam Integer skillId,
+            @RequestParam(defaultValue = "0") Integer baseDamage) {
+        try {
+            PlayerProfile player = getCurrentPlayerProfile();
+            SkillComboResult result = skillService.checkAndTriggerCombo(player.getId(), skillId, baseDamage);
+            return ResponseEntity.ok(ApiResponse.success(
+                    result.isTriggered() ? "连招触发！" : "未触发连招", result));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }

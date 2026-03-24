@@ -5,6 +5,8 @@ import com.xiuxian.game.dto.request.RegisterRequest;
 import com.xiuxian.game.dto.response.LoginResponse;
 import com.xiuxian.game.entity.PlayerProfile;
 import com.xiuxian.game.entity.User;
+import com.xiuxian.game.exception.BusinessException;
+import com.xiuxian.game.exception.ErrorCode;
 import com.xiuxian.game.mapper.PlayerProfileMapper;
 import com.xiuxian.game.mapper.UserMapper;
 import com.xiuxian.game.security.JwtTokenProvider;
@@ -12,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -24,9 +27,9 @@ import java.time.LocalDateTime;
 /**
  * 认证服务类
  * 负责用户注册、登录、登出等认证相关功能
- * 
+ *
  * @author xiuxian
- * @version 1.0
+ * @version 1.1
  */
 @Slf4j
 @Service
@@ -39,130 +42,166 @@ public class AuthService {
     private final JwtTokenProvider tokenProvider;
     private final AuthenticationManager authenticationManager;
     private final PlayerService playerService;
-    
+
+    /**
+     * 管理员用户名（来自配置文件）
+     * 注意：此处仅读取用户名用于查找账号，密码对比通过 BCrypt 哈希完成
+     */
     @Value("${spring.security.user.name:admin}")
     private String adminUsername;
-    
+
+    /**
+     * 管理员密码（来自配置文件，明文）
+     * 仅用于初次创建管理员账号时加密存储，登录时通过 BCrypt 匹配
+     */
     @Value("${spring.security.user.password:password}")
-    private String adminPassword;
+    private String adminPasswordPlain;
+
+    // =====================================================================
+    // 公开 API
+    // =====================================================================
 
     /**
      * 用户注册
-     * 
+     *
      * @param request 注册请求，包含用户名、密码、邮箱、昵称
-     * @return 登录响应，包含JWT令牌和用户信息
-     * @throws RuntimeException 当用户名或邮箱已存在时抛出异常
+     * @return 登录响应，包含 JWT 令牌和用户信息
+     * @throws BusinessException 当用户名或邮箱已存在时
      */
     @Transactional
     public LoginResponse register(RegisterRequest request) {
-        try {
-            log.info("========== 开始用户注册流程 ==========");
-            log.info("注册用户名: {}, 邮箱: {}, 昵称: {}", 
-                    request.getUsername(), request.getEmail(), request.getNickname());
+        log.info("开始注册流程: username={}, email={}", request.getUsername(), request.getEmail());
 
-            // 1. 检查用户名是否已存在
-            User existingUserByUsername = userMapper.selectByUsername(request.getUsername());
-            if (existingUserByUsername != null) {
-                log.warn("注册失败: 用户名已存在 - {}", request.getUsername());
-                throw new RuntimeException("用户名已存在");
-            }
-
-            // 2. 检查邮箱是否已存在
-            User existingUserByEmail = userMapper.selectByEmail(request.getEmail());
-            if (existingUserByEmail != null) {
-                log.warn("注册失败: 邮箱已被使用 - {}", request.getEmail());
-                throw new RuntimeException("邮箱已被使用");
-            }
-
-            // 3. 创建用户账号
-            log.info("创建用户账号...");
-            User user = User.builder()
-                    .username(request.getUsername())
-                    .password(passwordEncoder.encode(request.getPassword()))
-                    .email(request.getEmail())
-                    .role("USER")
-                    .mustChangePassword(false)
-                    .createdAt(LocalDateTime.now())
-                    .updatedAt(LocalDateTime.now())
-                    .build();
-
-            userMapper.insert(user);
-            log.info("用户账号创建成功: ID={}, 用户名={}", user.getId(), user.getUsername());
-
-            // 4. 创建玩家档案
-            log.info("创建玩家档案...");
-            PlayerProfile playerProfile = playerService.createNewPlayer(user, request.getNickname());
-            log.info("玩家档案创建成功: ID={}, 昵称={}, 等级={}", 
-                    playerProfile.getId(), playerProfile.getNickname(), playerProfile.getLevel());
-
-            // 5. 生成JWT令牌
-            log.info("生成JWT令牌...");
-            String token = tokenProvider.generateToken(user.getUsername());
-            log.info("JWT令牌生成成功");
-
-            // 6. 构建响应
-            LoginResponse response = buildLoginResponse(user, playerProfile, token);
-            log.info("========== 用户注册成功 ==========");
-            
-            return response;
-
-        } catch (RuntimeException e) {
-            log.error("注册失败: {}", e.getMessage());
-            throw e;
-        } catch (Exception e) {
-            log.error("注册过程发生异常: 用户名={}", request.getUsername(), e);
-            throw new RuntimeException("注册失败: " + e.getMessage());
+        // 1. 检查用户名唯一性
+        if (userMapper.selectByUsername(request.getUsername()) != null) {
+            log.warn("注册失败: 用户名已存在 - {}", request.getUsername());
+            throw new BusinessException(ErrorCode.USERNAME_ALREADY_EXISTS);
         }
+
+        // 2. 检查邮箱唯一性
+        if (userMapper.selectByEmail(request.getEmail()) != null) {
+            log.warn("注册失败: 邮箱已被使用 - {}", request.getEmail());
+            throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS);
+        }
+
+        // 3. 创建用户账号（密码 BCrypt 加密）
+        User user = User.builder()
+                .username(request.getUsername())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .email(request.getEmail())
+                .role("USER")
+                .mustChangePassword(false)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+        userMapper.insert(user);
+        log.debug("用户账号创建成功: id={}", user.getId());
+
+        // 4. 创建玩家档案
+        PlayerProfile playerProfile = playerService.createNewPlayer(user, request.getNickname());
+        log.debug("玩家档案创建成功: id={}, nickname={}", playerProfile.getId(), playerProfile.getNickname());
+
+        // 5. 生成 JWT 令牌
+        String token = tokenProvider.generateToken(user.getUsername());
+
+        log.info("注册成功: username={}", user.getUsername());
+        return buildLoginResponse(user, playerProfile, token);
     }
 
     /**
      * 用户登录
-     * 
+     *
      * @param request 登录请求，包含用户名、密码和用户类型
-     * @return 登录响应，包含JWT令牌和用户信息
-     * @throws RuntimeException 当用户名或密码错误时抛出异常
+     * @return 登录响应，包含 JWT 令牌和用户信息
+     * @throws BusinessException 当认证失败时
      */
-    @Transactional
     public LoginResponse login(LoginRequest request) {
-        try {
-            log.info("========== 开始用户登录流程 ==========");
-            log.info("登录用户名: {}, 用户类型: {}", request.getUsername(), request.getUserType());
-
-            // 检查是否为管理员登录
-            if ("admin".equals(request.getUserType())) {
-                return handleAdminLogin(request);
-            } else {
-                return handlePlayerLogin(request);
-            }
-
-        } catch (RuntimeException e) {
-            log.error("登录失败: {}", e.getMessage());
-            throw e;
-        } catch (Exception e) {
-            log.error("登录过程发生异常: 用户名={}", request.getUsername(), e);
-            throw new RuntimeException("登录失败: " + e.getMessage());
+        log.info("登录请求: username={}, userType={}", request.getUsername(), request.getUserType());
+        if ("admin".equals(request.getUserType())) {
+            return handleAdminLogin(request);
+        } else {
+            return handlePlayerLogin(request);
         }
     }
-    
+
     /**
-     * 处理管理员登录
+     * 根据用户名查询用户
+     *
+     * @param username 用户名
+     * @return 用户实体
+     * @throws BusinessException 用户不存在时
      */
-    private LoginResponse handleAdminLogin(LoginRequest request) {
-        log.info("处理管理员登录: {}", request.getUsername());
-        
-        // 验证管理员凭证（使用配置文件中的凭证）
-        if (!adminUsername.equals(request.getUsername()) || !adminPassword.equals(request.getPassword())) {
-            log.error("管理员登录失败: 用户名或密码错误");
-            throw new RuntimeException("管理员用户名或密码错误");
+    public User getUserByUsername(String username) {
+        User user = userMapper.selectByUsername(username);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
-        
-        // 检查或创建管理员用户记录
+        return user;
+    }
+
+    /**
+     * 获取当前登录用户
+     *
+     * @return 当前用户实体
+     * @throws BusinessException 未登录或用户不存在时
+     */
+    public User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new BusinessException(ErrorCode.USER_NOT_LOGIN);
+        }
+        String username = authentication.getName();
+        User user = userMapper.selectByUsername(username);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+        return user;
+    }
+
+    /**
+     * 用户登出
+     * 清除 SecurityContext 中的认证信息
+     */
+    public void logout() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null) {
+            log.info("用户登出: {}", authentication.getName());
+            SecurityContextHolder.clearContext();
+        }
+    }
+
+    // =====================================================================
+    // 私有方法
+    // =====================================================================
+
+    /**
+     * 管理员登录处理
+     *
+     * <p>安全说明：</p>
+     * <ul>
+     *   <li>管理员账号首次登录时自动创建，密码以 BCrypt 哈希形式存储</li>
+     *   <li>后续登录使用 BCrypt 匹配，不做明文比较</li>
+     *   <li>配置文件中的明文密码仅在初始化时用于加密，不参与实际对比</li>
+     * </ul>
+     */
+    @Transactional
+    private LoginResponse handleAdminLogin(LoginRequest request) {
+        log.info("管理员登录: {}", request.getUsername());
+
+        // 用户名校验（快速失败）
+        if (!adminUsername.equals(request.getUsername())) {
+            log.warn("管理员登录失败: 用户名不匹配");
+            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
+        }
+
+        // 查找或初始化管理员账号
         User adminUser = userMapper.selectByUsername(request.getUsername());
         if (adminUser == null) {
-            log.info("创建管理员用户记录");
+            // 首次登录：创建管理员账号，密码加密存储
+            log.info("首次登录，初始化管理员账号");
             adminUser = User.builder()
                     .username(request.getUsername())
-                    .password(passwordEncoder.encode(request.getPassword()))
+                    .password(passwordEncoder.encode(adminPasswordPlain))
                     .email("admin@xiuxian.game")
                     .role("ADMIN")
                     .mustChangePassword(false)
@@ -170,92 +209,70 @@ public class AuthService {
                     .updatedAt(LocalDateTime.now())
                     .build();
             userMapper.insert(adminUser);
-            log.info("管理员用户记录创建成功: ID={}", adminUser.getId());
+            log.debug("管理员账号创建完成: id={}", adminUser.getId());
         }
-        
-        // 生成JWT令牌
-        String token = tokenProvider.generateToken(adminUser.getUsername());
-        
+
+        // 使用 BCrypt 安全比对密码（不做明文比较）
+        if (!passwordEncoder.matches(request.getPassword(), adminUser.getPassword())) {
+            log.warn("管理员登录失败: 密码错误, username={}", request.getUsername());
+            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
+        }
+
         // 更新最后登录时间
         adminUser.setUpdatedAt(LocalDateTime.now());
         userMapper.updateById(adminUser);
-        
-        // 构建响应（管理员不需要玩家档案）
-        LoginResponse response = buildLoginResponse(adminUser, null, token);
-        log.info("========== 管理员登录成功 ==========");
-        
-        return response;
+
+        String token = tokenProvider.generateToken(adminUser.getUsername());
+        log.info("管理员登录成功: {}", adminUser.getUsername());
+        return buildLoginResponse(adminUser, null, token);
     }
-    
+
     /**
-     * 处理普通用户登录
+     * 普通玩家登录处理
+     * 委托给 Spring Security AuthenticationManager 完成认证
      */
+    @Transactional
     private LoginResponse handlePlayerLogin(LoginRequest request) {
-        log.info("处理普通用户登录: {}", request.getUsername());
-        
-        // 使用Spring Security进行身份认证
-        log.info("开始身份认证...");
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
-        );
+        log.info("玩家登录: {}", request.getUsername());
 
-        // 将认证信息存入安全上下文
+        // Spring Security 统一认证（会抛出 BadCredentialsException）
+        Authentication authentication;
+        try {
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+            );
+        } catch (BadCredentialsException e) {
+            log.warn("玩家登录失败: 用户名或密码错误, username={}", request.getUsername());
+            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
+        }
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        log.info("用户认证成功: {}", request.getUsername());
 
-        // 获取用户完整信息
-        log.info("获取用户信息...");
+        // 获取完整用户信息
         User user = userMapper.selectByUsername(request.getUsername());
         if (user == null) {
-            log.error("认证成功但用户不存在: {}", request.getUsername());
-            throw new RuntimeException("用户不存在");
+            // 理论上不应发生（认证通过则用户必存在），防御性处理
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
-        log.info("用户信息获取成功: ID={}, 角色={}", user.getId(), user.getRole());
 
         // 获取玩家档案
-        log.info("获取玩家档案...");
         PlayerProfile playerProfile = playerProfileMapper.selectByUserId(user.getId());
-        if (playerProfile != null) {
-            log.info("玩家档案获取成功: ID={}, 昵称={}, 等级={}, 境界={}", 
-                    playerProfile.getId(), playerProfile.getNickname(), 
-                    playerProfile.getLevel(), playerProfile.getRealm());
-        } else {
+        if (playerProfile == null) {
             log.warn("用户 {} 没有玩家档案", user.getUsername());
         }
-
-        // 生成JWT令牌
-        log.info("生成JWT令牌...");
-        String token = tokenProvider.generateToken(user.getUsername());
-        log.info("JWT令牌生成成功");
 
         // 更新最后登录时间
         user.setUpdatedAt(LocalDateTime.now());
         userMapper.updateById(user);
-        log.info("更新最后登录时间");
 
-        // 构建响应
-        LoginResponse response = buildLoginResponse(user, playerProfile, token);
-        log.info("========== 普通用户登录成功 ==========");
-        
-        return response;
-    }
+        // 生成 JWT 令牌
+        String token = tokenProvider.generateToken(user.getUsername());
 
-    public User getUserByUsername(String username) {
-        try {
-            log.info("根据用户名查询用户: {}", username);
-            User user = userMapper.selectByUsername(username);
-            if (user == null) {
-                throw new RuntimeException("用户不存在");
-            }
-            return user;
-        } catch (Exception e) {
-            log.error("查询用户失败: {}", username, e);
-            throw new RuntimeException("获取用户信息失败: " + e.getMessage());
-        }
+        log.info("玩家登录成功: username={}", user.getUsername());
+        return buildLoginResponse(user, playerProfile, token);
     }
 
     /**
-     * 构建登录响应
+     * 构建统一登录响应
      */
     private LoginResponse buildLoginResponse(User user, PlayerProfile playerProfile, String token) {
         LoginResponse.LoginResponseBuilder builder = LoginResponse.builder()
@@ -284,49 +301,5 @@ public class AuthService {
         }
 
         return builder.build();
-    }
-
-    /**
-     * 获取当前登录用户
-     */
-    public User getCurrentUser() {
-        try {
-            org.springframework.security.core.Authentication authentication = 
-                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-            
-            if (authentication == null || !authentication.isAuthenticated()) {
-                throw new RuntimeException("用户未登录");
-            }
-
-            String username = authentication.getName();
-            log.info("获取当前用户: {}", username);
-            
-            User user = userMapper.selectByUsername(username);
-            if (user == null) {
-                throw new RuntimeException("用户不存在");
-            }
-            return user;
-        } catch (Exception e) {
-            log.error("获取当前用户失败", e);
-            throw new RuntimeException("获取当前用户失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 用户登出
-     */
-    public void logout() {
-        try {
-            org.springframework.security.core.Authentication authentication = 
-                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-            
-            if (authentication != null) {
-                SecurityContextHolder.clearContext();
-                log.info("用户登出成功: {}", authentication.getName());
-            }
-        } catch (Exception e) {
-            log.error("登出失败", e);
-            throw new RuntimeException("登出失败: " + e.getMessage());
-        }
     }
 }

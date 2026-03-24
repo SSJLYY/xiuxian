@@ -12,6 +12,16 @@ public enum ErrorCode {
     UNAUTHORIZED(1002, "未授权"),
     FORBIDDEN(1003, "无权限"),
     NOT_FOUND(1004, "资源不存在"),
+
+    // 用户/认证系统 1100-1199
+    USER_NOT_FOUND(1100, "用户不存在"),
+    USER_NOT_LOGIN(1101, "用户未登录"),
+    USERNAME_ALREADY_EXISTS(1102, "用户名已存在"),
+    EMAIL_ALREADY_EXISTS(1103, "邮箱已被使用"),
+    INVALID_CREDENTIALS(1104, "用户名或密码错误"),
+    ACCOUNT_LOCKED(1105, "账号已被锁定"),
+    REGISTER_FAILED(1106, "注册失败"),
+    LOGIN_FAILED(1107, "登录失败"),
     
     // 邮件系统 2000-2099
     MAIL_NOT_FOUND(2000, "邮件不存在"),
@@ -58,6 +68,8 @@ public enum ErrorCode {
     // VIP系统 2600-2699
     VIP_REWARD_ALREADY_CLAIMED(2600, "今日VIP奖励已领取"),
     RECHARGE_FAILED(2601, "充值失败"),
+    RECHARGE_ORDER_NOT_FOUND(2602, "充值订单不存在"),
+    RECHARGE_ORDER_STATUS_INVALID(2603, "充值订单状态异常"),
     
     // 活动系统 2700-2799
     ACTIVITY_NOT_FOUND(2700, "活动不存在"),
@@ -71,10 +83,50 @@ public enum ErrorCode {
     GIFT_CODE_USED(2802, "礼包码已使用"),
     GIFT_CODE_LEVEL_NOT_ENOUGH(2803, "等级不足"),
     
+    // 商店系统 2850-2899
+    SHOP_ITEM_NOT_FOUND(2850, "商品不存在"),
+    SHOP_ITEM_NOT_AVAILABLE(2851, "商品不可用"),
+    SHOP_ITEM_OUT_OF_STOCK(2852, "库存不足"),
+    SHOP_INSUFFICIENT_SPIRIT_STONES(2853, "灵石不足"),
+    SHOP_INSUFFICIENT_CONTRIBUTION(2854, "贡献点不足"),
+    SHOP_SKILL_ALREADY_OWNED(2855, "已拥有该技能"),
+    SHOP_SKILL_LEVEL_NOT_ENOUGH(2856, "等级不足，无法购买技能"),
+    
     // 管理员系统 2900-2999
     ADMIN_OPERATION_FAILED(2900, "管理员操作失败"),
     PLAYER_NOT_FOUND(2901, "玩家不存在"),
-    PLAYER_ALREADY_BANNED(2902, "玩家已被封禁");
+    PLAYER_ALREADY_BANNED(2902, "玩家已被封禁"),
+    PLAYER_CREATE_FAILED(2903, "创建玩家档案失败"),
+    PLAYER_GET_FAILED(2904, "获取玩家档案失败"),
+
+    // 叙事系统 3000-3099
+    NPC_NOT_FOUND(3000, "NPC不存在"),
+    DIALOGUE_NOT_FOUND(3001, "对话不存在"),
+    DIALOGUE_PREREQUISITES_NOT_MET(3002, "不满足对话前置条件"),
+    DIALOGUE_ALREADY_COMPLETED(3003, "对话已完成"),
+    DIALOGUE_NOT_IN_PROGRESS(3004, "对话未在进行中"),
+    LORE_NOT_FOUND(3005, "传说条目不存在"),
+    LORE_ALREADY_DISCOVERED(3006, "传说已被发现"),
+    
+    // 地图/关卡系统 3100-3199
+    MAP_NOT_FOUND(3100, "地图不存在"),
+    MAP_NOT_UNLOCKED(3101, "地图未解锁"),
+    MAP_REQUIREMENTS_NOT_MET(3102, "不满足地图进入条件"),
+    MAP_ALREADY_CURRENT(3103, "已在该地图中"),
+    OFFLINE_HANGING_NOT_ALLOWED(3104, "当前地图不允许离线挂机"),
+    PET_HUNGER_TOO_LOW(3105, "宠物饱食度过低，无法在高风险地图挂机"),
+
+    // 宗门BOSS系统 3200-3299
+    GUILD_BOSS_NOT_FOUND(3200, "宗门BOSS不存在"),
+    GUILD_BOSS_ALREADY_DEFEATED(3201, "宗门BOSS已被击败，等待下次刷新"),
+    GUILD_BOSS_DAILY_LIMIT_REACHED(3202, "今日挑战次数已用完"),
+    GUILD_BOSS_NO_CONTRIBUTION(3203, "你未参与本次BOSS讨伐"),
+    GUILD_BOSS_REWARD_CLAIMED(3204, "BOSS奖励已领取"),
+    GUILD_BOSS_NOT_DEFEATED(3205, "BOSS尚未被击败"),
+
+    // 签到系统 3300-3399
+    CHECK_IN_ALREADY_DONE(3300, "今日已签到"),
+    CHECK_IN_MAKEUP_NOT_ALLOWED(3301, "补签功能未开放");
     
     private final int code;
     private final String message;

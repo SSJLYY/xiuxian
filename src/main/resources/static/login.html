@@ -17,7 +17,7 @@
                 <button class="tab-btn active" onclick="showLogin()">登录</button>
                 <button class="tab-btn" onclick="showRegister()">注册</button>
             </div>
-            <div id="loginForm" class="form-content">
+            <div id="loginForm" class="form-content" style="display: block;">
                 <div class="input-group">
                     <i class="fa-solid fa-user"></i>
                     <input type="text" id="loginUsername" placeholder="用户名" required>
@@ -26,7 +26,7 @@
                     <i class="fa-solid fa-lock"></i>
                     <input type="password" id="loginPassword" placeholder="密码" required>
                 </div>
-                <button class="btn btn-primary" onclick="login(event)"><i class="fa-solid fa-right-to-bracket"></i> 登录</button>
+                <button class="btn btn-primary" id="loginBtn" onclick="window.login()"><i class="fa-solid fa-right-to-bracket"></i> 登录</button>
                 
                 <!-- 管理员登录链接 -->
                 <div class="text-center mt-4">
@@ -64,5 +64,20 @@
     <div id="loading" class="loading hidden"><div class="spinner"></div><span>加载中...</span></div>
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
+    <script>
+        console.log('gameAPI:', typeof gameAPI);
+        console.log('authManager:', typeof authManager);
+        console.log('authManagerInstance:', typeof window.authManagerInstance);
+        
+        document.getElementById('loginBtn').addEventListener('click', function() {
+            console.log('登录按钮被点击');
+            console.log('gameAPI:', gameAPI);
+            if (gameAPI && window.authManagerInstance) {
+                window.authManagerInstance.login();
+            } else {
+                alert('gameAPI: ' + typeof gameAPI + ', authManager: ' + typeof window.authManagerInstance);
+            }
+        });
+    </script>
 </body>
 </html>

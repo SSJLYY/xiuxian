@@ -16,13 +16,27 @@ import java.util.Map;
 
 /**
  * 全局异常处理器
+ *
+ * <p>异常处理优先级说明（从最具体到最通用）：</p>
+ * <ol>
+ *   <li>BusinessException - 业务异常，携带结构化错误码</li>
+ *   <li>MethodArgumentNotValidException - 参数校验失败</li>
+ *   <li>IllegalArgumentException - 非法参数</li>
+ *   <li>BadCredentialsException - 认证失败</li>
+ *   <li>AccessDeniedException - 权限不足</li>
+ *   <li>Exception - 所有未捕获异常的兜底处理</li>
+ * </ol>
+ *
+ * <p>注意：不要单独添加 RuntimeException 处理器，否则会拦截掉 BusinessException 等子类，
+ * 导致错误码丢失。所有非业务异常统一由 Exception 兜底处理。</p>
  */
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     /**
-     * 处理业务异常
+     * 处理业务异常（最高优先级）
+     * BusinessException 携带结构化错误码，返回 200 + 业务错误码，便于前端区分
      */
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException ex) {
@@ -32,7 +46,8 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 处理参数校验异常
+     * 处理参数校验异常（@Valid 校验失败）
+     * 收集所有字段错误并以 Map 形式返回，方便前端精确定位
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(
@@ -43,6 +58,7 @@ public class GlobalExceptionHandler {
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
+        log.warn("参数校验失败: {}", errors);
         return ResponseEntity.badRequest()
                 .body(ApiResponse.error("参数校验失败", errors));
     }
@@ -58,16 +74,6 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 处理访问拒绝异常
-     */
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
-        log.warn("访问被拒绝: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(ApiResponse.error("没有权限访问该资源"));
-    }
-
-    /**
      * 处理认证失败异常
      */
     @ExceptionHandler(BadCredentialsException.class)
@@ -78,32 +84,25 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 处理空指针异常
+     * 处理访问拒绝异常
      */
-    @ExceptionHandler(NullPointerException.class)
-    public ResponseEntity<ApiResponse<Void>> handleNullPointer(NullPointerException ex) {
-        log.error("空指针异常", ex);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error("系统内部错误，请稍后重试"));
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
+        log.warn("访问被拒绝: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.error("没有权限访问该资源"));
     }
 
     /**
-     * 处理所有未捕获的异常
+     * 兜底处理所有未被上面捕获的异常
+     *
+     * <p>包含 RuntimeException、NullPointerException 等所有未处理异常。
+     * 不对外暴露内部错误细节（安全考虑），仅记录完整堆栈到日志。</p>
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleAllExceptions(Exception ex) {
-        log.error("未处理的异常", ex);
+        log.error("未处理的异常: {}", ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error("系统内部错误: " + ex.getMessage()));
-    }
-
-    /**
-     * 处理运行时异常
-     */
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ApiResponse<Void>> handleRuntimeException(RuntimeException ex) {
-        log.error("运行时异常: {}", ex.getMessage(), ex);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error("操作失败: " + ex.getMessage()));
+                .body(ApiResponse.error("系统内部错误，请稍后重试"));
     }
 }

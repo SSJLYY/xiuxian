@@ -15,4 +15,7 @@ public interface CombatLogMapper extends BaseMapper<CombatLog> {
     
     @Select("SELECT * FROM combat_logs WHERE player_id = #{playerId} AND result = 'WIN' ORDER BY created_at DESC")
     List<CombatLog> selectWinsByPlayerId(Integer playerId);
+    
+    @Select("SELECT COUNT(*) FROM combat_logs WHERE player_id = #{playerId}")
+    long countByPlayerId(Integer playerId);
 }

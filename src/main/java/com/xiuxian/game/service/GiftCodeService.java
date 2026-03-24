@@ -144,7 +144,8 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
                 }
             }
         } catch (Exception e) {
-            throw new RuntimeException("奖励发放失败: " + e.getMessage(), e);
+            throw new com.xiuxian.game.exception.BusinessException(
+                    com.xiuxian.game.exception.ErrorCode.SYSTEM_ERROR);
         }
     }
 

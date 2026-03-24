@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @ConditionalOnProperty(value = "app.features.equipment.enabled", havingValue = "true")
@@ -31,6 +32,11 @@ public class EquipmentService {
     private final EquipmentMapper equipmentMapper;
     private final PlayerEquipmentMapper playerEquipmentMapper;
     private final PlayerProfileMapper playerProfileMapper;
+
+    // 使用 ThreadLocalRandom 替代共享 Random 实例（单例安全问题）
+    private static ThreadLocalRandom rng() {
+        return ThreadLocalRandom.current();
+    }
 
     public List<Equipment> getAllEquipments() {
         return equipmentMapper.selectList(null);
@@ -416,7 +422,7 @@ public class EquipmentService {
 
         // 强化成功率：100% - 强化等级*3%
         int successRate = Math.max(50, 100 - currentLevel * 3);
-        boolean success = new java.util.Random().nextInt(100) < successRate;
+        boolean success = rng().nextInt(100) < successRate;
 
         // 扣除灵石
         player.setSpiritStones(player.getSpiritStones() - enhanceCost);

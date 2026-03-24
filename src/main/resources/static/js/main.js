@@ -27,6 +27,18 @@ function initializeModules() {
     
     // 初始化导航栏
     initializeNavigation();
+    
+    // 初始化技能连招系统
+    if (typeof SkillComboSystem !== 'undefined') {
+        window.skillComboSystem = new SkillComboSystem();
+        console.log('技能连招系统已初始化');
+    }
+    
+    // 初始化宠物进化系统
+    if (typeof PetEvolutionSystem !== 'undefined') {
+        window.petEvolutionSystem = new PetEvolutionSystem();
+        console.log('宠物进化系统已初始化');
+    }
 }
 
 // 显示登录表单

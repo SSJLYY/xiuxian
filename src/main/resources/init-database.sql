@@ -16,7 +16,7 @@ USE xiuxian_game;
 -- 设置会话参数
 SET FOREIGN_KEY_CHECKS=0;
 SET NAMES utf8mb4;
-SET sql_mode = 'STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO';
+SET sql_mode = 'STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO,ONLY_FULL_GROUP_BY';
 
 -- 设置时区
 SET time_zone = '+08:00';
@@ -64,7 +64,7 @@ CREATE TABLE `player_profiles` (
   `exp_to_next` bigint NOT NULL DEFAULT '100' COMMENT '升级所需经验',
   `realm` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '练气期' COMMENT '境界',
   `cultivation_speed` decimal(10,2) NOT NULL DEFAULT '1.00' COMMENT '修炼速度',
-  `spirit_stones` bigint NOT NULL DEFAULT '1000' COMMENT '灵石',
+  `spirit_stones` bigint NOT NULL DEFAULT '2000' COMMENT '灵石',
   `cultivation_points` bigint NOT NULL DEFAULT '0' COMMENT '修炼点数',
   `contribution_points` bigint NOT NULL DEFAULT '0' COMMENT '贡献点',
   `attribute_points` int NOT NULL DEFAULT '0' COMMENT '属性点',
@@ -124,26 +124,30 @@ CREATE TABLE `cultivation_levels` (
 -- Records of cultivation_levels
 -- ----------------------------
 INSERT INTO `cultivation_levels` VALUES 
-(1, 1, '练气期一层', 0, 100, 100, 50, 0, 0),
-(2, 2, '练气期二层', 100, 250, 120, 60, 2, 1),
-(3, 3, '练气期三层', 250, 450, 140, 70, 4, 2),
-(4, 4, '练气期四层', 450, 700, 160, 80, 6, 3),
-(5, 5, '练气期五层', 700, 1000, 180, 90, 8, 4),
-(6, 6, '练气期六层', 1000, 1350, 200, 100, 10, 5),
-(7, 7, '练气期七层', 1350, 1750, 220, 110, 12, 6),
-(8, 8, '练气期八层', 1750, 2200, 240, 120, 14, 7),
-(9, 9, '练气期九层', 2200, 2700, 260, 130, 16, 8),
-(10, 10, '练气期十层', 2700, 3250, 280, 140, 18, 9),
-(11, 11, '筑基期一层', 3250, 4000, 350, 200, 25, 15),
-(12, 12, '筑基期二层', 4000, 4900, 400, 230, 30, 18),
-(13, 13, '筑基期三层', 4900, 6000, 450, 260, 35, 21),
-(14, 14, '筑基期四层', 6000, 7300, 500, 290, 40, 24),
-(15, 15, '筑基期五层', 7300, 8800, 550, 320, 45, 27),
-(16, 16, '金丹期一层', 8800, 11000, 700, 400, 60, 35),
-(17, 17, '金丹期二层', 11000, 13500, 800, 450, 70, 40),
-(18, 18, '金丹期三层', 13500, 16500, 900, 500, 80, 45),
-(19, 19, '金丹期四层', 16500, 20000, 1000, 550, 90, 50),
-(20, 20, '元婴期一层', 20000, 25000, 1300, 700, 120, 70);
+-- 练气期（境界倍率 1.0）
+(1, 1, '练气期一层', 0, 300, 100, 50, 0, 0),
+(2, 2, '练气期二层', 300, 700, 120, 60, 2, 1),
+(3, 3, '练气期三层', 700, 1220, 140, 70, 4, 2),
+(4, 4, '练气期四层', 1220, 1900, 160, 80, 6, 3),
+(5, 5, '练气期五层', 1900, 2780, 180, 90, 8, 4),
+(6, 6, '练气期六层', 2780, 3930, 200, 100, 10, 5),
+(7, 7, '练气期七层', 3930, 5430, 220, 110, 12, 6),
+(8, 8, '练气期八层', 5430, 7380, 240, 120, 14, 7),
+(9, 9, '练气期九层', 7380, 9910, 260, 130, 16, 8),
+(10, 10, '练气期十层', 9910, 13210, 280, 140, 18, 9),
+-- 筑基期（境界倍率 2.5）
+(11, 11, '筑基期一层', 13210, 18210, 350, 200, 25, 15),
+(12, 12, '筑基期二层', 18210, 24710, 400, 230, 30, 18),
+(13, 13, '筑基期三层', 24710, 33210, 450, 260, 35, 21),
+(14, 14, '筑基期四层', 33210, 44210, 500, 290, 40, 24),
+(15, 15, '筑基期五层', 44210, 58710, 550, 320, 45, 27),
+-- 金丹期（境界倍率 6.0）
+(16, 16, '金丹期一层', 58710, 80710, 700, 400, 60, 35),
+(17, 17, '金丹期二层', 80710, 109710, 800, 450, 70, 40),
+(18, 18, '金丹期三层', 109710, 147710, 900, 500, 80, 45),
+(19, 19, '金丹期四层', 147710, 197710, 1000, 550, 90, 50),
+-- 元婴期（境界倍率 15.0）
+(20, 20, '元婴期一层', 197710, 272710, 1300, 700, 120, 70);
 
 -- ----------------------------
 -- Table structure for cultivation_logs
@@ -265,6 +269,383 @@ INSERT INTO `skill_shop` VALUES
 (4, 4, 1200, 8, 1, NOW(), NOW()),
 (5, 5, 1500, 12, 1, NOW(), NOW()),
 (6, 6, 1300, 10, 1, NOW(), NOW());
+
+-- ----------------------------
+-- Table structure for skill_trees
+-- ----------------------------
+DROP TABLE IF EXISTS `skill_trees`;
+CREATE TABLE `skill_trees` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '技能树ID',
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '技能树名称',
+  `description` text COLLATE utf8mb4_unicode_ci COMMENT '技能树描述',
+  `tree_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '类型：ATTACK/DEFENSE/CULTIVATION/SUPPORT',
+  `element` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '元素属性',
+  `required_realm` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '需求境界',
+  `icon` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '图标',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_tree_type` (`tree_type`),
+  KEY `idx_element` (`element`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='技能树表';
+
+-- ----------------------------
+-- Records of skill_trees
+-- ----------------------------
+INSERT INTO `skill_trees` VALUES 
+(1, '火系法术', '掌控火焰之力的法术', 'ATTACK', '火', NULL, NULL, 1, NOW()),
+(2, '水系法术', '掌控水流之力的法术', 'DEFENSE', '水', NULL, NULL, 1, NOW()),
+(3, '木系法术', '掌控生机之力的法术', 'SUPPORT', '木', NULL, NULL, 1, NOW()),
+(4, '土系法术', '掌控大地之力的法术', 'DEFENSE', '土', NULL, NULL, 1, NOW()),
+(5, '风系法术', '掌控风之力的法术', 'ATTACK', '风', NULL, NULL, 1, NOW()),
+(6, '雷系法术', '掌控雷电之力的法术', 'ATTACK', '雷', '筑基期', NULL, 1, NOW()),
+(7, '修炼心法', '提升修炼效率的心法', 'CULTIVATION', '无', NULL, NULL, 1, NOW());
+
+-- ----------------------------
+-- Table structure for skill_tree_nodes
+-- ----------------------------
+DROP TABLE IF EXISTS `skill_tree_nodes`;
+CREATE TABLE `skill_tree_nodes` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '节点ID',
+  `tree_id` int NOT NULL COMMENT '技能树ID',
+  `skill_id` int NOT NULL COMMENT '技能ID',
+  `node_level` int NOT NULL DEFAULT '1' COMMENT '节点层级',
+  `position_x` int NOT NULL DEFAULT '0' COMMENT 'X坐标',
+  `position_y` int NOT NULL DEFAULT '0' COMMENT 'Y坐标',
+  `prerequisites` text COLLATE utf8mb4_unicode_ci COMMENT '前置技能ID(JSON数组)',
+  `skill_points_cost` int NOT NULL DEFAULT '1' COMMENT '技能点消耗',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_tree_skill` (`tree_id`, `skill_id`),
+  KEY `idx_tree_id` (`tree_id`),
+  KEY `idx_skill_id` (`skill_id`),
+  CONSTRAINT `fk_skill_tree_nodes_tree` FOREIGN KEY (`tree_id`) REFERENCES `skill_trees` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_skill_tree_nodes_skill` FOREIGN KEY (`skill_id`) REFERENCES `skills` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='技能树节点表';
+
+-- ----------------------------
+-- Records of skill_tree_nodes
+-- ----------------------------
+INSERT INTO `skill_tree_nodes` VALUES 
+(1, 1, 2, 1, 0, 0, '[]', 1),
+(2, 3, 3, 1, 0, 0, '[]', 1),
+(3, 2, 4, 1, 0, 0, '[]', 1),
+(4, 4, 5, 1, 0, 0, '[]', 1),
+(5, 5, 6, 1, 0, 0, '[]', 1),
+(6, 7, 1, 1, 0, 0, '[]', 0);
+
+-- ----------------------------
+-- Table structure for skill_effects
+-- ----------------------------
+DROP TABLE IF EXISTS `skill_effects`;
+CREATE TABLE `skill_effects` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '效果ID',
+  `skill_id` int NOT NULL COMMENT '技能ID',
+  `effect_type` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '效果类型：DAMAGE/HEAL/BUFF/DEBUFF/DOT/HOT/SHIELD',
+  `effect_name` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '效果名称',
+  `base_value` decimal(10,2) NOT NULL DEFAULT '0.00' COMMENT '基础值',
+  `scaling_factor` decimal(5,2) NOT NULL DEFAULT '1.00' COMMENT '缩放因子',
+  `duration` int NOT NULL DEFAULT '0' COMMENT '持续时间(秒)',
+  `tick_interval` int NOT NULL DEFAULT '0' COMMENT '触发间隔(秒)',
+  `stackable` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否可叠加',
+  `max_stacks` int NOT NULL DEFAULT '1' COMMENT '最大叠加数',
+  `trigger_chance` decimal(5,2) NOT NULL DEFAULT '100.00' COMMENT '触发概率',
+  `effect_order` int NOT NULL DEFAULT '0' COMMENT '效果顺序',
+  PRIMARY KEY (`id`),
+  KEY `idx_skill_id` (`skill_id`),
+  KEY `idx_effect_type` (`effect_type`),
+  CONSTRAINT `fk_skill_effects_skill` FOREIGN KEY (`skill_id`) REFERENCES `skills` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='技能效果表';
+
+-- ----------------------------
+-- Records of skill_effects
+-- ----------------------------
+INSERT INTO `skill_effects` VALUES 
+(1, 2, 'DAMAGE', '火焰伤害', 10.00, 1.20, 0, 0, 0, 1, 100.00, 1),
+(2, 2, 'DOT', '灼烧', 5.00, 0.50, 3, 1, 1, 3, 30.00, 2),
+(3, 3, 'HEAL', '生命恢复', 20.00, 1.00, 0, 0, 0, 1, 100.00, 1),
+(4, 4, 'SHIELD', '水盾', 30.00, 0.80, 10, 0, 0, 1, 100.00, 1),
+(5, 4, 'BUFF', '减伤', 20.00, 0.50, 10, 0, 0, 1, 100.00, 2),
+(6, 5, 'DAMAGE', '土系伤害', 25.00, 1.50, 0, 0, 0, 1, 100.00, 1),
+(7, 5, 'DEBUFF', '减速', 30.00, 0.30, 2, 0, 0, 1, 50.00, 2),
+(8, 6, 'DAMAGE', '风系伤害', 15.00, 1.30, 0, 0, 0, 1, 100.00, 1),
+(9, 6, 'DEBUFF', '击退', 1.00, 0.00, 0, 0, 0, 1, 40.00, 2);
+
+-- ----------------------------
+-- Table structure for skill_combos
+-- ----------------------------
+DROP TABLE IF EXISTS `skill_combos`;
+CREATE TABLE `skill_combos` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '连招ID',
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '连招名称',
+  `description` text COLLATE utf8mb4_unicode_ci COMMENT '连招描述',
+  `skill_sequence` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '技能序列(JSON数组)',
+  `combo_bonus` decimal(5,2) NOT NULL DEFAULT '0.00' COMMENT '连招加成(百分比)',
+  `required_level` int NOT NULL DEFAULT '1' COMMENT '需求等级',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_required_level` (`required_level`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='技能连招表';
+
+-- ----------------------------
+-- Records of skill_combos
+-- ----------------------------
+INSERT INTO `skill_combos` VALUES 
+(1, '水火交融', '先水后火，产生蒸汽爆炸', '[4, 2]', 50.00, 10, 1, NOW()),
+(2, '风火连击', '风助火势，伤害倍增', '[6, 2]', 30.00, 8, 1, NOW()),
+(3, '土木防御', '土木结合，坚固防御', '[5, 3]', 40.00, 12, 1, NOW());
+
+-- ----------------------------
+-- Table structure for player_skill_cooldowns
+-- ----------------------------
+DROP TABLE IF EXISTS `player_skill_cooldowns`;
+CREATE TABLE `player_skill_cooldowns` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '冷却ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `skill_id` int NOT NULL COMMENT '技能ID',
+  `expire_at` timestamp NOT NULL COMMENT '过期时间',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_player_skill` (`player_id`, `skill_id`),
+  KEY `idx_expire_at` (`expire_at`),
+  CONSTRAINT `fk_player_skill_cooldowns_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_player_skill_cooldowns_skill` FOREIGN KEY (`skill_id`) REFERENCES `skills` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家技能冷却表';
+
+-- ----------------------------
+-- Table structure for skill_mastery
+-- ----------------------------
+DROP TABLE IF EXISTS `skill_mastery`;
+CREATE TABLE `skill_mastery` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '熟练度ID',
+  `skill_id` int NOT NULL COMMENT '技能ID',
+  `mastery_level` int NOT NULL DEFAULT '1' COMMENT '熟练度等级',
+  `required_exp` int NOT NULL COMMENT '所需经验',
+  `damage_bonus` decimal(5,2) NOT NULL DEFAULT '0.00' COMMENT '伤害加成',
+  `cooldown_reduction` int NOT NULL DEFAULT '0' COMMENT '冷却减少(秒)',
+  `mana_cost_reduction` int NOT NULL DEFAULT '0' COMMENT '法力消耗减少',
+  `special_effect` text COLLATE utf8mb4_unicode_ci COMMENT '特殊效果(JSON)',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_skill_mastery` (`skill_id`, `mastery_level`),
+  KEY `idx_skill_id` (`skill_id`),
+  CONSTRAINT `fk_skill_mastery_skill` FOREIGN KEY (`skill_id`) REFERENCES `skills` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='技能熟练度表';
+
+-- ----------------------------
+-- Records of skill_mastery
+-- ----------------------------
+INSERT INTO `skill_mastery` VALUES 
+(1, 2, 1, 0, 0.00, 0, 0, NULL),
+(2, 2, 2, 100, 10.00, 0, 1, NULL),
+(3, 2, 3, 300, 20.00, 1, 2, '{"burn_chance_increase": 10}'),
+(4, 2, 4, 600, 30.00, 1, 3, NULL),
+(5, 2, 5, 1000, 50.00, 2, 5, '{"aoe_damage": true}'),
+(6, 3, 1, 0, 0.00, 0, 0, NULL),
+(7, 3, 2, 80, 15.00, 1, 1, NULL),
+(8, 3, 3, 200, 30.00, 2, 2, '{"hot_effect": true}'),
+(9, 3, 4, 400, 45.00, 2, 3, NULL),
+(10, 3, 5, 700, 70.00, 3, 5, '{"aoe_heal": true}'),
+(11, 6, 1, 0, 0.00, 0, 0, NULL),
+(12, 6, 2, 150, 15.00, 0, 2, NULL),
+(13, 6, 3, 400, 30.00, 1, 3, '{"multi_hit": 2}'),
+(14, 6, 4, 800, 50.00, 1, 4, NULL),
+(15, 6, 5, 1500, 80.00, 2, 6, '{"penetration": true}');
+
+-- ----------------------------
+-- Table structure for player_skill_mastery
+-- ----------------------------
+DROP TABLE IF EXISTS `player_skill_mastery`;
+CREATE TABLE `player_skill_mastery` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '玩家熟练度ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `skill_id` int NOT NULL COMMENT '技能ID',
+  `mastery_level` int NOT NULL DEFAULT '1' COMMENT '当前熟练度等级',
+  `mastery_exp` int NOT NULL DEFAULT '0' COMMENT '当前熟练度经验',
+  `total_uses` int NOT NULL DEFAULT '0' COMMENT '总使用次数',
+  `last_used_at` timestamp NULL COMMENT '最后使用时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_skill_mastery` (`player_id`, `skill_id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_skill_id` (`skill_id`),
+  CONSTRAINT `fk_player_skill_mastery_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_player_skill_mastery_skill` FOREIGN KEY (`skill_id`) REFERENCES `skills` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家技能熟练度表';
+
+-- ----------------------------
+-- Table structure for skill_enhancements
+-- ----------------------------
+DROP TABLE IF EXISTS `skill_enhancements`;
+CREATE TABLE `skill_enhancements` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '强化ID',
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '强化名称',
+  `description` text COLLATE utf8mb4_unicode_ci COMMENT '强化描述',
+  `enhancement_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '强化类型：DAMAGE/RANGE/COOLDOWN/EFFECT',
+  `target_skill_type` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '目标技能类型',
+  `target_element` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '目标元素',
+  `value` decimal(10,2) NOT NULL COMMENT '强化值',
+  `is_percentage` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否为百分比',
+  `cost_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '消耗类型：SPIRIT_STONES/SKILL_POINTS/ITEMS',
+  `cost_value` int NOT NULL COMMENT '消耗数量',
+  `cost_item_id` int DEFAULT NULL COMMENT '消耗物品ID',
+  `required_level` int NOT NULL DEFAULT '1' COMMENT '需求等级',
+  `required_mastery` int NOT NULL DEFAULT '1' COMMENT '需求熟练度',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_enhancement_type` (`enhancement_type`),
+  KEY `idx_target_skill_type` (`target_skill_type`),
+  CONSTRAINT `fk_skill_enhancements_item` FOREIGN KEY (`cost_item_id`) REFERENCES `items` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='技能强化表';
+
+-- ----------------------------
+-- Records of skill_enhancements
+-- ----------------------------
+INSERT INTO `skill_enhancements` VALUES 
+(1, '火焰精通', '所有火系技能伤害提升', 'DAMAGE', 'attack', '火', 15.00, 1, 'SPIRIT_STONES', 1000, NULL, 10, 3, 1, NOW()),
+(2, '治疗强化', '所有治疗技能效果提升', 'EFFECT', 'heal', NULL, 20.00, 1, 'SPIRIT_STONES', 800, NULL, 5, 2, 1, NOW()),
+(3, '冷却缩减', '所有技能冷却时间减少', 'COOLDOWN', NULL, NULL, 10.00, 1, 'SKILL_POINTS', 3, NULL, 15, 1, 1, NOW()),
+(4, '法术穿透', '攻击技能无视部分防御', 'EFFECT', 'attack', NULL, 10.00, 1, 'SPIRIT_STONES', 2000, NULL, 20, 5, 1, NOW()),
+(5, '技能范围', '攻击技能范围增加', 'RANGE', 'attack', NULL, 25.00, 1, 'SKILL_POINTS', 2, NULL, 12, 1, 1, NOW());
+
+-- ----------------------------
+-- Table structure for player_skill_enhancements
+-- ----------------------------
+DROP TABLE IF EXISTS `player_skill_enhancements`;
+CREATE TABLE `player_skill_enhancements` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '玩家强化ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `enhancement_id` int NOT NULL COMMENT '强化ID',
+  `applied_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '应用时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_enhancement` (`player_id`, `enhancement_id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_enhancement_id` (`enhancement_id`),
+  CONSTRAINT `fk_player_skill_enhancements_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_player_skill_enhancements_enhancement` FOREIGN KEY (`enhancement_id`) REFERENCES `skill_enhancements` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家技能强化表';
+
+-- ----------------------------
+-- Table structure for passive_skills
+-- ----------------------------
+DROP TABLE IF EXISTS `passive_skills`;
+CREATE TABLE `passive_skills` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '被动技能ID',
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '技能名称',
+  `description` text COLLATE utf8mb4_unicode_ci COMMENT '技能描述',
+  `passive_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '类型：STAT/COMBAT/CULTIVATION/SPECIAL',
+  `effect_type` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '效果类型',
+  `effect_value` decimal(10,2) NOT NULL COMMENT '效果值',
+  `is_percentage` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否为百分比',
+  `max_level` int NOT NULL DEFAULT '5' COMMENT '最大等级',
+  `upgrade_cost` int NOT NULL DEFAULT '100' COMMENT '升级消耗(灵石)',
+  `cost_multiplier` decimal(5,2) NOT NULL DEFAULT '1.50' COMMENT '费用倍率',
+  `required_level` int NOT NULL DEFAULT '1' COMMENT '需求等级',
+  `required_realm` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '需求境界',
+  `icon` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '图标',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_passive_type` (`passive_type`),
+  KEY `idx_effect_type` (`effect_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='被动技能表';
+
+-- ----------------------------
+-- Records of passive_skills
+-- ----------------------------
+INSERT INTO `passive_skills` VALUES 
+(1, '强身健体', '永久提升生命值', 'STAT', 'health', 100.00, 0, 10, 500, 1.50, 1, NULL, NULL, 1, NOW()),
+(2, '灵力充沛', '永久提升法力值', 'STAT', 'mana', 50.00, 0, 10, 500, 1.50, 1, NULL, NULL, 1, NOW()),
+(3, '力量强化', '永久提升攻击力', 'STAT', 'attack', 10.00, 0, 10, 800, 1.60, 5, NULL, NULL, 1, NOW()),
+(4, '铁壁防御', '永久提升防御力', 'STAT', 'defense', 8.00, 0, 10, 800, 1.60, 5, NULL, NULL, 1, NOW()),
+(5, '身法敏捷', '永久提升速度', 'STAT', 'speed', 5.00, 0, 10, 600, 1.50, 3, NULL, NULL, 1, NOW()),
+(6, '暴击本能', '提升暴击率', 'COMBAT', 'crit_rate', 2.00, 1, 10, 1000, 1.80, 10, NULL, NULL, 1, NOW()),
+(7, '暴击伤害', '提升暴击伤害', 'COMBAT', 'crit_damage', 5.00, 1, 10, 1200, 1.80, 15, NULL, NULL, 1, NOW()),
+(8, '闪避天赋', '提升闪避率', 'COMBAT', 'dodge_rate', 1.50, 1, 10, 1000, 1.70, 12, NULL, NULL, 1, NOW()),
+(9, '吸血本能', '攻击时恢复生命', 'COMBAT', 'lifesteal', 1.00, 1, 5, 2000, 2.00, 20, '筑基期', NULL, 1, NOW()),
+(10, '修炼加速', '提升修炼速度', 'CULTIVATION', 'cultivation_speed', 5.00, 1, 10, 1500, 1.60, 8, NULL, NULL, 1, NOW()),
+(11, '经验加成', '提升获得经验', 'CULTIVATION', 'exp_bonus', 3.00, 1, 10, 1000, 1.50, 5, NULL, NULL, 1, NOW()),
+(12, '灵石加成', '提升灵石获取', 'CULTIVATION', 'spirit_stones_bonus', 5.00, 1, 10, 2000, 1.80, 10, NULL, NULL, 1, NOW());
+
+-- ----------------------------
+-- Table structure for player_passive_skills
+-- ----------------------------
+DROP TABLE IF EXISTS `player_passive_skills`;
+CREATE TABLE `player_passive_skills` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '玩家被动技能ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `passive_skill_id` int NOT NULL COMMENT '被动技能ID',
+  `level` int NOT NULL DEFAULT '1' COMMENT '当前等级',
+  `learned_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '学习时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_passive` (`player_id`, `passive_skill_id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_passive_skill_id` (`passive_skill_id`),
+  CONSTRAINT `fk_player_passive_skills_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_player_passive_skills_skill` FOREIGN KEY (`passive_skill_id`) REFERENCES `passive_skills` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家被动技能表';
+
+-- ----------------------------
+-- Table structure for skill_usage_logs
+-- ----------------------------
+DROP TABLE IF EXISTS `skill_usage_logs`;
+CREATE TABLE `skill_usage_logs` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '日志ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `skill_id` int NOT NULL COMMENT '技能ID',
+  `skill_level` int NOT NULL DEFAULT '1' COMMENT '技能等级',
+  `target_type` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '目标类型：MONSTER/PLAYER',
+  `target_id` int DEFAULT NULL COMMENT '目标ID',
+  `damage_dealt` int NOT NULL DEFAULT '0' COMMENT '造成伤害',
+  `heal_amount` int NOT NULL DEFAULT '0' COMMENT '治疗量',
+  `mana_consumed` int NOT NULL DEFAULT '0' COMMENT '消耗法力',
+  `is_critical` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否暴击',
+  `mastery_exp_gained` int NOT NULL DEFAULT '0' COMMENT '获得熟练度',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '使用时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_skill_id` (`skill_id`),
+  KEY `idx_created_at` (`created_at`),
+  CONSTRAINT `fk_skill_usage_logs_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_skill_usage_logs_skill` FOREIGN KEY (`skill_id`) REFERENCES `skills` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='技能使用日志表';
+
+-- ----------------------------
+-- Table structure for skill_statistics
+-- ----------------------------
+DROP TABLE IF EXISTS `skill_statistics`;
+CREATE TABLE `skill_statistics` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '统计ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `total_skills_learned` int NOT NULL DEFAULT '0' COMMENT '已学习技能数',
+  `total_skill_uses` bigint NOT NULL DEFAULT '0' COMMENT '总技能使用次数',
+  `total_damage_by_skills` bigint NOT NULL DEFAULT '0' COMMENT '技能总伤害',
+  `total_heal_by_skills` bigint NOT NULL DEFAULT '0' COMMENT '技能总治疗',
+  `highest_mastery_level` int NOT NULL DEFAULT '0' COMMENT '最高熟练度',
+  `favorite_skill_id` int DEFAULT NULL COMMENT '最常用技能',
+  `last_updated` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_id` (`player_id`),
+  CONSTRAINT `fk_skill_statistics_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='技能统计表';
+
+-- ----------------------------
+-- Table structure for player_skill_combo_records
+-- ----------------------------
+DROP TABLE IF EXISTS `player_skill_combo_records`;
+CREATE TABLE `player_skill_combo_records` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '记录ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `skill_id` int NOT NULL COMMENT '技能ID',
+  `used_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '使用时间',
+  `triggered_combo` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否触发连招',
+  `combo_id` int DEFAULT NULL COMMENT '触发的连招ID',
+  PRIMARY KEY (`id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_used_at` (`used_at`),
+  CONSTRAINT `fk_skill_combo_records_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家技能连招记录表';
 
 -- ====================================================================
 -- 装备系统
@@ -398,7 +779,37 @@ INSERT INTO `items` VALUES
 (7, '妖丹', '妖兽内丹，炼器材料', 'material', 3, 1, 99, 500, 1, 0, '{}', NOW(), NOW()),
 (8, '仙草', '传说中的仙草', 'material', 4, 1, 10, 2000, 1, 0, '{}', NOW(), NOW()),
 (9, '新手礼包', '包含基础装备和物品的礼包', 'special', 1, 0, 1, 0, 0, 1, '{"items": [{"id": 1, "quantity": 1}, {"id": 2, "quantity": 5}]}', NOW(), NOW()),
-(10, '修炼心得', '记录修炼感悟的书籍', 'book', 2, 0, 1, 500, 1, 1, '{"cultivation_speed": 1.1}', NOW(), NOW());
+(10, '修炼心得', '记录修炼感悟的书籍', 'book', 2, 0, 1, 500, 1, 1, '{"cultivation_speed": 1.1}', NOW(), NOW()),
+(11, '大还丹', '高级恢复丹药', 'consumable', 2, 1, 50, 150, 1, 1, '{"heal": 150}', NOW(), NOW()),
+(12, '聚灵丹', '高级灵力恢复丹药', 'consumable', 2, 1, 50, 150, 1, 1, '{"restore_mana": 150}', NOW(), NOW()),
+(13, '悟道丹', '提升修炼速度的丹药', 'consumable', 3, 1, 20, 500, 1, 1, '{"cultivation_speed": 1.5, "duration": 3600}', NOW(), NOW()),
+(14, '驻颜丹', '保持青春的丹药', 'consumable', 2, 1, 10, 300, 1, 1, '{"beauty": 10}', NOW(), NOW()),
+(15, '洗髓丹', '洗练根骨的丹药', 'consumable', 4, 1, 5, 2000, 1, 1, '{"attribute_reset": 1}', NOW(), NOW()),
+(16, '火符', '火属性攻击符箓', 'consumable', 1, 1, 99, 80, 1, 1, '{"fire_damage": 100}', NOW(), NOW()),
+(17, '水符', '水属性防御符箓', 'consumable', 1, 1, 99, 80, 1, 1, '{"water_shield": 50}', NOW(), NOW()),
+(18, '雷符', '雷属性攻击符箓', 'consumable', 2, 1, 50, 200, 1, 1, '{"thunder_damage": 200}', NOW(), NOW()),
+(19, '玄铁矿', '珍贵的炼器矿石', 'material', 3, 1, 99, 300, 1, 0, '{}', NOW(), NOW()),
+(20, '千年灵芝', '千年的灵芝，炼丹极品', 'material', 4, 1, 20, 1000, 1, 0, '{}', NOW(), NOW()),
+(21, '龙血', '传说中的龙血', 'material', 5, 1, 10, 5000, 1, 0, '{}', NOW(), NOW()),
+(22, '凤凰羽毛', '凤凰的羽毛', 'material', 5, 1, 10, 5000, 1, 0, '{}', NOW(), NOW()),
+(23, '铜宝箱', '普通宝箱', 'chest', 1, 0, 1, 100, 0, 1, '{"items": [{"id": 1, "quantity": 5}, {"id": 5, "quantity": 10}]}', NOW(), NOW()),
+(24, '银宝箱', '高级宝箱', 'chest', 2, 0, 1, 500, 0, 1, '{"items": [{"id": 3, "quantity": 3}, {"id": 6, "quantity": 5}], "spirit_stones": 200}', NOW(), NOW()),
+(25, '金宝箱', '稀有宝箱', 'chest', 3, 0, 1, 2000, 0, 1, '{"items": [{"id": 4, "quantity": 1}, {"id": 13, "quantity": 2}], "spirit_stones": 1000}', NOW(), NOW()),
+(26, '钻石宝箱', '传说宝箱', 'chest', 4, 0, 1, 10000, 0, 1, '{"items": [{"id": 15, "quantity": 1}], "equipments": [{"id": 18, "rate": 30}], "spirit_stones": 5000}', NOW(), NOW()),
+(27, '铁矿石', '普通的铁矿石', 'material', 1, 1, 999, 20, 1, 0, '{}', NOW(), NOW()),
+(28, '铜矿石', '普通的铜矿石', 'material', 1, 1, 999, 15, 1, 0, '{}', NOW(), NOW()),
+(29, '银矿石', '珍贵的银矿石', 'material', 2, 1, 200, 100, 1, 0, '{}', NOW(), NOW()),
+(30, '金矿石', '稀有的金矿石', 'material', 3, 1, 100, 500, 1, 0, '{}', NOW(), NOW()),
+(31, '狼皮', '野狼的皮毛', 'material', 1, 1, 999, 30, 1, 0, '{}', NOW(), NOW()),
+(32, '蛇胆', '蛇妖的胆囊', 'material', 2, 1, 200, 150, 1, 0, '{}', NOW(), NOW()),
+(33, '虎骨', '猛虎的骨骼', 'material', 2, 1, 200, 200, 1, 0, '{}', NOW(), NOW()),
+(34, '朱果', '红色的灵果', 'material', 3, 1, 50, 800, 1, 0, '{}', NOW(), NOW()),
+(35, '天山雪莲', '雪山上的珍贵药材', 'material', 4, 1, 20, 3000, 1, 0, '{}', NOW(), NOW()),
+(36, '筑基丹', '帮助筑基的丹药', 'consumable', 4, 1, 5, 5000, 1, 1, '{"realm_breakthrough": "筑基期"}', NOW(), NOW()),
+(37, '金丹丹', '帮助凝结金丹的丹药', 'consumable', 5, 1, 3, 20000, 1, 1, '{"realm_breakthrough": "金丹期"}', NOW(), NOW()),
+(38, '元婴丹', '帮助凝结元婴的丹药', 'consumable', 5, 1, 1, 50000, 1, 1, '{"realm_breakthrough": "元婴期"}', NOW(), NOW()),
+(39, '神行符', '增加移动速度的符箓', 'consumable', 2, 1, 50, 200, 1, 1, '{"speed_boost": 50, "duration": 1800}', NOW(), NOW()),
+(40, '隐身符', '隐身效果的符箓', 'consumable', 3, 1, 20, 500, 1, 1, '{"stealth": 1, "duration": 600}', NOW(), NOW());
 
 -- ----------------------------
 -- Table structure for player_items
@@ -419,6 +830,407 @@ CREATE TABLE `player_items` (
   CONSTRAINT `fk_player_items_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_player_items_item` FOREIGN KEY (`item_id`) REFERENCES `items` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家物品表';
+
+-- ----------------------------
+-- Table structure for item_categories
+-- ----------------------------
+DROP TABLE IF EXISTS `item_categories`;
+CREATE TABLE `item_categories` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '分类ID',
+  `name` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '分类名称',
+  `code` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '分类编码',
+  `description` text COLLATE utf8mb4_unicode_ci COMMENT '分类描述',
+  `icon` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '图标',
+  `parent_id` int DEFAULT NULL COMMENT '父分类ID',
+  `sort_order` int NOT NULL DEFAULT '0' COMMENT '排序',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_code` (`code`),
+  KEY `idx_parent_id` (`parent_id`),
+  KEY `idx_sort_order` (`sort_order`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='物品分类表';
+
+-- ----------------------------
+-- Records of item_categories
+-- ----------------------------
+INSERT INTO `item_categories` VALUES 
+(1, '消耗品', 'consumable', '可使用的消耗类物品', NULL, NULL, 1, 1, NOW()),
+(2, '材料', 'material', '用于合成和制作的材料', NULL, NULL, 2, 1, NOW()),
+(3, '装备', 'equipment', '可穿戴的装备', NULL, NULL, 3, 1, NOW()),
+(4, '丹药', 'pill', '修炼用丹药', NULL, 1, 1, 1, NOW()),
+(5, '符箓', 'talisman', '一次性使用的符箓', NULL, 1, 2, 1, NOW()),
+(6, '灵草', 'herb', '炼丹材料', NULL, 2, 1, 1, NOW()),
+(7, '矿石', 'ore', '炼器材料', NULL, 2, 2, 1, NOW()),
+(8, '妖兽材料', 'monster_material', '妖兽掉落的材料', NULL, 2, 3, 1, NOW()),
+(9, '任务物品', 'quest_item', '任务相关物品', NULL, NULL, 4, 1, NOW()),
+(10, '特殊物品', 'special', '特殊用途物品', NULL, NULL, 5, 1, NOW()),
+(11, '宝箱', 'chest', '可开启的宝箱', NULL, 10, 1, 1, NOW()),
+(12, '礼包', 'gift_pack', '包含多种物品的礼包', NULL, 10, 2, 1, NOW());
+
+-- ----------------------------
+-- Table structure for item_qualities
+-- ----------------------------
+DROP TABLE IF EXISTS `item_qualities`;
+CREATE TABLE `item_qualities` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '品质ID',
+  `name` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '品质名称',
+  `level` int NOT NULL COMMENT '品质等级',
+  `color` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '颜色代码',
+  `description` text COLLATE utf8mb4_unicode_ci COMMENT '品质描述',
+  `drop_rate_modifier` decimal(5,2) NOT NULL DEFAULT '1.00' COMMENT '掉落率修正',
+  `price_modifier` decimal(5,2) NOT NULL DEFAULT '1.00' COMMENT '价格修正',
+  `sell_price_ratio` decimal(5,2) NOT NULL DEFAULT '0.50' COMMENT '出售价格比例',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_level` (`level`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='物品品质表';
+
+-- ----------------------------
+-- Records of item_qualities
+-- ----------------------------
+INSERT INTO `item_qualities` VALUES 
+(1, '普通', 1, '#FFFFFF', '普通品质的物品', 1.00, 1.00, 0.50),
+(2, '精良', 2, '#00FF00', '精良品质的物品', 0.70, 1.50, 0.50),
+(3, '稀有', 3, '#0080FF', '稀有品质的物品', 0.40, 3.00, 0.60),
+(4, '史诗', 4, '#8000FF', '史诗品质的物品', 0.15, 8.00, 0.70),
+(5, '传说', 5, '#FF8000', '传说品质的物品', 0.05, 20.00, 0.80),
+(6, '神话', 6, '#FF0000', '神话品质的物品', 0.01, 50.00, 0.90);
+
+-- ----------------------------
+-- Table structure for inventory_expansions
+-- ----------------------------
+DROP TABLE IF EXISTS `inventory_expansions`;
+CREATE TABLE `inventory_expansions` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '扩展ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `expansion_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '扩展类型：BAG/VAULT/EQUIPMENT',
+  `current_slots` int NOT NULL DEFAULT '50' COMMENT '当前格子数',
+  `max_slots` int NOT NULL DEFAULT '200' COMMENT '最大格子数',
+  `expansion_count` int NOT NULL DEFAULT '0' COMMENT '扩展次数',
+  `last_expansion_at` timestamp NULL COMMENT '最后扩展时间',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_type` (`player_id`, `expansion_type`),
+  KEY `idx_player_id` (`player_id`),
+  CONSTRAINT `fk_inventory_expansions_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='背包扩展表';
+
+-- ----------------------------
+-- Table structure for item_usage_logs
+-- ----------------------------
+DROP TABLE IF EXISTS `item_usage_logs`;
+CREATE TABLE `item_usage_logs` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '日志ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `item_id` int NOT NULL COMMENT '物品ID',
+  `quantity` int NOT NULL DEFAULT '1' COMMENT '使用数量',
+  `usage_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '使用类型：USE/SELL/DROP/TRADE',
+  `effect_result` text COLLATE utf8mb4_unicode_ci COMMENT '效果结果(JSON)',
+  `source` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '来源',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_item_id` (`item_id`),
+  KEY `idx_usage_type` (`usage_type`),
+  KEY `idx_created_at` (`created_at`),
+  CONSTRAINT `fk_item_usage_logs_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_item_usage_logs_item` FOREIGN KEY (`item_id`) REFERENCES `items` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='物品使用日志表';
+
+-- ----------------------------
+-- Table structure for item_recipes
+-- ----------------------------
+DROP TABLE IF EXISTS `item_recipes`;
+CREATE TABLE `item_recipes` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '配方ID',
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '配方名称',
+  `description` text COLLATE utf8mb4_unicode_ci COMMENT '配方描述',
+  `result_item_id` int NOT NULL COMMENT '产出物品ID',
+  `result_quantity` int NOT NULL DEFAULT '1' COMMENT '产出数量',
+  `craft_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '制作类型：ALCHEMY/FORGING/COOKING',
+  `required_level` int NOT NULL DEFAULT '1' COMMENT '需求等级',
+  `required_realm` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '需求境界',
+  `craft_time` int NOT NULL DEFAULT '0' COMMENT '制作时间(秒)',
+  `success_rate` decimal(5,2) NOT NULL DEFAULT '100.00' COMMENT '成功率',
+  `spirit_stones_cost` int NOT NULL DEFAULT '0' COMMENT '灵石消耗',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_result_item_id` (`result_item_id`),
+  KEY `idx_craft_type` (`craft_type`),
+  KEY `idx_required_level` (`required_level`),
+  CONSTRAINT `fk_item_recipes_result` FOREIGN KEY (`result_item_id`) REFERENCES `items` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='物品合成配方表';
+
+-- ----------------------------
+-- Records of item_recipes
+-- ----------------------------
+INSERT INTO `item_recipes` VALUES 
+(1, '炼制疗伤丹', '使用灵草炼制疗伤丹', 1, 3, 'ALCHEMY', 1, NULL, 10, 90.00, 50, 1, NOW(), NOW()),
+(2, '炼制回灵丹', '使用灵草炼制回灵丹', 2, 3, 'ALCHEMY', 3, NULL, 15, 85.00, 80, 1, NOW(), NOW()),
+(3, '炼制经验丹', '使用仙草炼制经验丹', 3, 1, 'ALCHEMY', 10, '练气期五层', 30, 70.00, 200, 1, NOW(), NOW()),
+(4, '炼制突破丹', '使用仙草和妖丹炼制突破丹', 4, 1, 'ALCHEMY', 15, '筑基期', 60, 50.00, 500, 1, NOW(), NOW()),
+(5, '炼制大还丹', '使用灵草和灵石炼制大还丹', 11, 2, 'ALCHEMY', 8, NULL, 20, 80.00, 150, 1, NOW(), NOW()),
+(6, '炼制聚灵丹', '使用灵草和灵石炼制聚灵丹', 12, 2, 'ALCHEMY', 10, NULL, 25, 75.00, 200, 1, NOW(), NOW());
+
+-- ----------------------------
+-- Table structure for recipe_materials
+-- ----------------------------
+DROP TABLE IF EXISTS `recipe_materials`;
+CREATE TABLE `recipe_materials` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '材料ID',
+  `recipe_id` int NOT NULL COMMENT '配方ID',
+  `item_id` int NOT NULL COMMENT '材料物品ID',
+  `quantity` int NOT NULL DEFAULT '1' COMMENT '需求数量',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_recipe_material` (`recipe_id`, `item_id`),
+  KEY `idx_recipe_id` (`recipe_id`),
+  KEY `idx_item_id` (`item_id`),
+  CONSTRAINT `fk_recipe_materials_recipe` FOREIGN KEY (`recipe_id`) REFERENCES `item_recipes` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_recipe_materials_item` FOREIGN KEY (`item_id`) REFERENCES `items` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='配方材料表';
+
+-- ----------------------------
+-- Records of recipe_materials
+-- ----------------------------
+INSERT INTO `recipe_materials` VALUES 
+(1, 1, 5, 2),
+(2, 2, 5, 3),
+(3, 3, 8, 1),
+(4, 3, 5, 5),
+(5, 4, 8, 2),
+(6, 4, 7, 1),
+(7, 5, 5, 5),
+(8, 5, 6, 2),
+(9, 6, 5, 6),
+(10, 6, 6, 3);
+
+-- ----------------------------
+-- Table structure for player_recipes
+-- ----------------------------
+DROP TABLE IF EXISTS `player_recipes`;
+CREATE TABLE `player_recipes` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '玩家配方ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `recipe_id` int NOT NULL COMMENT '配方ID',
+  `learned_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '学习时间',
+  `craft_count` int NOT NULL DEFAULT '0' COMMENT '制作次数',
+  `mastery_level` int NOT NULL DEFAULT '1' COMMENT '熟练度等级',
+  `mastery_exp` int NOT NULL DEFAULT '0' COMMENT '熟练度经验',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_recipe` (`player_id`, `recipe_id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_recipe_id` (`recipe_id`),
+  CONSTRAINT `fk_player_recipes_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_player_recipes_recipe` FOREIGN KEY (`recipe_id`) REFERENCES `item_recipes` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家配方表';
+
+-- ----------------------------
+-- Table structure for craft_logs
+-- ----------------------------
+DROP TABLE IF EXISTS `craft_logs`;
+CREATE TABLE `craft_logs` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '制作日志ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `recipe_id` int NOT NULL COMMENT '配方ID',
+  `result_item_id` int NOT NULL COMMENT '产出物品ID',
+  `result_quantity` int NOT NULL DEFAULT '1' COMMENT '产出数量',
+  `is_success` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否成功',
+  `mastery_exp_gained` int NOT NULL DEFAULT '0' COMMENT '获得熟练度',
+  `materials_consumed` text COLLATE utf8mb4_unicode_ci COMMENT '消耗材料(JSON)',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_recipe_id` (`recipe_id`),
+  KEY `idx_created_at` (`created_at`),
+  CONSTRAINT `fk_craft_logs_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_craft_logs_recipe` FOREIGN KEY (`recipe_id`) REFERENCES `item_recipes` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='制作日志表';
+
+-- ----------------------------
+-- Table structure for temporary_items
+-- ----------------------------
+DROP TABLE IF EXISTS `temporary_items`;
+CREATE TABLE `temporary_items` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '临时物品ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `item_id` int NOT NULL COMMENT '物品ID',
+  `quantity` int NOT NULL DEFAULT '1' COMMENT '数量',
+  `source` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '来源',
+  `expire_at` timestamp NOT NULL COMMENT '过期时间',
+  `is_expired` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否已过期',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_item_id` (`item_id`),
+  KEY `idx_expire_at` (`expire_at`),
+  KEY `idx_is_expired` (`is_expired`),
+  CONSTRAINT `fk_temporary_items_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_temporary_items_item` FOREIGN KEY (`item_id`) REFERENCES `items` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='临时物品表';
+
+-- ----------------------------
+-- Table structure for item_exchange_logs
+-- ----------------------------
+DROP TABLE IF EXISTS `item_exchange_logs`;
+CREATE TABLE `item_exchange_logs` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '交换日志ID',
+  `from_player_id` int NOT NULL COMMENT '发起方玩家ID',
+  `to_player_id` int NOT NULL COMMENT '接收方玩家ID',
+  `item_id` int NOT NULL COMMENT '物品ID',
+  `quantity` int NOT NULL DEFAULT '1' COMMENT '数量',
+  `exchange_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '交换类型：GIFT/TRADE/MAIL',
+  `price` int DEFAULT NULL COMMENT '交易价格',
+  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'COMPLETED' COMMENT '状态：PENDING/COMPLETED/CANCELLED',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_from_player_id` (`from_player_id`),
+  KEY `idx_to_player_id` (`to_player_id`),
+  KEY `idx_item_id` (`item_id`),
+  KEY `idx_created_at` (`created_at`),
+  CONSTRAINT `fk_item_exchange_logs_from` FOREIGN KEY (`from_player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_item_exchange_logs_to` FOREIGN KEY (`to_player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_item_exchange_logs_item` FOREIGN KEY (`item_id`) REFERENCES `items` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='物品交换日志表';
+
+-- ----------------------------
+-- Table structure for item_storages
+-- ----------------------------
+DROP TABLE IF EXISTS `item_storages`;
+CREATE TABLE `item_storages` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '仓库ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `storage_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '仓库类型：VAULT/GUILD/TEMP',
+  `item_id` int NOT NULL COMMENT '物品ID',
+  `quantity` int NOT NULL DEFAULT '1' COMMENT '数量',
+  `slot_position` int DEFAULT NULL COMMENT '槽位位置',
+  `locked` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否锁定',
+  `stored_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '存入时间',
+  `expire_at` timestamp NULL COMMENT '过期时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_storage_type` (`storage_type`),
+  KEY `idx_item_id` (`item_id`),
+  KEY `idx_expire_at` (`expire_at`),
+  CONSTRAINT `fk_item_storages_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_item_storages_item` FOREIGN KEY (`item_id`) REFERENCES `items` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='物品仓库表';
+
+-- ----------------------------
+-- Table structure for item_drop_rates
+-- ----------------------------
+DROP TABLE IF EXISTS `item_drop_rates`;
+CREATE TABLE `item_drop_rates` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '掉落率ID',
+  `item_id` int NOT NULL COMMENT '物品ID',
+  `source_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '来源类型：MONSTER/DUNGEON/QUEST/ACTIVITY',
+  `source_id` int DEFAULT NULL COMMENT '来源ID',
+  `drop_rate` decimal(5,2) NOT NULL COMMENT '掉落概率',
+  `min_quantity` int NOT NULL DEFAULT '1' COMMENT '最小数量',
+  `max_quantity` int NOT NULL DEFAULT '1' COMMENT '最大数量',
+  `daily_limit` int DEFAULT NULL COMMENT '每日限制',
+  `level_requirement` int NOT NULL DEFAULT '1' COMMENT '等级要求',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_item_id` (`item_id`),
+  KEY `idx_source` (`source_type`, `source_id`),
+  KEY `idx_active` (`active`),
+  CONSTRAINT `fk_item_drop_rates_item` FOREIGN KEY (`item_id`) REFERENCES `items` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='物品掉落率表';
+
+-- ----------------------------
+-- Records of item_drop_rates
+-- ----------------------------
+INSERT INTO `item_drop_rates` VALUES 
+(1, 1, 'MONSTER', 1, 30.00, 1, 3, NULL, 1, 1, NOW()),
+(2, 2, 'MONSTER', 1, 25.00, 1, 2, NULL, 1, 1, NOW()),
+(3, 5, 'MONSTER', 1, 50.00, 1, 5, NULL, 1, 1, NOW()),
+(4, 6, 'MONSTER', 1, 20.00, 1, 3, NULL, 5, 1, NOW()),
+(5, 7, 'MONSTER', NULL, 10.00, 1, 1, NULL, 10, 1, NOW()),
+(6, 8, 'MONSTER', NULL, 5.00, 1, 1, NULL, 15, 1, NOW()),
+(7, 1, 'DUNGEON', 1, 50.00, 2, 5, NULL, 1, 1, NOW()),
+(8, 3, 'DUNGEON', 3, 15.00, 1, 1, NULL, 10, 1, NOW()),
+(9, 4, 'DUNGEON', 5, 10.00, 1, 1, NULL, 20, 1, NOW());
+
+-- ----------------------------
+-- Table structure for inventory_presets
+-- ----------------------------
+DROP TABLE IF EXISTS `inventory_presets`;
+CREATE TABLE `inventory_presets` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '预设ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `preset_name` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '预设名称',
+  `preset_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '预设类型：BATTLE/CULTIVATION/FARMING',
+  `items_config` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '物品配置(JSON)',
+  `is_active` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否激活',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_preset_type` (`preset_type`),
+  CONSTRAINT `fk_inventory_presets_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='背包预设表';
+
+-- ----------------------------
+-- Table structure for item_cooldowns
+-- ----------------------------
+DROP TABLE IF EXISTS `item_cooldowns`;
+CREATE TABLE `item_cooldowns` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '冷却ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `item_id` int NOT NULL COMMENT '物品ID',
+  `cooldown_group` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '冷却组',
+  `expire_at` timestamp NOT NULL COMMENT '过期时间',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_player_item` (`player_id`, `item_id`),
+  KEY `idx_expire_at` (`expire_at`),
+  CONSTRAINT `fk_item_cooldowns_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_item_cooldowns_item` FOREIGN KEY (`item_id`) REFERENCES `items` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='物品冷却表';
+
+-- ----------------------------
+-- Table structure for item_binds
+-- ----------------------------
+DROP TABLE IF EXISTS `item_binds`;
+CREATE TABLE `item_binds` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '绑定ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `player_item_id` int NOT NULL COMMENT '玩家物品ID',
+  `bind_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '绑定类型：EQUIP/PICKUP/TRADE',
+  `bound_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '绑定时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_item_bind` (`player_id`, `player_item_id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_bind_type` (`bind_type`),
+  CONSTRAINT `fk_item_binds_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_item_binds_player_item` FOREIGN KEY (`player_item_id`) REFERENCES `player_items` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='物品绑定表';
+
+-- ----------------------------
+-- Table structure for item_statistics
+-- ----------------------------
+DROP TABLE IF EXISTS `item_statistics`;
+CREATE TABLE `item_statistics` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '统计ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `total_items_obtained` bigint NOT NULL DEFAULT '0' COMMENT '总获得物品数',
+  `total_items_used` bigint NOT NULL DEFAULT '0' COMMENT '总使用物品数',
+  `total_items_sold` bigint NOT NULL DEFAULT '0' COMMENT '总出售物品数',
+  `total_items_crafted` bigint NOT NULL DEFAULT '0' COMMENT '总制作物品数',
+  `total_spirit_stones_spent` bigint NOT NULL DEFAULT '0' COMMENT '总花费灵石',
+  `total_spirit_stones_earned` bigint NOT NULL DEFAULT '0' COMMENT '总赚取灵石',
+  `highest_quality_obtained` int NOT NULL DEFAULT '0' COMMENT '获得最高品质',
+  `rarest_item_id` int DEFAULT NULL COMMENT '最稀有物品ID',
+  `favorite_item_id` int DEFAULT NULL COMMENT '最常用物品ID',
+  `last_updated` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_id` (`player_id`),
+  CONSTRAINT `fk_item_statistics_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='物品统计表';
 
 -- ====================================================================
 -- 任务系统
@@ -476,6 +1288,335 @@ CREATE TABLE `player_quests` (
   CONSTRAINT `fk_player_quests_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_player_quests_quest` FOREIGN KEY (`quest_id`) REFERENCES `quests` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家任务表';
+
+-- ----------------------------
+-- Table structure for quest_types
+-- ----------------------------
+DROP TABLE IF EXISTS `quest_types`;
+CREATE TABLE `quest_types` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '类型ID',
+  `name` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '类型名称',
+  `code` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '类型编码',
+  `description` text COLLATE utf8mb4_unicode_ci COMMENT '类型描述',
+  `daily_limit` int DEFAULT NULL COMMENT '每日限制',
+  `repeatable` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否可重复',
+  `auto_accept` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否自动接取',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_code` (`code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='任务类型表';
+
+-- ----------------------------
+-- Records of quest_types
+-- ----------------------------
+INSERT INTO `quest_types` VALUES 
+(1, '主线任务', 'main', '推动剧情发展的主要任务', 1, 0, 1, 1, NOW()),
+(2, '支线任务', 'side', '可选的额外任务', NULL, 0, 0, 1, NOW()),
+(3, '日常任务', 'daily', '每日可重复的任务', 10, 1, 1, 1, NOW()),
+(4, '周常任务', 'weekly', '每周可重复的任务', 5, 1, 1, 1, NOW()),
+(5, '月常任务', 'monthly', '每月可重复的任务', 3, 1, 1, 1, NOW()),
+(6, '成就任务', 'achievement', '达成特定成就的任务', 1, 0, 0, 1, NOW()),
+(7, '活动任务', 'event', '活动期间的特殊任务', NULL, 1, 0, 1, NOW()),
+(8, '宗门任务', 'guild', '宗门相关的任务', 5, 1, 0, 1, NOW()),
+(9, '悬赏任务', 'bounty', '击杀特定怪物的任务', 3, 1, 0, 1, NOW()),
+(10, '探索任务', 'explore', '探索特定区域的任务', NULL, 0, 0, 1, NOW());
+
+-- ----------------------------
+-- Table structure for quest_chains
+-- ----------------------------
+DROP TABLE IF EXISTS `quest_chains`;
+CREATE TABLE `quest_chains` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '任务链ID',
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '任务链名称',
+  `description` text COLLATE utf8mb4_unicode_ci COMMENT '任务链描述',
+  `chain_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '类型：MAIN/SIDE/EVENT/GUILD',
+  `required_level` int NOT NULL DEFAULT '1' COMMENT '需求等级',
+  `required_realm` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '需求境界',
+  `prerequisite_chain_id` int DEFAULT NULL COMMENT '前置任务链ID',
+  `total_stages` int NOT NULL DEFAULT '1' COMMENT '总阶段数',
+  `final_reward_exp` int NOT NULL DEFAULT '0' COMMENT '最终经验奖励',
+  `final_reward_spirit_stones` int NOT NULL DEFAULT '0' COMMENT '最终灵石奖励',
+  `final_reward_item_id` int DEFAULT NULL COMMENT '最终物品奖励',
+  `final_reward_quantity` int NOT NULL DEFAULT '1' COMMENT '最终物品数量',
+  `icon` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '图标',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_chain_type` (`chain_type`),
+  KEY `idx_required_level` (`required_level`),
+  CONSTRAINT `fk_quest_chains_prerequisite` FOREIGN KEY (`prerequisite_chain_id`) REFERENCES `quest_chains` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='任务链表';
+
+-- ----------------------------
+-- Records of quest_chains
+-- ----------------------------
+INSERT INTO `quest_chains` VALUES 
+(1, '初入仙途', '新手引导任务链', 'MAIN', 1, NULL, NULL, 5, 500, 200, 1, 10, NULL, 1, NOW()),
+(2, '修炼之路', '基础修炼任务链', 'MAIN', 5, NULL, 1, 8, 1500, 800, 3, 5, NULL, 1, NOW()),
+(3, '筑基之旅', '筑基相关任务链', 'MAIN', 10, '练气期五层', 2, 10, 5000, 2000, 4, 3, NULL, 1, NOW()),
+(4, '妖兽猎人', '猎杀妖兽的任务链', 'SIDE', 8, NULL, NULL, 6, 2000, 1000, 7, 5, NULL, 1, NOW()),
+(5, '寻宝之旅', '寻找宝物的任务链', 'SIDE', 15, '筑基期', NULL, 8, 8000, 5000, 8, 3, NULL, 1, NOW());
+
+-- ----------------------------
+-- Table structure for quest_chain_stages
+-- ----------------------------
+DROP TABLE IF EXISTS `quest_chain_stages`;
+CREATE TABLE `quest_chain_stages` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '阶段ID',
+  `chain_id` int NOT NULL COMMENT '任务链ID',
+  `stage_number` int NOT NULL COMMENT '阶段编号',
+  `quest_id` int NOT NULL COMMENT '任务ID',
+  `stage_name` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '阶段名称',
+  `stage_description` text COLLATE utf8mb4_unicode_ci COMMENT '阶段描述',
+  `auto_progress` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否自动进行',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_chain_stage` (`chain_id`, `stage_number`),
+  KEY `idx_chain_id` (`chain_id`),
+  KEY `idx_quest_id` (`quest_id`),
+  CONSTRAINT `fk_quest_chain_stages_chain` FOREIGN KEY (`chain_id`) REFERENCES `quest_chains` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_quest_chain_stages_quest` FOREIGN KEY (`quest_id`) REFERENCES `quests` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='任务链阶段表';
+
+-- ----------------------------
+-- Table structure for player_quest_chains
+-- ----------------------------
+DROP TABLE IF EXISTS `player_quest_chains`;
+CREATE TABLE `player_quest_chains` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '玩家任务链ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `chain_id` int NOT NULL COMMENT '任务链ID',
+  `current_stage` int NOT NULL DEFAULT '1' COMMENT '当前阶段',
+  `is_completed` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否完成',
+  `is_reward_claimed` tinyint(1) NOT NULL DEFAULT '0' COMMENT '最终奖励是否领取',
+  `started_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '开始时间',
+  `completed_at` timestamp NULL COMMENT '完成时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_chain` (`player_id`, `chain_id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_chain_id` (`chain_id`),
+  KEY `idx_is_completed` (`is_completed`),
+  CONSTRAINT `fk_player_quest_chains_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_player_quest_chains_chain` FOREIGN KEY (`chain_id`) REFERENCES `quest_chains` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家任务链表';
+
+-- ----------------------------
+-- Table structure for quest_objectives
+-- ----------------------------
+DROP TABLE IF EXISTS `quest_objectives`;
+CREATE TABLE `quest_objectives` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '目标ID',
+  `quest_id` int NOT NULL COMMENT '任务ID',
+  `objective_type` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '目标类型：KILL/COLLECT/TALK/EXPLORE/LEVEL/CULTIVATE',
+  `target_id` int DEFAULT NULL COMMENT '目标ID(怪物/物品/NPC)',
+  `target_name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '目标名称',
+  `required_amount` int NOT NULL DEFAULT '1' COMMENT '需求数量',
+  `objective_order` int NOT NULL DEFAULT '0' COMMENT '目标顺序',
+  `is_optional` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否可选',
+  `description` text COLLATE utf8mb4_unicode_ci COMMENT '目标描述',
+  PRIMARY KEY (`id`),
+  KEY `idx_quest_id` (`quest_id`),
+  KEY `idx_objective_type` (`objective_type`),
+  CONSTRAINT `fk_quest_objectives_quest` FOREIGN KEY (`quest_id`) REFERENCES `quests` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='任务目标表';
+
+-- ----------------------------
+-- Records of quest_objectives
+-- ----------------------------
+INSERT INTO `quest_objectives` VALUES 
+(1, 1, 'CULTIVATE', NULL, '修炼', 1, 1, 0, '完成一次修炼'),
+(2, 2, 'COLLECT', 6, '灵石', 100, 1, 0, '收集100灵石'),
+(3, 3, 'CULTIVATE', NULL, '修炼', 300, 1, 0, '累计修炼300秒'),
+(4, 4, 'LEVEL', NULL, '等级', 1, 1, 0, '提升1级'),
+(5, 5, 'CULTIVATE', NULL, '修炼', 10, 1, 0, '完成10次修炼');
+
+-- ----------------------------
+-- Table structure for player_quest_objectives
+-- ----------------------------
+DROP TABLE IF EXISTS `player_quest_objectives`;
+CREATE TABLE `player_quest_objectives` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '玩家目标ID',
+  `player_quest_id` int NOT NULL COMMENT '玩家任务ID',
+  `objective_id` int NOT NULL COMMENT '目标ID',
+  `current_amount` int NOT NULL DEFAULT '0' COMMENT '当前进度',
+  `is_completed` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否完成',
+  `completed_at` timestamp NULL COMMENT '完成时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_quest_objective` (`player_quest_id`, `objective_id`),
+  KEY `idx_player_quest_id` (`player_quest_id`),
+  KEY `idx_objective_id` (`objective_id`),
+  CONSTRAINT `fk_player_quest_objectives_quest` FOREIGN KEY (`player_quest_id`) REFERENCES `player_quests` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_player_quest_objectives_objective` FOREIGN KEY (`objective_id`) REFERENCES `quest_objectives` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家任务目标表';
+
+-- ----------------------------
+-- Table structure for quest_rewards
+-- ----------------------------
+DROP TABLE IF EXISTS `quest_rewards`;
+CREATE TABLE `quest_rewards` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '奖励ID',
+  `quest_id` int NOT NULL COMMENT '任务ID',
+  `reward_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '奖励类型：EXP/SPIRIT_STONES/ITEM/EQUIPMENT/SKILL_POINT/CONTRIBUTION',
+  `reward_id` int DEFAULT NULL COMMENT '奖励ID(物品/装备)',
+  `quantity` int NOT NULL DEFAULT '1' COMMENT '数量',
+  `is_optional` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否可选奖励',
+  `reward_order` int NOT NULL DEFAULT '0' COMMENT '奖励顺序',
+  PRIMARY KEY (`id`),
+  KEY `idx_quest_id` (`quest_id`),
+  KEY `idx_reward_type` (`reward_type`),
+  CONSTRAINT `fk_quest_rewards_quest` FOREIGN KEY (`quest_id`) REFERENCES `quests` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='任务奖励表';
+
+-- ----------------------------
+-- Records of quest_rewards
+-- ----------------------------
+INSERT INTO `quest_rewards` VALUES 
+(1, 1, 'EXP', NULL, 100, 0, 1),
+(2, 1, 'SPIRIT_STONES', NULL, 50, 0, 2),
+(3, 1, 'CONTRIBUTION', NULL, 10, 0, 3),
+(4, 2, 'EXP', NULL, 120, 0, 1),
+(5, 2, 'SPIRIT_STONES', NULL, 80, 0, 2),
+(6, 2, 'CONTRIBUTION', NULL, 12, 0, 3),
+(7, 3, 'EXP', NULL, 800, 0, 1),
+(8, 3, 'SPIRIT_STONES', NULL, 500, 0, 2),
+(9, 3, 'CONTRIBUTION', NULL, 50, 0, 3),
+(10, 4, 'EXP', NULL, 1000, 0, 1),
+(11, 4, 'SPIRIT_STONES', NULL, 600, 0, 2),
+(12, 4, 'CONTRIBUTION', NULL, 60, 0, 3),
+(13, 5, 'EXP', NULL, 3000, 0, 1),
+(14, 5, 'SPIRIT_STONES', NULL, 2000, 0, 2),
+(15, 5, 'CONTRIBUTION', NULL, 200, 0, 3);
+
+-- ----------------------------
+-- Table structure for quest_logs
+-- ----------------------------
+DROP TABLE IF EXISTS `quest_logs`;
+CREATE TABLE `quest_logs` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '日志ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `quest_id` int NOT NULL COMMENT '任务ID',
+  `action` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '动作：ACCEPT/PROGRESS/COMPLETE/ABANDON/EXPIRE',
+  `detail` text COLLATE utf8mb4_unicode_ci COMMENT '详情',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_quest_id` (`quest_id`),
+  KEY `idx_action` (`action`),
+  KEY `idx_created_at` (`created_at`),
+  CONSTRAINT `fk_quest_logs_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_quest_logs_quest` FOREIGN KEY (`quest_id`) REFERENCES `quests` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='任务日志表';
+
+-- ----------------------------
+-- Table structure for bounty_quests
+-- ----------------------------
+DROP TABLE IF EXISTS `bounty_quests`;
+CREATE TABLE `bounty_quests` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '悬赏ID',
+  `monster_id` int NOT NULL COMMENT '怪物ID',
+  `monster_name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '怪物名称',
+  `required_kills` int NOT NULL DEFAULT '1' COMMENT '需求数量',
+  `star_level` int NOT NULL DEFAULT '1' COMMENT '星级(1-5)',
+  `exp_reward` int NOT NULL DEFAULT '0' COMMENT '经验奖励',
+  `spirit_stones_reward` int NOT NULL DEFAULT '0' COMMENT '灵石奖励',
+  `item_reward_id` int DEFAULT NULL COMMENT '物品奖励ID',
+  `item_reward_quantity` int NOT NULL DEFAULT '1' COMMENT '物品奖励数量',
+  `time_limit` int DEFAULT NULL COMMENT '时间限制(分钟)',
+  `required_level` int NOT NULL DEFAULT '1' COMMENT '需求等级',
+  `refresh_weight` int NOT NULL DEFAULT '100' COMMENT '刷新权重',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_monster_id` (`monster_id`),
+  KEY `idx_star_level` (`star_level`),
+  KEY `idx_required_level` (`required_level`),
+  CONSTRAINT `fk_bounty_quests_monster` FOREIGN KEY (`monster_id`) REFERENCES `monsters` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='悬赏任务表';
+
+-- ----------------------------
+-- Records of bounty_quests
+-- ----------------------------
+INSERT INTO `bounty_quests` VALUES 
+(1, 1, '野狼', 10, 1, 100, 50, 1, 5, 60, 1, 100, 1, NOW()),
+(2, 2, '山贼', 8, 1, 120, 60, 2, 3, 60, 5, 90, 1, NOW()),
+(3, 3, '妖怪', 5, 2, 200, 100, 5, 10, 90, 10, 70, 1, NOW()),
+(4, 4, '邪修', 3, 2, 300, 150, 7, 5, 90, 15, 60, 1, NOW()),
+(5, 5, '狂暴野狼', 3, 3, 500, 250, 3, 3, 120, 15, 40, 1, NOW()),
+(6, 6, '山贼头目', 2, 3, 600, 300, 4, 2, 120, 20, 30, 1, NOW()),
+(7, 7, '狼王', 1, 4, 1000, 500, 4, 5, 180, 25, 15, 1, NOW()),
+(8, 8, '千年妖怪', 1, 5, 2000, 1000, 8, 2, 240, 35, 5, 1, NOW());
+
+-- ----------------------------
+-- Table structure for player_bounty_quests
+-- ----------------------------
+DROP TABLE IF EXISTS `player_bounty_quests`;
+CREATE TABLE `player_bounty_quests` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '玩家悬赏ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `bounty_id` int NOT NULL COMMENT '悬赏ID',
+  `current_kills` int NOT NULL DEFAULT '0' COMMENT '当前击杀数',
+  `is_completed` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否完成',
+  `is_reward_claimed` tinyint(1) NOT NULL DEFAULT '0' COMMENT '奖励是否领取',
+  `accepted_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '接取时间',
+  `expire_at` timestamp NULL COMMENT '过期时间',
+  `completed_at` timestamp NULL COMMENT '完成时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_bounty_id` (`bounty_id`),
+  KEY `idx_is_completed` (`is_completed`),
+  KEY `idx_expire_at` (`expire_at`),
+  CONSTRAINT `fk_player_bounty_quests_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_player_bounty_quests_bounty` FOREIGN KEY (`bounty_id`) REFERENCES `bounty_quests` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家悬赏任务表';
+
+-- ----------------------------
+-- Table structure for quest_statistics
+-- ----------------------------
+DROP TABLE IF EXISTS `quest_statistics`;
+CREATE TABLE `quest_statistics` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '统计ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `total_quests_completed` int NOT NULL DEFAULT '0' COMMENT '总完成任务数',
+  `main_quests_completed` int NOT NULL DEFAULT '0' COMMENT '主线任务完成数',
+  `side_quests_completed` int NOT NULL DEFAULT '0' COMMENT '支线任务完成数',
+  `daily_quests_completed` int NOT NULL DEFAULT '0' COMMENT '日常任务完成数',
+  `weekly_quests_completed` int NOT NULL DEFAULT '0' COMMENT '周常任务完成数',
+  `bounty_quests_completed` int NOT NULL DEFAULT '0' COMMENT '悬赏任务完成数',
+  `total_exp_earned` bigint NOT NULL DEFAULT '0' COMMENT '总经验获得',
+  `total_spirit_stones_earned` bigint NOT NULL DEFAULT '0' COMMENT '总灵石获得',
+  `current_daily_streak` int NOT NULL DEFAULT '0' COMMENT '当前日常连续天数',
+  `max_daily_streak` int NOT NULL DEFAULT '0' COMMENT '最大日常连续天数',
+  `last_quest_completed_at` timestamp NULL COMMENT '最后完成任务时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_id` (`player_id`),
+  CONSTRAINT `fk_quest_statistics_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='任务统计表';
+
+-- ----------------------------
+-- Table structure for quest_templates
+-- ----------------------------
+DROP TABLE IF EXISTS `quest_templates`;
+CREATE TABLE `quest_templates` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '模板ID',
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '模板名称',
+  `quest_type_id` int NOT NULL COMMENT '任务类型ID',
+  `title_template` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '标题模板',
+  `description_template` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '描述模板',
+  `objective_template` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '目标模板',
+  `reward_template` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '奖励模板',
+  `level_range_min` int NOT NULL DEFAULT '1' COMMENT '等级范围最小值',
+  `level_range_max` int NOT NULL DEFAULT '100' COMMENT '等级范围最大值',
+  `weight` int NOT NULL DEFAULT '100' COMMENT '生成权重',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_quest_type_id` (`quest_type_id`),
+  KEY `idx_level_range` (`level_range_min`, `level_range_max`),
+  CONSTRAINT `fk_quest_templates_type` FOREIGN KEY (`quest_type_id`) REFERENCES `quest_types` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='任务模板表';
 
 -- ====================================================================
 -- 拍卖系统
@@ -544,6 +1685,330 @@ INSERT INTO `shop_items` VALUES
 (7, 'equipment', NULL, 6, 500, 500, 0, 20, 1, NOW(), NOW()),
 (8, 'equipment', NULL, 12, 1200, 1200, 0, 10, 1, NOW(), NOW());
 
+-- ----------------------------
+-- Table structure for shop_categories
+-- ----------------------------
+DROP TABLE IF EXISTS `shop_categories`;
+CREATE TABLE `shop_categories` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '分类ID',
+  `name` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '分类名称',
+  `code` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '分类编码',
+  `description` text COLLATE utf8mb4_unicode_ci COMMENT '分类描述',
+  `icon` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '图标',
+  `sort_order` int NOT NULL DEFAULT '0' COMMENT '排序',
+  `required_level` int NOT NULL DEFAULT '1' COMMENT '需求等级',
+  `required_vip` int NOT NULL DEFAULT '0' COMMENT '需求VIP等级',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_code` (`code`),
+  KEY `idx_sort_order` (`sort_order`),
+  KEY `idx_active` (`active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商城分类表';
+
+-- ----------------------------
+-- Records of shop_categories
+-- ----------------------------
+INSERT INTO `shop_categories` VALUES 
+(1, '普通商店', 'general', '出售基础物品', NULL, 1, 1, 0, 1, NOW()),
+(2, '装备商店', 'equipment', '出售各类装备', NULL, 2, 1, 0, 1, NOW()),
+(3, '丹药商店', 'pills', '出售各类丹药', NULL, 3, 5, 0, 1, NOW()),
+(4, '材料商店', 'materials', '出售各类材料', NULL, 4, 1, 0, 1, NOW()),
+(5, 'VIP商店', 'vip', 'VIP专属商店', NULL, 5, 1, 1, 1, NOW()),
+(6, '限时商店', 'limited', '限时特惠商品', NULL, 6, 10, 0, 1, NOW()),
+(7, '声望商店', 'reputation', '使用声望兑换', NULL, 7, 15, 0, 1, NOW()),
+(8, '活动商店', 'event', '活动专属商店', NULL, 8, 1, 0, 1, NOW());
+
+-- ----------------------------
+-- Table structure for shop_discounts
+-- ----------------------------
+DROP TABLE IF EXISTS `shop_discounts`;
+CREATE TABLE `shop_discounts` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '折扣ID',
+  `shop_item_id` int NOT NULL COMMENT '商店物品ID',
+  `discount_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '折扣类型：PERCENTAGE/FIXED',
+  `discount_value` decimal(10,2) NOT NULL COMMENT '折扣值',
+  `start_time` timestamp NOT NULL COMMENT '开始时间',
+  `end_time` timestamp NOT NULL COMMENT '结束时间',
+  `required_vip` int NOT NULL DEFAULT '0' COMMENT '需求VIP等级',
+  `daily_limit` int DEFAULT NULL COMMENT '每日限购',
+  `total_limit` int DEFAULT NULL COMMENT '总限购',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_shop_item_id` (`shop_item_id`),
+  KEY `idx_start_time` (`start_time`),
+  KEY `idx_end_time` (`end_time`),
+  KEY `idx_active` (`active`),
+  CONSTRAINT `fk_shop_discounts_item` FOREIGN KEY (`shop_item_id`) REFERENCES `shop_items` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商城折扣表';
+
+-- ----------------------------
+-- Table structure for shop_purchase_logs
+-- ----------------------------
+DROP TABLE IF EXISTS `shop_purchase_logs`;
+CREATE TABLE `shop_purchase_logs` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '购买日志ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `shop_item_id` int NOT NULL COMMENT '商店物品ID',
+  `quantity` int NOT NULL DEFAULT '1' COMMENT '购买数量',
+  `original_price` int NOT NULL COMMENT '原价',
+  `discount_price` int NOT NULL COMMENT '折后价',
+  `currency_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '货币类型：SPIRIT_STONES/CONTRIBUTION/YUANBAO',
+  `discount_id` int DEFAULT NULL COMMENT '折扣ID',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '购买时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_shop_item_id` (`shop_item_id`),
+  KEY `idx_currency_type` (`currency_type`),
+  KEY `idx_created_at` (`created_at`),
+  CONSTRAINT `fk_shop_purchase_logs_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_shop_purchase_logs_item` FOREIGN KEY (`shop_item_id`) REFERENCES `shop_items` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商城购买日志表';
+
+-- ----------------------------
+-- Table structure for shop_refresh_config
+-- ----------------------------
+DROP TABLE IF EXISTS `shop_refresh_config`;
+CREATE TABLE `shop_refresh_config` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '配置ID',
+  `shop_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '商店类型',
+  `refresh_interval` int NOT NULL COMMENT '刷新间隔(小时)',
+  `refresh_cost` int NOT NULL DEFAULT '0' COMMENT '手动刷新费用',
+  `cost_currency` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'SPIRIT_STONES' COMMENT '费用货币',
+  `max_manual_refresh` int NOT NULL DEFAULT '3' COMMENT '每日最大手动刷新次数',
+  `auto_refresh_enabled` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否自动刷新',
+  `last_refresh_at` timestamp NULL COMMENT '上次刷新时间',
+  `next_refresh_at` timestamp NULL COMMENT '下次刷新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_shop_type` (`shop_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商城刷新配置表';
+
+-- ----------------------------
+-- Records of shop_refresh_config
+-- ----------------------------
+INSERT INTO `shop_refresh_config` VALUES 
+(1, 'general', 24, 50, 'SPIRIT_STONES', 3, 1, NULL, NULL),
+(2, 'equipment', 24, 100, 'SPIRIT_STONES', 3, 1, NULL, NULL),
+(3, 'pills', 24, 80, 'SPIRIT_STONES', 3, 1, NULL, NULL),
+(4, 'limited', 12, 200, 'SPIRIT_STONES', 5, 1, NULL, NULL),
+(5, 'vip', 168, 0, 'SPIRIT_STONES', 0, 1, NULL, NULL);
+
+-- ----------------------------
+-- Table structure for shop_limited_items
+-- ----------------------------
+DROP TABLE IF EXISTS `shop_limited_items`;
+CREATE TABLE `shop_limited_items` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '限量商品ID',
+  `shop_item_id` int NOT NULL COMMENT '商店物品ID',
+  `total_stock` int NOT NULL COMMENT '总库存',
+  `remaining_stock` int NOT NULL COMMENT '剩余库存',
+  `player_daily_limit` int NOT NULL DEFAULT '1' COMMENT '玩家每日限购',
+  `player_total_limit` int NOT NULL DEFAULT '1' COMMENT '玩家总限购',
+  `start_time` timestamp NOT NULL COMMENT '开始时间',
+  `end_time` timestamp NOT NULL COMMENT '结束时间',
+  `refresh_on_soldout` tinyint(1) NOT NULL DEFAULT '0' COMMENT '售罄是否刷新',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_shop_item_id` (`shop_item_id`),
+  KEY `idx_start_time` (`start_time`),
+  KEY `idx_end_time` (`end_time`),
+  KEY `idx_active` (`active`),
+  CONSTRAINT `fk_shop_limited_items_item` FOREIGN KEY (`shop_item_id`) REFERENCES `shop_items` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商城限量商品表';
+
+-- ----------------------------
+-- Table structure for player_shop_limits
+-- ----------------------------
+DROP TABLE IF EXISTS `player_shop_limits`;
+CREATE TABLE `player_shop_limits` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '限购记录ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `limited_item_id` int NOT NULL COMMENT '限量商品ID',
+  `purchased_today` int NOT NULL DEFAULT '0' COMMENT '今日已购',
+  `purchased_total` int NOT NULL DEFAULT '0' COMMENT '总购买数',
+  `last_purchase_at` timestamp NULL COMMENT '最后购买时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_limited` (`player_id`, `limited_item_id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_limited_item_id` (`limited_item_id`),
+  CONSTRAINT `fk_player_shop_limits_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_player_shop_limits_item` FOREIGN KEY (`limited_item_id`) REFERENCES `shop_limited_items` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家限购记录表';
+
+-- ----------------------------
+-- Table structure for shop_sell_logs
+-- ----------------------------
+DROP TABLE IF EXISTS `shop_sell_logs`;
+CREATE TABLE `shop_sell_logs` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '出售日志ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `item_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '物品类型：ITEM/EQUIPMENT',
+  `item_id` int NOT NULL COMMENT '物品ID',
+  `quantity` int NOT NULL DEFAULT '1' COMMENT '数量',
+  `sell_price` int NOT NULL COMMENT '出售价格',
+  `currency_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'SPIRIT_STONES' COMMENT '货币类型',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '出售时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_item_type` (`item_type`),
+  KEY `idx_created_at` (`created_at`),
+  CONSTRAINT `fk_shop_sell_logs_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商城出售日志表';
+
+-- ----------------------------
+-- Table structure for shop_statistics
+-- ----------------------------
+DROP TABLE IF EXISTS `shop_statistics`;
+CREATE TABLE `shop_statistics` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '统计ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `total_purchases` int NOT NULL DEFAULT '0' COMMENT '总购买次数',
+  `total_spent_spirit_stones` bigint NOT NULL DEFAULT '0' COMMENT '总花费灵石',
+  `total_spent_contribution` bigint NOT NULL DEFAULT '0' COMMENT '总花费贡献',
+  `total_spent_yuanbao` bigint NOT NULL DEFAULT '0' COMMENT '总花费元宝',
+  `total_sales` int NOT NULL DEFAULT '0' COMMENT '总出售次数',
+  `total_earned_spirit_stones` bigint NOT NULL DEFAULT '0' COMMENT '总赚取灵石',
+  `favorite_shop_type` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '最常光顾商店',
+  `last_purchase_at` timestamp NULL COMMENT '最后购买时间',
+  `last_sale_at` timestamp NULL COMMENT '最后出售时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_id` (`player_id`),
+  CONSTRAINT `fk_shop_statistics_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商城统计表';
+
+-- ----------------------------
+-- Table structure for shop_recommendations
+-- ----------------------------
+DROP TABLE IF EXISTS `shop_recommendations`;
+CREATE TABLE `shop_recommendations` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '推荐ID',
+  `shop_item_id` int NOT NULL COMMENT '商店物品ID',
+  `recommend_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '推荐类型：HOT/NEW/SUGGESTED/FEATURED',
+  `priority` int NOT NULL DEFAULT '0' COMMENT '优先级',
+  `start_time` timestamp NULL COMMENT '开始时间',
+  `end_time` timestamp NULL COMMENT '结束时间',
+  `required_level` int NOT NULL DEFAULT '1' COMMENT '需求等级',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_shop_item_id` (`shop_item_id`),
+  KEY `idx_recommend_type` (`recommend_type`),
+  KEY `idx_priority` (`priority`),
+  KEY `idx_active` (`active`),
+  CONSTRAINT `fk_shop_recommendations_item` FOREIGN KEY (`shop_item_id`) REFERENCES `shop_items` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商城推荐表';
+
+-- ----------------------------
+-- Table structure for shop_bundles
+-- ----------------------------
+DROP TABLE IF EXISTS `shop_bundles`;
+CREATE TABLE `shop_bundles` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '礼包ID',
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '礼包名称',
+  `description` text COLLATE utf8mb4_unicode_ci COMMENT '礼包描述',
+  `bundle_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '礼包类型：STARTER/DAILY/WEEKLY/MONTHLY/SPECIAL',
+  `original_price` int NOT NULL COMMENT '原价',
+  `sale_price` int NOT NULL COMMENT '售价',
+  `currency_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'YUANBAO' COMMENT '货币类型',
+  `contents` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '内容物(JSON)',
+  `player_limit` int DEFAULT NULL COMMENT '玩家限购次数',
+  `daily_limit` int DEFAULT NULL COMMENT '每日限购次数',
+  `start_time` timestamp NULL COMMENT '开始时间',
+  `end_time` timestamp NULL COMMENT '结束时间',
+  `required_level` int NOT NULL DEFAULT '1' COMMENT '需求等级',
+  `required_vip` int NOT NULL DEFAULT '0' COMMENT '需求VIP',
+  `icon` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '图标',
+  `sort_order` int NOT NULL DEFAULT '0' COMMENT '排序',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_bundle_type` (`bundle_type`),
+  KEY `idx_active` (`active`),
+  KEY `idx_sort_order` (`sort_order`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商城礼包表';
+
+-- ----------------------------
+-- Records of shop_bundles
+-- ----------------------------
+INSERT INTO `shop_bundles` VALUES 
+(1, '新手礼包', '包含新手必需品', 'STARTER', 500, 60, 'YUANBAO', '{"spirit_stones": 1000, "items": [{"id": 1, "quantity": 20}, {"id": 2, "quantity": 20}], "equipment": [{"id": 1, "quantity": 1}]}', 1, NULL, NULL, NULL, 1, 0, NULL, 1, 1, NOW(), NOW()),
+(2, '每日修炼礼包', '每日限购的修炼资源', 'DAILY', 300, 30, 'YUANBAO', '{"spirit_stones": 500, "items": [{"id": 3, "quantity": 5}, {"id": 13, "quantity": 2}], "exp": 200}', NULL, 1, NULL, NULL, 10, 0, NULL, 2, 1, NOW(), NOW()),
+(3, '每周豪华礼包', '超值每周礼包', 'WEEKLY', 1500, 300, 'YUANBAO', '{"spirit_stones": 3000, "items": [{"id": 4, "quantity": 1}, {"id": 15, "quantity": 1}], "equipments": [{"id": 12, "rate": 50}]}', NULL, 1, NULL, NULL, 20, 2, NULL, 3, 1, NOW(), NOW()),
+(4, '月度至尊礼包', '每月限购至尊礼包', 'MONTHLY', 5000, 980, 'YUANBAO', '{"spirit_stones": 10000, "items": [{"id": 36, "quantity": 1}, {"id": 37, "quantity": 1}], "equipments": [{"id": 24, "quantity": 1}], "skill_points": 5}', NULL, 1, NULL, NULL, 30, 4, NULL, 4, 1, NOW(), NOW());
+
+-- ----------------------------
+-- Table structure for player_bundle_purchases
+-- ----------------------------
+DROP TABLE IF EXISTS `player_bundle_purchases`;
+CREATE TABLE `player_bundle_purchases` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '购买记录ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `bundle_id` int NOT NULL COMMENT '礼包ID',
+  `purchase_count` int NOT NULL DEFAULT '1' COMMENT '购买次数',
+  `last_purchase_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '最后购买时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_bundle` (`player_id`, `bundle_id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_bundle_id` (`bundle_id`),
+  CONSTRAINT `fk_player_bundle_purchases_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_player_bundle_purchases_bundle` FOREIGN KEY (`bundle_id`) REFERENCES `shop_bundles` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家礼包购买记录表';
+
+-- ----------------------------
+-- Table structure for shop_wish_list
+-- ----------------------------
+DROP TABLE IF EXISTS `shop_wish_list`;
+CREATE TABLE `shop_wish_list` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '心愿单ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `item_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '物品类型：ITEM/EQUIPMENT/PET',
+  `item_id` int NOT NULL COMMENT '物品ID',
+  `added_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '添加时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_item` (`player_id`, `item_type`, `item_id`),
+  KEY `idx_player_id` (`player_id`),
+  CONSTRAINT `fk_shop_wish_list_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商城心愿单表';
+
+-- ----------------------------
+-- Table structure for shop_compare_list
+-- ----------------------------
+DROP TABLE IF EXISTS `shop_compare_list`;
+CREATE TABLE `shop_compare_list` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '对比ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `shop_item_id` int NOT NULL COMMENT '商店物品ID',
+  `added_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '添加时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_shop_item` (`player_id`, `shop_item_id`),
+  KEY `idx_player_id` (`player_id`),
+  CONSTRAINT `fk_shop_compare_list_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_shop_compare_list_item` FOREIGN KEY (`shop_item_id`) REFERENCES `shop_items` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商城对比列表表';
+
+-- ----------------------------
+-- Table structure for shop_price_history
+-- ----------------------------
+DROP TABLE IF EXISTS `shop_price_history`;
+CREATE TABLE `shop_price_history` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '历史ID',
+  `shop_item_id` int NOT NULL COMMENT '商店物品ID',
+  `old_price` int NOT NULL COMMENT '原价格',
+  `new_price` int NOT NULL COMMENT '新价格',
+  `change_reason` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '变更原因',
+  `changed_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '变更时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_shop_item_id` (`shop_item_id`),
+  KEY `idx_changed_at` (`changed_at`),
+  CONSTRAINT `fk_shop_price_history_item` FOREIGN KEY (`shop_item_id`) REFERENCES `shop_items` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商城价格历史表';
+
 -- ====================================================================
 -- 战斗系统
 -- ====================================================================
@@ -606,6 +2071,417 @@ CREATE TABLE `combat_logs` (
   KEY `idx_combat_created_at` (`created_at`),
   CONSTRAINT `fk_combat_logs_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='战斗日志表';
+
+-- ----------------------------
+-- Table structure for combat_stats
+-- ----------------------------
+DROP TABLE IF EXISTS `combat_stats`;
+CREATE TABLE `combat_stats` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '统计ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `total_battles` int NOT NULL DEFAULT '0' COMMENT '总战斗次数',
+  `total_wins` int NOT NULL DEFAULT '0' COMMENT '总胜利次数',
+  `total_losses` int NOT NULL DEFAULT '0' COMMENT '总失败次数',
+  `total_damage_dealt` bigint NOT NULL DEFAULT '0' COMMENT '总伤害输出',
+  `total_damage_taken` bigint NOT NULL DEFAULT '0' COMMENT '总伤害承受',
+  `total_exp_gained` bigint NOT NULL DEFAULT '0' COMMENT '总经验获得',
+  `total_spirit_stones_gained` bigint NOT NULL DEFAULT '0' COMMENT '总灵石获得',
+  `highest_win_streak` int NOT NULL DEFAULT '0' COMMENT '最高连胜',
+  `current_win_streak` int NOT NULL DEFAULT '0' COMMENT '当前连胜',
+  `boss_kills` int NOT NULL DEFAULT '0' COMMENT 'BOSS击杀数',
+  `elite_kills` int NOT NULL DEFAULT '0' COMMENT '精英击杀数',
+  `pvp_wins` int NOT NULL DEFAULT '0' COMMENT 'PVP胜利次数',
+  `pvp_losses` int NOT NULL DEFAULT '0' COMMENT 'PVP失败次数',
+  `last_battle_at` timestamp NULL COMMENT '最后战斗时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_id` (`player_id`),
+  KEY `idx_total_wins` (`total_wins`),
+  KEY `idx_win_streak` (`highest_win_streak`),
+  CONSTRAINT `fk_combat_stats_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家战斗统计表';
+
+-- ----------------------------
+-- Table structure for monster_skills
+-- ----------------------------
+DROP TABLE IF EXISTS `monster_skills`;
+CREATE TABLE `monster_skills` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '怪物技能ID',
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '技能名称',
+  `description` text COLLATE utf8mb4_unicode_ci COMMENT '技能描述',
+  `skill_type` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '技能类型：ATTACK/DEFENSE/BUFF/DEBUFF',
+  `base_damage` double NOT NULL DEFAULT '0' COMMENT '基础伤害',
+  `damage_multiplier` decimal(5,2) NOT NULL DEFAULT '1.00' COMMENT '伤害倍率',
+  `cooldown` int NOT NULL DEFAULT '0' COMMENT '冷却时间(回合)',
+  `mana_cost` int NOT NULL DEFAULT '0' COMMENT '法力消耗',
+  `effect_type` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '效果类型：STUN/POISON/BURN/FREEZE',
+  `effect_duration` int NOT NULL DEFAULT '0' COMMENT '效果持续回合数',
+  `effect_value` int NOT NULL DEFAULT '0' COMMENT '效果数值',
+  `trigger_rate` decimal(5,2) NOT NULL DEFAULT '100.00' COMMENT '触发概率',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_skill_type` (`skill_type`),
+  KEY `idx_effect_type` (`effect_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='怪物技能表';
+
+-- ----------------------------
+-- Records of monster_skills
+-- ----------------------------
+INSERT INTO `monster_skills` VALUES 
+(1, '撕咬', '锋利的牙齿撕咬', 'ATTACK', 15, 1.20, 2, 0, NULL, 0, 0, 100.00, 1, NOW()),
+(2, '毒液喷射', '喷射剧毒液体', 'ATTACK', 10, 1.00, 3, 0, 'POISON', 3, 5, 80.00, 1, NOW()),
+(3, '火焰吐息', '喷出炽热火焰', 'ATTACK', 25, 1.50, 4, 0, 'BURN', 2, 10, 70.00, 1, NOW()),
+(4, '冰冻气息', '释放寒冰气息', 'ATTACK', 20, 1.30, 5, 0, 'FREEZE', 1, 0, 60.00, 1, NOW()),
+(5, '狂暴', '进入狂暴状态', 'BUFF', 0, 0.00, 10, 0, NULL, 5, 50, 100.00, 1, NOW()),
+(6, '防御姿态', '进入防御状态', 'DEFENSE', 0, 0.00, 8, 0, NULL, 3, 30, 100.00, 1, NOW()),
+(7, '雷霆一击', '蕴含雷电的一击', 'ATTACK', 35, 2.00, 6, 0, 'STUN', 1, 0, 50.00, 1, NOW()),
+(8, '暗影突袭', '从暗影中发动攻击', 'ATTACK', 30, 1.80, 4, 0, NULL, 0, 0, 90.00, 1, NOW());
+
+-- ----------------------------
+-- Table structure for monster_skill_mapping
+-- ----------------------------
+DROP TABLE IF EXISTS `monster_skill_mapping`;
+CREATE TABLE `monster_skill_mapping` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '映射ID',
+  `monster_id` int NOT NULL COMMENT '怪物ID',
+  `skill_id` int NOT NULL COMMENT '技能ID',
+  `skill_level` int NOT NULL DEFAULT '1' COMMENT '技能等级',
+  `use_probability` decimal(5,2) NOT NULL DEFAULT '100.00' COMMENT '使用概率',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_monster_skill` (`monster_id`, `skill_id`),
+  KEY `idx_monster_id` (`monster_id`),
+  KEY `idx_skill_id` (`skill_id`),
+  CONSTRAINT `fk_monster_skill_mapping_monster` FOREIGN KEY (`monster_id`) REFERENCES `monsters` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_monster_skill_mapping_skill` FOREIGN KEY (`skill_id`) REFERENCES `monster_skills` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='怪物技能映射表';
+
+-- ----------------------------
+-- Records of monster_skill_mapping
+-- ----------------------------
+INSERT INTO `monster_skill_mapping` VALUES 
+(1, 1, 1, 1, 100.00),
+(2, 2, 1, 1, 100.00),
+(3, 3, 2, 1, 100.00),
+(4, 4, 3, 1, 100.00),
+(5, 5, 5, 1, 100.00),
+(6, 5, 7, 1, 80.00),
+(7, 6, 1, 2, 100.00),
+(8, 6, 6, 1, 100.00),
+(9, 7, 3, 2, 100.00),
+(10, 7, 7, 2, 100.00),
+(11, 7, 5, 1, 100.00),
+(12, 8, 4, 2, 100.00),
+(13, 8, 8, 2, 100.00);
+
+-- ----------------------------
+-- Table structure for dungeons
+-- ----------------------------
+DROP TABLE IF EXISTS `dungeons`;
+CREATE TABLE `dungeons` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '副本ID',
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '副本名称',
+  `description` text COLLATE utf8mb4_unicode_ci COMMENT '副本描述',
+  `dungeon_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '副本类型：NORMAL/ELITE/BOSS/TEAM',
+  `required_level` int NOT NULL DEFAULT '1' COMMENT '需求等级',
+  `required_realm` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '需求境界',
+  `stamina_cost` int NOT NULL DEFAULT '10' COMMENT '体力消耗',
+  `max_rounds` int NOT NULL DEFAULT '50' COMMENT '最大回合数',
+  `daily_limit` int NOT NULL DEFAULT '3' COMMENT '每日限制次数',
+  `exp_reward` int NOT NULL DEFAULT '0' COMMENT '经验奖励',
+  `spirit_stones_reward` int NOT NULL DEFAULT '0' COMMENT '灵石奖励',
+  `drop_rate_bonus` decimal(5,2) NOT NULL DEFAULT '0.00' COMMENT '掉落率加成',
+  `unlock_condition` text COLLATE utf8mb4_unicode_ci COMMENT '解锁条件(JSON)',
+  `rewards` text COLLATE utf8mb4_unicode_ci COMMENT '奖励配置(JSON)',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_dungeon_type` (`dungeon_type`),
+  KEY `idx_required_level` (`required_level`),
+  KEY `idx_active` (`active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='副本表';
+
+-- ----------------------------
+-- Records of dungeons
+-- ----------------------------
+INSERT INTO `dungeons` VALUES 
+(1, '野狼谷', '野狼聚集的山谷，适合新手历练', 'NORMAL', 1, NULL, 10, 30, 5, 100, 50, 10.00, NULL, '{"exp": 100, "spirit_stones": 50, "items": [{"id": 1, "rate": 30}]}', 1, NOW(), NOW()),
+(2, '山贼营地', '山贼的老巢，危机四伏', 'NORMAL', 5, NULL, 15, 40, 3, 200, 100, 15.00, NULL, '{"exp": 200, "spirit_stones": 100, "items": [{"id": 2, "rate": 25}]}', 1, NOW(), NOW()),
+(3, '妖兽洞穴', '妖兽盘踞的洞穴，充满危险', 'ELITE', 10, '练气期五层', 20, 50, 2, 500, 200, 20.00, NULL, '{"exp": 500, "spirit_stones": 200, "equipments": [{"id": 12, "rate": 10}]}', 1, NOW(), NOW()),
+(4, '邪修密地', '邪修修炼的秘密基地', 'ELITE', 15, '筑基期', 25, 60, 2, 800, 300, 25.00, NULL, '{"exp": 800, "spirit_stones": 300, "equipments": [{"id": 18, "rate": 15}]}', 1, NOW(), NOW()),
+(5, '狼王巢穴', '狼王的领地，极度危险', 'BOSS', 20, '金丹期', 30, 100, 1, 1500, 500, 50.00, NULL, '{"exp": 1500, "spirit_stones": 500, "equipments": [{"id": 24, "rate": 30}]}', 1, NOW(), NOW()),
+(6, '千年妖洞', '千年妖怪的巢穴', 'BOSS', 30, '元婴期', 40, 120, 1, 3000, 1000, 60.00, NULL, '{"exp": 3000, "spirit_stones": 1000, "equipments": [{"id": 29, "rate": 40}]}', 1, NOW(), NOW());
+
+-- ----------------------------
+-- Table structure for dungeon_monsters
+-- ----------------------------
+DROP TABLE IF EXISTS `dungeon_monsters`;
+CREATE TABLE `dungeon_monsters` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '副本怪物ID',
+  `dungeon_id` int NOT NULL COMMENT '副本ID',
+  `monster_id` int NOT NULL COMMENT '怪物ID',
+  `position` int NOT NULL DEFAULT '1' COMMENT '位置(第几波)',
+  `quantity` int NOT NULL DEFAULT '1' COMMENT '数量',
+  `level_modifier` int NOT NULL DEFAULT '0' COMMENT '等级修正',
+  `health_modifier` decimal(5,2) NOT NULL DEFAULT '1.00' COMMENT '生命值修正',
+  `attack_modifier` decimal(5,2) NOT NULL DEFAULT '1.00' COMMENT '攻击力修正',
+  `defense_modifier` decimal(5,2) NOT NULL DEFAULT '1.00' COMMENT '防御力修正',
+  `is_boss` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否为BOSS',
+  `drop_rate_modifier` decimal(5,2) NOT NULL DEFAULT '1.00' COMMENT '掉落率修正',
+  PRIMARY KEY (`id`),
+  KEY `idx_dungeon_id` (`dungeon_id`),
+  KEY `idx_monster_id` (`monster_id`),
+  KEY `idx_position` (`position`),
+  CONSTRAINT `fk_dungeon_monsters_dungeon` FOREIGN KEY (`dungeon_id`) REFERENCES `dungeons` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_dungeon_monsters_monster` FOREIGN KEY (`monster_id`) REFERENCES `monsters` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='副本怪物表';
+
+-- ----------------------------
+-- Records of dungeon_monsters
+-- ----------------------------
+INSERT INTO `dungeon_monsters` VALUES 
+(1, 1, 1, 1, 2, 0, 1.00, 1.00, 1.00, 0, 1.00),
+(2, 1, 1, 2, 3, 0, 1.00, 1.00, 1.00, 0, 1.00),
+(3, 1, 5, 3, 1, 0, 1.50, 1.20, 1.00, 1, 2.00),
+(4, 2, 2, 1, 2, 0, 1.00, 1.00, 1.00, 0, 1.00),
+(5, 2, 2, 2, 3, 0, 1.00, 1.00, 1.00, 0, 1.00),
+(6, 2, 6, 3, 1, 0, 1.50, 1.30, 1.10, 1, 2.50),
+(7, 3, 3, 1, 3, 0, 1.00, 1.00, 1.00, 0, 1.00),
+(8, 3, 3, 2, 4, 0, 1.10, 1.10, 1.00, 0, 1.20),
+(9, 3, 7, 3, 1, 0, 1.80, 1.50, 1.20, 1, 3.00),
+(10, 4, 4, 1, 3, 0, 1.00, 1.00, 1.00, 0, 1.00),
+(11, 4, 4, 2, 4, 0, 1.20, 1.20, 1.10, 0, 1.50),
+(12, 4, 8, 3, 1, 0, 2.00, 1.80, 1.50, 1, 4.00),
+(13, 5, 1, 1, 5, 5, 1.50, 1.30, 1.20, 0, 1.50),
+(14, 5, 5, 2, 3, 5, 1.80, 1.50, 1.30, 0, 2.00),
+(15, 5, 7, 3, 1, 5, 3.00, 2.00, 1.80, 1, 5.00),
+(16, 6, 3, 1, 6, 10, 2.00, 1.50, 1.30, 0, 2.00),
+(17, 6, 6, 2, 4, 10, 2.50, 1.80, 1.50, 0, 2.50),
+(18, 6, 8, 3, 1, 10, 4.00, 2.50, 2.00, 1, 6.00);
+
+-- ----------------------------
+-- Table structure for player_dungeon_progress
+-- ----------------------------
+DROP TABLE IF EXISTS `player_dungeon_progress`;
+CREATE TABLE `player_dungeon_progress` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '进度ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `dungeon_id` int NOT NULL COMMENT '副本ID',
+  `is_unlocked` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否解锁',
+  `is_cleared` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否通关',
+  `best_score` int NOT NULL DEFAULT '0' COMMENT '最佳分数',
+  `fastest_clear_time` int DEFAULT NULL COMMENT '最快通关时间(秒)',
+  `total_clears` int NOT NULL DEFAULT '0' COMMENT '通关次数',
+  `daily_clears` int NOT NULL DEFAULT '0' COMMENT '今日通关次数',
+  `last_clear_at` timestamp NULL COMMENT '最后通关时间',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_dungeon` (`player_id`, `dungeon_id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_dungeon_id` (`dungeon_id`),
+  KEY `idx_is_cleared` (`is_cleared`),
+  CONSTRAINT `fk_player_dungeon_progress_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_player_dungeon_progress_dungeon` FOREIGN KEY (`dungeon_id`) REFERENCES `dungeons` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家副本进度表';
+
+-- ----------------------------
+-- Table structure for dungeon_logs
+-- ----------------------------
+DROP TABLE IF EXISTS `dungeon_logs`;
+CREATE TABLE `dungeon_logs` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '日志ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `dungeon_id` int NOT NULL COMMENT '副本ID',
+  `result` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '结果：WIN/LOSE/TIMEOUT',
+  `rounds_used` int NOT NULL DEFAULT '0' COMMENT '使用回合数',
+  `time_used` int NOT NULL DEFAULT '0' COMMENT '使用时间(秒)',
+  `damage_dealt` bigint NOT NULL DEFAULT '0' COMMENT '造成伤害',
+  `damage_taken` bigint NOT NULL DEFAULT '0' COMMENT '受到伤害',
+  `exp_gained` int NOT NULL DEFAULT '0' COMMENT '获得经验',
+  `spirit_stones_gained` int NOT NULL DEFAULT '0' COMMENT '获得灵石',
+  `items_dropped` text COLLATE utf8mb4_unicode_ci COMMENT '掉落物品(JSON)',
+  `battle_details` text COLLATE utf8mb4_unicode_ci COMMENT '战斗详情(JSON)',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_dungeon_id` (`dungeon_id`),
+  KEY `idx_result` (`result`),
+  KEY `idx_created_at` (`created_at`),
+  CONSTRAINT `fk_dungeon_logs_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_dungeon_logs_dungeon` FOREIGN KEY (`dungeon_id`) REFERENCES `dungeons` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='副本日志表';
+
+-- ----------------------------
+-- Table structure for pvp_battles
+-- ----------------------------
+DROP TABLE IF EXISTS `pvp_battles`;
+CREATE TABLE `pvp_battles` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'PVP战斗ID',
+  `challenger_id` int NOT NULL COMMENT '挑战者ID',
+  `defender_id` int NOT NULL COMMENT '防守者ID',
+  `result` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '结果：CHALLENGER_WIN/DEFENDER_WIN/DRAW/TIMEOUT',
+  `rounds` int NOT NULL DEFAULT '0' COMMENT '回合数',
+  `challenger_damage` bigint NOT NULL DEFAULT '0' COMMENT '挑战者伤害',
+  `defender_damage` bigint NOT NULL DEFAULT '0' COMMENT '防守者伤害',
+  `exp_reward` int NOT NULL DEFAULT '0' COMMENT '经验奖励',
+  `spirit_stones_reward` int NOT NULL DEFAULT '0' COMMENT '灵石奖励',
+  `ranking_change` int NOT NULL DEFAULT '0' COMMENT '排名变化',
+  `battle_details` text COLLATE utf8mb4_unicode_ci COMMENT '战斗详情(JSON)',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_challenger_id` (`challenger_id`),
+  KEY `idx_defender_id` (`defender_id`),
+  KEY `idx_result` (`result`),
+  KEY `idx_created_at` (`created_at`),
+  CONSTRAINT `fk_pvp_battles_challenger` FOREIGN KEY (`challenger_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_pvp_battles_defender` FOREIGN KEY (`defender_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='PVP战斗记录表';
+
+-- ----------------------------
+-- Table structure for pvp_rankings
+-- ----------------------------
+DROP TABLE IF EXISTS `pvp_rankings`;
+CREATE TABLE `pvp_rankings` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '排名ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `rank` int NOT NULL DEFAULT '0' COMMENT '排名',
+  `score` int NOT NULL DEFAULT '1000' COMMENT '积分',
+  `tier` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '青铜' COMMENT '段位：青铜/白银/黄金/铂金/钻石/王者',
+  `wins` int NOT NULL DEFAULT '0' COMMENT '胜利次数',
+  `losses` int NOT NULL DEFAULT '0' COMMENT '失败次数',
+  `win_streak` int NOT NULL DEFAULT '0' COMMENT '连胜',
+  `highest_rank` int NOT NULL DEFAULT '0' COMMENT '历史最高排名',
+  `highest_score` int NOT NULL DEFAULT '1000' COMMENT '历史最高积分',
+  `season_id` int NOT NULL DEFAULT '1' COMMENT '赛季ID',
+  `last_battle_at` timestamp NULL COMMENT '最后战斗时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_season` (`player_id`, `season_id`),
+  KEY `idx_rank` (`rank`),
+  KEY `idx_score` (`score`),
+  KEY `idx_tier` (`tier`),
+  KEY `idx_season_id` (`season_id`),
+  CONSTRAINT `fk_pvp_rankings_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='PVP排名表';
+
+-- ----------------------------
+-- Table structure for combat_buffs
+-- ----------------------------
+DROP TABLE IF EXISTS `combat_buffs`;
+CREATE TABLE `combat_buffs` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'BUFF ID',
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'BUFF名称',
+  `description` text COLLATE utf8mb4_unicode_ci COMMENT 'BUFF描述',
+  `buff_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'BUFF类型：ATTACK/DEFENSE/HEALTH/SPEED/CRIT',
+  `buff_value` decimal(10,2) NOT NULL COMMENT 'BUFF数值(百分比或固定值)',
+  `is_percentage` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否为百分比',
+  `duration_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '持续类型：PERMANENT/TEMPORARY/BATTLE',
+  `duration_value` int NOT NULL DEFAULT '0' COMMENT '持续时间(秒/回合)',
+  `stackable` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否可叠加',
+  `max_stacks` int NOT NULL DEFAULT '1' COMMENT '最大叠加层数',
+  `icon` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '图标',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_buff_type` (`buff_type`),
+  KEY `idx_active` (`active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='战斗BUFF表';
+
+-- ----------------------------
+-- Records of combat_buffs
+-- ----------------------------
+INSERT INTO `combat_buffs` VALUES 
+(1, '攻击提升', '攻击力提升20%', 'ATTACK', 20.00, 1, 'TEMPORARY', 300, 0, 1, NULL, 1, NOW()),
+(2, '防御强化', '防御力提升30%', 'DEFENSE', 30.00, 1, 'TEMPORARY', 300, 0, 1, NULL, 1, NOW()),
+(3, '生命恢复', '每回合恢复5%生命', 'HEALTH', 5.00, 1, 'BATTLE', 5, 0, 1, NULL, 1, NOW()),
+(4, '疾风步', '速度提升50%', 'SPEED', 50.00, 1, 'TEMPORARY', 180, 0, 1, NULL, 1, NOW()),
+(5, '暴击强化', '暴击率提升15%', 'CRIT', 15.00, 1, 'TEMPORARY', 300, 0, 1, NULL, 1, NOW()),
+(6, '狂暴之力', '攻击力提升50%，防御力降低20%', 'ATTACK', 50.00, 1, 'BATTLE', 3, 0, 1, NULL, 1, NOW()),
+(7, '铁壁', '防御力提升100%', 'DEFENSE', 100.00, 1, 'BATTLE', 2, 0, 1, NULL, 1, NOW()),
+(8, '嗜血', '攻击时恢复造成伤害10%的生命', 'HEALTH', 10.00, 1, 'BATTLE', 3, 0, 1, NULL, 1, NOW());
+
+-- ----------------------------
+-- Table structure for player_combat_buffs
+-- ----------------------------
+DROP TABLE IF EXISTS `player_combat_buffs`;
+CREATE TABLE `player_combat_buffs` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '玩家BUFF ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `buff_id` int NOT NULL COMMENT 'BUFF ID',
+  `stacks` int NOT NULL DEFAULT '1' COMMENT '当前叠加层数',
+  `source` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '来源(装备/技能/道具)',
+  `source_id` int DEFAULT NULL COMMENT '来源ID',
+  `expire_at` timestamp NULL COMMENT '过期时间',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_buff_id` (`buff_id`),
+  KEY `idx_expire_at` (`expire_at`),
+  CONSTRAINT `fk_player_combat_buffs_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_player_combat_buffs_buff` FOREIGN KEY (`buff_id`) REFERENCES `combat_buffs` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家战斗BUFF表';
+
+-- ----------------------------
+-- Table structure for combat_achievements
+-- ----------------------------
+DROP TABLE IF EXISTS `combat_achievements`;
+CREATE TABLE `combat_achievements` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '成就ID',
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '成就名称',
+  `description` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '成就描述',
+  `achievement_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '成就类型：KILL/STREAK/DAMAGE/SURVIVE',
+  `condition_type` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '条件类型',
+  `condition_value` int NOT NULL COMMENT '条件数值',
+  `reward_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '奖励类型',
+  `reward_id` int DEFAULT NULL COMMENT '奖励ID',
+  `reward_quantity` int NOT NULL DEFAULT '1' COMMENT '奖励数量',
+  `icon` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '图标',
+  `sort_order` int NOT NULL DEFAULT '0' COMMENT '排序',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_achievement_type` (`achievement_type`),
+  KEY `idx_active` (`active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='战斗成就表';
+
+-- ----------------------------
+-- Records of combat_achievements
+-- ----------------------------
+INSERT INTO `combat_achievements` VALUES 
+(1, '初战告捷', '获得第一次战斗胜利', 'KILL', 'total_wins', 1, 'SPIRIT_STONES', NULL, 100, NULL, 1, 1, NOW()),
+(2, '百战精兵', '获得100次战斗胜利', 'KILL', 'total_wins', 100, 'SPIRIT_STONES', NULL, 1000, NULL, 2, 1, NOW()),
+(3, '千战之王', '获得1000次战斗胜利', 'KILL', 'total_wins', 1000, 'SPIRIT_STONES', NULL, 10000, NULL, 3, 1, NOW()),
+(4, '连胜三场', '获得3场连胜', 'STREAK', 'highest_win_streak', 3, 'ITEM', 3, 5, NULL, 10, 1, NOW()),
+(5, '十连胜', '获得10场连胜', 'STREAK', 'highest_win_streak', 10, 'SPIRIT_STONES', NULL, 500, NULL, 11, 1, NOW()),
+(6, '百连胜', '获得100场连胜', 'STREAK', 'highest_win_streak', 100, 'EQUIPMENT', 18, 1, NULL, 12, 1, NOW()),
+(7, '万点伤害', '单场战斗造成10000点伤害', 'DAMAGE', 'single_battle_damage', 10000, 'SPIRIT_STONES', NULL, 200, NULL, 20, 1, NOW()),
+(8, '百万伤害', '累计造成1000000点伤害', 'DAMAGE', 'total_damage_dealt', 1000000, 'ITEM', 4, 1, NULL, 21, 1, NOW()),
+(9, 'BOSS猎人', '击败1个BOSS', 'KILL', 'boss_kills', 1, 'SPIRIT_STONES', NULL, 300, NULL, 30, 1, NOW()),
+(10, 'BOSS终结者', '击败10个BOSS', 'KILL', 'boss_kills', 10, 'EQUIPMENT', 24, 1, NULL, 31, 1, NOW());
+
+-- ----------------------------
+-- Table structure for player_combat_achievements
+-- ----------------------------
+DROP TABLE IF EXISTS `player_combat_achievements`;
+CREATE TABLE `player_combat_achievements` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '玩家成就ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `achievement_id` int NOT NULL COMMENT '成就ID',
+  `progress` int NOT NULL DEFAULT '0' COMMENT '当前进度',
+  `is_completed` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否完成',
+  `is_claimed` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否领取奖励',
+  `completed_at` timestamp NULL COMMENT '完成时间',
+  `claimed_at` timestamp NULL COMMENT '领取时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_achievement` (`player_id`, `achievement_id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_achievement_id` (`achievement_id`),
+  KEY `idx_is_completed` (`is_completed`),
+  CONSTRAINT `fk_player_combat_achievements_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_player_combat_achievements_achievement` FOREIGN KEY (`achievement_id`) REFERENCES `combat_achievements` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家战斗成就表';
 
 -- ====================================================================
 -- 离线奖励系统
@@ -781,6 +2657,321 @@ CREATE TABLE `pet_training_logs` (
   CONSTRAINT `fk_pet_training_logs_player_pet` FOREIGN KEY (`player_pet_id`) REFERENCES `player_pets` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='宠物训练日志表';
 
+-- ----------------------------
+-- Table structure for pet_abilities
+-- ----------------------------
+DROP TABLE IF EXISTS `pet_abilities`;
+CREATE TABLE `pet_abilities` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '能力ID',
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '能力名称',
+  `description` text COLLATE utf8mb4_unicode_ci COMMENT '能力描述',
+  `ability_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '类型：PASSIVE/ACTIVE/AURA',
+  `effect_type` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '效果类型',
+  `effect_value` decimal(10,2) NOT NULL COMMENT '效果值',
+  `is_percentage` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否为百分比',
+  `cooldown` int NOT NULL DEFAULT '0' COMMENT '冷却时间',
+  `energy_cost` int NOT NULL DEFAULT '0' COMMENT '能量消耗',
+  `required_pet_level` int NOT NULL DEFAULT '1' COMMENT '需求宠物等级',
+  `required_pet_rarity` int NOT NULL DEFAULT '1' COMMENT '需求宠物稀有度',
+  `icon` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '图标',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_ability_type` (`ability_type`),
+  KEY `idx_effect_type` (`effect_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='宠物能力表';
+
+-- ----------------------------
+-- Records of pet_abilities
+-- ----------------------------
+INSERT INTO `pet_abilities` VALUES 
+(1, '守护', '为主人提供护盾', 'ACTIVE', 'shield', 100.00, 0, 30, 20, 5, 1, NULL, 1, NOW()),
+(2, '治愈', '恢复主人生命值', 'ACTIVE', 'heal', 15.00, 1, 20, 15, 5, 1, NULL, 1, NOW()),
+(3, '狂暴', '提升自身攻击力', 'ACTIVE', 'self_attack_boost', 30.00, 1, 45, 25, 10, 2, NULL, 1, NOW()),
+(4, '嘲讽', '吸引敌人攻击', 'ACTIVE', 'taunt', 1.00, 0, 60, 30, 15, 2, NULL, 1, NOW()),
+(5, '灵力光环', '提升主人法力恢复', 'AURA', 'owner_mana_regen', 5.00, 1, 0, 0, 10, 2, NULL, 1, NOW()),
+(6, '战斗光环', '提升主人攻击力', 'AURA', 'owner_attack_boost', 10.00, 1, 0, 0, 15, 3, NULL, 1, NOW()),
+(7, '防御光环', '提升主人防御力', 'AURA', 'owner_defense_boost', 10.00, 1, 0, 0, 15, 3, NULL, 1, NOW()),
+(8, '经验光环', '提升获得经验', 'AURA', 'exp_boost', 15.00, 1, 0, 0, 20, 3, NULL, 1, NOW()),
+(9, '幸运', '提升掉落率', 'PASSIVE', 'drop_rate_boost', 10.00, 1, 0, 0, 25, 4, NULL, 1, NOW()),
+(10, '坚韧', '提升宠物生命值', 'PASSIVE', 'pet_health_boost', 20.00, 1, 0, 0, 5, 1, NULL, 1, NOW()),
+(11, '迅捷', '提升宠物速度', 'PASSIVE', 'pet_speed_boost', 15.00, 1, 0, 0, 8, 1, NULL, 1, NOW()),
+(12, '吸血', '攻击时恢复生命', 'PASSIVE', 'lifesteal', 5.00, 1, 0, 0, 30, 4, NULL, 1, NOW());
+
+-- ----------------------------
+-- Table structure for pet_ability_mapping
+-- ----------------------------
+DROP TABLE IF EXISTS `pet_ability_mapping`;
+CREATE TABLE `pet_ability_mapping` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '映射ID',
+  `pet_id` int NOT NULL COMMENT '宠物模板ID',
+  `ability_id` int NOT NULL COMMENT '能力ID',
+  `unlock_level` int NOT NULL DEFAULT '1' COMMENT '解锁等级',
+  `is_default` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否默认能力',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_pet_ability` (`pet_id`, `ability_id`),
+  KEY `idx_pet_id` (`pet_id`),
+  KEY `idx_ability_id` (`ability_id`),
+  CONSTRAINT `fk_pet_ability_mapping_pet` FOREIGN KEY (`pet_id`) REFERENCES `pets` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_pet_ability_mapping_ability` FOREIGN KEY (`ability_id`) REFERENCES `pet_abilities` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='宠物能力映射表';
+
+-- ----------------------------
+-- Records of pet_ability_mapping
+-- ----------------------------
+INSERT INTO `pet_ability_mapping` VALUES 
+(1, 1, 11, 1, 1),
+(2, 1, 9, 10, 0),
+(3, 2, 3, 1, 1),
+(4, 2, 6, 15, 0),
+(5, 3, 4, 1, 1),
+(6, 3, 7, 20, 0),
+(7, 4, 3, 1, 1),
+(8, 4, 6, 15, 0),
+(9, 5, 1, 1, 1),
+(10, 5, 7, 15, 0),
+(11, 6, 3, 1, 1),
+(12, 6, 6, 15, 0),
+(13, 7, 2, 1, 1),
+(14, 7, 10, 5, 0),
+(15, 8, 4, 1, 1),
+(16, 8, 11, 10, 0),
+(17, 9, 1, 1, 1),
+(18, 9, 10, 10, 0),
+(19, 10, 11, 1, 1),
+(20, 10, 9, 20, 0);
+
+-- ----------------------------
+-- Table structure for player_pet_abilities
+-- ----------------------------
+DROP TABLE IF EXISTS `player_pet_abilities`;
+CREATE TABLE `player_pet_abilities` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '玩家宠物能力ID',
+  `player_pet_id` int NOT NULL COMMENT '玩家宠物ID',
+  `ability_id` int NOT NULL COMMENT '能力ID',
+  `ability_level` int NOT NULL DEFAULT '1' COMMENT '能力等级',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否激活',
+  `cooldown_end` timestamp NULL COMMENT '冷却结束时间',
+  `unlocked_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '解锁时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_pet_ability` (`player_pet_id`, `ability_id`),
+  KEY `idx_player_pet_id` (`player_pet_id`),
+  KEY `idx_ability_id` (`ability_id`),
+  CONSTRAINT `fk_player_pet_abilities_pet` FOREIGN KEY (`player_pet_id`) REFERENCES `player_pets` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_player_pet_abilities_ability` FOREIGN KEY (`ability_id`) REFERENCES `pet_abilities` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家宠物能力表';
+
+-- ----------------------------
+-- Table structure for pet_equipment
+-- ----------------------------
+DROP TABLE IF EXISTS `pet_equipment`;
+CREATE TABLE `pet_equipment` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '宠物装备ID',
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '装备名称',
+  `description` text COLLATE utf8mb4_unicode_ci COMMENT '装备描述',
+  `slot` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '装备槽位：NECKLACE/RING/CHARM',
+  `quality` int NOT NULL DEFAULT '1' COMMENT '品质',
+  `health_bonus` int NOT NULL DEFAULT '0' COMMENT '生命加成',
+  `attack_bonus` int NOT NULL DEFAULT '0' COMMENT '攻击加成',
+  `defense_bonus` int NOT NULL DEFAULT '0' COMMENT '防御加成',
+  `speed_bonus` int NOT NULL DEFAULT '0' COMMENT '速度加成',
+  `special_effect` text COLLATE utf8mb4_unicode_ci COMMENT '特殊效果(JSON)',
+  `required_pet_level` int NOT NULL DEFAULT '1' COMMENT '需求宠物等级',
+  `price` int NOT NULL DEFAULT '0' COMMENT '价格',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_slot` (`slot`),
+  KEY `idx_quality` (`quality`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='宠物装备表';
+
+-- ----------------------------
+-- Records of pet_equipment
+-- ----------------------------
+INSERT INTO `pet_equipment` VALUES 
+(1, '灵兽项链', '普通灵兽项链', 'NECKLACE', 1, 50, 5, 5, 0, NULL, 1, 200, 1, NOW()),
+(2, '妖兽之牙', '锋利的兽牙项链', 'NECKLACE', 2, 80, 15, 5, 0, '{"crit_rate": 3}', 10, 500, 1, NOW()),
+(3, '神兽护符', '蕴含神力的护符', 'NECKLACE', 3, 150, 30, 15, 5, '{"crit_rate": 5, "crit_damage": 10}', 25, 2000, 1, NOW()),
+(4, '灵兽戒指', '普通灵兽戒指', 'RING', 1, 30, 10, 3, 5, NULL, 1, 150, 1, NOW()),
+(5, '力量之戒', '提升力量的戒指', 'RING', 2, 50, 25, 5, 8, '{"attack_boost": 5}', 15, 800, 1, NOW()),
+(6, '守护之戒', '提供守护的戒指', 'RING', 3, 100, 15, 25, 5, '{"defense_boost": 10, "shield": 50}', 30, 2500, 1, NOW()),
+(7, '灵兽护符', '普通灵兽护符', 'CHARM', 1, 40, 5, 10, 3, NULL, 1, 180, 1, NOW()),
+(8, '经验护符', '提升经验获取', 'CHARM', 2, 60, 8, 12, 5, '{"exp_boost": 10}', 10, 600, 1, NOW()),
+(9, '稀有护符', '稀有的宠物护符', 'CHARM', 3, 120, 20, 20, 10, '{"exp_boost": 20, "drop_boost": 5}', 25, 3000, 1, NOW());
+
+-- ----------------------------
+-- Table structure for player_pet_equipment
+-- ----------------------------
+DROP TABLE IF EXISTS `player_pet_equipment`;
+CREATE TABLE `player_pet_equipment` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '玩家宠物装备ID',
+  `player_pet_id` int NOT NULL COMMENT '玩家宠物ID',
+  `equipment_id` int NOT NULL COMMENT '宠物装备ID',
+  `slot` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '装备槽位',
+  `is_equipped` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否装备',
+  `enhance_level` int NOT NULL DEFAULT '0' COMMENT '强化等级',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_player_pet_id` (`player_pet_id`),
+  KEY `idx_equipment_id` (`equipment_id`),
+  KEY `idx_slot` (`slot`),
+  CONSTRAINT `fk_player_pet_equipment_pet` FOREIGN KEY (`player_pet_id`) REFERENCES `player_pets` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_player_pet_equipment_equipment` FOREIGN KEY (`equipment_id`) REFERENCES `pet_equipment` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家宠物装备表';
+
+-- ----------------------------
+-- Table structure for pet_evolution
+-- ----------------------------
+DROP TABLE IF EXISTS `pet_evolution`;
+CREATE TABLE `pet_evolution` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '进化ID',
+  `pet_id` int NOT NULL COMMENT '宠物模板ID',
+  `evolution_stage` int NOT NULL DEFAULT '1' COMMENT '进化阶段',
+  `evolution_name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '进化名称',
+  `required_level` int NOT NULL COMMENT '需求等级',
+  `required_item_id` int DEFAULT NULL COMMENT '需求物品ID',
+  `required_item_quantity` int NOT NULL DEFAULT '1' COMMENT '需求数量',
+  `health_bonus` int NOT NULL DEFAULT '0' COMMENT '生命加成',
+  `attack_bonus` int NOT NULL DEFAULT '0' COMMENT '攻击加成',
+  `defense_bonus` int NOT NULL DEFAULT '0' COMMENT '防御加成',
+  `speed_bonus` int NOT NULL DEFAULT '0' COMMENT '速度加成',
+  `new_ability_id` int DEFAULT NULL COMMENT '新能力ID',
+  `appearance_change` text COLLATE utf8mb4_unicode_ci COMMENT '外观变化(JSON)',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_pet_evolution` (`pet_id`, `evolution_stage`),
+  KEY `idx_pet_id` (`pet_id`),
+  CONSTRAINT `fk_pet_evolution_pet` FOREIGN KEY (`pet_id`) REFERENCES `pets` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_pet_evolution_item` FOREIGN KEY (`required_item_id`) REFERENCES `items` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_pet_evolution_ability` FOREIGN KEY (`new_ability_id`) REFERENCES `pet_abilities` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='宠物进化表';
+
+-- ----------------------------
+-- Records of pet_evolution
+-- ----------------------------
+INSERT INTO `pet_evolution` VALUES 
+(1, 1, 2, '灵狐·觉醒', 30, 21, 1, 100, 20, 15, 10, 9, '{"color": "金色", "size": 1.2}'),
+(2, 1, 3, '九尾灵狐', 60, 21, 3, 200, 40, 30, 20, 12, '{"color": "白色", "size": 1.5, "tails": 9}'),
+(3, 2, 2, '火麒麟·觉醒', 50, 22, 1, 300, 80, 60, 10, 5, '{"flame": "blue"}'),
+(4, 2, 3, '炎帝麒麟', 80, 22, 3, 500, 150, 100, 15, 8, '{"flame": "purple", "size": 1.8}'),
+(5, 7, 2, '灵猫·进阶', 15, 8, 2, 50, 10, 8, 5, 10, '{"eyes": "glowing"}'),
+(6, 7, 3, '月光灵猫', 35, 8, 5, 100, 20, 15, 10, 9, '{"glow": "silver"}'),
+(7, 3, 2, '青龙·觉醒', 80, 21, 5, 500, 100, 80, 20, 6, '{"clouds": true}'),
+(8, 4, 2, '白虎·觉醒', 80, 21, 5, 400, 150, 60, 25, 6, '{"aura": "gold"}'),
+(9, 5, 2, '玄武·觉醒', 80, 21, 5, 800, 50, 150, 10, 7, '{"shell": "crystal"}'),
+(10, 6, 2, '朱雀·觉醒', 80, 22, 5, 450, 130, 70, 30, 8, '{"wings": "flame"}');
+
+-- ----------------------------
+-- Table structure for player_pet_evolution
+-- ----------------------------
+DROP TABLE IF EXISTS `player_pet_evolution`;
+CREATE TABLE `player_pet_evolution` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '玩家进化ID',
+  `player_pet_id` int NOT NULL COMMENT '玩家宠物ID',
+  `current_stage` int NOT NULL DEFAULT '1' COMMENT '当前进化阶段',
+  `evolved_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '进化时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_pet_evolution` (`player_pet_id`),
+  CONSTRAINT `fk_player_pet_evolution_pet` FOREIGN KEY (`player_pet_id`) REFERENCES `player_pets` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家宠物进化表';
+
+-- ----------------------------
+-- Table structure for pet_battle_logs
+-- ----------------------------
+DROP TABLE IF EXISTS `pet_battle_logs`;
+CREATE TABLE `pet_battle_logs` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '战斗日志ID',
+  `player_pet_id` int NOT NULL COMMENT '玩家宠物ID',
+  `battle_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '战斗类型：PVE/PVP/ARENA',
+  `opponent_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '对手类型：MONSTER/PET',
+  `opponent_id` int DEFAULT NULL COMMENT '对手ID',
+  `result` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '结果：WIN/LOSE',
+  `damage_dealt` int NOT NULL DEFAULT '0' COMMENT '造成伤害',
+  `damage_taken` int NOT NULL DEFAULT '0' COMMENT '受到伤害',
+  `exp_gained` int NOT NULL DEFAULT '0' COMMENT '获得经验',
+  `abilities_used` text COLLATE utf8mb4_unicode_ci COMMENT '使用的能力(JSON)',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_player_pet_id` (`player_pet_id`),
+  KEY `idx_battle_type` (`battle_type`),
+  KEY `idx_result` (`result`),
+  KEY `idx_created_at` (`created_at`),
+  CONSTRAINT `fk_pet_battle_logs_pet` FOREIGN KEY (`player_pet_id`) REFERENCES `player_pets` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='宠物战斗日志表';
+
+-- ----------------------------
+-- Table structure for pet_statistics
+-- ----------------------------
+DROP TABLE IF EXISTS `pet_statistics`;
+CREATE TABLE `pet_statistics` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '统计ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `total_pets_owned` int NOT NULL DEFAULT '0' COMMENT '拥有宠物数',
+  `total_pets_max_level` int NOT NULL DEFAULT '0' COMMENT '满级宠物数',
+  `total_pets_evolved` int NOT NULL DEFAULT '0' COMMENT '进化宠物数',
+  `highest_pet_level` int NOT NULL DEFAULT '0' COMMENT '最高等级',
+  `rarest_pet_rarity` int NOT NULL DEFAULT '0' COMMENT '最高稀有度',
+  `total_pet_battles` int NOT NULL DEFAULT '0' COMMENT '宠物总战斗次数',
+  `total_pet_wins` int NOT NULL DEFAULT '0' COMMENT '宠物总胜利次数',
+  `favorite_pet_id` int DEFAULT NULL COMMENT '最爱宠物',
+  `last_updated` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_id` (`player_id`),
+  CONSTRAINT `fk_pet_statistics_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='宠物统计表';
+
+-- ----------------------------
+-- Table structure for pet_food
+-- ----------------------------
+DROP TABLE IF EXISTS `pet_food`;
+CREATE TABLE `pet_food` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '食物ID',
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '食物名称',
+  `description` text COLLATE utf8mb4_unicode_ci COMMENT '食物描述',
+  `food_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '食物类型：BASIC/PREMIUM/SPECIAL',
+  `hunger_restore` int NOT NULL DEFAULT '50' COMMENT '恢复饱食度',
+  `loyalty_bonus` int NOT NULL DEFAULT '0' COMMENT '忠诚度加成',
+  `exp_bonus` int NOT NULL DEFAULT '0' COMMENT '经验加成',
+  `quality` int NOT NULL DEFAULT '1' COMMENT '品质',
+  `price` int NOT NULL DEFAULT '100' COMMENT '价格',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_food_type` (`food_type`),
+  KEY `idx_quality` (`quality`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='宠物食物表';
+
+-- ----------------------------
+-- Records of pet_food
+-- ----------------------------
+INSERT INTO `pet_food` VALUES 
+(1, '普通兽粮', '基础宠物食物', 'BASIC', 50, 5, 0, 1, 50, 1, NOW()),
+(2, '优质兽粮', '优质宠物食物', 'BASIC', 80, 10, 10, 1, 100, 1, NOW()),
+(3, '灵兽丹', '蕴含灵气的食物', 'PREMIUM', 100, 20, 50, 2, 300, 1, NOW()),
+(4, '仙兽丹', '高级宠物食物', 'PREMIUM', 150, 30, 100, 3, 800, 1, NOW()),
+(5, '龙凤呈祥', '传说中的宠物食物', 'SPECIAL', 200, 50, 200, 4, 3000, 1, NOW()),
+(6, '月华露', '月光精华凝成', 'SPECIAL', 120, 40, 150, 3, 1500, 1, NOW());
+
+-- ----------------------------
+-- Table structure for player_pet_food_usage
+-- ----------------------------
+DROP TABLE IF EXISTS `player_pet_food_usage`;
+CREATE TABLE `player_pet_food_usage` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '使用记录ID',
+  `player_pet_id` int NOT NULL COMMENT '玩家宠物ID',
+  `food_id` int NOT NULL COMMENT '食物ID',
+  `quantity` int NOT NULL DEFAULT '1' COMMENT '数量',
+  `hunger_restored` int NOT NULL DEFAULT '0' COMMENT '恢复饱食度',
+  `loyalty_gained` int NOT NULL DEFAULT '0' COMMENT '获得忠诚度',
+  `exp_gained` int NOT NULL DEFAULT '0' COMMENT '获得经验',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '使用时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_player_pet_id` (`player_pet_id`),
+  KEY `idx_food_id` (`food_id`),
+  KEY `idx_created_at` (`created_at`),
+  CONSTRAINT `fk_player_pet_food_usage_pet` FOREIGN KEY (`player_pet_id`) REFERENCES `player_pets` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_player_pet_food_usage_food` FOREIGN KEY (`food_id`) REFERENCES `pet_food` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='宠物食物使用记录表';
+
 -- ====================================================================
 -- 视图
 -- ====================================================================
@@ -885,10 +3076,10 @@ CREATE TABLE `announcements` (
   `id` int NOT NULL AUTO_INCREMENT COMMENT '公告ID',
   `title` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '公告标题',
   `content` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '公告内容',
-  `announcement_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '公告类型：SYSTEM/MAINTENANCE/ACTIVITY/UPDATE',
+  `announcement_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '公告类型：SYSTEM/MAINTENANCE/ACTIVITY/UPDATE/GUIDE',
   `priority` int NOT NULL DEFAULT '0' COMMENT '优先级：0-普通 1-重要 2-紧急',
-  `display_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '显示类型：POPUP/SCROLL/LIST',
-  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'DRAFT' COMMENT '状态：DRAFT/PUBLISHED/REVOKED',
+  `display_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '显示类型：POPUP/SCROLL/LIST/NOTICE',
+  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'DRAFT' COMMENT '状态：DRAFT/PUBLISHED/REVOKED/ACTIVE',
   `start_time` timestamp NULL COMMENT '开始时间',
   `end_time` timestamp NULL COMMENT '结束时间',
   `created_by` int NOT NULL COMMENT '创建人ID',
@@ -1365,6 +3556,267 @@ CREATE TABLE `gift_code_usage` (
 -- ====================================================================
 
 -- 宠物系统索引优化（在表创建时已包含）
+
+-- ====================================================================
+-- 叙事系统 (Narrative System)
+-- ====================================================================
+
+-- ----------------------------
+-- NPC基础数据表
+-- ----------------------------
+DROP TABLE IF EXISTS `npcs`;
+CREATE TABLE `npcs` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'NPC ID',
+  `name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'NPC名称',
+  `title` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '头衔/称谓',
+  `faction` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '所属势力：天剑宗/万法阁/幽冥殿/灵兽山/散修联盟',
+  `role_type` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '故事角色类型：mentor/rival/friend/villain/neutral',
+  `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'NPC简介',
+  `personality_traits` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '性格特征(逗号分隔)',
+  `location` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '默认位置',
+  `min_level` int NOT NULL DEFAULT '1' COMMENT '最低出现等级',
+  `icon` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'NPC图标',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `sort_order` int NOT NULL DEFAULT '0' COMMENT '排序权重',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_npc_name` (`name`),
+  KEY `idx_faction` (`faction`),
+  KEY `idx_min_level` (`min_level`),
+  KEY `idx_active` (`active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='NPC基础数据表';
+
+-- ----------------------------
+-- Records of npcs
+-- ----------------------------
+INSERT INTO `npcs` VALUES
+(1, '苏玄清', '外门长老', '天剑宗', 'mentor', '玩家师尊，看似普通的老者，实则深不可测。在青云镇看守封魔残气已三百年。', '克制,温和,留白,洞察力', '青云镇', 1, NULL, 1, 1, NOW(), NOW()),
+(2, '剑无痕', '内门首席弟子', '天剑宗', 'rival', '天剑宗内门首席弟子，出身世家，傲慢但笨拙地关心同门。', '傲慢,利落,笨拙的温柔,不服输', '天剑宗', 2, NULL, 1, 2, NOW(), NOW()),
+(3, '林婉儿', '万法阁师姐', '万法阁', 'friend', '万法阁的核心弟子，温和聪慧，在万卷藏书中寻找身世之谜。', '温柔,书卷气,聪明,偶尔活泼', '万法阁', 6, NULL, 1, 3, NOW(), NOW()),
+(4, '冥渊', '幽冥殿殿主', '幽冥殿', 'villain', '天剑宗叛逃弟子，追求打破修仙秩序，平静得令人不安。', '平静,古雅,扭曲逻辑,深邃', '幽冥殿', 10, NULL, 1, 4, NOW(), NOW()),
+(5, '白鹿真人', '灵兽山山主', '灵兽山', 'friend', '灵兽山之主，朴素如老农，实为上古大能，以灵兽为伴。', '朴素,温暖,沉默,洞察', '灵兽山', 5, NULL, 1, 5, NOW(), NOW()),
+(6, '老陈', '药材商人', '散修联盟', 'neutral', '青云镇摆摊卖药材的老头，真实身份是渡劫期大能。', '随意,幽默,深不可测,装傻', '青云镇', 1, NULL, 1, 6, NOW(), NOW());
+
+-- ----------------------------
+-- 对话树表
+-- ----------------------------
+DROP TABLE IF EXISTS `dialogue_trees`;
+CREATE TABLE `dialogue_trees` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '对话树ID',
+  `npc_id` int NOT NULL COMMENT 'NPC ID',
+  `dialogue_key` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '对话唯一标识',
+  `title` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '对话标题',
+  `scene` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '场景描述',
+  `mood` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '对话基调',
+  `min_level` int DEFAULT '1' COMMENT '最低等级',
+  `max_level` int DEFAULT NULL COMMENT '最高等级(NULL=不限)',
+  `required_realm` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '所需境界',
+  `required_quest_chain_id` int DEFAULT NULL COMMENT '前置任务链ID',
+  `required_flags` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '所需flag(JSON数组)',
+  `is_repeatable` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否可重复',
+  `priority` int NOT NULL DEFAULT '0' COMMENT '优先级(高=先触发)',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_dialogue_key` (`dialogue_key`),
+  KEY `idx_npc_id` (`npc_id`),
+  KEY `idx_min_level` (`min_level`),
+  KEY `idx_active` (`active`),
+  CONSTRAINT `fk_dialogue_trees_npc` FOREIGN KEY (`npc_id`) REFERENCES `npcs` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='对话树表';
+
+-- ----------------------------
+-- 对话节点表
+-- ----------------------------
+DROP TABLE IF EXISTS `dialogue_nodes`;
+CREATE TABLE `dialogue_nodes` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '节点ID',
+  `dialogue_tree_id` int NOT NULL COMMENT '对话树ID',
+  `node_key` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '节点唯一标识',
+  `node_type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'dialogue' COMMENT '节点类型：dialogue(对话)/choice(选择)/action(动作)/end(结束)',
+  `speaker` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '说话者(NPC名/玩家/旁白)',
+  `text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '对话文本',
+  `portrait` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '头像/表情状态',
+  `next_node_key` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '下一节点key',
+  `parent_node_key` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '父节点key(NULL=根节点)',
+  `sort_order` int NOT NULL DEFAULT '0' COMMENT '同级排序(用于choice选项顺序)',
+  `set_flags` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '触发后设置的flag(JSON数组)',
+  `clear_flags` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '触发后清除的flag(JSON数组)',
+  `set_reputation` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '好感度变化(JSON: {npc_id: change})',
+  `conditions` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '显示条件(JSON: {min_relation, flags, items})',
+  `on_complete_quest_id` int DEFAULT NULL COMMENT '完成后触发的任务ID',
+  `on_complete_flag` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '完成后设置的全局flag',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_tree_node` (`dialogue_tree_id`, `node_key`),
+  KEY `idx_parent` (`dialogue_tree_id`, `parent_node_key`),
+  KEY `idx_next` (`dialogue_tree_id`, `next_node_key`),
+  CONSTRAINT `fk_dialogue_nodes_tree` FOREIGN KEY (`dialogue_tree_id`) REFERENCES `dialogue_trees` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='对话节点表';
+
+-- ----------------------------
+-- NPC日常对话池表
+-- ----------------------------
+DROP TABLE IF EXISTS `npc_daily_dialogues`;
+CREATE TABLE `npc_daily_dialogues` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID',
+  `npc_id` int NOT NULL COMMENT 'NPC ID',
+  `text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '对话文本',
+  `conditions` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '触发条件(JSON: {time, realm, level_gte, pet_hunger_lte, days_since_login_gte, has_flag})',
+  `priority` int NOT NULL DEFAULT '0' COMMENT '优先级',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_npc_id` (`npc_id`),
+  KEY `idx_active` (`npc_id`, `active`),
+  CONSTRAINT `fk_npc_daily_dialogues_npc` FOREIGN KEY (`npc_id`) REFERENCES `npcs` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='NPC日常对话池表';
+
+-- ----------------------------
+-- 玩家-NPC好感度表
+-- ----------------------------
+DROP TABLE IF EXISTS `player_npc_relations`;
+CREATE TABLE `player_npc_relations` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `npc_id` int NOT NULL COMMENT 'NPC ID',
+  `affinity` int NOT NULL DEFAULT '0' COMMENT '好感度(-100~100)',
+  `relationship_level` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '陌生' COMMENT '关系等级：陌生/认识/熟悉/信任/至交',
+  `first_met_at` timestamp NULL DEFAULT NULL COMMENT '初次见面时间',
+  `last_interact_at` timestamp NULL DEFAULT NULL COMMENT '最后互动时间',
+  `total_interactions` int NOT NULL DEFAULT '0' COMMENT '总互动次数',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_npc` (`player_id`, `npc_id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_npc_id` (`npc_id`),
+  KEY `idx_affinity` (`affinity`),
+  CONSTRAINT `fk_player_npc_relations_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_player_npc_relations_npc` FOREIGN KEY (`npc_id`) REFERENCES `npcs` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家-NPC好感度表';
+
+-- ----------------------------
+-- 玩家对话状态表（记录已完成/进行中的对话）
+-- ----------------------------
+DROP TABLE IF EXISTS `player_dialogue_state`;
+CREATE TABLE `player_dialogue_state` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `dialogue_tree_id` int NOT NULL COMMENT '对话树ID',
+  `current_node_key` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '当前所在节点key',
+  `is_completed` tinyint(1) NOT NULL DEFAULT '0' COMMENT '对话树是否已完成',
+  `times_completed` int NOT NULL DEFAULT '0' COMMENT '完成次数',
+  `last_choice_tag` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '最后一次选择的tag',
+  `started_at` timestamp NULL DEFAULT NULL COMMENT '本次开始时间',
+  `completed_at` timestamp NULL DEFAULT NULL COMMENT '本次完成时间',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_dialogue` (`player_id`, `dialogue_tree_id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_dialogue_tree_id` (`dialogue_tree_id`),
+  KEY `idx_is_completed` (`is_completed`),
+  CONSTRAINT `fk_player_dialogue_state_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_player_dialogue_state_tree` FOREIGN KEY (`dialogue_tree_id`) REFERENCES `dialogue_trees` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家对话状态表';
+
+-- ----------------------------
+-- 玩家叙事标记表（flag系统）
+-- ----------------------------
+DROP TABLE IF EXISTS `player_narrative_flags`;
+CREATE TABLE `player_narrative_flags` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `flag_key` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'flag键名',
+  `flag_value` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '1' COMMENT 'flag值',
+  `source` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '来源描述',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_flag` (`player_id`, `flag_key`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_flag_key` (`flag_key`),
+  CONSTRAINT `fk_player_narrative_flags_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家叙事标记表';
+
+-- ----------------------------
+-- 传说条目表
+-- ----------------------------
+DROP TABLE IF EXISTS `lore_entries`;
+CREATE TABLE `lore_entries` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '传说条目ID',
+  `lore_key` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '条目唯一标识',
+  `title` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '传说标题',
+  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '传说内容',
+  `lore_layer` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '表面' COMMENT '传说层级：表面/参与/深层',
+  `category` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '分类：世界/宗门/人物/事件',
+  `related_npcs` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '关联NPC(JSON数组)',
+  `related_lore_keys` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '关联传说key(JSON数组)',
+  `discover_condition` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '发现条件描述',
+  `min_realm` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '最低境界要求',
+  `min_level` int DEFAULT '1' COMMENT '最低等级要求',
+  `required_lore_keys` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '前置传说key(JSON数组)',
+  `icon` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '图标',
+  `sort_order` int NOT NULL DEFAULT '0' COMMENT '排序',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_lore_key` (`lore_key`),
+  KEY `idx_lore_layer` (`lore_layer`),
+  KEY `idx_category` (`category`),
+  KEY `idx_min_level` (`min_level`),
+  KEY `idx_active` (`active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='传说条目表';
+
+-- ----------------------------
+-- 玩家传说收集表
+-- ----------------------------
+DROP TABLE IF EXISTS `player_lore_collection`;
+CREATE TABLE `player_lore_collection` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID',
+  `player_id` int NOT NULL COMMENT '玩家ID',
+  `lore_entry_id` int NOT NULL COMMENT '传说条目ID',
+  `discovered_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '发现时间',
+  `source` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '发现来源',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_player_lore` (`player_id`, `lore_entry_id`),
+  KEY `idx_player_id` (`player_id`),
+  KEY `idx_lore_entry_id` (`lore_entry_id`),
+  CONSTRAINT `fk_player_lore_collection_player` FOREIGN KEY (`player_id`) REFERENCES `player_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_player_lore_collection_lore` FOREIGN KEY (`lore_entry_id`) REFERENCES `lore_entries` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家传说收集表';
+
+-- ----------------------------
+-- 离线事件叙事表
+-- ----------------------------
+DROP TABLE IF EXISTS `offline_narrative_events`;
+CREATE TABLE `offline_narrative_events` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID',
+  `event_key` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '事件唯一标识',
+  `title` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '事件标题',
+  `narrative` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '叙事文本',
+  `probability` decimal(5,3) NOT NULL DEFAULT '0.010' COMMENT '触发概率(0.001-1.000)',
+  `min_offline_hours` int NOT NULL DEFAULT '4' COMMENT '最低离线小时数',
+  `max_offline_hours` int DEFAULT NULL COMMENT '最高离线小时数(NULL=不限)',
+  `min_realm` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '最低境界要求',
+  `min_level` int DEFAULT '1' COMMENT '最低等级要求',
+  `reward_type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '奖励类型',
+  `reward_data` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '奖励数据(JSON)',
+  `set_flag` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '触发的flag',
+  `unlock_dialogue_key` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '解锁的对话',
+  `npc_relation_change` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'NPC好感度变化(JSON: {npc_id: change})',
+  `active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `sort_order` int NOT NULL DEFAULT '0' COMMENT '排序',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_event_key` (`event_key`),
+  KEY `idx_active` (`active`),
+  KEY `idx_min_offline` (`min_offline_hours`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='离线事件叙事表';
 
 SET FOREIGN_KEY_CHECKS=1;
 

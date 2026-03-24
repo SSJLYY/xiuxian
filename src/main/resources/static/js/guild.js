@@ -467,3 +467,44 @@ window.onclick = function(event) {
         }
     }
 }
+
+/**
+ * 切换宗门标签页（含BOSS标签）
+ */
+function switchGuildTab(tabName) {
+    // 更新标签按钮状态
+    document.querySelectorAll('.guild-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.tab === tabName) {
+            btn.classList.add('active');
+        }
+    });
+
+    // 显示对应区域
+    const sections = {
+        'my-guild': 'myGuildSection',
+        'guild-boss': 'guildBossSection',
+        'guild-list': 'guildListSection',
+        'create-guild': 'createGuildSection'
+    };
+
+    Object.entries(sections).forEach(([key, id]) => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.style.display = 'none';
+            el.classList.remove('active');
+        }
+    });
+
+    const target = document.getElementById(sections[tabName]);
+    if (target) {
+        target.style.display = 'block';
+        target.classList.add('active');
+    }
+
+    // 切换到BOSS标签时初始化BOSS系统
+    if (tabName === 'guild-boss' && window.guildBossSystem) {
+        guildBossSystem.init();
+    }
+}
+

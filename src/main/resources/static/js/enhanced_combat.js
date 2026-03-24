@@ -183,8 +183,22 @@ async function useItem(itemId) {
     }
 }
 
-// 显示战斗结果
+// 显示战斗结果 - 集成视觉反馈系统
 function displayCombatResult(result) {
+    // 获取位置信息用于飘字
+    const monsterElement = document.getElementById('monsterStats');
+    const playerElement = document.getElementById('playerStats');
+    
+    const monsterPos = monsterElement ? {
+        x: monsterElement.getBoundingClientRect().left + monsterElement.getBoundingClientRect().width / 2,
+        y: monsterElement.getBoundingClientRect().top + monsterElement.getBoundingClientRect().height / 2
+    } : { x: window.innerWidth * 0.7, y: window.innerHeight * 0.3 };
+    
+    const playerPos = playerElement ? {
+        x: playerElement.getBoundingClientRect().left + playerElement.getBoundingClientRect().width / 2,
+        y: playerElement.getBoundingClientRect().top + playerElement.getBoundingClientRect().height / 2
+    } : { x: window.innerWidth * 0.3, y: window.innerHeight * 0.3 };
+    
     // 更新血条
     updateHealthBar('player', result.playerCurrentHealth, result.playerMaxHealth);
     updateHealthBar('monster', result.monsterCurrentHealth, result.monsterMaxHealth);
@@ -195,9 +209,15 @@ function displayCombatResult(result) {
     document.getElementById('monsterHealth').textContent = result.monsterCurrentHealth;
     document.getElementById('monsterMaxHealth').textContent = result.monsterMaxHealth;
     
-    // 显示战斗日志
-    result.battleLog.forEach(logEntry => {
+    // 处理战斗日志 - 生成视觉反馈
+    result.battleLog.forEach((logEntry, index) => {
+        // 添加到日志显示
         addToBattleLog(logEntry);
+        
+        // 延迟生成视觉反馈，营造逐步效果
+        setTimeout(() => {
+            processLogAndVisualize(logEntry, result, playerPos, monsterPos);
+        }, index * 150);
     });
     
     // 检查战斗结果
@@ -209,6 +229,66 @@ function displayCombatResult(result) {
         }, 2000);
     } else if (result.result === 'LOSE') {
         showToast('战斗失败！', 'error');
+    }
+}
+
+// 解析日志并生成视觉效果
+function processLogAndVisualize(logEntry, result, playerPos, monsterPos) {
+    if (!window.combatVisualFeedback) return;
+    
+    // 暴击检测
+    if (logEntry.includes('暴击')) {
+        const damageMatch = logEntry.match(/(\d+)/);
+        const damage = damageMatch ? parseInt(damageMatch[1]) : 0;
+        const isPlayerAttack = logEntry.includes('玩家造成暴击伤害');
+        
+        const pos = isPlayerAttack ? monsterPos : playerPos;
+        window.combatVisualFeedback.showDamageFloat(damage, pos, {
+            type: 'damage',
+            isCritical: true,
+            source: isPlayerAttack ? 'player' : 'monster'
+        });
+        window.combatVisualFeedback.showCriticalIndicator(pos);
+        
+    } else if (logEntry.includes('造成伤害') || logEntry.includes('伤害')) {
+        const damageMatch = logEntry.match(/(\d+)/);
+        const damage = damageMatch ? parseInt(damageMatch[1]) : 0;
+        const isPlayerAttack = logEntry.includes('玩家');
+        
+        const pos = isPlayerAttack ? monsterPos : playerPos;
+        window.combatVisualFeedback.showDamageFloat(damage, pos, {
+            type: 'damage',
+            isCritical: false,
+            source: isPlayerAttack ? 'player' : 'monster'
+        });
+        
+        // 触发血条伤害闪烁
+        const healthBar = document.getElementById(isPlayerAttack ? 'monsterHealthBar' : 'playerHealthBar');
+        if (healthBar) {
+            window.combatVisualFeedback.showHealthBarDamage(healthBar);
+        }
+        
+    } else if (logEntry.includes('恢复') || logEntry.includes('治疗')) {
+        const healMatch = logEntry.match(/(\d+)/);
+        const heal = healMatch ? parseInt(healMatch[1]) : 0;
+        const isPlayerHeal = logEntry.includes('玩家');
+        
+        const pos = isPlayerHeal ? playerPos : monsterPos;
+        window.combatVisualFeedback.showDamageFloat(heal, pos, {
+            type: 'heal'
+        });
+        
+        // 触发治疗脉冲
+        const healthBar = document.getElementById(isPlayerHeal ? 'playerHealthBar' : 'monsterHealthBar');
+        if (healthBar) {
+            window.combatVisualFeedback.showHealPulse(healthBar);
+        }
+        
+    } else if (logEntry.includes('闪避')) {
+        const isPlayerDodge = logEntry.includes('玩家');
+        window.combatVisualFeedback.showDamageFloat(0, isPlayerDodge ? playerPos : monsterPos, {
+            type: 'dodge'
+        });
     }
 }
 

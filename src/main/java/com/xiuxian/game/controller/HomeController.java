@@ -11,11 +11,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 public class HomeController {
 
     /**
-     * 处理根路径访问，返回首页
-     * @return 首页HTML文件
+     * 处理根路径访问，返回登录页面
+     * @return 登录页面HTML文件
      */
     @GetMapping("/")
     public String index() {
-        return "forward:/index.html";
+        return "forward:/login.html";
     }
 }

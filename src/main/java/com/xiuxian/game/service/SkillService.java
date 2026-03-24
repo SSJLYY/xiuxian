@@ -1,12 +1,13 @@
 package com.xiuxian.game.service;
 
-import com.xiuxian.game.entity.PlayerProfile;
-import com.xiuxian.game.entity.PlayerSkill;
-import com.xiuxian.game.entity.Skill;
+import com.xiuxian.game.entity.*;
 import com.xiuxian.game.dto.response.SkillResponse;
+import com.xiuxian.game.dto.SkillComboResult;
 import com.xiuxian.game.mapper.PlayerProfileMapper;
 import com.xiuxian.game.mapper.PlayerSkillMapper;
 import com.xiuxian.game.mapper.SkillMapper;
+import com.xiuxian.game.mapper.SkillComboMapper;
+import com.xiuxian.game.mapper.PlayerSkillComboRecordMapper;
 import com.xiuxian.game.util.GameCalculator;
 import com.xiuxian.game.util.GameConstants;
 import lombok.RequiredArgsConstructor;
@@ -15,11 +16,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 技能服务类
@@ -45,6 +45,14 @@ public class SkillService {
     private final PlayerSkillMapper playerSkillMapper;
     private final PlayerProfileMapper playerProfileMapper;
     private final GameCalculator gameCalculator;
+    private final SkillComboMapper skillComboMapper;
+    private final PlayerSkillComboRecordMapper playerSkillComboRecordMapper;
+
+    /**
+     * 连招检测时间窗口（秒）
+     * 在此时间内使用的技能将被视为连续技能
+     */
+    private static final int COMBO_TIME_WINDOW_SECONDS = 3;
 
     public List<Skill> getAllSkills() {
         return skillMapper.selectList(null);
@@ -370,5 +378,234 @@ public class SkillService {
         
         return bonuses;
     }
-    
+
+    // ==================== 技能连招系统 ====================
+
+    /**
+     * 获取玩家可用的连招列表
+     * @param playerId 玩家ID
+     * @return 可用的连招列表
+     */
+    public List<SkillCombo> getAvailableCombos(Integer playerId) {
+        PlayerProfile player = playerProfileMapper.selectById(playerId);
+        if (player == null) {
+            return Collections.emptyList();
+        }
+        return skillComboMapper.selectAvailableCombos(player.getLevel());
+    }
+
+    /**
+     * 获取所有激活的连招
+     * @return 激活的连招列表
+     */
+    public List<SkillCombo> getAllActiveCombos() {
+        return skillComboMapper.selectActiveCombos();
+    }
+
+    /**
+     * 检测技能使用后是否触发连招
+     * @param playerId 玩家ID
+     * @param skillId 当前使用的技能ID
+     * @param baseDamage 基础伤害（用于计算连招加成）
+     * @return 连招结果
+     */
+    @Transactional
+    public SkillComboResult checkAndTriggerCombo(Integer playerId, Integer skillId, int baseDamage) {
+        // 1. 获取玩家等级，检查连招是否满足等级要求
+        PlayerProfile player = playerProfileMapper.selectById(playerId);
+        if (player == null) {
+            return SkillComboResult.builder().triggered(false).build();
+        }
+
+        // 2. 获取玩家已学习的技能列表
+        List<PlayerSkill> playerSkills = playerSkillMapper.selectByPlayerId(playerId);
+        Set<Integer> learnedSkillIds = playerSkills.stream()
+                .map(PlayerSkill::getSkillId)
+                .collect(Collectors.toSet());
+
+        // 3. 获取玩家可用的连招
+        List<SkillCombo> availableCombos = skillComboMapper.selectAvailableCombos(player.getLevel());
+        if (availableCombos.isEmpty()) {
+            // 记录技能使用
+            recordSkillUsage(playerId, skillId, false, null);
+            return SkillComboResult.builder().triggered(false).build();
+        }
+
+        // 4. 获取最近的技能使用记录（时间窗口内）
+        LocalDateTime timeThreshold = LocalDateTime.now().minusSeconds(COMBO_TIME_WINDOW_SECONDS);
+        List<PlayerSkillComboRecord> recentRecords = playerSkillComboRecordMapper.findRecentRecords(playerId, 5);
+
+        // 5. 构建最近的技能序列
+        List<Integer> recentSkillSequence = recentRecords.stream()
+                .filter(r -> r.getUsedAt().isAfter(timeThreshold))
+                .map(PlayerSkillComboRecord::getSkillId)
+                .collect(Collectors.toList());
+
+        // 添加当前技能
+        recentSkillSequence.add(skillId);
+
+        // 6. 检查是否匹配任何连招
+        for (SkillCombo combo : availableCombos) {
+            if (combo.getSkillSequence() == null || combo.getSkillSequence().isEmpty()) {
+                continue;
+            }
+
+            // 解析连招序列
+            List<Integer> comboSequence = parseSkillSequence(combo.getSkillSequence());
+            if (comboSequence.isEmpty()) {
+                continue;
+            }
+
+            // 检查玩家是否拥有连招所需的所有技能
+            boolean hasAllSkills = comboSequence.stream().allMatch(learnedSkillIds::contains);
+            if (!hasAllSkills) {
+                continue;
+            }
+
+            // 检查序列是否匹配
+            if (isSequenceMatch(recentSkillSequence, comboSequence)) {
+                // 触发连招！
+                double bonusPercent = combo.getComboBonus().doubleValue();
+                int bonusDamage = (int) (baseDamage * bonusPercent / 100);
+                int finalDamage = baseDamage + bonusDamage;
+
+                // 记录连招触发
+                recordSkillUsage(playerId, skillId, true, combo.getId());
+
+                log.info("玩家{}触发了连招: {}，伤害加成: {}% (+{})",
+                        playerId, combo.getName(), bonusPercent, bonusDamage);
+
+                return SkillComboResult.builder()
+                        .triggered(true)
+                        .comboName(combo.getName())
+                        .comboDescription(combo.getDescription())
+                        .bonusPercent(bonusPercent)
+                        .bonusDamage(bonusDamage)
+                        .finalDamage(finalDamage)
+                        .comboIcon("combo_" + combo.getId())
+                        .build();
+            }
+        }
+
+        // 未触发连招
+        recordSkillUsage(playerId, skillId, false, null);
+        return SkillComboResult.builder().triggered(false).finalDamage(baseDamage).build();
+    }
+
+    /**
+     * 解析技能序列JSON字符串
+     * @param sequenceJson JSON格式的技能序列，如 "[4, 2]"
+     * @return 技能ID列表
+     */
+    private List<Integer> parseSkillSequence(String sequenceJson) {
+        List<Integer> result = new ArrayList<>();
+        if (sequenceJson == null || sequenceJson.isEmpty()) {
+            return result;
+        }
+
+        // 移除方括号
+        String cleaned = sequenceJson.replaceAll("[\\[\\]]", "");
+        if (cleaned.isEmpty()) {
+            return result;
+        }
+
+        // 分割并解析
+        String[] parts = cleaned.split(",");
+        for (String part : parts) {
+            try {
+                result.add(Integer.parseInt(part.trim()));
+            } catch (NumberFormatException ignored) {
+                // 忽略无效的数字
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 检查技能序列是否匹配连招序列
+     * 检查最近N个技能是否与连招序列匹配
+     */
+    private boolean isSequenceMatch(List<Integer> recentSequence, List<Integer> comboSequence) {
+        if (recentSequence.size() < comboSequence.size()) {
+            return false;
+        }
+
+        // 检查recentSequence的末尾是否与comboSequence匹配
+        int startIndex = recentSequence.size() - comboSequence.size();
+        for (int i = 0; i < comboSequence.size(); i++) {
+            if (!recentSequence.get(startIndex + i).equals(comboSequence.get(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 记录技能使用
+     */
+    @Transactional
+    public void recordSkillUsage(Integer playerId, Integer skillId, boolean triggeredCombo, Integer comboId) {
+        PlayerSkillComboRecord record = PlayerSkillComboRecord.builder()
+                .playerId(playerId)
+                .skillId(skillId)
+                .usedAt(LocalDateTime.now())
+                .triggeredCombo(triggeredCombo)
+                .comboId(comboId)
+                .build();
+        playerSkillComboRecordMapper.insert(record);
+
+        // 清理旧记录（保留最近20条）
+        LocalDateTime oldThreshold = LocalDateTime.now().minusMinutes(10);
+        List<PlayerSkillComboRecord> allRecords = playerSkillComboRecordMapper.findRecentRecords(playerId, 100);
+        if (allRecords.size() > 20) {
+            playerSkillComboRecordMapper.deleteOldRecords(playerId, oldThreshold);
+        }
+    }
+
+    /**
+     * 获取连招信息DTO
+     */
+    public Map<String, Object> getComboInfo(SkillCombo combo) {
+        Map<String, Object> info = new HashMap<>();
+        info.put("id", combo.getId());
+        info.put("name", combo.getName());
+        info.put("description", combo.getDescription());
+        info.put("bonusPercent", combo.getComboBonus());
+        info.put("requiredLevel", combo.getRequiredLevel());
+
+        // 解析技能序列并获取技能名称
+        List<Integer> skillIds = parseSkillSequence(combo.getSkillSequence());
+        List<String> skillNames = new ArrayList<>();
+        for (Integer skillId : skillIds) {
+            Skill skill = skillMapper.selectById(skillId);
+            if (skill != null) {
+                skillNames.add(skill.getName());
+            }
+        }
+        info.put("skillSequence", skillNames);
+
+        return info;
+    }
+
+    /**
+     * 获取玩家的连招统计
+     */
+    public Map<String, Object> getPlayerComboStats(Integer playerId) {
+        List<PlayerSkillComboRecord> allRecords = playerSkillComboRecordMapper.findRecentRecords(playerId, 1000);
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalSkillUses", allRecords.size());
+
+        // 统计各连招触发次数
+        Map<Integer, Long> comboTriggerCounts = allRecords.stream()
+                .filter(r -> r.getTriggeredCombo() && r.getComboId() != null)
+                .collect(Collectors.groupingBy(PlayerSkillComboRecord::getComboId, Collectors.counting()));
+        stats.put("comboTriggerCounts", comboTriggerCounts);
+
+        // 计算总连招次数
+        long totalCombos = comboTriggerCounts.values().stream().mapToLong(Long::longValue).sum();
+        stats.put("totalCombos", totalCombos);
+
+        return stats;
+    }
 }

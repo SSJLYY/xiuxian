@@ -3,13 +3,22 @@ package com.xiuxian.game.security;
 import com.xiuxian.game.entity.User;
 import com.xiuxian.game.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
+/**
+ * 自定义用户详情服务
+ * Spring Security 在认证时调用此服务加载用户信息
+ */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
@@ -18,19 +27,20 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        System.out.println("=== DEBUG: CustomUserDetailsService ===");
-        System.out.println("尝试查找用户名: " + username);
-        
+        log.debug("加载用户信息: username={}", username);
+
         User user = userMapper.selectByUsername(username);
         if (user == null) {
-            System.out.println("用户不存在: " + username);
+            log.warn("用户不存在: {}", username);
             throw new UsernameNotFoundException("User not found: " + username);
         }
-        
-        System.out.println("找到用户: " + user.getUsername() + ", ID: " + user.getId());
 
-        java.util.List<org.springframework.security.core.GrantedAuthority> authorities = new java.util.ArrayList<>();
-        authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + (user.getRole() == null ? "USER" : user.getRole())));
+        log.debug("用户加载成功: username={}, id={}", user.getUsername(), user.getId());
+
+        List<GrantedAuthority> authorities = Collections.singletonList(
+                new SimpleGrantedAuthority("ROLE_" + (user.getRole() == null ? "USER" : user.getRole()))
+        );
+
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getPassword(),

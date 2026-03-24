@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>xiuxian挂机游戏</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/modern-style.css">
+    <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+</head>
+<body>
+    <!-- 游戏界面 -->
+    <div id="gamePage" class="active">
+        <!-- 跳过导航链接（无障碍） -->
+        <a href="#content-area" class="skip-to-content">跳过导航</a>
+
+        <!-- 顶部导航栏 -->
+        <header class="game-header">
+            <div class="logo"><i class="fa-solid fa-wand-magic-sparkles"></i> xiuxian挂机</div>
+            <div class="player-info">
+                <span id="playerName">xiuxian者</span>
+                <span>等级: <span id="playerLevel">1</span></span>
+                <span>境界: <span id="playerRealm">练气期</span></span>
+                <span>灵石: <span id="playerSpiritStones">1000</span></span>
+            </div>
+            <!-- 移动端菜单按钮 -->
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="菜单">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <button class="logout-btn" onclick="logout()">退出</button>
+        </header>
+
+        <!-- 主要内容区域 -->
+        <main class="game-main">
+            <!-- 侧边导航 -->
+            <nav class="sidebar" id="sidebar">
+                <ul class="nav-list" role="navigation" aria-label="游戏导航">
+                    <li class="nav-item active" data-module="dashboard">
+                        <button class="nav-button" onclick="showModule('dashboard')"><i class="fa-solid fa-spa"></i> 修炼</button>
+                    </li>
+                    <li class="nav-item" data-module="combat">
+                        <button class="nav-button" onclick="showModule('combat')"><i class="fa-solid fa-crosshairs"></i> 战斗</button>
+                    </li>
+                    <li class="nav-item" data-module="inventory">
+                        <button class="nav-button" onclick="showModule('inventory')"><i class="fa-solid fa-backpack"></i> 背包</button>
+                    </li>
+                    <li class="nav-item" data-module="pets">
+                        <button class="nav-button" onclick="showModule('pets')"><i class="fa-solid fa-paw"></i> 宠物</button>
+                    </li>
+                    <li class="nav-item" data-module="skills">
+                        <button class="nav-button" onclick="showModule('skills')"><i class="fa-solid fa-wand-magic-sparkles"></i> 技能</button>
+                    </li>
+                    <li class="nav-item" data-module="shop">
+                        <button class="nav-button" onclick="showModule('shop')"><i class="fa-solid fa-store"></i> 商城</button>
+                    </li>
+                    <li class="nav-item" data-module="quests">
+                        <button class="nav-button" onclick="showModule('quests')"><i class="fa-solid fa-clipboard-list"></i> 任务</button>
+                    </li>
+                    <li class="nav-item" data-module="narrative">
+                        <button class="nav-button" onclick="showModule('narrative')"><i class="fa-solid fa-scroll"></i> 仙界人物</button>
+                    </li>
+                    <li class="nav-item" data-module="lore">
+                        <button class="nav-button" onclick="showModule('lore')"><i class="fa-solid fa-book-open"></i> 传说图鉴</button>
+                    </li>
+                    <li class="nav-item" data-module="combos">
+                        <button class="nav-button" onclick="showModule('combos')"><i class="fa-solid fa-bolt"></i> 技能连招</button>
+                    </li>
+                    <li class="nav-item" data-module="petEvolution">
+                        <button class="nav-button" onclick="showModule('petEvolution')"><i class="fa-solid fa-dragon"></i> 宠物进化</button>
+                    </li>
+                    <li class="nav-item" data-module="map">
+                        <button class="nav-button" onclick="showModule('map')"><i class="fa-solid fa-map"></i> 世界地图</button>
+                    </li>
+                    <li class="nav-item" data-module="checkin">
+                        <button class="nav-button" onclick="showModule('checkin')"><i class="fa-solid fa-calendar-check"></i> 每日签到</button>
+                    </li>
+                    <li class="nav-item" data-module="achievements">
+                        <button class="nav-button" onclick="showModule('achievements')"><i class="fa-solid fa-trophy"></i> 成就</button>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- 内容区域 -->
+            <div class="content-area" id="content-area">
+                <!-- 修炼模块 -->
+                <div id="dashboard-module" class="module active">
+                    <div class="cultivation-status">
+                        <h2>修炼系统</h2>
+                        <p id="cultivationStatus">点击开始修炼</p>
+                    </div>
+                    
+                    <div class="cultivation-buttons">
+                        <button id="cultivation-btn" class="cultivation-btn start" onclick="startCultivation()">
+                            <i class="fa-solid fa-play"></i> 开始修炼
+                        </button>
+                        <button id="stop-cultivation-btn" class="cultivation-btn stop" onclick="stopCultivation()" style="display: none;">
+                            <i class="fa-solid fa-stop"></i> 停止修炼
+                        </button>
+                    </div>
+                    
+                    <div class="cultivation-log">
+                        <h4>修炼日志</h4>
+                        <div class="log-content" id="cultivation-log">
+                            <div class="log-entry">欢迎来到xiuxian世界！</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 其他模块 -->
+                <div id="combat-module" class="module">
+                    <div style="padding: 2rem;">
+                        <h2>战斗系统</h2>
+                        <p>战斗功能开发中...</p>
+                    </div>
+                </div>
+
+                <div id="inventory-module" class="module">
+                    <div style="padding: 2rem;">
+                        <h2>背包系统</h2>
+                        <p>背包功能开发中...</p>
+                    </div>
+                </div>
+
+                <div id="pets-module" class="module">
+                    <h2>宠物系统</h2>
+                    <div id="myPetsList" class="pets-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:15px;"></div>
+                </div>
+
+                <div id="skills-module" class="module">
+                    <h2>技能系统</h2>
+                    <div id="mySkillsList" class="skills-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:15px;"></div>
+                </div>
+
+                <div id="shop-module" class="module">
+                    <div style="background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">
+                        <h2>商城系统</h2>
+                        <p>商城功能开发中...</p>
+                    </div>
+                </div>
+
+                <div id="quests-module" class="module">
+                    <div style="background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">
+                        <h2>任务系统</h2>
+                        <p>任务功能开发中...</p>
+                    </div>
+                </div>
+
+                <div id="narrative-module" class="module">
+                    <div id="narrativeContent" style="padding: 1rem;">
+                        <div class="loading-spinner"><div class="spinner"></div><p>加载中...</p></div>
+                    </div>
+                </div>
+
+                <div id="lore-module" class="module">
+                    <div id="loreContent" style="padding: 1rem;">
+                        <div class="loading-spinner"><div class="spinner"></div><p>加载中...</p></div>
+                    </div>
+                </div>
+
+                <div id="combos-module" class="module">
+                    <div id="comboContent" style="padding: 1rem;">
+                        <h2><i class="fa-solid fa-bolt"></i> 技能连招</h2>
+                        <div id="comboList"></div>
+                    </div>
+                </div>
+
+                <div id="petEvolution-module" class="module">
+                    <div id="petEvolutionContent" style="padding: 1rem;">
+                        <h2><i class="fa-solid fa-dragon"></i> 宠物进化</h2>
+                        <div id="petEvolutionList"></div>
+                    </div>
+                </div>
+
+                <!-- 地图模块 -->
+                <div id="map-module" class="module">
+                    <div class="loading-spinner"><div class="spinner"></div><p>加载地图中...</p></div>
+                </div>
+
+                <!-- 每日签到模块 -->
+                <div id="checkin-module" class="module">
+                    <div class="loading-spinner"><div class="spinner"></div><p>加载签到数据...</p></div>
+                </div>
+
+                <!-- 成就模块 -->
+                <div id="achievements-module" class="module">
+                    <div class="loading-spinner"><div class="spinner"></div><p>加载成就数据...</p></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 通知系统 -->
+    <div id="notification-container" class="notification-container"></div>
+
+    <!-- 加载动画 -->
+    <div id="loading" class="loading-overlay">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>加载中...</p>
+        </div>
+    </div>
+
+    <!-- 脚本文件 -->
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <!-- 音频系统（必须在游戏逻辑之前加载） -->
+    <script src="js/audio-engine.js"></script>
+    <script src="js/audio-integration.js"></script>
+    <script src="js/audio-settings.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/modules.js"></script>
+    <script src="js/modern-ui.js"></script>
+    <script src="js/mobile-interaction.js"></script>
+    <script src="js/narrative.js"></script>
+    <script src="js/tutorial.js"></script>
+    <script src="js/pet-hunger-monitor.js"></script>
+    <script src="js/breakthrough-evolution.js"></script>
+    <script src="js/combo-pokedex.js"></script>
+    <script src="js/game-map.js"></script>
+    <script src="js/checkin.js"></script>
+    <script src="js/guild-boss.js"></script>
+    <script src="js/achievement-panel.js"></script>
+</body>
+</html>

@@ -19,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 /**
@@ -45,7 +45,13 @@ public class QuestService {
     private final PlayerQuestMapper playerQuestMapper;
     private final PlayerProfileMapper playerProfileMapper;
     private final GameCalculator gameCalculator;
-    private final Random random = new Random();
+
+    // 【修复】使用 ThreadLocalRandom 替代共享 Random 实例。
+    // QuestService 是 Spring 单例，所有并发请求共享同一实例。
+    // ThreadLocalRandom 每个线程独立，无锁竞争，性能更优。
+    private static ThreadLocalRandom rng() {
+        return ThreadLocalRandom.current();
+    }
 
     public List<PlayerQuest> getPlayerDailyQuests(Integer playerId) {
         List<PlayerQuest> allQuests = playerQuestMapper.selectByPlayerId(playerId);
@@ -184,9 +190,9 @@ public class QuestService {
         }
         
         // 随机选择3-5个日常任务
-        int questCount = Math.min(dailyQuestTemplates.size(), random.nextInt(3) + 3);
+        int questCount = Math.min(dailyQuestTemplates.size(), rng().nextInt(3) + 3);
         List<Quest> selectedQuests = dailyQuestTemplates.stream()
-                .sorted((a, b) -> random.nextInt() - random.nextInt())
+                .sorted((a, b) -> rng().nextInt() - rng().nextInt())
                 .limit(questCount)
                 .collect(Collectors.toList());
         

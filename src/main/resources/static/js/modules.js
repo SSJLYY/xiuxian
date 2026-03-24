@@ -4,9 +4,10 @@ class ModuleManager {
         this.currentModule = 'dashboard';
         this.navigationMode = 'drawer'; // 'drawer' 或 'tabs'
         this.modules = [
-            'dashboard', 'combat', 'inventory', 'quests', 'skills', 
+            'dashboard', 'combat', 'inventory', 'pets', 'quests', 'skills', 
             'shop', 'mail', 'guild', 'ranking', 'achievements', 
-            'auction', 'vip', 'activity'
+            'auction', 'vip', 'activity', 'narrative', 'lore', 'combos', 'petEvolution', 'map',
+            'checkin'
         ];
         this.init();
     }
@@ -174,6 +175,9 @@ class ModuleManager {
                 case 'quests':
                     await this.loadQuestsData();
                     break;
+                case 'pets':
+                    await this.loadPetsData();
+                    break;
                 case 'skills':
                     await this.loadSkillsData();
                     break;
@@ -188,6 +192,27 @@ class ModuleManager {
                     break;
                 case 'ranking':
                     await this.loadRankingData();
+                    break;
+                case 'achievements':
+                    await this.loadAchievementsData();
+                    break;
+                case 'combos':
+                    await this.loadCombosData();
+                    break;
+                case 'petEvolution':
+                    await this.loadPetEvolutionData();
+                    break;
+                case 'narrative':
+                    await this.loadNarrativeData();
+                    break;
+                case 'lore':
+                    await this.loadLoreData();
+                    break;
+                case 'map':
+                    await this.loadMapData();
+                    break;
+                case 'checkin':
+                    await this.loadCheckInData();
                     break;
                 case 'achievements':
                     await this.loadAchievementsData();
@@ -262,9 +287,20 @@ class ModuleManager {
         // 任务数据加载逻辑
     }
 
+    async loadPetsData() {
+        console.log('加载宠物数据');
+        // 宠物数据加载逻辑
+        if (window.loadMyPets) {
+            await window.loadMyPets();
+        }
+    }
+
     async loadSkillsData() {
         console.log('加载技能数据');
         // 技能数据加载逻辑
+        if (window.loadMySkills) {
+            await window.loadMySkills();
+        }
     }
 
     async loadShopData() {
@@ -290,6 +326,63 @@ class ModuleManager {
     async loadAchievementsData() {
         console.log('加载成就数据');
         // 成就数据加载逻辑
+    }
+
+    async loadCombosData() {
+        console.log('加载技能连招数据');
+        try {
+            if (window.skillComboSystem) {
+                await window.skillComboSystem.loadCombos();
+            }
+        } catch (error) {
+            console.error('加载连招数据失败:', error);
+        }
+    }
+
+    async loadPetEvolutionData() {
+        console.log('加载宠物进化数据');
+        try {
+            if (window.petEvolutionSystem) {
+                await window.petEvolutionSystem.loadMyPetsEvolution();
+            }
+        } catch (error) {
+            console.error('加载宠物进化数据失败:', error);
+        }
+    }
+
+    async loadNarrativeData() {
+        console.log('加载叙事数据');
+        if (window.NarrativeUI && window.NarrativeUI.instance) {
+            window.NarrativeUI.instance.loadNarratives();
+        }
+    }
+
+    async loadLoreData() {
+        console.log('加载传说数据');
+        if (window.LoreUI && window.LoreUI.instance) {
+            window.LoreUI.instance.loadLoreEntries();
+        }
+    }
+
+    async loadMapData() {
+        console.log('加载地图数据');
+        if (window.gameMapSystem) {
+            await window.gameMapSystem.init();
+        }
+    }
+
+    async loadCheckInData() {
+        console.log('加载签到数据');
+        if (window.checkInSystem) {
+            await window.checkInSystem.init();
+        }
+    }
+
+    async loadAchievementsData() {
+        console.log('加载成就数据');
+        if (window.achievementPanel) {
+            await window.achievementPanel.init();
+        }
     }
 
     formatDate(dateString) {

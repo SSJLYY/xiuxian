@@ -278,3 +278,267 @@ function showLoading(show) {
         }
     }
 }
+
+// ==================== 「本周我能冲第几名」预测功能 ====================
+
+let rankingDataCache = {};
+
+/**
+ * 覆盖原 loadRanking 函数，增加缓存 + 预测面板
+ */
+const _originalLoadRanking = loadRanking;
+
+async function loadRanking(type) {
+    try {
+        showLoading(true);
+
+        let endpoint = '';
+        switch(type) {
+            case 'level':  endpoint = '/ranking/level'; break;
+            case 'power':  endpoint = '/ranking/power'; break;
+            case 'wealth': endpoint = '/ranking/wealth'; break;
+            case 'pet':    endpoint = '/ranking/pet'; break;
+            default:       endpoint = '/ranking/level';
+        }
+
+        const response = await api.get(endpoint, { size: 100 });
+
+        if (response.success && response.data) {
+            rankingDataCache[type] = response.data;
+            renderRankingList(response.data, type);
+            await loadMyRank(type);
+            await renderRankPrediction(type, response.data);
+        } else {
+            showToast(response.message || '获取排行榜失败', 'error');
+            renderEmptyList();
+        }
+    } catch (error) {
+        console.error('加载排行榜失败:', error);
+        showToast('加载排行榜失败: ' + error.message, 'error');
+        renderEmptyList();
+    } finally {
+        showLoading(false);
+    }
+}
+
+/**
+ * 渲染「本周我能冲第几名」预测面板
+ * 逻辑：
+ *   1. 取榜单Top50的分数分布
+ *   2. 获取玩家当前分数
+ *   3. 估算本周增长（基于过去均速）
+ *   4. 预测排名区间
+ */
+async function renderRankPrediction(type, rankings) {
+    // 确保预测面板容器存在
+    let predPanel = document.getElementById('rankPredictionPanel');
+    if (!predPanel) {
+        // 在"我的排名"卡片后插入
+        const myRankCard = document.querySelector('.my-rank-card');
+        if (myRankCard) {
+            predPanel = document.createElement('div');
+            predPanel.id = 'rankPredictionPanel';
+            predPanel.className = 'rank-prediction-card';
+            myRankCard.insertAdjacentElement('afterend', predPanel);
+        } else {
+            return;
+        }
+    }
+
+    try {
+        const myRankResp = await api.get('/ranking/my-rank', { type });
+        if (!myRankResp.success || !myRankResp.data) {
+            predPanel.innerHTML = '';
+            return;
+        }
+
+        const myData = myRankResp.data;
+        const myScore = Number(myData.score) || 0;
+        const myRank = typeof myData.rank === 'number' ? myData.rank : null;
+
+        if (myScore === 0) {
+            predPanel.innerHTML = '';
+            return;
+        }
+
+        // 分析排行榜分数差距
+        const scores = rankings.map(r => Number(r.score) || 0).filter(s => s > 0).sort((a, b) => b - a);
+        const nearbyGap = analyzeNearbyGap(myScore, myRank, scores, type);
+
+        predPanel.innerHTML = `
+            <div class="prediction-header">
+                <span class="prediction-icon">📊</span>
+                <h4>本周冲榜分析</h4>
+                <button class="prediction-refresh" onclick="renderRankPrediction('${type}', rankingDataCache['${type}'])">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+
+            <div class="prediction-body">
+                <!-- 当前情况 -->
+                <div class="prediction-row">
+                    <span class="pred-label">当前排名</span>
+                    <span class="pred-value current">${myRank ? '第 ' + myRank + ' 名' : '未上榜'}</span>
+                </div>
+                <div class="prediction-row">
+                    <span class="pred-label">当前分数</span>
+                    <span class="pred-value">${formatPredScore(type, myScore)}</span>
+                </div>
+
+                <!-- 追击目标 -->
+                ${nearbyGap.chaseTarget ? `
+                    <div class="prediction-chase">
+                        <div class="chase-header">⬆️ 追击目标</div>
+                        <div class="chase-item">
+                            <span class="chase-rank">第 ${nearbyGap.chaseTarget.rank} 名</span>
+                            <span class="chase-name">${nearbyGap.chaseTarget.name || '未知'}</span>
+                            <span class="chase-gap">差距 ${formatPredScore(type, nearbyGap.chaseTarget.gap)}</span>
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- 被追情况 -->
+                ${nearbyGap.pursuer ? `
+                    <div class="prediction-pursuer">
+                        <div class="pursuer-header">⬇️ 身后追兵</div>
+                        <div class="pursuer-item">
+                            <span class="pursuer-rank">第 ${nearbyGap.pursuer.rank} 名</span>
+                            <span class="pursuer-name">${nearbyGap.pursuer.name || '未知'}</span>
+                            <span class="pursuer-gap">领先 ${formatPredScore(type, nearbyGap.pursuer.lead)}</span>
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- 冲榜建议 -->
+                <div class="prediction-tip">
+                    <span class="tip-icon">💡</span>
+                    <span class="tip-text">${nearbyGap.advice}</span>
+                </div>
+            </div>
+        `;
+    } catch (err) {
+        console.warn('排名预测失败:', err);
+        predPanel.innerHTML = '';
+    }
+}
+
+/**
+ * 分析与前后名次的分数差距
+ */
+function analyzeNearbyGap(myScore, myRank, scores, type) {
+    // 找到我排名前一位
+    let chaseTarget = null;
+    let pursuer = null;
+
+    if (myRank && myRank > 1) {
+        const targetScore = scores[myRank - 2]; // 排在我前一位的分数
+        if (targetScore !== undefined && targetScore > myScore) {
+            chaseTarget = {
+                rank: myRank - 1,
+                gap: targetScore - myScore,
+                name: '???'
+            };
+        }
+    }
+
+    if (myRank && myRank < scores.length) {
+        const pursuerScore = scores[myRank]; // 排在我后一位的分数
+        if (pursuerScore !== undefined && pursuerScore < myScore) {
+            pursuer = {
+                rank: myRank + 1,
+                lead: myScore - pursuerScore,
+                name: '???'
+            };
+        }
+    }
+
+    // 根据差距生成建议
+    let advice = '';
+    if (!myRank) {
+        const last = scores[scores.length - 1] || 0;
+        const gapToEnter = last > 0 ? last - myScore + 1 : 0;
+        advice = `距离上榜还需提升约 ${formatPredScore(type, gapToEnter)}，继续努力！`;
+    } else if (chaseTarget && chaseTarget.gap < myScore * 0.05) {
+        advice = `与上一名差距极小！今天多修炼一下就能超越！`;
+    } else if (chaseTarget && myRank <= 10) {
+        advice = `继续保持，预计本周能稳定在前${myRank}名！`;
+    } else if (myRank <= 3) {
+        advice = `🏆 当前在前三名！稳住优势，防止被追赶！`;
+    } else {
+        advice = `当前排名稳定，坚持挂机修炼可持续提升！`;
+    }
+
+    return { chaseTarget, pursuer, advice };
+}
+
+function formatPredScore(type, score) {
+    score = Number(score) || 0;
+    switch (type) {
+        case 'wealth': return `${formatNumber(score)} 灵石`;
+        case 'power': return `${formatNumber(score)} 战力`;
+        case 'level': return `${score} 级`;
+        default: return formatNumber(score);
+    }
+}
+
+// ==================== 追加CSS样式 ====================
+const rankingExtraStyle = document.createElement('style');
+rankingExtraStyle.textContent = `
+    .rank-prediction-card {
+        background: linear-gradient(135deg, rgba(26,26,46,0.95), rgba(22,33,62,0.95));
+        border: 1px solid rgba(212,175,55,0.25);
+        border-radius: 12px;
+        padding: 1.2rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    }
+    .prediction-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .prediction-icon { font-size: 1.2rem; }
+    .prediction-header h4 { margin: 0; flex: 1; color: #d4af37; font-size: 1rem; }
+    .prediction-refresh {
+        background: none; border: none; color: #7fffd4; cursor: pointer; font-size: 0.85rem;
+        padding: 4px 8px; border-radius: 4px; transition: all 0.2s;
+    }
+    .prediction-refresh:hover { background: rgba(127,255,212,0.1); }
+    .prediction-body { display: flex; flex-direction: column; gap: 0.6rem; }
+    .prediction-row {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 0.4rem 0.6rem; background: rgba(255,255,255,0.03); border-radius: 6px;
+    }
+    .pred-label { color: #a0a0a0; font-size: 0.9rem; }
+    .pred-value { color: #e8e8e8; font-weight: bold; }
+    .pred-value.current { color: #7fffd4; }
+    .prediction-chase, .prediction-pursuer {
+        padding: 0.6rem; border-radius: 8px;
+    }
+    .prediction-chase { background: rgba(76,175,80,0.08); border: 1px solid rgba(76,175,80,0.2); }
+    .prediction-pursuer { background: rgba(244,67,54,0.08); border: 1px solid rgba(244,67,54,0.2); }
+    .chase-header, .pursuer-header {
+        font-size: 0.8rem; font-weight: bold; margin-bottom: 0.4rem;
+        color: #a5d6a7;
+    }
+    .pursuer-header { color: #ef9a9a; }
+    .chase-item, .pursuer-item {
+        display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;
+    }
+    .chase-rank, .pursuer-rank { color: #d4af37; font-weight: bold; font-size: 0.9rem; }
+    .chase-name, .pursuer-name { color: #e8e8e8; flex: 1; }
+    .chase-gap { color: #ef5350; font-size: 0.85rem; }
+    .pursuer-gap { color: #66bb6a; font-size: 0.85rem; }
+    .prediction-tip {
+        display: flex; gap: 0.5rem; align-items: flex-start;
+        padding: 0.6rem; background: rgba(212,175,55,0.06);
+        border: 1px solid rgba(212,175,55,0.15); border-radius: 6px;
+    }
+    .tip-icon { font-size: 1rem; flex-shrink: 0; }
+    .tip-text { color: #c0a060; font-size: 0.9rem; line-height: 1.5; }
+`;
+document.head.appendChild(rankingExtraStyle);
+

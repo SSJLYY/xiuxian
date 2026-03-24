@@ -13,6 +13,9 @@ document.addEventListener('DOMContentLoaded', function() {
     loadMyPets();
 });
 
+// 暴露给 modules.js 调用
+window.loadMyPets = loadMyPets;
+
 // 检查登录状态
 function checkAuth() {
     const token = localStorage.getItem('token');

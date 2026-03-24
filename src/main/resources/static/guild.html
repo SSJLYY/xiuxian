@@ -500,6 +500,9 @@
                 <button class="guild-tab-btn active" data-tab="my-guild" onclick="switchGuildTab('my-guild')">
                     <i class="fa fa-home"></i> 我的宗门
                 </button>
+                <button class="guild-tab-btn" data-tab="guild-boss" onclick="switchGuildTab('guild-boss')">
+                    <i class="fa fa-dragon"></i> 宗门BOSS
+                </button>
                 <button class="guild-tab-btn" data-tab="guild-list" onclick="switchGuildTab('guild-list')">
                     <i class="fa fa-list"></i> 宗门列表
                 </button>
@@ -515,6 +518,13 @@
                         <div class="spinner"></div>
                         <p style="margin-top: 15px; color: #718096;">加载宗门数据...</p>
                     </div>
+                </div>
+            </div>
+
+            <!-- 宗门BOSS -->
+            <div id="guildBossSection" class="guild-content-section">
+                <div id="guild-boss-container" style="padding:1rem;">
+                    <div class="loading-spinner"><div class="spinner"></div><p>加载BOSS数据...</p></div>
                 </div>
             </div>
 
@@ -581,5 +591,6 @@
     <!-- 加载脚本 -->
     <script src="js/api.js"></script>
     <script src="js/guild.js"></script>
+    <script src="js/guild-boss.js"></script>
 </body>
 </html>

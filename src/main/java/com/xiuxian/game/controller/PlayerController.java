@@ -224,10 +224,10 @@ public class PlayerController {
             
             // 验证分配方案
             if (totalSpend <= 0) {
-                throw new RuntimeException("未提供有效的加点方案");
+                throw new IllegalArgumentException("未提供有效的加点方案");
             }
             if (totalSpend > availablePoints) {
-                throw new RuntimeException("属性点不足，可用点数: " + availablePoints + "，需要点数: " + totalSpend);
+                throw new IllegalArgumentException("属性点不足，可用点数: " + availablePoints + "，需要点数: " + totalSpend);
             }
             
             // 应用属性点分配
@@ -319,6 +319,50 @@ public class PlayerController {
             
         } catch (Exception e) {
             log.error("重置修炼状态失败: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+    
+    /**
+     * GDD：检查是否可以进行境界突破
+     * 
+     * @return 是否可以突破
+     */
+    @GetMapping("/breakthrough/can")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Boolean>> canBreakthrough() {
+        try {
+            PlayerProfile profile = playerService.getCurrentPlayerProfile();
+            boolean can = playerService.canBreakthrough(profile.getId());
+            return ResponseEntity.ok(ApiResponse.success(can));
+        } catch (Exception e) {
+            log.error("检查突破状态失败: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+    
+    /**
+     * GDD：执行境界突破
+     * 需要达到当前境界最高等级，并消耗破境丹（或5000灵石）
+     * 触发心魔战斗，70%胜率
+     * 
+     * @return 突破结果
+     */
+    @PostMapping("/breakthrough")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<String>> attemptBreakthrough() {
+        try {
+            PlayerProfile profile = playerService.getCurrentPlayerProfile();
+            String result = playerService.attemptBreakthrough(profile.getId());
+            
+            // 记录操作日志
+            LogUtils.logUserAction(null, profile.getId(), "BREAKTHROUGH", result);
+            LogUtils.logBusiness("BREAKTHROUGH", "境界突破", 
+                    "playerId", profile.getId(), "result", result);
+            
+            return ResponseEntity.ok(ApiResponse.success(result));
+        } catch (Exception e) {
+            log.error("境界突破失败: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }

@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Slf4j
 @Service
@@ -30,7 +31,13 @@ public class EnhancedCombatService {
     private final ItemMapper itemMapper;
     private final PlayerItemMapper playerItemMapper;
     private final ObjectMapper objectMapper;
-    private final Random random = new Random();
+
+    // 【修复】使用 ThreadLocalRandom 替代共享 Random 实例。
+    // EnhancedCombatService 是 Spring 单例，所有并发请求共享同一实例。
+    // ThreadLocalRandom 每个线程独立，无锁竞争，性能更优。
+    private static ThreadLocalRandom rng() {
+        return ThreadLocalRandom.current();
+    }
 
     /**
      * 增强战斗主逻辑 - 支持技能、宠物、道具
@@ -316,7 +323,7 @@ public class EnhancedCombatService {
      */
     private boolean checkCriticalHit(PlayerProfile player) {
         // 10%基础暴击率，暂时不考虑装备加成
-        return random.nextInt(100) < 10;
+        return rng().nextInt(100) < 10;
     }
 
     /**
@@ -382,7 +389,7 @@ public class EnhancedCombatService {
         // 随机波动 ±15%（增加随机性）
         int variance = (int)(finalDamage * 0.15);
         if (variance > 0) {
-            finalDamage += random.nextInt(variance * 2 + 1) - variance;
+            finalDamage += rng().nextInt(variance * 2 + 1) - variance;
         }
         
         // 保证最小伤害（至少造成攻击力的20%）

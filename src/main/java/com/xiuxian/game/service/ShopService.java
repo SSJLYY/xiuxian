@@ -5,6 +5,8 @@ import com.xiuxian.game.entity.PlayerProfile;
 import com.xiuxian.game.entity.PlayerSkill;
 import com.xiuxian.game.entity.ShopItem;
 import com.xiuxian.game.entity.SkillShopItem;
+import com.xiuxian.game.exception.BusinessException;
+import com.xiuxian.game.exception.ErrorCode;
 import com.xiuxian.game.mapper.PlayerItemMapper;
 import com.xiuxian.game.mapper.PlayerProfileMapper;
 import com.xiuxian.game.mapper.PlayerSkillMapper;
@@ -41,13 +43,15 @@ public class ShopService {
 
     @Transactional
     public void buyItem(Integer shopItemId, int quantity) {
-        if (quantity <= 0) throw new RuntimeException("购买数量必须大于0");
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("购买数量必须大于0");
+        }
         ShopItem item = shopItemMapper.selectById(shopItemId);
         if (item == null || !Boolean.TRUE.equals(item.getIsAvailable())) {
-            throw new RuntimeException("商品不可用");
+            throw new BusinessException(ErrorCode.SHOP_ITEM_NOT_AVAILABLE);
         }
         if (!item.hasStock(quantity)) {
-            throw new RuntimeException("库存不足");
+            throw new BusinessException(ErrorCode.SHOP_ITEM_OUT_OF_STOCK);
         }
 
         PlayerProfile profile = playerService.getCurrentPlayerProfile();
@@ -56,11 +60,15 @@ public class ShopService {
         long needContribution = (long) item.getPriceContributionPoints() * quantity;
 
         if (needSpirit > 0) {
-            if (profile.getSpiritStones() < needSpirit) throw new RuntimeException("灵石不足");
+            if (profile.getSpiritStones() < needSpirit) {
+                throw new BusinessException(ErrorCode.SHOP_INSUFFICIENT_SPIRIT_STONES);
+            }
             profile.setSpiritStones(profile.getSpiritStones() - needSpirit);
         }
         if (needContribution > 0) {
-            if (profile.getContributionPoints() < needContribution) throw new RuntimeException("贡献点不足");
+            if (profile.getContributionPoints() < needContribution) {
+                throw new BusinessException(ErrorCode.SHOP_INSUFFICIENT_CONTRIBUTION);
+            }
             profile.setContributionPoints(profile.getContributionPoints() - needContribution);
         }
 
@@ -91,7 +99,7 @@ public class ShopService {
     @Transactional
     public void buySkill(Integer skillId) {
         PlayerProfile profile = playerService.getCurrentPlayerProfile();
-        
+
         // 查询技能商店中是否有该技能
         SkillShopItem ssi = skillShopMapper.selectById(skillId);
         if (ssi == null) {
@@ -102,24 +110,24 @@ public class ShopService {
                     .findFirst()
                     .orElse(null);
         }
-        
+
         if (ssi == null || !Boolean.TRUE.equals(ssi.getAvailable())) {
-            throw new RuntimeException("技能不可购买");
+            throw new BusinessException(ErrorCode.SHOP_ITEM_NOT_AVAILABLE);
         }
         if (profile.getLevel() < ssi.getRequiredLevel()) {
-            throw new RuntimeException("等级不足，需要 " + ssi.getRequiredLevel() + " 级");
+            throw new BusinessException(ErrorCode.SHOP_SKILL_LEVEL_NOT_ENOUGH);
         }
         if (profile.getSpiritStones() < ssi.getPrice()) {
-            throw new RuntimeException("灵石不足，需要 " + ssi.getPrice() + " 灵石");
+            throw new BusinessException(ErrorCode.SHOP_INSUFFICIENT_SPIRIT_STONES);
         }
-        
+
         // 检查是否已经拥有该技能
         PlayerSkill existing = playerSkillMapper.selectByPlayerIdAndSkillId(profile.getId(), skillId);
         if (existing != null) {
-            throw new RuntimeException("已拥有该技能");
+            throw new BusinessException(ErrorCode.SHOP_SKILL_ALREADY_OWNED);
         }
-        
-        // 扣10灵石
+
+        // 扣除灵石
         profile.setSpiritStones(profile.getSpiritStones() - ssi.getPrice());
         playerProfileMapper.updateById(profile);
 

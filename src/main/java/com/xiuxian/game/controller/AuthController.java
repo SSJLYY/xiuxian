@@ -9,6 +9,7 @@ import com.xiuxian.game.entity.User;
 import com.xiuxian.game.service.AuthService;
 import com.xiuxian.game.service.PlayerLoginLogService;
 import com.xiuxian.game.util.LogUtils;
+import com.xiuxian.game.util.RequestUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -88,8 +89,8 @@ public class AuthController {
             log.info("收到用户注册请求: 用户名={}, 邮箱={}, 昵称={}", 
                     request.getUsername(), request.getEmail(), request.getNickname());
             
-            // 记录用户操作日志
-            String clientIp = getClientIpAddress(httpRequest);
+            // 【P1-4 重构】使用统一的 RequestUtils.getClientIp() 替代私有方法
+            String clientIp = RequestUtils.getClientIp(httpRequest);
             LogUtils.logSecurity("USER_REGISTER_ATTEMPT", request.getUsername(), 
                     "用户尝试注册", clientIp);
             
@@ -106,7 +107,7 @@ public class AuthController {
             
         } catch (Exception e) {
             // 记录注册失败日志
-            String clientIp = getClientIpAddress(httpRequest);
+            String clientIp = RequestUtils.getClientIp(httpRequest);
             LogUtils.logSecurity("USER_REGISTER_FAILED", request.getUsername(), 
                     "用户注册失败: " + e.getMessage(), clientIp);
             
@@ -142,7 +143,7 @@ public class AuthController {
             log.info("收到用户登录请求: 用户名={}", request.getUsername());
             
             // 记录登录尝试日志
-            String clientIp = getClientIpAddress(httpRequest);
+            String clientIp = RequestUtils.getClientIp(httpRequest);
             LogUtils.logSecurity("USER_LOGIN_ATTEMPT", request.getUsername(), 
                     "用户尝试登录", clientIp);
             
@@ -164,7 +165,7 @@ public class AuthController {
             
         } catch (Exception e) {
             // 记录登录失败日志
-            String clientIp = getClientIpAddress(httpRequest);
+            String clientIp = RequestUtils.getClientIp(httpRequest);
             LogUtils.logSecurity("USER_LOGIN_FAILED", request.getUsername(), 
                     "用户登录失败: " + e.getMessage(), clientIp);
             
@@ -222,7 +223,7 @@ public class AuthController {
             authService.logout();
             
             // 记录登出日志
-            String clientIp = getClientIpAddress(httpRequest);
+            String clientIp = RequestUtils.getClientIp(httpRequest);
             LogUtils.logUserAction(username, "LOGOUT", "用户登出");
             LogUtils.logSecurity("USER_LOGOUT", username, "用户登出", clientIp);
             
@@ -260,33 +261,6 @@ public class AuthController {
         }
     }
     
-    /**
-     * 获取客户端真实IP地址
-     * 
-     * @param request HTTP请求对象
-     * @return 客户端IP地址
-     */
-    private String getClientIpAddress(HttpServletRequest request) {
-        String[] headerNames = {
-            "X-Forwarded-For",
-            "X-Real-IP", 
-            "Proxy-Client-IP",
-            "WL-Proxy-Client-IP",
-            "HTTP_CLIENT_IP",
-            "HTTP_X_FORWARDED_FOR"
-        };
-        
-        for (String headerName : headerNames) {
-            String ip = request.getHeader(headerName);
-            if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
-                // 多级代理的情况，取第一个IP
-                if (ip.contains(",")) {
-                    ip = ip.split(",")[0].trim();
-                }
-                return ip;
-            }
-        }
-        
-        return request.getRemoteAddr();
-    }
+    // 【P1-4 已重构】获取客户端 IP 逻辑已迁移至 RequestUtils.getClientIp()
+    // 原私有方法已删除，所有调用处已替换为 RequestUtils.getClientIp(request)
 }

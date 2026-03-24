@@ -1,14 +1,14 @@
 package com.xiuxian.game.controller;
 
 import com.xiuxian.game.dto.response.ApiResponse;
+import com.xiuxian.game.dto.response.CombatResult;
 import com.xiuxian.game.entity.CombatLog;
 import com.xiuxian.game.entity.Monster;
 import com.xiuxian.game.service.CombatService;
 import com.xiuxian.game.service.EnhancedCombatService;
 import com.xiuxian.game.service.PlayerService;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -16,12 +16,15 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 战斗控制器
+ * 提供战斗相关的 REST API：生成怪物、单次战斗、批量战斗、战斗历史
+ */
+@Slf4j
 @RestController
 @RequestMapping("/api/combat")
 @RequiredArgsConstructor
 public class CombatController {
-
-    private static final Logger log = LoggerFactory.getLogger(CombatController.class);
 
     private final CombatService combatService;
     private final EnhancedCombatService enhancedCombatService;
@@ -31,7 +34,6 @@ public class CombatController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Monster>> generateMonster(@RequestParam(required = false) Integer mapId) {
         try {
-            Integer playerId = playerService.getCurrentPlayerId();
             Integer playerLevel = playerService.getCurrentPlayerProfile().getLevel();
             Monster monster = combatService.generateMonster(playerLevel, mapId);
             return ResponseEntity.ok(ApiResponse.success("怪物生成成功", monster));
@@ -42,46 +44,33 @@ public class CombatController {
 
     @PostMapping("/start")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> startCombat(@RequestBody Map<String, Object> request) {
+    public ResponseEntity<ApiResponse<CombatResult>> startCombat(@RequestBody Map<String, Object> request) {
         try {
-            Integer mapId = null;
-            if (request != null && request.containsKey("mapId")) {
-                Object mapIdObj = request.get("mapId");
-                if (mapIdObj instanceof Number) {
-                    mapId = ((Number) mapIdObj).intValue();
-                } else if (mapIdObj instanceof String) {
-                    try {
-                        mapId = Integer.parseInt((String) mapIdObj);
-                    } catch (NumberFormatException e) {
-                        // 忽略无效的mapId
-                    }
-                }
-            }
-            
+            Integer mapId = extractMapId(request);
             Integer playerId = playerService.getCurrentPlayerId();
             Integer playerLevel = playerService.getCurrentPlayerProfile().getLevel();
             Monster monster = combatService.generateMonster(playerLevel, mapId);
-            Map<String, Object> result = combatService.startCombat(playerId, monster);
+            CombatResult result = combatService.startCombat(playerId, monster);
             return ResponseEntity.ok(ApiResponse.success("战斗完成", result));
         } catch (Exception e) {
-            log.error("战斗开始失败 - 玩家ID: {}", playerService.getCurrentPlayerId(), e);
+            log.error("战斗失败: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
 
     @PostMapping("/start/{monsterId}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> startCombatWithMonster(@PathVariable Integer monsterId) {
+    public ResponseEntity<ApiResponse<CombatResult>> startCombatWithMonster(@PathVariable Integer monsterId) {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
             Monster monster = combatService.getMonsterById(monsterId);
             if (monster == null) {
                 return ResponseEntity.badRequest().body(ApiResponse.error("怪物不存在或不可战斗"));
             }
-            Map<String, Object> result = combatService.startCombat(playerId, monster);
+            CombatResult result = combatService.startCombat(playerId, monster);
             return ResponseEntity.ok(ApiResponse.success("战斗完成", result));
         } catch (Exception e) {
-            log.error("指定怪物战斗失败 - 玩家ID: {}, 怪物ID: {}", playerService.getCurrentPlayerId(), monsterId, e);
+            log.error("指定怪物战斗失败: monsterId={}", monsterId, e);
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
@@ -96,12 +85,11 @@ public class CombatController {
             Integer playerId = playerService.getCurrentPlayerId();
             Integer playerLevel = playerService.getCurrentPlayerProfile().getLevel();
             Monster monster = combatService.generateMonster(playerLevel, request.getMapId());
-            
             Map<String, Object> result = enhancedCombatService.enhancedCombat(
                     playerId, monster, request.getSkillId(), request.getItemId());
             return ResponseEntity.ok(ApiResponse.success("战斗完成", result));
         } catch (Exception e) {
-            log.error("增强战斗失败 - 玩家ID: {}", playerService.getCurrentPlayerId(), e);
+            log.error("增强战斗失败: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
@@ -111,41 +99,26 @@ public class CombatController {
      */
     @PostMapping("/batch/{times}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> batchCombat(@PathVariable Integer times, @RequestBody Map<String, Object> request) {
+    public ResponseEntity<ApiResponse<CombatResult>> batchCombat(
+            @PathVariable Integer times,
+            @RequestBody Map<String, Object> request) {
         try {
-            // 限制最大战斗次数
             int maxTimes = Math.min(times, 100);
-            
             Integer playerId = playerService.getCurrentPlayerId();
             Integer playerLevel = playerService.getCurrentPlayerProfile().getLevel();
-            
-            // 获取地图ID（如果提供）
-            Integer mapId = null;
-            if (request != null && request.containsKey("mapId")) {
-                Object mapIdObj = request.get("mapId");
-                if (mapIdObj instanceof Number) {
-                    mapId = ((Number) mapIdObj).intValue();
-                } else if (mapIdObj instanceof String) {
-                    try {
-                        mapId = Integer.parseInt((String) mapIdObj);
-                    } catch (NumberFormatException e) {
-                        // 忽略无效的mapId
-                    }
-                }
-            }
-            
-            // 执行批量战斗
-            Map<String, Object> result = combatService.batchCombat(playerId, playerLevel, mapId, maxTimes);
+            Integer mapId = extractMapId(request);
+            CombatResult result = combatService.batchCombat(playerId, playerLevel, mapId, maxTimes);
             return ResponseEntity.ok(ApiResponse.success("批量战斗完成", result));
         } catch (Exception e) {
-            log.error("批量战斗失败 - 玩家ID: {}, 次数: {}", playerService.getCurrentPlayerId(), times, e);
+            log.error("批量战斗失败: times={}", times, e);
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
 
     @GetMapping("/history")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<List<CombatLog>>> getCombatHistory(@RequestParam(defaultValue = "10") Integer limit) {
+    public ResponseEntity<ApiResponse<List<CombatLog>>> getCombatHistory(
+            @RequestParam(defaultValue = "10") Integer limit) {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
             List<CombatLog> logs = combatService.getCombatHistory(playerId, limit);
@@ -154,38 +127,40 @@ public class CombatController {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
-    
+
+    // =====================================================================
+    // 私有辅助
+    // =====================================================================
+
     /**
-     * 增强战斗请求DTO
+     * 从请求体中安全解析 mapId
+     */
+    private Integer extractMapId(Map<String, Object> request) {
+        if (request == null || !request.containsKey("mapId")) return null;
+        Object val = request.get("mapId");
+        if (val instanceof Number) return ((Number) val).intValue();
+        if (val instanceof String) {
+            try {
+                return Integer.parseInt((String) val);
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 增强战斗请求 DTO
      */
     public static class EnhancedCombatRequest {
         private Integer mapId;
         private Integer skillId;
         private Integer itemId;
-        
-        // Getters and Setters
-        public Integer getMapId() {
-            return mapId;
-        }
-        
-        public void setMapId(Integer mapId) {
-            this.mapId = mapId;
-        }
-        
-        public Integer getSkillId() {
-            return skillId;
-        }
-        
-        public void setSkillId(Integer skillId) {
-            this.skillId = skillId;
-        }
-        
-        public Integer getItemId() {
-            return itemId;
-        }
-        
-        public void setItemId(Integer itemId) {
-            this.itemId = itemId;
-        }
+
+        public Integer getMapId() { return mapId; }
+        public void setMapId(Integer mapId) { this.mapId = mapId; }
+        public Integer getSkillId() { return skillId; }
+        public void setSkillId(Integer skillId) { this.skillId = skillId; }
+        public Integer getItemId() { return itemId; }
+        public void setItemId(Integer itemId) { this.itemId = itemId; }
     }
 }

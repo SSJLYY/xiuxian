@@ -186,6 +186,71 @@ const gameAPI = {
         return await api.get('/skills/player');
     },
 
+    async getAvailableSkills() {
+        return await api.get('/skills/available');
+    },
+
+    async getEquippedSkills() {
+        return await api.get('/skills/equipped');
+    },
+
+    async learnSkill(skillId) {
+        return await api.post(`/skills/learn/${skillId}`);
+    },
+
+    async upgradeSkill(playerSkillId) {
+        return await api.post(`/skills/${playerSkillId}/upgrade`);
+    },
+
+    async equipSkill(playerSkillId, slotNumber) {
+        return await api.post(`/skills/equip/${playerSkillId}/${slotNumber}`);
+    },
+
+    async unequipSkill(playerSkillId) {
+        return await api.post(`/skills/unequip/${playerSkillId}`);
+    },
+
+    // 宠物相关API
+    async getMyPets() {
+        return await api.get('/pets/my');
+    },
+
+    async getAvailablePets() {
+        return await api.get('/pets/available');
+    },
+
+    async getActivePet() {
+        return await api.get('/pets/active');
+    },
+
+    async capturePet(petId) {
+        return await api.post(`/pets/capture/${petId}`);
+    },
+
+    async setActivePet(petId) {
+        return await api.post(`/pets/activate/${petId}`);
+    },
+
+    async feedPet(petId) {
+        return await api.post(`/pets/feed/${petId}`);
+    },
+
+    async trainPet(petId, trainingType) {
+        return await api.post(`/pets/train/${petId}`, { trainingType });
+    },
+
+    async renamePet(petId, nickname) {
+        return await api.post(`/pets/rename/${petId}`, { nickname });
+    },
+
+    async toggleLockPet(petId) {
+        return await api.post(`/pets/toggle-lock/${petId}`);
+    },
+
+    async releasePet(petId) {
+        return await api.delete(`/pets/release/${petId}`);
+    },
+
     // 装备相关API
     async getEquipment() {
         return await api.get('/equipment');
@@ -360,6 +425,31 @@ const gameAPI = {
     ,
     async getEnhanceInfo(playerEquipmentId) {
         return await api.get(`/equipment/enhance-info/${playerEquipmentId}`);
+    },
+
+    // ==================== 技能连招API ====================
+    async getAvailableCombos() {
+        return await api.get('/skills/combos/available');
+    },
+    async getAllCombos() {
+        return await api.get('/skills/combos/all');
+    },
+    async getComboStats() {
+        return await api.get('/skills/combos/stats');
+    },
+    async checkCombo(skillId, baseDamage = 0) {
+        return await api.post(`/skills/combos/check?skillId=${skillId}&baseDamage=${baseDamage}`);
+    },
+
+    // ==================== 宠物进化API ====================
+    async checkPetEvolution(playerPetId) {
+        return await api.get(`/pets/evolution/check/${playerPetId}`);
+    },
+    async evolvePet(playerPetId) {
+        return await api.post(`/pets/evolution/evolve/${playerPetId}`);
+    },
+    async getPetEvolutionInfo(playerPetId) {
+        return await api.get(`/pets/evolution/info/${playerPetId}`);
     }
 };
 

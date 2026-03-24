@@ -1,6 +1,7 @@
 // 认证管理 - 修复认证流程
 class AuthManager {
     constructor() {
+        console.log('AuthManager构造函数开始');
         this.currentUser = null;
         this.player = null;
         this.isAuthenticated = false;
@@ -8,6 +9,7 @@ class AuthManager {
         this.loginTime = null;
         this.lastDataUpdate = null;
         this.token = localStorage.getItem('authToken');
+        console.log('token:', this.token);
         
         // 设置token到API实例
         if (this.token && window.api) {
@@ -15,11 +17,14 @@ class AuthManager {
         }
         
         this.init();
+        console.log('AuthManager构造函数结束');
     }
 
     // 初始化认证状态
     async init() {
         this.bindEvents();
+        // 强制设置初始表单显示状态
+        this.switchForm('login');
         await this.checkAuthStatus();
     }
 
@@ -48,27 +53,50 @@ class AuthManager {
     async checkAuthStatus() {
         console.log('检查认证状态，token存在:', !!this.token);
 
+        // 安全获取当前页面路径
+        const currentPage = window.location.pathname || '';
+        const isLoginPage = currentPage.includes('login.html') || currentPage === '/' || currentPage === '';
+        const isGamePage = currentPage.includes('game.html');
+
+        console.log('当前页面:', currentPage, 'isLoginPage:', isLoginPage, 'isGamePage:', isGamePage);
+
         if (!this.token) {
-            this.showLoginPage();
+            // 没有token
+            if (isGamePage) {
+                window.location.href = 'login.html';
+            }
             return;
         }
 
         try {
-            // 验证token有效性 - 必须从后端验证，不允许降级
+            // 验证token有效性
+            console.log('验证token，当前token:', this.token);
             const validationResponse = await gameAPI.validateToken();
+            console.log('validateToken响应:', validationResponse);
             if (!validationResponse || !validationResponse.success) {
-                throw new Error('Token验证失败，请重新登录');
+                throw new Error('Token验证失败');
             }
 
+            this.isAuthenticated = true;
+            console.log('准备加载用户数据');
             await this.loadUserData();
-            // 不再自动跳转，loadUserData中会处理跳转逻辑
+            console.log('用户数据加载完成');
+            
+            // 如果在登录页面，有token就跳转到游戏页面
+            if (isLoginPage) {
+                console.log('登录页面有token，跳转到游戏页面');
+                window.location.href = 'game.html';
+                return;
+            }
             
             console.log('自动登录成功');
 
         } catch (error) {
             console.error('自动登录失败:', error);
             this.clearAuthData();
-            this.showLoginPage();
+            if (isGamePage) {
+                window.location.href = 'login.html';
+            }
             this.showToast('认证失败: ' + error.message, 'error');
         }
     }
@@ -80,9 +108,12 @@ class AuthManager {
         this.isLoading = true;
         try {
             console.log('开始加载用户数据');
+            console.log('api.token:', api.token);
+            console.log('localStorage token:', localStorage.getItem('authToken'));
 
             // 获取当前用户信息 - 必须成功
             const userResponse = await gameAPI.getCurrentUser();
+            console.log('getCurrentUser响应:', userResponse);
             if (!userResponse || !userResponse.success) {
                 throw new Error(userResponse?.message || '获取用户信息失败，请检查网络连接');
             }
@@ -179,20 +210,16 @@ class AuthManager {
             }
 
             console.log('登录成功，用户:', username, '玩家:', this.player?.nickname, '角色:', this.currentUser.role);
+            console.log('Token:', this.token);
+            console.log('保存到localStorage...');
+            localStorage.setItem('authToken', this.token);
+            console.log('localStorage中的token:', localStorage.getItem('authToken'));
             this.showToast('登录成功', 'success');
 
             // 根据用户角色跳转到相应的页面
-            setTimeout(() => {
-                console.log('准备显示游戏页面');
-                this.showGamePage();
-                this.updatePlayerUI();
-                
-                // 通知现代UI系统登录成功
-                if (window.simpleUI && typeof window.simpleUI.switchToGamePage === 'function') {
-                    console.log('通知现代UI系统切换到游戏页面');
-                    window.simpleUI.switchToGamePage();
-                }
-            }, 500);
+            console.log('准备跳转到游戏页面');
+            this.showGamePage();
+            this.updatePlayerUI();
 
         } catch (error) {
             console.error('登录错误:', error);
@@ -298,46 +325,18 @@ class AuthManager {
 
     // 显示游戏页面
     showGamePage() {
-        const loginPage = document.getElementById('loginPage');
-        const gamePage = document.getElementById('gamePage');
-
-        if (loginPage) {
-            loginPage.style.display = 'none';
-            loginPage.classList.remove('active');
-        }
-        if (gamePage) {
-            gamePage.style.display = '';  // 清除内联样式
-            gamePage.classList.add('active');
-            window.scrollTo(0, 0);
-        }
-
-        // 添加游戏模式样式
-        document.body.classList.add('game-mode');
-
-        console.log('显示游戏页面');
+        // 直接跳转到游戏页面
+        console.log('跳转到游戏页面');
+        window.location.href = 'game.html';
     }
 
     // 显示登录页面
     showLoginPage() {
-        const gamePage = document.getElementById('gamePage');
-        const loginPage = document.getElementById('loginPage');
-
-        if (gamePage) {
-            gamePage.style.display = 'none';
-            gamePage.classList.remove('active');
+        // 直接跳转到登录页面
+        const currentPage = window.location.pathname || '';
+        if (!currentPage.includes('login.html')) {
+            window.location.href = 'login.html';
         }
-        if (loginPage) {
-            loginPage.style.display = 'flex';
-            loginPage.classList.add('active');
-            window.scrollTo(0, 0);
-        } else {
-            window.location.href = '/login.html';
-        }
-
-        // 移除游戏模式样式
-        document.body.classList.remove('game-mode');
-
-        console.log('显示登录页面');
     }
 
     // 跳转到相应的页面（根据用户角色）
@@ -355,9 +354,9 @@ class AuthManager {
             }
             // 如果用户是普通用户，跳转到游戏主页
             else {
-                if (!currentPath.endsWith('/index.html') && !currentPath.endsWith('index.html') && currentPath !== '/') {
-                    console.log('普通用户，跳转到游戏主页');
-                    window.location.href = 'index.html';
+                if (!currentPath.endsWith('/game.html') && !currentPath.endsWith('game.html')) {
+                    console.log('普通用户，跳转到游戏页面');
+                    window.location.href = 'game.html';
                     return;
                 }
             }
@@ -390,17 +389,37 @@ class AuthManager {
         const registerForm = document.getElementById('registerForm');
         const loginTab = document.querySelector('.tab-btn[onclick*="showLogin"]');
         const registerTab = document.querySelector('.tab-btn[onclick*="showRegister"]');
+        
+        // 处理使用data-tab属性的标签（index.html中的标签）
+        const loginTabData = document.querySelector('.tab-btn[data-tab="login"]');
+        const registerTabData = document.querySelector('.tab-btn[data-tab="register"]');
 
         if (formType === 'login') {
-            if (loginForm) loginForm.style.display = 'block';
-            if (registerForm) registerForm.style.display = 'none';
+            if (loginForm) {
+                loginForm.style.display = 'block';
+                loginForm.classList.add('active');
+            }
+            if (registerForm) {
+                registerForm.style.display = 'none';
+                registerForm.classList.remove('active');
+            }
             if (loginTab) loginTab.classList.add('active');
             if (registerTab) registerTab.classList.remove('active');
+            if (loginTabData) loginTabData.classList.add('active');
+            if (registerTabData) registerTabData.classList.remove('active');
         } else {
-            if (loginForm) loginForm.style.display = 'none';
-            if (registerForm) registerForm.style.display = 'block';
+            if (loginForm) {
+                loginForm.style.display = 'none';
+                loginForm.classList.remove('active');
+            }
+            if (registerForm) {
+                registerForm.style.display = 'block';
+                registerForm.classList.add('active');
+            }
             if (loginTab) loginTab.classList.remove('active');
             if (registerTab) registerTab.classList.add('active');
+            if (loginTabData) loginTabData.classList.remove('active');
+            if (registerTabData) registerTabData.classList.add('active');
         }
     }
 
@@ -614,23 +633,35 @@ class AuthManager {
     }
 }
 
-// 创建认证管理器实例
-const authManager = new AuthManager();
+// 立即初始化 AuthManager
+var authManager = new AuthManager();
+window.authManagerInstance = authManager;
+window.authManager = authManager;
+console.log('AuthManager立即初始化完成');
 
 // 全局函数
-window.login = (event) => {
+window.login = function(event) {
     if (event) event.preventDefault();
-    authManager.login();
+    if (authManager) authManager.login();
 };
 
-window.register = (event) => {
+window.register = function(event) {
     if (event) event.preventDefault();
-    authManager.register();
+    if (authManager) authManager.register();
 };
 
-window.logout = () => authManager.logout();
-window.showLogin = () => authManager.showLoginForm();
-window.showRegister = () => authManager.showRegisterForm();
+window.logout = function() {
+    if (authManager) authManager.logout();
+};
 
-// 导出到全局作用域
-window.authManager = authManager;
+window.showLogin = function() {
+    if (authManager) authManager.showLoginForm();
+};
+
+window.showRegister = function() {
+    if (authManager) authManager.showRegisterForm();
+};
+
+window.showModule = function(moduleName) {
+    if (window.moduleManager) window.moduleManager.showModule(moduleName);
+};

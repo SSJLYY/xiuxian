@@ -1,6 +1,7 @@
 package com.xiuxian.game.controller;
 
 import com.xiuxian.game.dto.response.ApiResponse;
+import com.xiuxian.game.dto.PetEvolutionResult;
 import com.xiuxian.game.entity.*;
 import com.xiuxian.game.service.PetService;
 import com.xiuxian.game.service.PlayerService;
@@ -197,6 +198,47 @@ public class PetController {
         try {
             List<PetTrainingLog> logs = petService.getTrainingLogs(playerPetId, limit);
             return ResponseEntity.ok(ApiResponse.success("获取成功", logs));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    // ==================== 宠物进化相关API ====================
+
+    /**
+     * 检查宠物是否可以进化
+     */
+    @GetMapping("/evolution/check/{playerPetId}")
+    public ResponseEntity<ApiResponse<PetEvolutionResult>> checkEvolution(@PathVariable Integer playerPetId) {
+        try {
+            PetEvolutionResult result = petService.checkEvolution(playerPetId);
+            return ResponseEntity.ok(ApiResponse.success(result.isSuccess() ? "可以进化" : "不可进化", result));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    /**
+     * 执行宠物进化
+     */
+    @PostMapping("/evolution/evolve/{playerPetId}")
+    public ResponseEntity<ApiResponse<PetEvolutionResult>> evolvePet(@PathVariable Integer playerPetId) {
+        try {
+            PetEvolutionResult result = petService.evolvePet(playerPetId);
+            return ResponseEntity.ok(ApiResponse.success(result.isSuccess() ? "进化成功！" : "进化失败", result));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    /**
+     * 获取宠物进化信息
+     */
+    @GetMapping("/evolution/info/{playerPetId}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getEvolutionInfo(@PathVariable Integer playerPetId) {
+        try {
+            Map<String, Object> info = petService.getPetEvolutionInfo(playerPetId);
+            return ResponseEntity.ok(ApiResponse.success("获取成功", info));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }

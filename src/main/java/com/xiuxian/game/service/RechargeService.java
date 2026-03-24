@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xiuxian.game.entity.PlayerProfile;
 import com.xiuxian.game.entity.PlayerVip;
 import com.xiuxian.game.entity.RechargeRecord;
+import com.xiuxian.game.exception.BusinessException;
+import com.xiuxian.game.exception.ErrorCode;
 import com.xiuxian.game.mapper.PlayerProfileMapper;
 import com.xiuxian.game.mapper.RechargeRecordMapper;
 import lombok.RequiredArgsConstructor;
@@ -51,11 +53,11 @@ public class RechargeService extends ServiceImpl<RechargeRecordMapper, RechargeR
     public RechargeRecord processRechargeSuccess(Long orderId) {
         RechargeRecord record = rechargeRecordMapper.selectById(orderId);
         if (record == null) {
-            throw new RuntimeException("充值订单不存在");
+            throw new BusinessException(ErrorCode.RECHARGE_ORDER_NOT_FOUND);
         }
-        
+
         if (!"PENDING".equals(record.getStatus())) {
-            throw new RuntimeException("订单状态异常");
+            throw new BusinessException(ErrorCode.RECHARGE_ORDER_STATUS_INVALID);
         }
         
         // 更新订单状态
@@ -96,11 +98,11 @@ public class RechargeService extends ServiceImpl<RechargeRecordMapper, RechargeR
     public RechargeRecord processRechargeFailed(Long orderId) {
         RechargeRecord record = rechargeRecordMapper.selectById(orderId);
         if (record == null) {
-            throw new RuntimeException("充值订单不存在");
+            throw new BusinessException(ErrorCode.RECHARGE_ORDER_NOT_FOUND);
         }
-        
+
         if (!"PENDING".equals(record.getStatus())) {
-            throw new RuntimeException("订单状态异常");
+            throw new BusinessException(ErrorCode.RECHARGE_ORDER_STATUS_INVALID);
         }
         
         // 更新订单状态
@@ -132,6 +134,6 @@ public class RechargeService extends ServiceImpl<RechargeRecordMapper, RechargeR
      * @return 订单号
      */
     private String generateOrderNo() {
-        return "RECHARGE_" + System.currentTimeMillis() + "_" + (int)(Math.random() * 10000);
+        return "RECHARGE_" + System.currentTimeMillis() + "_" + ThreadLocalRandom.current().nextInt(10000);
     }
 }

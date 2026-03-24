@@ -3,6 +3,7 @@ package com.xiuxian.game.service;
 import com.xiuxian.game.dto.request.AdminLoginRequest;
 import com.xiuxian.game.dto.response.AdminLoginResponse;
 import com.xiuxian.game.security.JwtTokenProvider;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * 后台管理认证服务 - 独立于游戏登录系统
  */
+@Slf4j
 @Service
 public class AdminAuthService {
 
@@ -68,7 +70,7 @@ public class AdminAuthService {
             return AdminLoginResponse.success("登录成功", data);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("管理员登录失败", e);
             return AdminLoginResponse.error("登录失败: " + e.getMessage());
         }
     }
@@ -113,7 +115,7 @@ public class AdminAuthService {
             return AdminLoginResponse.success("Token验证成功", data);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Token验证失败", e);
             return AdminLoginResponse.error("Token验证失败: " + e.getMessage());
         }
     }
@@ -128,7 +130,7 @@ public class AdminAuthService {
             }
             return AdminLoginResponse.success("登出成功");
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("管理员登出失败", e);
             return AdminLoginResponse.error("登出失败: " + e.getMessage());
         }
     }
@@ -151,7 +153,7 @@ public class AdminAuthService {
             return validateResult;
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("获取管理员信息失败", e);
             return AdminLoginResponse.error("获取管理员信息失败: " + e.getMessage());
         }
     }
