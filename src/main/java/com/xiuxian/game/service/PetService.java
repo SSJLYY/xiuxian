@@ -82,16 +82,17 @@ public class PetService {
     
     /**
      * GDD：战后宠物饱食度衰减
-     * 每次战斗消耗3点饱食度
+     * 每次战斗消耗balance.getPet().getCombatHungerCost()点饱食度
      */
     @Transactional
     public void consumePetHungerAfterCombat(Integer playerId) {
         PlayerPet activePet = playerPetMapper.selectActivePet(playerId);
         if (activePet != null && activePet.getHunger() > 0) {
-            int newHunger = Math.max(0, activePet.getHunger() - 3);
+            int cost = balance.getPet().getCombatHungerCost();
+            int newHunger = Math.max(0, activePet.getHunger() - cost);
             activePet.setHunger(newHunger);
             playerPetMapper.updateById(activePet);
-            log.info("战后宠物饱食度衰减: {} -> {}", newHunger + 3, newHunger);
+            log.info("战后宠物饱食度衰减: {} -> {}", newHunger + cost, newHunger);
         }
     }
 
@@ -326,11 +327,11 @@ public class PetService {
 
         // 恢复饱食度
         int oldHunger = playerPet.getHunger();
-        playerPet.setHunger(Math.min(100, oldHunger + 30));
+        playerPet.setHunger(Math.min(100, oldHunger + balance.getPet().getFeedingHungerRestore()));
         
         // 提升忠诚度
         int oldLoyalty = playerPet.getLoyalty();
-        playerPet.setLoyalty(Math.min(100, oldLoyalty + 5));
+        playerPet.setLoyalty(Math.min(100, oldLoyalty + balance.getPet().getFeedingLoyaltyBoost()));
         
         playerPet.setLastFeedTime(LocalDateTime.now());
         playerPetMapper.updateById(playerPet);

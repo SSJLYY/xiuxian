@@ -72,22 +72,22 @@ public class PlayerService {
                     .nickname(nickname != null ? nickname : user.getUsername())
                     // 初始等级和经验
                     .level(1)
-                    .exp(0L)
-                    .expToNext(100L)
+                    .exp(balance.getPlayerInitial().getExp())
+                    .expToNext(balanceUtils.calculateExpToNext(1))
                     .realm("练气期")
                     .cultivationSpeed(BigDecimal.ONE)
-                    // 初始资源
-                    .spiritStones(1000L)  // 初始灵石
+                    // 初始资源（使用GDD优化值）
+                    .spiritStones((long) balance.getPlayerInitial().getSpiritStones())
                     .cultivationPoints(0L)
                     .contributionPoints(0L)
                     .attributePoints(0)
                     .skillPoints(0)
-                    // 初始属性
-                    .attack(10)
-                    .defense(5)
-                    .health(100)
-                    .mana(50)
-                    .speed(10)
+                    // 初始属性（使用GDD优化值）
+                    .attack(balance.getPlayerInitial().getAttack())
+                    .defense(balance.getPlayerInitial().getDefense())
+                    .health(balance.getPlayerInitial().getHealth())
+                    .mana(balance.getPlayerInitial().getMana())
+                    .speed(balance.getPlayerInitial().getSpeed())
                     // 修炼状态
                     .isCultivating(false)
                     .lastOnlineTime(LocalDateTime.now())
@@ -234,8 +234,23 @@ public class PlayerService {
             double cultivationSpeedMultiplier = profile.getCultivationSpeed().doubleValue();
             long expGained = (long) (actualCultivationTime * baseExpPerSecond * cultivationSpeedMultiplier);
 
+            // 【2026-03-24 优化】使用GameBalanceUtils计算灵石收益
+            double cultivationHours = actualCultivationTime / 3600.0;
+            long spiritStonesGained = balanceUtils.calculateCultivationSpiritStones(profile, cultivationHours);
+            
+            // 检查灵石上限，超出部分转为修炼点数
+            long spiritStonesLimit = balanceUtils.calculateSpiritStonesLimit(profile.getRealm());
+            long spiritStonesToAdd = Math.min(spiritStonesGained, spiritStonesLimit - profile.getSpiritStones());
+            long overflowSpiritStones = spiritStonesGained - spiritStonesToAdd;
+            
+            if (overflowSpiritStones > 0) {
+                profile.setCultivationPoints(profile.getCultivationPoints() + overflowSpiritStones);
+                log.info("灵石超限，{}灵石转为修炼点数", overflowSpiritStones);
+            }
+
             profile.setExp(profile.getExp() + expGained);
-            log.info("修炼收益: 时长={}s, 经验+{}", actualCultivationTime, expGained);
+            profile.setSpiritStones(profile.getSpiritStones() + spiritStonesToAdd);
+            log.info("修炼收益: 时长={}s, 经验+{}, 灵石+{}", actualCultivationTime, expGained, spiritStonesGained);
 
             int oldLevel = profile.getLevel();
             checkLevelUp(profile);

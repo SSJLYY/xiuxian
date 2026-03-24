@@ -2,10 +2,12 @@ package com.xiuxian.game.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.xiuxian.game.config.GameBalanceConfig;
 import com.xiuxian.game.dto.response.CombatResult;
 import com.xiuxian.game.dto.response.PetCombatBonus;
 import com.xiuxian.game.entity.*;
 import com.xiuxian.game.mapper.*;
+import com.xiuxian.game.util.GameBalanceUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,13 +30,8 @@ public class CombatService {
     private final PlayerEquipmentMapper playerEquipmentMapper;
     private final ObjectMapper objectMapper;
     private final PetService petService;  // GDD: 宠物参战机制
-
-    // 【修复 P0-3】使用 ThreadLocalRandom 替代共享 Random 实例。
-    // CombatService 是 Spring 单例，所有并发请求共享同一实例。
-    // ThreadLocalRandom 每个线程独立，无锁竞争，性能更优。
-    private static ThreadLocalRandom rng() {
-        return ThreadLocalRandom.current();
-    }
+    private final GameBalanceConfig balance;
+    private final GameBalanceUtils balanceUtils;
 
     /**
      * 生成怪物
@@ -211,14 +208,14 @@ public class CombatService {
         // GDD新手保护：前3场战斗，怪物属性降低50%，确保首战必胜
         // 统计玩家战斗次数（从combat_logs表）
         long battleCount = combatLogMapper.countByPlayerId(playerId);
-        boolean isNewPlayer = battleCount < 3;
-        double newPlayerProtectionFactor = 0.5; // 新手怪物属性降至50%
+        boolean isNewPlayer = battleCount < balance.getCombat().getNewbieBattleProtection();
         
         if (isNewPlayer) {
-            monsterHealth = (int)(monsterHealth * newPlayerProtectionFactor);
-            monsterAttack = (int)(monsterAttack * newPlayerProtectionFactor);
-            monsterDefense = (int)(monsterDefense * newPlayerProtectionFactor);
-            battleLog.add("🌟 新手保护中！怪物属性降低50%，助你轻松获胜！");
+            double factor = balance.getCombat().getNewbieMonsterWeakFactor();
+            monsterHealth = (int)(monsterHealth * factor);
+            monsterAttack = (int)(monsterAttack * factor);
+            monsterDefense = (int)(monsterDefense * factor);
+            battleLog.add("🌟 新手保护中！怪物属性降低" + (int)((1-factor)*100) + "%，助你轻松获胜！");
         }
 
         List<String> battleLog = new ArrayList<>();
@@ -227,12 +224,11 @@ public class CombatService {
         int currentPlayerHealth = playerHealth;
         int currentMonsterHealth = monsterHealth;
         int rounds = 0;
-        final int maxRounds = 50;
+        final int maxRounds = balance.getCombat().getMaxRounds();
 
-        // GDD速度优势系统：速度>对方1.5倍时获得额外行动
-        double speedRatio = (double) playerSpeed / Math.max(1, monsterSpeed);
-        boolean playerHasSpeedAdvantage = speedRatio >= 1.5;
-        boolean monsterHasSpeedAdvantage = (1.0 / speedRatio) >= 1.5;
+        // 【2026-03-24 优化】使用GameBalanceUtils计算速度优势
+        int playerSpeedActions = balanceUtils.calculateSpeedAdvantageActions(playerSpeed, monsterSpeed);
+        int monsterSpeedActions = balanceUtils.calculateSpeedAdvantageActions(monsterSpeed, playerSpeed);
         
         if (playerHasSpeedAdvantage) {
             battleLog.add("🚀 速度优势！你的速度是怪物的" + String.format("%.1f", speedRatio) + "倍，每回合可行动" + 
