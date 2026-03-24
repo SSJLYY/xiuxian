@@ -1,48 +1,43 @@
 package com.xiuxian.game.annotation;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * 限流注解
+ * 使用 Sentinel 实现
+ *
+ * @author shaun.sheng
  */
-@Target(ElementType.METHOD)
+@Target({ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
+@Documented
 public @interface RateLimit {
-    
+
     /**
-     * 限流键类型
+     * 资源名称
+     * 默认为方法全限定名
      */
-    enum KeyType {
-        USER_ID,    // 按用户ID限流
-        IP,         // 按IP地址限流
-        CUSTOM      // 自定义键
-    }
-    
+    String value() default "";
+
     /**
-     * 限流键类型，默认按用户ID限流
+     * 每秒允许的请求数
      */
-    KeyType keyType() default KeyType.USER_ID;
-    
+    double count() default 100;
+
     /**
-     * 自定义键（当keyType为CUSTOM时使用）
+     * 限流效果
+     * - THROW: 直接抛出异常
+     * - WAIT: 排队等待
      */
-    String customKey() default "";
-    
+    String controlBehavior() default "THROW";
+
     /**
-     * 时间窗口内最大请求数
+     * 最大排队等待时间（毫秒）
      */
-    int maxRequests() default 10;
-    
+    int maxQueueingTimeMs() default 500;
+
     /**
-     * 时间窗口大小（秒）
+     * 描述
      */
-    int windowSeconds() default 60;
-    
-    /**
-     * 限流提示消息
-     */
-    String message() default "请求过于频繁，请稍后再试";
+    String desc() default "";
 }

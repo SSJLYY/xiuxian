@@ -35,34 +35,47 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       # 数据库配置
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/xiuxian_game?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root123456
-      
+
       # 服务器配置
       SERVER_PORT: 8081
       SPRING_PROFILES_ACTIVE: prod
-      
+
       # JVM配置
       JAVA_OPTS: -Xms512m -Xmx1024m -XX:+UseG1GC -XX:MaxGCPauseMillis=200
-      
+
       # 时区配置
       TZ: Asia/Shanghai
-      
+
       # 日志配置
       LOGGING_LEVEL_COM_XIUXIAN_GAME: INFO
       LOGGING_FILE_PATH: /app/logs
-      
+
       # 安全配置
       JWT_SECRET: xiuxian-game-jwt-secret-key-2024
       JWT_EXPIRATION: 86400000
       ADMIN_PASSWORD: SecureAdminPassword2024!
-      
-      # 缓存配置
-      SPRING_CACHE_TYPE: simple
-      
+
+      # ==================== 阶段一：基础设施升级配置 ====================
+      # Redis 配置
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: redis123456
+      SPRING_REDIS_DATABASE: 0
+
+      # 缓存配置 - 改为 Redis
+      SPRING_CACHE_TYPE: redis
+
+      # 限流熔断配置
+      SPRING_SENTINEL_ENABLED: "true"
+      SPRING_SENTINEL_EAGER: "true"
+
       # 异步任务配置
       SPRING_TASK_EXECUTION_POOL_CORE_SIZE: 5
       SPRING_TASK_EXECUTION_POOL_MAX_SIZE: 20

@@ -126,8 +126,14 @@ public enum ErrorCode {
 
     // 签到系统 3300-3399
     CHECK_IN_ALREADY_DONE(3300, "今日已签到"),
-    CHECK_IN_MAKEUP_NOT_ALLOWED(3301, "补签功能未开放");
-    
+    CHECK_IN_MAKEUP_NOT_ALLOWED(3301, "补签功能未开放"),
+
+    // 限流/系统保护 3400-3499
+    SERVER_BUSY(3400, "系统繁忙，请稍后重试"),
+    RATE_LIMIT_EXCEEDED(3401, "请求过于频繁，请稍后重试"),
+    SERVICE_DEGRADED(3402, "服务已降级，部分功能暂时不可用"),
+    CACHE_UNAVAILABLE(3403, "缓存服务暂时不可用");
+
     private final int code;
     private final String message;
     
