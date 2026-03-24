@@ -17,6 +17,7 @@
 | ORM | MyBatis-Plus | 3.5.3.1 | 代码生成、条件构造器 |
 | 数据库 | MySQL | 8.0+ | |
 | 连接池 | HikariCP | 4.0.x | |
+| **缓存** | **Redis + Lettuce** | **6.0+** | **主缓存层，支持自动降级到本地缓存** |
 | 日志 | Log4j2 | 2.17.x | 异步日志 |
 | 构建 | Maven | 3.6+ | |
 
@@ -53,7 +54,10 @@ com.xiuxian.game/
 │   ├── SecurityConfig.java         # Spring Security 主配置
 │   ├── AdminSecurityConfig.java    # 管理员安全配置（独立）
 │   ├── CorsConfig.java             # 跨域配置
-│   └── MybatisPlusConfig.java      # MyBatis-Plus 分页插件
+│   ├── MybatisPlusConfig.java      # MyBatis-Plus 分页插件
+│   ├── RedisConfig.java            # Redis 连接池、序列化、CacheManager
+│   ├── DegradeConfig.java          # 降级开关配置
+│   └── GameHealthIndicator.java    # Actuator 健康检查（含 Redis 状态）
 │
 ├── security/       # 安全层
 │   ├── JwtTokenProvider.java           # JWT 生成与验证
@@ -103,6 +107,28 @@ HTTP 请求
     ▼（异常路径）
 [GlobalExceptionHandler]            # 统一异常 → ApiResponse 响应
 ```
+
+---
+
+## 缓存层
+
+项目引入了 Redis 双层缓存架构，Service 层可通过两种方式使用缓存：
+
+**方式一：声明式注解缓存（Spring Cache）**
+```java
+@Cacheable(value = "playerCache", key = "#playerId")    // 自动回填
+@CacheEvict(value = "playerCache", key = "#playerId")   // 自动驱逐
+```
+
+**方式二：手动操作**
+```java
+@Autowired RedisCacheService redisCacheService;  // 双层缓存，自动降级
+@Autowired CacheUtils cacheUtils;                // 直接操作 Redis（ZSet/Hash等）
+```
+
+Redis 不可用时自动降级到本地内存缓存（`ConcurrentHashMap`），每 30 秒探活一次，恢复后自动切回。
+
+> 详见 [缓存架构文档](./CACHE-ARCHITECTURE.md)
 
 ---
 
@@ -223,6 +249,8 @@ LogUtils.error(log, "战斗计算异常", e, "playerId", playerId);
 | `LogUtils` | 结构化日志 + MDC | 包含链路追踪 ID |
 | `JwtTokenProvider` | JWT 生成/解析/验证 | 不要在 Service 层直接操作 JWT |
 | `ThreadLocalRandom.current()` | 随机数 | Service 是单例，**禁止** `new Random()` |
+| `RedisCacheService` | 双层缓存读写 | Redis 优先，失败自动降级到本地缓存 |
+| `CacheUtils` | 直接操作 Redis | 支持 String/ZSet/Hash/分布式锁 |
 
 ---
 

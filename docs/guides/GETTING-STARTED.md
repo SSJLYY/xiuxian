@@ -16,9 +16,10 @@
 | Java JDK | 1.8+ | `java -version` |
 | Maven | 3.6+ | `mvn -v` |
 | MySQL | 8.0+ | `mysql --version` |
+| Redis | 6.0+ | `redis-cli --version` |
 | Git | 任意版本 | `git --version` |
 
-> **可选**：Docker + Docker Compose（用于一键启动，跳过数据库安装步骤）
+> **可选**：Docker + Docker Compose（用于一键启动，跳过数据库和 Redis 安装步骤）
 
 ---
 
@@ -62,15 +63,56 @@ docker-compose up -d mysql
 
 ---
 
-## 步骤 3：配置应用
+## 步骤 3：启动 Redis
 
-编辑 `src/main/resources/application.properties`，修改数据库连接信息：
+项目引入了 Redis 作为主缓存层，**启动应用前必须先保证 Redis 可访问**。
+
+### 方式 A：本地安装
+
+```bash
+# macOS
+brew install redis
+brew services start redis
+
+# Ubuntu / Debian
+sudo apt-get install redis-server
+sudo systemctl start redis
+
+# 验证
+redis-cli ping   # 返回 PONG 即成功
+```
+
+### 方式 B：Docker（推荐，零安装）
+
+```bash
+docker run -d --name redis -p 6379:6379 redis:7-alpine
+```
+
+### 方式 C：Docker Compose（项目内置）
+
+```bash
+docker-compose up -d redis
+```
+
+> **无需密码**：默认配置 `spring.redis.password=` 为空，本地开发直接启动即可。  
+> **Redis 不可用时**：应用不会崩溃，会自动降级到进程内本地缓存，但多实例部署下数据不共享，详见 [缓存架构](../architecture/CACHE-ARCHITECTURE.md)。
+
+---
+
+## 步骤 4：配置应用
+
+编辑 `src/main/resources/application.properties`，修改数据库和 Redis 连接信息：
 
 ```properties
 # 数据库连接
 spring.datasource.url=jdbc:mysql://localhost:3306/xiuxian_game?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
 spring.datasource.username=root
 spring.datasource.password=你的数据库密码
+
+# Redis 连接（本地默认无需修改）
+spring.redis.host=127.0.0.1
+spring.redis.port=6379
+spring.redis.password=         # 本地无密码留空
 
 # 服务端口（默认 8082）
 server.port=8082
@@ -80,7 +122,7 @@ server.port=8082
 
 ---
 
-## 步骤 4：构建并启动
+## 步骤 5：构建并启动
 
 ```bash
 # 编译（跳过测试加速构建）
@@ -106,7 +148,7 @@ Started XiuxianGameApplication in X.XXX seconds
 
 ---
 
-## 步骤 5：访问游戏
+## 步骤 6：访问游戏
 
 | 页面 | 地址 | 账号 |
 |------|------|------|
@@ -119,6 +161,19 @@ Started XiuxianGameApplication in X.XXX seconds
 ---
 
 ## 常见问题
+
+### Redis 连接失败
+```
+# 错误信息：Unable to connect to Redis
+```
+**原因**：Redis 服务未启动。
+
+**解决**：
+1. 确认 Redis 正在运行：`redis-cli ping`（应返回 PONG）
+2. 如果不想安装 Redis，可以用 Docker：`docker run -d --name redis -p 6379:6379 redis:7-alpine`
+3. 应用仍可启动但会降级到本地缓存，适合临时开发调试
+
+---
 
 ### 数据库连接失败
 ```
@@ -167,8 +222,39 @@ jwt.expiration=86400000   # 24小时（毫秒）
 
 ---
 
+## 代码审查机制
+
+本项目采用严格的代码审查机制保证代码质量：
+
+### 必读文档
+- **[代码审查标准](../standards/CODE-REVIEW-STANDARDS.md)** — 审查检查清单和优先级定义
+- **[代码审查流程](../standards/CODE-REVIEW-PROCESS.md)** — PR流程和角色职责
+- **[代码审查模板](../standards/CODE-REVIEW-TEMPLATES.md)** — 标准化审查评论模板
+
+### 提交PR前自查
+```bash
+# 1. 本地测试通过
+mvn test
+
+# 2. 对照审查清单检查
+# 见 CODE-REVIEW-STANDARDS.md 第2节
+
+# 3. 确保无Blocker级别问题
+```
+
+### 审查优先级
+| 级别 | 说明 | 处理方式 |
+|------|------|----------|
+| 🔴 Blocker | 安全漏洞、数据风险、并发问题 | 必须修复 |
+| 🟡 Major | 性能问题、测试缺失、命名混乱 | 应该修复 |
+| 💭 Minor | 风格建议、文档缺失 | 可选修复 |
+
+---
+
 ## 下一步
 
 - [后端架构总览](../architecture/BACKEND-ARCHITECTURE.md) — 了解项目的技术设计
+- [缓存架构](../architecture/CACHE-ARCHITECTURE.md) — Redis 双层缓存与降级策略
 - [后端编码规范](../standards/BACKEND-CODING-STANDARDS.md) — 开始写代码前必读
+- **[代码审查标准](../standards/CODE-REVIEW-STANDARDS.md)** — 提交PR前必读
 - [API 总览](../api/API-OVERVIEW.md) — 接口文档入口

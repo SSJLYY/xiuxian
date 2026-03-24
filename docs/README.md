@@ -13,12 +13,15 @@
 |------|------|--------|
 | [快速上手指南](./guides/GETTING-STARTED.md) | 30分钟从零跑通项目 | 所有新成员 |
 | [前端开发指南](./guides/FRONTEND-GUIDE.md) | 前端模块结构与开发规范 | 前端开发 |
+| [部署检查清单](./guides/DEPLOYMENT-CHECKLIST.md) | 部署前质量检查、配置验证、问题排查 | 运维、部署人员 |
 
 ### 🏗️ 架构参考
 | 文档 | 说明 | 适合谁 |
 |------|------|--------|
 | [后端架构总览](./architecture/BACKEND-ARCHITECTURE.md) | 分层结构、设计模式、架构决策 | 后端开发、架构师 |
 | [数据库设计](./architecture/DATABASE-DESIGN.md) | 完整表结构、ER关系、索引说明 | 全员 |
+| [缓存架构](./architecture/CACHE-ARCHITECTURE.md) | Redis 双层缓存、缓存空间、降级策略 | 后端开发 |
+| [架构演进路线](./architecture/BACKEND-ARCHITECTURE-EVOLUTION.md) | 渐进式升级方案：缓存→模块化→服务化 | 架构师 |
 
 ### 📡 API 参考
 | 文档 | 说明 |
@@ -31,8 +34,13 @@
 ### 📐 开发规范
 | 文档 | 说明 |
 |------|------|
+| **[代码审查标准](./standards/CODE-REVIEW-STANDARDS.md)** | **检查清单、优先级定义、审查规范** |
+| **[代码审查流程](./standards/CODE-REVIEW-PROCESS.md)** | **PR流程、角色职责、工具使用** |
+| **[代码审查模板](./standards/CODE-REVIEW-TEMPLATES.md)** | **标准化审查评论模板、示例** |
 | [后端编码规范](./standards/BACKEND-CODING-STANDARDS.md) | 异常处理、事务、日志、并发规范 |
 | [ErrorCode 手册](./standards/ERROR-CODE-REFERENCE.md) | 全部错误码分段说明 |
+| [性能优化指南](./standards/PERFORMANCE-GUIDE.md) | 数据库索引、N+1优化、前端懒加载、缓存策略 |
+| [数值调优记录](./standards/OPTIMIZATION-NOTES.md) | 核心数值表、配置参考、历史Bug修复记录 |
 | [美术管线标准](./standards/ART-PIPELINE-STANDARDS.md) | 资产预算、命名规范、导入流程 |
 | [VFX 特效优化指南](./standards/VFX-OPTIMIZATION-GUIDE.md) | 特效分级、对象池、过度绘制控制 |
 | [颜色与无障碍标准](./standards/COLOR-AND-ACCESSIBILITY-STANDARDS.md) | WCAG AA 合规、色盲友好、CSS 变量 |

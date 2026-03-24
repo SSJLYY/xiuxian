@@ -1,9 +1,10 @@
 # 修仙挂机游戏项目 - 长期记忆
 
 ## 项目基本信息
-- **技术栈**：Spring Boot 2.7.18 + MyBatis-Plus 3.5.3.1 + Spring Security + JWT + 原生 JS (ES6+)
+- **技术栈**：Spring Boot 2.7.18 + MyBatis-Plus 3.5.3.1 + Spring Security + JWT + Redis（Lettuce）+ 原生 JS (ES6+)
 - **端口**：8082（本地），8082（Docker）
 - **数据库**：MySQL 8.0，数据库名 xiuxian_game
+- **缓存**：Redis 6.0+（主层）+ 本地 ConcurrentHashMap（自动降级层），详见 `docs/architecture/CACHE-ARCHITECTURE.md`
 - **包名**：com.xiuxian.game
 - **规模**：317 Java 文件，44 Controller，50+ Service，62 Mapper，40 JS文件，20 HTML页面
 
@@ -34,40 +35,72 @@
 ## 团队工作规范（2026-03-24 确认）
 1. **新成员入手点**：从 `docs/guides/GETTING-STARTED.md` 开始
 2. **写新功能前**：先看 `docs/standards/BACKEND-CODING-STANDARDS.md`
-3. **每次 PR**：顺手更新对应的 API 文档（文档欠债会越积越多）
-4. **文档作者**：所有文档统一署名 **shaun.sheng**
+3. **提交PR前**：必须完成 [代码审查标准](./CODE-REVIEW-STANDARDS.md) 中的自查清单
+4. **每次 PR**：顺手更新对应的 API 文档（文档欠债会越积越多）
+5. **文档作者**：所有文档统一署名 **shaun.sheng**
 
-## 技术文档体系（2026-03-24 建立，同日整理完善）
-完整技术文档在 `docs/` 目录，根目录已清理冗余文档（11个过期总结/报告类文件已删除）：
+## 代码审查机制（2026-03-24 建立）
+### 优先级定义
+| 级别 | 说明 | 处理方式 |
+|------|------|----------|
+| 🔴 Blocker | 安全漏洞、数据风险、并发问题 | 必须修复才能合并 |
+| 🟡 Major | 性能问题、测试缺失、命名混乱 | 应该修复 |
+| 💭 Minor | 风格建议、文档缺失 | 可选修复 |
+
+### 审查文档（均已创建）
+- `docs/standards/CODE-REVIEW-STANDARDS.md` — 完整检查清单（后端8类+前端3类）
+- `docs/standards/CODE-REVIEW-PROCESS.md` — PR流程、角色职责、工具使用
+- `docs/standards/CODE-REVIEW-TEMPLATES.md` — 标准化审查评论模板（含Blocker/Major/Minor模板）
+
+### 关键检查点
+- 异常处理：必须用 `BusinessException(ErrorCode.XXX)`
+- 并发安全：必须用 `ThreadLocalRandom.current()`
+- 事务边界：只在原子写操作上加 `@Transactional`
+- 日志规范：循环内无 `info`，`error` 必须带异常对象
+
+## 技术文档体系（2026-03-24 建立，同日多次整理完善）
+
+**文档规范（每次新建/修改文档都要检查）**：
+1. 所有文档作者统一署名 **shaun.sheng**，格式：`**作者**: shaun.sheng`
+2. 根目录只保留 `README.md`，所有技术文档放入 `docs/` 对应子目录
+3. 每次新增文档后同步更新 `docs/README.md` 导航表格
+
+完整文档结构（截至 2026-03-24 最新）：
 
 ```
 docs/
 ├── README.md                               ← 文档导航索引（唯一入口）
 ├── guides/
-│   ├── GETTING-STARTED.md                  ← 30分钟快速上手
-│   └── FRONTEND-GUIDE.md                   ← 前端开发规范
+│   ├── GETTING-STARTED.md                  ← 30分钟快速上手（含Redis启动步骤）
+│   ├── FRONTEND-GUIDE.md                   ← 前端开发规范
+│   └── DEPLOYMENT-CHECKLIST.md             ← 部署前质量检查、配置验证、问题排查
 ├── architecture/
 │   ├── BACKEND-ARCHITECTURE.md             ← 后端分层结构、请求流程
-│   └── DATABASE-DESIGN.md                  ← 完整表结构、数值公式
+│   ├── DATABASE-DESIGN.md                  ← 完整表结构、数值公式
+│   ├── CACHE-ARCHITECTURE.md               ← Redis双层缓存、降级策略
+│   └── BACKEND-ARCHITECTURE-EVOLUTION.md   ← 架构演进路线图（缓存→模块化→服务化）
 ├── api/
 │   ├── API-OVERVIEW.md                     ← API通用规范（认证/响应格式）
 │   ├── GAME-CORE-API.md                    ← 游戏核心接口
 │   ├── PET-NARRATIVE-API.md                ← 宠物与叙事接口
 │   └── SOCIAL-ECONOMY-API.md               ← 社交经济接口
 ├── standards/
+│   ├── **CODE-REVIEW-STANDARDS.md**           ← **代码审查标准（检查清单+优先级）**
+│   ├── **CODE-REVIEW-PROCESS.md**            ← **代码审查流程（PR+角色职责）**
+│   ├── **CODE-REVIEW-TEMPLATES.md**          ← **代码审查模板（Blocker/Major/Minor）**
 │   ├── BACKEND-CODING-STANDARDS.md         ← 10条编码规范+PR CheckList
 │   ├── ERROR-CODE-REFERENCE.md             ← 全部错误码手册
-│   ├── ART-PIPELINE-STANDARDS.md           ← 美术管线规范（从根目录迁入）
-│   ├── VFX-OPTIMIZATION-GUIDE.md           ← VFX特效优化指南（从根目录迁入）
-│   └── COLOR-AND-ACCESSIBILITY-STANDARDS.md← 颜色与无障碍标准（从根目录迁入）
-└── design/                                 ← 游戏设计文档（2026-03-24 从根目录迁入）
+│   ├── PERFORMANCE-GUIDE.md                ← 性能优化指南（DB索引/N+1/前端懒加载/缓存）
+│   ├── OPTIMIZATION-NOTES.md               ← 核心数值表、配置参考、历史Bug修复记录
+│   ├── ART-PIPELINE-STANDARDS.md           ← 美术管线规范
+│   ├── VFX-OPTIMIZATION-GUIDE.md           ← VFX特效优化指南
+│   └── COLOR-AND-ACCESSIBILITY-STANDARDS.md← 颜色与无障碍标准
+└── design/
     ├── GDD-修仙挂机游戏设计文档.md           ← 5大支柱、数值公式、玩法机制
     ├── NARRATIVE-DESIGN-DOCUMENT.md         ← 苍玄界世界观、NPC、四幕主线
     ├── LEVEL-DESIGN-DOCUMENT.md             ← 地图/关卡设计
     └── AUDIO-DESIGN-DOCUMENT.md             ← 音频规格、Web Audio API实现
 ```
-
-所有文档作者统一署名：**shaun.sheng**
 
 ## 已实现的游戏系统（截至2026-03-24）
 ### 后端系统
@@ -112,4 +145,4 @@ docs/
 - `--color-text: #e8e8e8`（主文字）
 - 全部符合 WCAG AA 对比度标准
 
-*最后更新：2026-03-24*
+*最后更新：2026-03-24（代码审查机制建立）*

@@ -3,6 +3,7 @@ package com.xiuxian.game.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PreDestroy;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -146,7 +147,24 @@ public class CacheService {
             log.error("清理过期缓存失败", e);
         }
     }
-    
+
+    /**
+     * 销毁方法 - 关闭线程池，防止资源泄漏
+     */
+    @PreDestroy
+    public void destroy() {
+        scheduler.shutdown();
+        try {
+            if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                scheduler.shutdownNow();
+            }
+            log.info("缓存服务线程池已关闭");
+        } catch (InterruptedException e) {
+            log.warn("线程池关闭被中断", e);
+            Thread.currentThread().interrupt();
+        }
+    }
+
     /**
      * 缓存项
      */

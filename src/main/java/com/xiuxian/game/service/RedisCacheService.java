@@ -8,6 +8,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -43,6 +44,23 @@ public class RedisCacheService {
         // 启动 Redis 可用性检测
         scheduler.scheduleAtFixedRate(this::checkRedisHealth, 30, 30, TimeUnit.SECONDS);
         log.info("Redis 缓存服务初始化完成");
+    }
+
+    /**
+     * 销毁方法 - 关闭线程池，防止资源泄漏
+     */
+    @PreDestroy
+    public void destroy() {
+        scheduler.shutdown();
+        try {
+            if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                scheduler.shutdownNow();
+            }
+            log.info("Redis 缓存服务线程池已关闭");
+        } catch (InterruptedException e) {
+            log.warn("线程池关闭被中断", e);
+            Thread.currentThread().interrupt();
+        }
     }
 
     /**
@@ -167,7 +185,7 @@ public class RedisCacheService {
         // 清空 Redis
         if (redisAvailable) {
             try {
-                redisTemplate.delete(localCache.keys());
+                redisTemplate.delete(localCache.keySet());
                 log.info("Redis缓存已清空");
             } catch (Exception e) {
                 log.warn("Redis缓存清空失败", e);

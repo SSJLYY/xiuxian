@@ -214,3 +214,11 @@ result.put("damage", 150);
 - [ ] IP 获取使用 `RequestUtils.getClientIp()`
 - [ ] 新 ErrorCode 已在 `ErrorCode.java` 和 [ErrorCode 手册](../standards/ERROR-CODE-REFERENCE.md) 中登记
 - [ ] 相关 API 文档已更新
+
+---
+
+## 11. 相关文档
+
+- **[代码审查标准](./CODE-REVIEW-STANDARDS.md)** — 完整的审查检查清单和优先级定义
+- **[代码审查流程](./CODE-REVIEW-PROCESS.md)** — PR流程、角色职责、工具使用
+- **[代码审查模板](./CODE-REVIEW-TEMPLATES.md)** — 标准化的审查评论模板

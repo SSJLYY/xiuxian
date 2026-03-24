@@ -10,6 +10,8 @@ import com.xiuxian.game.mapper.UserMapper;
 import com.xiuxian.game.mapper.PlayerItemMapper;
 import com.xiuxian.game.service.SkillService;
 import com.xiuxian.game.service.QuestProgressService;
+import com.xiuxian.game.config.GameBalanceConfig;
+import com.xiuxian.game.util.GameBalanceUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -27,14 +29,14 @@ import org.springframework.security.core.Authentication;
 /**
  * 玩家服务类
  * 负责玩家档案管理、修炼系统、升级系统等核心游戏逻辑
- * 
+ *
  * 主要功能：
  * - 玩家档案创建和查询
  * - 修炼系统（开始修炼、停止修炼、计算收益）
  * - 升级系统（经验计算、等级提升、境界突破）
  * - 属性管理（基础属性、装备加成、技能加成）
  * - 新手物品发放
- * 
+ *
  * @author xiuxian
  * @version 1.0
  */
@@ -50,6 +52,8 @@ public class PlayerService {
     private final PasswordEncoder passwordEncoder;
     private final QuestProgressService questProgressService;
     private final SkillService skillService;
+    private final GameBalanceConfig balance;
+    private final GameBalanceUtils balanceUtils;
 
     /**
      * 创建新玩家档案
