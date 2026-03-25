@@ -14,7 +14,7 @@ import java.util.List;
 @Mapper
 public interface PlayerCheckInMapper extends BaseMapper<PlayerCheckIn> {
 
-    /** 查询玩家指定日期的签到记�?*/
+    /** 查询玩家指定日期的签到记录 */
     @Select("SELECT * FROM player_check_ins WHERE player_id = #{playerId} AND DATE(check_in_date) = #{date} LIMIT 1")
     PlayerCheckIn findByPlayerAndDate(Integer playerId, LocalDate date);
 
@@ -22,8 +22,7 @@ public interface PlayerCheckInMapper extends BaseMapper<PlayerCheckIn> {
     @Select("SELECT * FROM player_check_ins WHERE player_id = #{playerId} AND YEAR(check_in_date) = #{year} AND MONTH(check_in_date) = #{month} ORDER BY check_in_date")
     List<PlayerCheckIn> findByPlayerAndMonth(Integer playerId, int year, int month);
 
-    /** 查询玩家最近一次签�?*/
+    /** 查询玩家最近一次签到 */
     @Select("SELECT * FROM player_check_ins WHERE player_id = #{playerId} ORDER BY check_in_date DESC LIMIT 1")
     PlayerCheckIn findLatestByPlayer(Integer playerId);
 }
-

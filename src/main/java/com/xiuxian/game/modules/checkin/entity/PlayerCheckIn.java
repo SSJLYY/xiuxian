@@ -18,11 +18,11 @@ public class PlayerCheckIn {
     @TableField(value = "player_id")
     private Integer playerId;
 
-    /** 签到日期（yyyy-MM-dd 格式存储�?LocalDateTime 00:00:00�?*/
+    /** 签到日期，(yyyy-MM-dd 格式存储为 LocalDateTime 00:00:00) */
     @TableField(value = "check_in_date")
     private LocalDateTime checkInDate;
 
-    /** 连续签到天数（签到当天计算） */
+    /** 连续签到天数(签到当天算起) */
     @TableField(value = "consecutive_days")
     private Integer consecutiveDays;
 
@@ -34,11 +34,10 @@ public class PlayerCheckIn {
     @TableField(value = "reward_exp")
     private Integer rewardExp;
 
-    /** 是否补签（消耗补签卡�?*/
+    /** 是否补签(消耗补签卡) */
     @TableField(value = "is_makeup")
     private Boolean isMakeup;
 
     @TableField(value = "created_at", fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 }
-

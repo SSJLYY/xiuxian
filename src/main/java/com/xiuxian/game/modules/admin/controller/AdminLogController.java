@@ -67,7 +67,7 @@ public class AdminLogController {
     }
     
     /**
-     * 分页查询管理员操作日�?
+     * 分页查询管理员操作日志
      */
     @GetMapping("/admin-operation")
     public ApiResponse<Page<AdminOperationLog>> getAdminOperationLogs(
@@ -84,13 +84,13 @@ public class AdminLogController {
                     adminId, operationType, targetType, startTime, endTime, page, size);
             return ApiResponse.success(result);
         } catch (Exception e) {
-            log.error("查询管理员操作日志失�?, e);
+            log.error("查询管理员操作日志失败", e);
             return ApiResponse.error("查询失败");
         }
     }
     
     /**
-     * 统计管理员操作次�?
+     * 统计管理员操作次数
      */
     @GetMapping("/admin-operation/count")
     public ApiResponse<Long> countAdminOperations(
@@ -103,7 +103,7 @@ public class AdminLogController {
             Long count = adminOperationLogService.countOperations(adminId, operationType, startTime, endTime);
             return ApiResponse.success(count);
         } catch (Exception e) {
-            log.error("统计管理员操作次数失�?, e);
+            log.error("统计管理员操作次数失败", e);
             return ApiResponse.error("统计失败");
         }
     }

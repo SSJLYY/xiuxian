@@ -66,7 +66,7 @@ public class AuctionController {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
             AuctionItem auctionItem = auctionService.cancelAuction(playerId, auctionItemId);
-            return ApiResponse.success("拍卖已取�?, auctionItem);
+            return ApiResponse.success("拍卖已取消", auctionItem);
         } catch (Exception e) {
             return ApiResponse.error(e.getMessage());
         }
@@ -92,7 +92,7 @@ public class AuctionController {
     }
     
     /**
-     * 获取玩家的拍卖物品列�?
+     * 获取玩家的拍卖物品列表
      */
     @GetMapping("/my-items")
     @PreAuthorize("isAuthenticated()")

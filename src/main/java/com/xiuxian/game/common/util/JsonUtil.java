@@ -6,15 +6,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * JSON工具�?
+ * JSON工具类
  */
 @Slf4j
 public class JsonUtil {
-    
+
     private static final ObjectMapper objectMapper = new ObjectMapper();
-    
+
     /**
-     * 对象转JSON字符�?
+     * 对象转JSON字符串
      */
     public static String toJson(Object obj) {
         if (obj == null) {
@@ -27,7 +27,7 @@ public class JsonUtil {
             return null;
         }
     }
-    
+
     /**
      * JSON字符串转对象
      */
@@ -38,11 +38,11 @@ public class JsonUtil {
         try {
             return objectMapper.readValue(json, clazz);
         } catch (JsonProcessingException e) {
-            log.error("JSON转对象失�?, e);
+            log.error("JSON转对象失败", e);
             return null;
         }
     }
-    
+
     /**
      * JSON字符串转对象（支持泛型）
      */
@@ -53,11 +53,11 @@ public class JsonUtil {
         try {
             return objectMapper.readValue(json, typeReference);
         } catch (JsonProcessingException e) {
-            log.error("JSON转对象失�?, e);
+            log.error("JSON转对象失败", e);
             return null;
         }
     }
-    
+
     /**
      * 对象转JSON字符串（格式化）
      */
@@ -73,4 +73,3 @@ public class JsonUtil {
         }
     }
 }
-

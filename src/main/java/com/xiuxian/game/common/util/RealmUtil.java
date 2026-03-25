@@ -1,40 +1,40 @@
 package com.xiuxian.game.common.util;
 
 /**
- * 境界工具�?
+ * 境界工具类
  * 用于比较境界等级
- * 
+ *
  * @author LevelDesigner
  * @since 2026-03-23
  */
 public class RealmUtil {
-    
+
     // 境界等级定义（从低到高）
     private static final String[] REALMS = {
-        "练气�?,
-        "筑基�?, 
-        "金丹�?,
-        "元婴�?,
-        "化神�?,
-        "渡劫�?
+        "练气期",
+        "筑基期",
+        "金丹期",
+        "元婴期",
+        "化神期",
+        "渡劫期"
     };
-    
+
     /**
      * 比较两个境界
-     * @return 负数：realm1 < realm2�?：相等，正数：realm1 > realm2
+     * @return 负数：realm1 < realm2，0：相等，正数：realm1 > realm2
      */
     public static int compareRealm(String realm1, String realm2) {
         int index1 = getRealmIndex(realm1);
         int index2 = getRealmIndex(realm2);
-        
+
         if (index1 == -1 || index2 == -1) {
             // 如果找不到，按字符串比较
             return realm1.compareTo(realm2);
         }
-        
+
         return index1 - index2;
     }
-    
+
     /**
      * 获取境界索引
      */
@@ -42,28 +42,28 @@ public class RealmUtil {
         if (realm == null) {
             return -1;
         }
-        
+
         // 提取基础境界（去掉层数）
-        String baseRealm = realm.replaceAll("[一二三四五六七八九十]+�?, "").trim();
-        
+        String baseRealm = realm.replaceAll("[一二三四五六七八九十]+层", "").trim();
+
         for (int i = 0; i < REALMS.length; i++) {
             if (REALMS[i].equals(baseRealm)) {
                 return i;
             }
         }
-        
+
         return -1;
     }
-    
+
     /**
      * 检查realm1是否大于等于realm2
      */
     public static boolean isGreaterOrEqual(String realm1, String realm2) {
         return compareRealm(realm1, realm2) >= 0;
     }
-    
+
     /**
-     * 获取下一个境�?
+     * 获取下一个境界
      */
     public static String getNextRealm(String currentRealm) {
         int index = getRealmIndex(currentRealm);
@@ -72,7 +72,7 @@ public class RealmUtil {
         }
         return null;
     }
-    
+
     /**
      * 获取境界显示名称
      */
@@ -83,4 +83,3 @@ public class RealmUtil {
         return realm;
     }
 }
-

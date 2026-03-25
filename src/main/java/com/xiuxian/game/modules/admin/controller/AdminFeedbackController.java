@@ -42,7 +42,7 @@ public class AdminFeedbackController {
         try {
             PlayerMail feedback = adminFeedbackService.getFeedbackById(feedbackId);
             if (feedback == null) {
-                return ApiResponse.error("反馈不存�?);
+                return ApiResponse.error("反馈不存在");
             }
             return ApiResponse.success("获取成功", feedback);
         } catch (Exception e) {
@@ -51,7 +51,7 @@ public class AdminFeedbackController {
     }
 
     /**
-     * 标记反馈为已�?
+     * 标记反馈为已读
      */
     @PostMapping("/{feedbackId}/read")
     @PreAuthorize("hasRole('ADMIN')")

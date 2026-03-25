@@ -5,7 +5,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 拍卖物品实体�?
+ * 拍卖物品实体类
  */
 @Data
 @TableName("auction_items")
@@ -37,4 +37,3 @@ public class AuctionItem {
     
     private LocalDateTime soldAt;
 }
-

@@ -10,14 +10,14 @@ import java.util.Map;
 public class GameCalculator {
 
     private static final Map<String, BigDecimal> REALM_BONUS = Java8Compatibility.mapOf(
-        "练气�?, BigDecimal.ZERO,
-        "筑基�?, BigDecimal.valueOf(0.5),
-        "金丹�?, BigDecimal.ONE,
-        "元婴�?, BigDecimal.valueOf(2),
-        "化神�?, BigDecimal.valueOf(4),
-        "合体�?, BigDecimal.valueOf(8),
-        "大乘�?, BigDecimal.valueOf(16),
-        "渡劫�?, BigDecimal.valueOf(32)
+        "练气层", BigDecimal.ZERO,
+        "筑基层", BigDecimal.valueOf(0.5),
+        "金丹层", BigDecimal.ONE,
+        "元婴层", BigDecimal.valueOf(2),
+        "化神层", BigDecimal.valueOf(4),
+        "合体层", BigDecimal.valueOf(8),
+        "大乘层", BigDecimal.valueOf(16),
+        "渡劫层", BigDecimal.valueOf(32)
     );
 
     public long calculateExpPerSecond(PlayerProfile player) {
@@ -25,7 +25,7 @@ public class GameCalculator {
         BigDecimal realmBonus = REALM_BONUS.getOrDefault(player.getRealm(), BigDecimal.ZERO);
         BigDecimal cultivationSpeed = player.getCultivationSpeed();
         
-        // 确保cultivationSpeed不为null，使用默认�?.0
+        // 确保cultivationSpeed不为null，使用默认值1.0
         if (cultivationSpeed == null) {
             cultivationSpeed = BigDecimal.ONE;
         }
@@ -39,7 +39,7 @@ public class GameCalculator {
     public long calculateSpiritStonesPerSecond(PlayerProfile player) {
         BigDecimal cultivationSpeed = player.getCultivationSpeed();
         
-        // 确保cultivationSpeed不为null，使用默认�?.0
+        // 确保cultivationSpeed不为null，使用默认值1.0
         if (cultivationSpeed == null) {
             cultivationSpeed = BigDecimal.ONE;
         }
@@ -59,21 +59,21 @@ public class GameCalculator {
 
     private void updateRealm(PlayerProfile player) {
         int level = player.getLevel();
-        if (level >= 2001) player.setRealm("渡劫�?);
-        else if (level >= 1501) player.setRealm("大乘�?);
-        else if (level >= 1001) player.setRealm("合体�?);
-        else if (level >= 701) player.setRealm("化神�?);
-        else if (level >= 401) player.setRealm("元婴�?);
-        else if (level >= 201) player.setRealm("金丹�?);
-        else if (level >= 101) player.setRealm("筑基�?);
-        else player.setRealm("练气�?);
+        if (level >= 2001) player.setRealm("渡劫层");
+        else if (level >= 1501) player.setRealm("大乘层");
+        else if (level >= 1001) player.setRealm("合体层");
+        else if (level >= 701) player.setRealm("化神层");
+        else if (level >= 401) player.setRealm("元婴层");
+        else if (level >= 201) player.setRealm("金丹层");
+        else if (level >= 101) player.setRealm("筑基层");
+        else player.setRealm("练气层");
     }
 
     public long calculateOfflineRewards(PlayerProfile player, long offlineSeconds) {
         long maxOfflineTime = 24 * 60 * 60; // 24小时
         long effectiveTime = Math.min(offlineSeconds, maxOfflineTime);
         
-        if (effectiveTime < 60) return 0; // 少于1分钟无奖�?
+        if (effectiveTime < 60) return 0; // 少于1分钟无奖励
         
         long expPerSecond = calculateExpPerSecond(player);
         return expPerSecond * effectiveTime;
@@ -88,54 +88,52 @@ public class GameCalculator {
     }
 
     public int calculateMaxInventorySlots(int playerLevel) {
-        return 20 + (playerLevel / 10) * 5; // �?0级增�?个格�?
+        return 20 + (playerLevel / 10) * 5; // 每10级添加5个格子
     }
 
     /**
-     * 计算技能使用后获得的修炼经�?
+     * 计算技能使用后获得的修炼经验
      */
     public long calculateSkillExpGain(int skillLevel, String skillType) {
         long baseExp = 10;
         
-        // 根据技能类型调整经验获�?
+        // 根据技能类型调整经验获取
         switch (skillType) {
             case "攻击":
-                return baseExp * skillLevel; // 攻击技能经验较�?
+                return baseExp * skillLevel; // 攻击技能经验较多
             case "防御":
-                return Math.round(baseExp * skillLevel * 0.8); // 防御技能经验稍�?
+                return Math.round(baseExp * skillLevel * 0.8); // 防御技能经验稍少
             case "辅助":
-                return Math.round(baseExp * skillLevel * 0.6); // 辅助技能经验最�?
+                return Math.round(baseExp * skillLevel * 0.6); // 辅助技能经验最少
             default:
                 return baseExp * skillLevel;
         }
     }
 
     /**
-     * 计算技能伤害修正（基于玩家境界�?
+     * 计算技能伤害修正（基于玩家境界）
      */
     public double calculateRealmDamageBonus(String realm) {
         return REALM_BONUS.getOrDefault(realm, BigDecimal.ZERO).doubleValue();
     }
 
     /**
-     * 计算技能效果修正（基于玩家等级�?
+     * 计算技能效果修正（基于玩家等级）
      */
     public double calculateLevelEffectBonus(int playerLevel, int skillLevel) {
-        // 玩家等级越高，技能效果越�?
-        double levelBonus = Math.min(playerLevel * 0.01, 2.0); // 最�?00%加成
-        double skillBonus = skillLevel * 0.05; // 每级技能增�?%效果
+        // 玩家等级越高，技能效果越好
+        double levelBonus = Math.min(playerLevel * 0.01, 2.0); // 最多200%加成
+        double skillBonus = skillLevel * 0.05; // 每级技能添加5%效果
         
         return 1.0 + levelBonus + skillBonus;
     }
 
     /**
-     * 计算技能冷却时间修正（基于玩家境界�?
+     * 计算技能冷却时间修正（基于玩家境界）
      */
     public double calculateRealmCooldownBonus(String realm) {
-        // 高境界可以略微减少技能冷却时�?
+        // 高境界可以略微减少技能冷却时间
         BigDecimal bonus = REALM_BONUS.getOrDefault(realm, BigDecimal.ZERO);
-        return Math.min(bonus.doubleValue() * 0.1, 0.5); // 最多减�?0%冷却时间
+        return Math.min(bonus.doubleValue() * 0.1, 0.5); // 最多减少50%冷却时间
     }
 }
-
-
