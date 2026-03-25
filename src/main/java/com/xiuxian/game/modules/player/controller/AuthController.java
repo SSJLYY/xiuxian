@@ -29,7 +29,7 @@ public class AuthController {
     private final PlayerLoginLogService playerLoginLogService;
 
     @PostMapping("/register")
-    @RateLimit(keyType = RateLimit.KeyType.IP, maxRequests = 3, windowSeconds = 300, message = "注册过于频繁，请5分钟后再�?)
+    @RateLimit(keyType = RateLimit.KeyType.IP, maxRequests = 3, windowSeconds = 300, message = "注册过于频繁，请5分钟后再试")
     public ResponseEntity<ApiResponse<LoginResponse>> register(
             @Valid @RequestBody RegisterRequest request,
             HttpServletRequest httpRequest) {
@@ -51,7 +51,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    @RateLimit(keyType = RateLimit.KeyType.IP, maxRequests = 5, windowSeconds = 60, message = "登录过于频繁，请1分钟后再�?)
+    @RateLimit(keyType = RateLimit.KeyType.IP, maxRequests = 5, windowSeconds = 60, message = "登录过于频繁，请1分钟后再试")
     public ResponseEntity<ApiResponse<LoginResponse>> login(
             @Valid @RequestBody LoginRequest request,
             HttpServletRequest httpRequest) {

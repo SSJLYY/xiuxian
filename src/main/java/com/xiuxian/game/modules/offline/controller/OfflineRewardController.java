@@ -50,10 +50,9 @@ public class OfflineRewardController {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
             List<OfflineReward> rewards = offlineRewardService.getUnclaimedRewards(playerId);
-            return ResponseEntity.ok(ApiResponse.success("获取未领取奖励成�?, rewards));
+            return ResponseEntity.ok(ApiResponse.success("获取未领取奖励成功", rewards));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
 }
-

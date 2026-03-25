@@ -18,7 +18,7 @@ public interface ShopItemMapper extends BaseMapper<ShopItem> {
     List<ShopItem> selectByShopType(@Param("shopType") String shopType);
     
     /**
-     * 查询所有可用商�?
+     * 查询所有可用商品
      */
     @Select("SELECT * FROM shop_items WHERE is_available = true")
     List<ShopItem> selectAvailableItems();

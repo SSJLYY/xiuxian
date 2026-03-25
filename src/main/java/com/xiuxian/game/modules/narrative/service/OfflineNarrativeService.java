@@ -1,4 +1,4 @@
-﻿package com.xiuxian.game.modules.narrative.service;
+package com.xiuxian.game.modules.narrative.service;
 
 import com.xiuxian.game.modules.narrative.entity.OfflineNarrativeEvent;
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
@@ -28,14 +28,14 @@ import java.util.concurrent.ThreadLocalRandom;
 public class OfflineNarrativeService {
 
     private final OfflineNarrativeEventMapper offlineNarrativeEventMapper;
-    private final PlayerService playerService; // 妯″潡杈圭晫锛氶€氳繃PlayerService璁块棶鐜╁鏁版嵁
+    private final PlayerService playerService; // 模块边界：通过PlayerService访问玩家数据
     private final NarrativeService narrativeService;
     private final LoreService loreService;
 
     /**
      * 检查并触发离线事件
      * 在玩家登录时调用
-     * @return 触发的事件列表（可能为空�?
+     * @return 触发的事件列表（可能为空）
      */
     @Transactional
     public List<OfflineEventResult> checkOfflineEvents(Integer playerId) {
@@ -48,7 +48,7 @@ public class OfflineNarrativeService {
         long offlineHours = Duration.between(player.getLastOnlineTime(), now).toHours();
 
         if (offlineHours < 1) {
-            return new ArrayList<>(); // 离线不足1小时不触�?
+            return new ArrayList<>(); // 离线不足1小时不触发
         }
 
         List<OfflineNarrativeEvent> allEvents = offlineNarrativeEventMapper.selectAllActive();
@@ -64,7 +64,7 @@ public class OfflineNarrativeService {
         }
 
         if (!triggered.isEmpty()) {
-            log.info("玩家 {} 离线{}小时，触发{}个叙事事�?, playerId, offlineHours, triggered.size());
+            log.info("玩家 {} 离线{}小时，触发{}个叙事事件", playerId, offlineHours, triggered.size());
         }
 
         return triggered;
@@ -74,7 +74,7 @@ public class OfflineNarrativeService {
      * 判断事件是否应该触发
      */
     private boolean shouldTrigger(OfflineNarrativeEvent event, long offlineHours, PlayerProfile player) {
-        // 离线时长检�?
+        // 离线时长检查
         if (offlineHours < event.getMinOfflineHours()) {
             return false;
         }
@@ -82,19 +82,19 @@ public class OfflineNarrativeService {
             return false;
         }
 
-        // 等级检�?
+        // 等级检查
         if (event.getMinLevel() != null && player.getLevel() < event.getMinLevel()) {
             return false;
         }
 
-        // 境界检�?
+        // 境界检查
         if (event.getMinRealm() != null && !event.getMinRealm().isEmpty()) {
             if (!event.getMinRealm().equals(player.getRealm())) {
                 return false;
             }
         }
 
-        // 概率检�?
+        // 概率检查
         double roll = ThreadLocalRandom.current().nextDouble();
         if (roll > event.getProbability().doubleValue()) {
             return false;
@@ -104,7 +104,7 @@ public class OfflineNarrativeService {
     }
 
     /**
-     * 触发事件：处理奖励、flag、传说发�?
+     * 触发事件：处理奖励、flag、传说发现
      */
     private OfflineEventResult triggerEvent(OfflineNarrativeEvent event, Integer playerId) {
         OfflineEventResult result = new OfflineEventResult();
@@ -116,10 +116,10 @@ public class OfflineNarrativeService {
         // 设置flag
         if (event.getSetFlag() != null && !event.getSetFlag().isEmpty()) {
             narrativeService.setFlag(playerId, event.getSetFlag(), "1", "离线事件: " + event.getEventKey());
-            result.getRewards().add("解锁了新的剧情线�?);
+            result.getRewards().add("解锁了新的剧情线索");
         }
 
-        // NPC好感度变�?
+        // NPC好感度变化
         if (event.getNpcRelationChange() != null && !event.getNpcRelationChange().isEmpty()) {
             try {
                 com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
@@ -131,7 +131,7 @@ public class OfflineNarrativeService {
                     result.getRewards().add("与NPC好感度发生了变化");
                 }
             } catch (Exception e) {
-                log.warn("解析NPC好感度变更失�? {}", event.getNpcRelationChange(), e);
+                log.warn("解析NPC好感度变更失败: {}", event.getNpcRelationChange(), e);
             }
         }
 
@@ -147,5 +147,3 @@ public class OfflineNarrativeService {
         private List<String> rewards;
     }
 }
-
-

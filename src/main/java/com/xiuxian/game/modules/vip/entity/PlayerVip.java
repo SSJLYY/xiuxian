@@ -5,7 +5,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 玩家VIP实体�?
+ * 玩家VIP实体类
  */
 @Data
 @TableName("player_vip")

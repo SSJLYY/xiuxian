@@ -1,4 +1,4 @@
-﻿package com.xiuxian.game.modules.player.service;
+package com.xiuxian.game.modules.player.service;
 
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
 import com.xiuxian.game.modules.player.entity.PlayerItem;
@@ -27,15 +27,15 @@ import java.util.Map;
 import org.springframework.security.core.Authentication;
 
 /**
- * 鐜╁鏈嶅姟绫?
- * 璐熻矗鐜╁妗ｆ绠＄悊銆佷慨鐐肩郴缁熴€佸崌绾х郴缁熺瓑鏍稿績娓告垙閫昏緫
+ * 玩家服务类
+ * 负责玩家档案管理、修炼系统、升级系统等核心游戏逻辑
  *
- * 涓昏鍔熻兘锛?
- * - 鐜╁妗ｆ鍒涘缓鍜屾煡璇?
- * - 淇偧绯荤粺锛堝紑濮嬩慨鐐笺€佸仠姝慨鐐笺€佽绠楁敹鐩婏級
- * - 鍗囩骇绯荤粺锛堢粡楠岃绠椼€佺瓑绾ф彁鍗囥€佸鐣岀獊鐮达級
- * - 灞炴€х鐞嗭紙鍩虹灞炴€с€佽澶囧姞鎴愩€佹妧鑳藉姞鎴愶級
- * - 鏂版墜鐗╁搧鍙戞斁
+ * 主要功能：
+ * - 玩家档案创建和查询
+ * - 修炼系统（开始修炼、停止修炼、计算收益）
+ * - 升级系统（经验计算、等级提升、境界突破）
+ * - 属性管理（基础属性、装备加成、技能加成）
+ * - 新手物品发放
  *
  * @author xiuxian
  * @version 1.0
@@ -56,47 +56,47 @@ public class PlayerService {
     private final GameBalanceUtils balanceUtils;
 
     /**
-     * 鍒涘缓鏂扮帺瀹舵。妗?
-     * 涓烘柊娉ㄥ唽鐢ㄦ埛鍒涘缓娓告垙瑙掕壊锛屽垵濮嬪寲鍩虹灞炴€у拰鏂版墜鐗╁搧
+     * 创建新玩家档案
+     * 为新注册用户创建游戏角色，初始化基础属性和新手物品
      * 
-     * @param user 鐢ㄦ埛淇℃伅
-     * @param nickname 鐜╁鏄电О锛屽鏋滀负null鍒欎娇鐢ㄧ敤鎴峰悕
-     * @return 鍒涘缓鐨勭帺瀹舵。妗?
-     * @throws RuntimeException 褰撳垱寤哄け璐ユ椂鎶涘嚭寮傚父
+     * @param user 用户信息
+     * @param nickname 玩家昵称，如果为null则使用用户名
+     * @return 创建的玩家档案
+     * @throws RuntimeException 当创建失败时抛出异常
      */
     @Transactional
     public PlayerProfile createNewPlayer(User user, String nickname) {
         try {
-            log.info("========== 鍒涘缓鏂扮帺瀹舵。妗?==========");
-            log.info("鐢ㄦ埛ID: {}, 鐢ㄦ埛鍚? {}, 鏄电О: {}", user.getId(), user.getUsername(), nickname);
+            log.info("========== 创建新玩家档案 ==========");
+            log.info("用户ID: {}, 用户名: {}, 昵称: {}", user.getId(), user.getUsername(), nickname);
 
-            // 1. 鏋勫缓鐜╁妗ｆ
+            // 1. 构建玩家档案
             PlayerProfile playerProfile = PlayerProfile.builder()
                     .userId(user.getId())
                     .nickname(nickname != null ? nickname : user.getUsername())
-                    // 鍒濆绛夌骇鍜岀粡楠?
+                    // 初始等级和经验
                     .level(1)
                     .exp(balance.getPlayerInitial().getExp())
                     .expToNext(balanceUtils.calculateExpToNext(1))
-                    .realm("缁冩皵鏈?)
+                    .realm("练气期")
                     .cultivationSpeed(BigDecimal.ONE)
-                    // 鍒濆璧勬簮锛堜娇鐢℅DD浼樺寲鍊硷級
+                    // 初始资源（使用GDD优化值）
                     .spiritStones((long) balance.getPlayerInitial().getSpiritStones())
                     .cultivationPoints(0L)
                     .contributionPoints(0L)
                     .attributePoints(0)
                     .skillPoints(0)
-                    // 鍒濆灞炴€э紙浣跨敤GDD浼樺寲鍊硷級
+                    // 初始属性（使用GDD优化值）
                     .attack(balance.getPlayerInitial().getAttack())
                     .defense(balance.getPlayerInitial().getDefense())
                     .health(balance.getPlayerInitial().getHealth())
                     .mana(balance.getPlayerInitial().getMana())
                     .speed(balance.getPlayerInitial().getSpeed())
-                    // 淇偧鐘舵€?
+                    // 修炼状态
                     .isCultivating(false)
                     .lastOnlineTime(LocalDateTime.now())
                     .totalCultivationTime(0L)
-                    // 瑁呭鍔犳垚锛堝垵濮嬩负0锛?
+                    // 装备加成（初始为0）
                     .equipmentAttackBonus(0)
                     .equipmentDefenseBonus(0)
                     .equipmentHealthBonus(0)
@@ -104,33 +104,33 @@ public class PlayerService {
                     .equipmentSpeedBonus(0)
                     .build();
 
-            // 2. 淇濆瓨鍒版暟鎹簱
+            // 2. 保存到数据库
             playerProfileMapper.insert(playerProfile);
             PlayerProfile savedProfile = playerProfileMapper.selectById(playerProfile.getId());
-            log.info("鐜╁妗ｆ淇濆瓨鎴愬姛: ID={}, 鏄电О={}, 绛夌骇={}, 澧冪晫={}", 
+            log.info("玩家档案保存成功: ID={}, 昵称={}, 等级={}, 境界={}", 
                     savedProfile.getId(), savedProfile.getNickname(), 
                     savedProfile.getLevel(), savedProfile.getRealm());
 
-            // 3. 鍙戞斁鏂版墜鐗╁搧
-            log.info("鍙戞斁鏂版墜鐗╁搧...");
+            // 3. 发放新手物品
+            log.info("发放新手物品...");
             awardStarterItems(savedProfile.getId());
 
-            // 4. 浠诲姟鍒濆鍖栫敱鍓嶇绗竴娆℃煡璇㈡椂鑷姩瑙﹀彂
-            log.info("浠诲姟绯荤粺灏嗗湪棣栨鏌ヨ鏃惰嚜鍔ㄥ垵濮嬪寲");
+            // 4. 任务初始化由前端第一次查询时自动触发
+            log.info("任务系统将在首次查询时自动初始化");
 
-            log.info("========== 鐜╁妗ｆ鍒涘缓瀹屾垚 ==========");
+            log.info("========== 玩家档案创建完成 ==========");
             return savedProfile;
 
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
-            log.error("鍒涘缓鐜╁妗ｆ澶辫触: 鐢ㄦ埛鍚?{}", user.getUsername(), e);
+            log.error("创建玩家档案失败: 用户名={}", user.getUsername(), e);
             throw new BusinessException(ErrorCode.PLAYER_CREATE_FAILED);
         }
     }
 
     /**
-     * 鏍规嵁ID鑾峰彇鐜╁妗ｆ
+     * 根据ID获取玩家档案
      */
     public PlayerProfile getPlayerProfileById(Integer playerId) {
         PlayerProfile profile = playerProfileMapper.selectById(playerId);
@@ -141,7 +141,7 @@ public class PlayerService {
     }
 
     /**
-     * 鑾峰彇褰撳墠鐧诲綍鐜╁鐨勬。妗?
+     * 获取当前登录玩家的档案
      */
     public PlayerProfile getCurrentPlayerProfile() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -150,7 +150,7 @@ public class PlayerService {
         }
 
         String username = authentication.getName();
-        log.info("鑾峰彇褰撳墠鐜╁妗ｆ: {}", username);
+        log.info("获取当前玩家档案: {}", username);
 
         User user = userMapper.selectByUsername(username);
         if (user == null) {
@@ -172,7 +172,7 @@ public class PlayerService {
     }
 
     /**
-     * 鑾峰彇褰撳墠鐧诲綍鐜╁鐨処D
+     * 获取当前登录玩家的ID
      */
     public Integer getCurrentPlayerId() {
         PlayerProfile profile = getCurrentPlayerProfile();
@@ -180,22 +180,22 @@ public class PlayerService {
     }
 
     /**
-     * 寮€濮嬩慨鐐?
-     * 鐜╁杩涘叆淇偧鐘舵€侊紝璁板綍寮€濮嬫椂闂?
+     * 开始修炼
+     * 玩家进入修炼状态，记录开始时间
      * 
-     * @throws RuntimeException 褰撶帺瀹跺凡鍦ㄤ慨鐐间腑鎴栨搷浣滃け璐ユ椂鎶涘嚭寮傚父
+     * @throws RuntimeException 当玩家已在修炼中或操作失败时抛出异常
      */
     @Transactional
     public void cultivate() {
         PlayerProfile profile = getCurrentPlayerProfile();
-        log.info("鐜╁寮€濮嬩慨鐐? ID={}, 绛夌骇={}, 澧冪晫={}", profile.getId(), profile.getLevel(), profile.getRealm());
+        log.info("玩家开始修炼: ID={}, 等级={}, 境界={}", profile.getId(), profile.getLevel(), profile.getRealm());
 
         if (profile.getIsCultivating() == null) {
             profile.setIsCultivating(false);
         }
 
         if (profile.getIsCultivating()) {
-            log.info("鐜╁宸插湪淇偧涓紝蹇界暐閲嶅璇锋眰: ID={}", profile.getId());
+            log.info("玩家已在修炼中，忽略重复请求: ID={}", profile.getId());
             return;
         }
 
@@ -203,22 +203,22 @@ public class PlayerService {
         profile.setLastCultivationStart(LocalDateTime.now());
         playerProfileMapper.updateById(profile);
 
-        log.info("鐜╁寮€濮嬩慨鐐兼垚鍔? ID={}, 寮€濮嬫椂闂?{}", profile.getId(), profile.getLastCultivationStart());
+        log.info("玩家开始修炼成功: ID={}, 开始时间={}", profile.getId(), profile.getLastCultivationStart());
     }
 
     /**
-     * 鍋滄淇偧
-     * 缁撴潫淇偧鐘舵€侊紝璁＄畻淇偧鏀剁泭锛堢粡楠屻€佺伒鐭崇瓑锛夛紝妫€鏌ュ崌绾э紝鏇存柊浠诲姟杩涘害
+     * 停止修炼
+     * 结束修炼状态，计算修炼收益（经验、灵石等），检查升级，更新任务进度
      */
     @Transactional
     public void stopCultivate() {
         PlayerProfile profile = getCurrentPlayerProfile();
-        log.info("鐜╁鍋滄淇偧: ID={}, 淇偧鐘舵€?{}", profile.getId(), profile.getIsCultivating());
+        log.info("玩家停止修炼: ID={}, 修炼状态={}", profile.getId(), profile.getIsCultivating());
 
         if (!profile.getIsCultivating()) {
             profile.setIsCultivating(false);
             playerProfileMapper.updateById(profile);
-            log.info("鐜╁鏈湪淇偧涓紝蹇界暐鍋滄璇锋眰: ID={}", profile.getId());
+            log.info("玩家未在修炼中，忽略停止请求: ID={}", profile.getId());
             return;
         }
 
@@ -238,28 +238,28 @@ public class PlayerService {
             double cultivationSpeedMultiplier = profile.getCultivationSpeed().doubleValue();
             long expGained = (long) (actualCultivationTime * baseExpPerSecond * cultivationSpeedMultiplier);
 
-            // 銆?026-03-24 浼樺寲銆戜娇鐢℅ameBalanceUtils璁＄畻鐏电煶鏀剁泭
+            // 【2026-03-24 优化】使用GameBalanceUtils计算灵石收益
             double cultivationHours = actualCultivationTime / 3600.0;
             long spiritStonesGained = balanceUtils.calculateCultivationSpiritStones(profile, cultivationHours);
             
-            // 妫€鏌ョ伒鐭充笂闄愶紝瓒呭嚭閮ㄥ垎杞负淇偧鐐规暟
+            // 检查灵石上限，超出部分转为修炼点数
             long spiritStonesLimit = balanceUtils.calculateSpiritStonesLimit(profile.getRealm());
             long spiritStonesToAdd = Math.min(spiritStonesGained, spiritStonesLimit - profile.getSpiritStones());
             long overflowSpiritStones = spiritStonesGained - spiritStonesToAdd;
             
             if (overflowSpiritStones > 0) {
                 profile.setCultivationPoints(profile.getCultivationPoints() + overflowSpiritStones);
-                log.info("鐏电煶瓒呴檺锛寋}鐏电煶杞负淇偧鐐规暟", overflowSpiritStones);
+                log.info("灵石超限，{}灵石转为修炼点数", overflowSpiritStones);
             }
 
             profile.setExp(profile.getExp() + expGained);
             profile.setSpiritStones(profile.getSpiritStones() + spiritStonesToAdd);
-            log.info("淇偧鏀剁泭: 鏃堕暱={}s, 缁忛獙+{}, 鐏电煶+{}", actualCultivationTime, expGained, spiritStonesGained);
+            log.info("修炼收益: 时长={}s, 经验+{}, 灵石+{}", actualCultivationTime, expGained, spiritStonesGained);
 
             int oldLevel = profile.getLevel();
             checkLevelUp(profile);
             if (profile.getLevel() > oldLevel) {
-                log.info("鐜╁鍗囩骇: {}绾?-> {}绾?, oldLevel, profile.getLevel());
+                log.info("玩家升级: {}级 -> {}级", oldLevel, profile.getLevel());
             }
 
             try {
@@ -267,65 +267,65 @@ public class PlayerService {
                 questProgressService.updateQuestProgressByType(profile.getId(), com.xiuxian.game.modules.quest.entity.Quest.QuestType.WEEKLY, (int) actualCultivationTime);
                 questProgressService.updateQuestProgressByType(profile.getId(), com.xiuxian.game.modules.quest.entity.Quest.QuestType.MONTHLY, 1);
             } catch (Exception qe) {
-                log.warn("鏇存柊浠诲姟杩涘害澶辫触: {}", qe.getMessage());
+                log.warn("更新任务进度失败: {}", qe.getMessage());
             }
         } else {
-            log.warn("淇偧寮€濮嬫椂闂翠负null锛屾棤娉曡绠楁敹鐩?);
+            log.warn("修炼开始时间为null，无法计算收益");
         }
 
         profile.setIsCultivating(false);
         profile.setLastCultivationEnd(now);
         playerProfileMapper.updateById(profile);
-        log.info("鐜╁鍋滄淇偧鎴愬姛: ID={}", profile.getId());
+        log.info("玩家停止修炼成功: ID={}", profile.getId());
     }
 
     /**
-     * 淇濆瓨鐜╁妗ｆ
+     * 保存玩家档案
      */
     @Transactional
     public void savePlayerProfile(PlayerProfile playerProfile) {
         playerProfileMapper.updateById(playerProfile);
-        log.debug("淇濆瓨鐜╁妗ｆ鎴愬姛: ID={}", playerProfile.getId());
+        log.debug("保存玩家档案成功: ID={}", playerProfile.getId());
     }
 
     /**
-     * 妫€鏌ュ苟澶勭悊鍗囩骇
-     * 褰撶帺瀹剁粡楠岃揪鍒板崌绾ц姹傛椂锛岃嚜鍔ㄥ崌绾у苟鎻愬崌灞炴€?
-     * 鏀寔杩炵画鍗囩骇锛屼絾闄愬埗鏈€澶?00娆′互闃叉鏃犻檺寰幆
+     * 检查并处理升级
+     * 当玩家经验达到升级要求时，自动升级并提升属性
+     * 支持连续升级，但限制最多100次以防止无限循环
      * 
-     * @param profile 鐜╁妗ｆ
+     * @param profile 玩家档案
      */
     private void checkLevelUp(PlayerProfile profile) {
-        // 闃叉鏃犻檺寰幆锛屾渶澶氬崌绾?00娆?
+        // 防止无限循环，最多升级100次
         int maxLevelUps = 100;
         int levelUps = 0;
         
-        log.debug("寮€濮嬫鏌ュ崌绾? 褰撳墠绛夌骇={}, 褰撳墠缁忛獙={}, 鍗囩骇鎵€闇€={}", 
+        log.debug("开始检查升级: 当前等级={}, 当前经验={}, 升级所需={}", 
                 profile.getLevel(), profile.getExp(), profile.getExpToNext());
         
         while (profile.getExp() >= profile.getExpToNext() && levelUps < maxLevelUps) {
             String oldRealm = profile.getRealm();
             int oldLevel = profile.getLevel();
             
-            // 1. 鍗囩骇
+            // 1. 升级
             profile.setLevel(profile.getLevel() + 1);
             profile.setExp(profile.getExp() - profile.getExpToNext());
-            profile.setExpToNext(profile.getExpToNext() * 2); // 涓嬩竴绾ф墍闇€缁忛獙缈诲€?
+            profile.setExpToNext(profile.getExpToNext() * 2); // 下一级所需经验翻倍
             
-            // 2. 鍗囩骇灞炴€ф彁鍗?
+            // 2. 升级属性提升
             profile.setAttack(profile.getAttack() + 5);
             profile.setDefense(profile.getDefense() + 3);
             profile.setHealth(profile.getHealth() + 20);
             profile.setMana(profile.getMana() + 10);
             profile.setSpeed(profile.getSpeed() + 1);
             
-            log.info("鐜╁鍗囩骇: {}绾?-> {}绾? 灞炴€ф彁鍗? 鏀诲嚮+5, 闃插尽+3, 鐢熷懡+20, 娉曞姏+10, 閫熷害+1", 
+            log.info("玩家升级: {}级 -> {}级, 属性提升: 攻击+5, 防御+3, 生命+20, 法力+10, 速度+1", 
                     oldLevel, profile.getLevel());
             
-            // 3. 鏇存柊澧冪晫
+            // 3. 更新境界
             updateRealm(profile);
             
-            // 4. 澧冪晫绐佺牬濂栧姳锛堥澶栧睘鎬х偣鍜屾妧鑳界偣锛?
+            // 4. 境界突破奖励（额外属性点和技能点）
             if (!java.util.Objects.equals(oldRealm, profile.getRealm())) {
                 int oldAttributePoints = profile.getAttributePoints() == null ? 0 : profile.getAttributePoints();
                 int oldSkillPoints = profile.getSkillPoints() == null ? 0 : profile.getSkillPoints();
@@ -333,7 +333,7 @@ public class PlayerService {
                 profile.setAttributePoints(oldAttributePoints + 5);
                 profile.setSkillPoints(oldSkillPoints + 1);
                 
-                log.info("澧冪晫绐佺牬: {} -> {}, 濂栧姳: 灞炴€х偣+5, 鎶€鑳界偣+1", 
+                log.info("境界突破: {} -> {}, 奖励: 属性点+5, 技能点+1", 
                         oldRealm, profile.getRealm());
             }
             
@@ -341,78 +341,78 @@ public class PlayerService {
         }
         
         if (levelUps > 0) {
-            log.info("鍗囩骇瀹屾垚: 鍏卞崌绾}绾? 褰撳墠绛夌骇={}, 鍓╀綑缁忛獙={}, 涓嬬骇鎵€闇€={}", 
+            log.info("升级完成: 共升级{}级, 当前等级={}, 剩余经验={}, 下级所需={}", 
                     levelUps, profile.getLevel(), profile.getExp(), profile.getExpToNext());
         }
         
         if (levelUps >= maxLevelUps) {
-            log.warn("鐜╁鍗囩骇娆℃暟杈惧埌涓婇檺({}娆?锛屽彲鑳藉瓨鍦ㄩ棶棰? ID={}, 褰撳墠缁忛獙={}", 
+            log.warn("玩家升级次数达到上限({}次)，可能存在问题: ID={}, 当前经验={}", 
                     maxLevelUps, profile.getId(), profile.getExp());
         }
     }
     
     /**
-     * 鏍规嵁绛夌骇鏇存柊澧冪晫
-     * 澧冪晫鍒掑垎锛?
-     * - 缁冩皵鏈? 1-100绾?
-     * - 绛戝熀鏈? 101-200绾?
-     * - 閲戜腹鏈? 201-400绾?
-     * - 鍏冨┐鏈? 401-700绾?
-     * - 鍖栫鏈? 701-1000绾?
-     * - 鍚堜綋鏈? 1001-1500绾?
-     * - 澶т箻鏈? 1501-2000绾?
-     * - 娓″姭鏈? 2001绾т互涓?
+     * 根据等级更新境界
+     * 境界划分：
+     * - 练气期: 1-100级
+     * - 筑基期: 101-200级
+     * - 金丹期: 201-400级
+     * - 元婴期: 401-700级
+     * - 化神期: 701-1000级
+     * - 合体期: 1001-1500级
+     * - 大乘期: 1501-2000级
+     * - 渡劫期: 2001级以上
      * 
-     * @param profile 鐜╁妗ｆ
+     * @param profile 玩家档案
      */
     private void updateRealm(PlayerProfile profile) {
         int level = profile.getLevel();
         String newRealm;
         
         if (level >= 2001) {
-            newRealm = "娓″姭鏈?;
+            newRealm = "渡劫期";
         } else if (level >= 1501) {
-            newRealm = "澶т箻鏈?;
+            newRealm = "大乘期";
         } else if (level >= 1001) {
-            newRealm = "鍚堜綋鏈?;
+            newRealm = "合体期";
         } else if (level >= 701) {
-            newRealm = "鍖栫鏈?;
+            newRealm = "化神期";
         } else if (level >= 401) {
-            newRealm = "鍏冨┐鏈?;
+            newRealm = "元婴期";
         } else if (level >= 201) {
-            newRealm = "閲戜腹鏈?;
+            newRealm = "金丹期";
         } else if (level >= 101) {
-            newRealm = "绛戝熀鏈?;
+            newRealm = "筑基期";
         } else {
-            newRealm = "缁冩皵鏈?;
+            newRealm = "练气期";
         }
         
         profile.setRealm(newRealm);
     }
 
     /**
-     * 鍙戞斁鏂版墜鐗╁搧
-     * 涓烘柊鐜╁鍙戞斁鍒濆鐗╁搧锛屽寘鎷熀纭€瑁呭鍜屾秷鑰楀搧
+     * 发放新手物品
+     * 为新玩家发放初始物品，包括基础装备和消耗品
      * 
-     * @param playerId 鐜╁ID
+     * @param playerId 玩家ID
      */
     private void awardStarterItems(Integer playerId) {
         try {
-            log.info("涓虹帺瀹?{} 鍙戞斁鏂版墜鐗╁搧", playerId);
+            log.info("为玩家 {} 发放新手物品", playerId);
             
-            // 鏂版墜鐗╁搧1: 鐤椾激涓?x1
+            // 新手物品1: 疗伤丹x1
             PlayerItem item1 = PlayerItem.builder()
                     .playerId(playerId)
-                    .itemId(1)  // 鐤椾激涓?
+                    .itemId(1)  // 疗伤丹
                     .quantity(1)
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
                     .build();
             
-            // 鏂版墜鐗╁搧2: 鍥炵伒涓?x5
+            // 新手物品2: 回灵丹x5
             PlayerItem item2 = PlayerItem.builder()
                     .playerId(playerId)
-                    .itemId(2)  // 鍥炵伒涓?
+                    .itemId(2)  // 回灵丹
                     .quantity(5)
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
@@ -421,26 +421,26 @@ public class PlayerService {
             playerItemMapper.insert(item1);
             playerItemMapper.insert(item2);
             
-            log.info("鏂版墜鐗╁搧鍙戞斁鎴愬姛: 鐤椾激涓箈1, 鍥炵伒涓箈5");
+            log.info("新手物品发放成功: 疗伤丹x1, 回灵丹x5");
         } catch (Exception e) {
-            log.warn("鍙戞斁鏂版墜鐗╁搧澶辫触: {}", e.getMessage(), e);
-            // 涓嶆姏鍑哄紓甯革紝鍏佽鐜╁鍒涘缓缁х画
+            log.warn("发放新手物品失败: {}", e.getMessage(), e);
+            // 不抛出异常，允许玩家创建继续
         }
     }
 
     /**
-     * 鑾峰彇鐜╁璇︾粏淇℃伅锛屽寘鍚墍鏈夊睘鎬у姞鎴?
+     * 获取玩家详细信息，包含所有属性加成
      */
     public PlayerProfile getPlayerProfileWithBonuses(Integer playerId) {
         PlayerProfile profile = playerProfileMapper.selectById(playerId);
         if (profile == null) {
-            throw new IllegalArgumentException("鐜╁涓嶅瓨鍦?);
+            throw new IllegalArgumentException("玩家不存在");
         }
         
-        // 璁＄畻鎶€鑳藉姞鎴?
+        // 计算技能加成
         Map<String, Integer> skillBonuses = skillService.calculateSkillBonuses(playerId);
         
-        // 璁剧疆鎶€鑳藉姞鎴愬埌鐜╁灞炴€т腑
+        // 设置技能加成到玩家属性中
         profile.setSkillHealthBonus(skillBonuses.get("health"));
         profile.setSkillManaBonus(skillBonuses.get("mana"));
         profile.setSkillAttackBonus(skillBonuses.get("attack"));
@@ -623,4 +623,3 @@ public class PlayerService {
         return userMapper.selectById(userId);
     }
 }
-

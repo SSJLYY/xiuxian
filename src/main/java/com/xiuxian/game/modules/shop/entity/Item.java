@@ -32,15 +32,15 @@ public class Item {
 
     @TableField(value = "quality")
     @Builder.Default
-    private Integer quality = 1; // 1-普�? 2-精良, 3-稀�? 4-史诗, 5-传说
+    private Integer quality = 1; // 1-普通, 2-精良, 3-稀有, 4-史诗, 5-传说
 
     @TableField(value = "stackable")
     @Builder.Default
-    private Boolean stackable = true; // 是否可堆�?
+    private Boolean stackable = true; // 是否可叠加
 
     @TableField(value = "max_stack")
     @Builder.Default
-    private Integer maxStack = 99; // 最大堆叠数�?
+    private Integer maxStack = 99; // 最大堆叠数量
 
     @TableField(value = "price")
     @Builder.Default
@@ -48,11 +48,11 @@ public class Item {
 
     @TableField(value = "sellable")
     @Builder.Default
-    private Boolean sellable = true; // 是否可出�?
+    private Boolean sellable = true; // 是否可出售
 
     @TableField(value = "usable")
     @Builder.Default
-    private Boolean usable = true; // 是否可使�?
+    private Boolean usable = true; // 是否可使用
 
     @TableField(value = "effect")
     private String effect; // 使用效果描述

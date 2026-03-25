@@ -129,7 +129,7 @@ public class SkillController {
         try {
             // 使用技能后增加经验
             skillService.addSkillExperience(playerSkillId, 10);
-            return ResponseEntity.ok(ApiResponse.success("技能使用成�?, null));
+            return ResponseEntity.ok(ApiResponse.success("技能使用成功", null));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
@@ -149,7 +149,7 @@ public class SkillController {
     @GetMapping("/{playerSkillId}/damage")
     public ResponseEntity<ApiResponse<Double>> calculateSkillDamage(@PathVariable Integer playerSkillId) {
         try {
-            // 获取玩家技能实�?
+            // 获取玩家技能实例
             PlayerProfile player = getCurrentPlayerProfile();
             List<PlayerSkill> playerSkills = skillService.getPlayerSkills(player.getId());
             PlayerSkill targetSkill = playerSkills.stream()
@@ -167,7 +167,7 @@ public class SkillController {
     @GetMapping("/{playerSkillId}/cooldown")
     public ResponseEntity<ApiResponse<Integer>> getSkillCooldown(@PathVariable Integer playerSkillId) {
         try {
-            // 获取玩家技能实�?
+            // 获取玩家技能实例
             PlayerProfile player = getCurrentPlayerProfile();
             List<PlayerSkill> playerSkills = skillService.getPlayerSkills(player.getId());
             PlayerSkill targetSkill = playerSkills.stream()
@@ -185,7 +185,7 @@ public class SkillController {
     @GetMapping("/{playerSkillId}/mana-cost")
     public ResponseEntity<ApiResponse<Integer>> getSkillManaCost(@PathVariable Integer playerSkillId) {
         try {
-            // 获取玩家技能实�?
+            // 获取玩家技能实例
             PlayerProfile player = getCurrentPlayerProfile();
             List<PlayerSkill> playerSkills = skillService.getPlayerSkills(player.getId());
             PlayerSkill targetSkill = playerSkills.stream()
@@ -203,7 +203,7 @@ public class SkillController {
     // ==================== 技能连招相关API ====================
 
     /**
-     * 获取玩家可用的连招列�?
+     * 获取玩家可用的连招列表
      */
     @GetMapping("/combos/available")
     public ResponseEntity<ApiResponse<List<SkillCombo>>> getAvailableCombos() {
@@ -233,7 +233,7 @@ public class SkillController {
     }
 
     /**
-     * 获取玩家的连招统�?
+     * 获取玩家的连招统计
      */
     @GetMapping("/combos/stats")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getComboStats() {
@@ -257,10 +257,9 @@ public class SkillController {
             PlayerProfile player = getCurrentPlayerProfile();
             SkillComboResult result = skillService.checkAndTriggerCombo(player.getId(), skillId, baseDamage);
             return ResponseEntity.ok(ApiResponse.success(
-                    result.isTriggered() ? "连招触发�? : "未触发连�?, result));
+                    result.isTriggered() ? "连招触发！" : "未触发连招", result));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
 }
-

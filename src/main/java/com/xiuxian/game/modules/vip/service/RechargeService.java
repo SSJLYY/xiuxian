@@ -1,4 +1,4 @@
-﻿package com.xiuxian.game.modules.vip.service;
+package com.xiuxian.game.modules.vip.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -21,14 +21,14 @@ import java.util.List;
 public class RechargeService extends ServiceImpl<RechargeRecordMapper, RechargeRecord> {
     
     private final RechargeRecordMapper rechargeRecordMapper;
-    private final PlayerService playerService; // 妯″潡杈圭晫锛氶€氳繃PlayerService璁块棶鐜╁鏁版嵁
+    private final PlayerService playerService; // 模块边界：通过PlayerService访问玩家数据
     private final VipService vipService;
     
     /**
-     * 创建充值订�?
+     * 创建充值订单
      * @param playerId 玩家ID
-     * @param amount 充值金�?单位:�?
-     * @return 充值记�?
+     * @param amount 充值金额（单位:元）
+     * @return 充值记录
      */
     public RechargeRecord createRechargeOrder(Integer playerId, Integer amount) {
         RechargeRecord record = new RechargeRecord();
@@ -45,9 +45,9 @@ public class RechargeService extends ServiceImpl<RechargeRecordMapper, RechargeR
     }
     
     /**
-     * 处理充值成功回�?
+     * 处理充值成功回调
      * @param orderId 订单ID
-     * @return 充值记�?
+     * @return 充值记录
      */
     @Transactional
     public RechargeRecord processRechargeSuccess(Long orderId) {
@@ -60,14 +60,14 @@ public class RechargeService extends ServiceImpl<RechargeRecordMapper, RechargeR
             throw new BusinessException(ErrorCode.RECHARGE_ORDER_STATUS_INVALID);
         }
         
-        // 更新订单状�?
+        // 模块边界：通过PlayerService访问玩家数据
         record.setStatus("SUCCESS");
         record.setCompletedAt(LocalDateTime.now());
         
-        // 更新玩家VIP信息和元宝数�?
+        // 模块边界：通过PlayerService访问玩家数据
         PlayerVip playerVip = vipService.updateVipInfo(record.getPlayerId(), record.getAmount());
         
-        // 计算本次充值获得的元宝�?
+        // 模块边界：通过PlayerService访问玩家数据
         Integer previousTotalRecharge = playerVip.getTotalRecharge() - record.getAmount();
         Integer previousYuanbao = previousTotalRecharge * 10;
         
@@ -91,9 +91,9 @@ public class RechargeService extends ServiceImpl<RechargeRecordMapper, RechargeR
     }
     
     /**
-     * 处理充值失败回�?
+     * 处理充值失败回调
      * @param orderId 订单ID
-     * @return 充值记�?
+     * @return 充值记录
      */
     public RechargeRecord processRechargeFailed(Long orderId) {
         RechargeRecord record = rechargeRecordMapper.selectById(orderId);
@@ -105,7 +105,7 @@ public class RechargeService extends ServiceImpl<RechargeRecordMapper, RechargeR
             throw new BusinessException(ErrorCode.RECHARGE_ORDER_STATUS_INVALID);
         }
         
-        // 更新订单状�?
+        // 模块边界：通过PlayerService访问玩家数据
         record.setStatus("FAILED");
         record.setCompletedAt(LocalDateTime.now());
         rechargeRecordMapper.updateById(record);
@@ -114,13 +114,13 @@ public class RechargeService extends ServiceImpl<RechargeRecordMapper, RechargeR
     }
     
     /**
-     * 获取玩家充值记�?
+     * 获取玩家充值记录
      * @param playerId 玩家ID
      * @param limit 数量限制
-     * @return 充值记录列�?
+     * @return 充值记录列表
      */
     public List<RechargeRecord> getPlayerRechargeRecords(Integer playerId, int limit) {
-        // 查询玩家最近的充值记�?
+        // 模块边界：通过PlayerService访问玩家数据
         QueryWrapper<RechargeRecord> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("player_id", playerId);
         queryWrapper.orderByDesc("created_at");
@@ -145,8 +145,8 @@ public class RechargeService extends ServiceImpl<RechargeRecordMapper, RechargeR
     }
 
     /**
-     * 生成订单�?
-     * @return 订单�?
+     * 生成订单号
+     * @return 订单号
      */
     private String generateOrderNo() {
         return "RECHARGE_" + System.currentTimeMillis() + "_" + ThreadLocalRandom.current().nextInt(10000);

@@ -19,25 +19,22 @@ public interface PlayerSkillMapper extends BaseMapper<PlayerSkill> {
 
     @Select("SELECT * FROM player_skills WHERE player_id = #{playerId} AND skill_id = #{skillId} LIMIT 1")
     PlayerSkill selectByPlayerIdAndSkillId(@Param("playerId") Integer playerId, @Param("skillId") Integer skillId);
-    
+
     /**
-     * 查询玩家的所有技�?
+     * 查询玩家的所有技能
      */
     @Select("SELECT * FROM player_skills WHERE player_id = #{playerId}")
     List<PlayerSkill> findByPlayerId(@Param("playerId") Integer playerId);
-    
+
     /**
-     * 查询玩家的指定技�?
+     * 查询玩家的指定技能
      */
     @Select("SELECT * FROM player_skills WHERE player_id = #{playerId} AND skill_id = #{skillId}")
     PlayerSkill findByPlayerIdAndSkillId(@Param("playerId") Integer playerId, @Param("skillId") Integer skillId);
-    
+
     /**
-     * 查询玩家已装备的技�?
+     * 查询玩家已装备的技能
      */
     @Select("SELECT * FROM player_skills WHERE player_id = #{playerId} AND equipped = true")
     List<PlayerSkill> findEquippedSkills(@Param("playerId") Integer playerId);
 }
-
-
-

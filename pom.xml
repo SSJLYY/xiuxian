@@ -183,12 +183,12 @@
             <artifactId>sentinel-core</artifactId>
             <version>1.8.6</version>
         </dependency>
+        <!-- Sentinel AOP 注解支持（提供 SentinelResourceAspect） -->
         <dependency>
             <groupId>com.alibaba.csp</groupId>
-            <artifactId>sentinel-spring-boot-starter</artifactId>
+            <artifactId>sentinel-annotation-aspectj</artifactId>
             <version>1.8.6</version>
         </dependency>
-        <!-- sentinel-datasource-nacos removed: no Nacos in 2H4G single-host setup -->
 
         <!-- Prometheus 监控 -->
         <dependency>

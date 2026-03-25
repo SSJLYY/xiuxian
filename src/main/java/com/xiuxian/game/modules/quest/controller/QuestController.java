@@ -127,13 +127,13 @@ public class QuestController {
         }
     }
 
-    // 获取玩家所有任�?
+    // 获取玩家所有任务
     @GetMapping("/all")
     public ResponseEntity<ApiResponse<List<PlayerQuestDetailResponse>>> getAllQuests() {
         try {
             PlayerProfile player = playerService.getCurrentPlayerProfile();
             List<PlayerQuestDetailResponse> quests = questService.getPlayerAllQuestsDetail(player.getId());
-            return ResponseEntity.ok(ApiResponse.success("获取所有任务成�?, quests));
+            return ResponseEntity.ok(ApiResponse.success("获取所有任务成功", quests));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
@@ -157,10 +157,9 @@ public class QuestController {
         try {
             PlayerProfile player = playerService.getCurrentPlayerProfile();
             int claimedCount = questService.claimAllCompletedQuestRewards(player.getId());
-            return ResponseEntity.ok(ApiResponse.success("批量领取奖励成功，共领取" + claimedCount + "个任务奖�?, claimedCount));
+            return ResponseEntity.ok(ApiResponse.success("批量领取奖励成功，共领取" + claimedCount + "个任务奖励", claimedCount));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
 }
-

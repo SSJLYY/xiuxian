@@ -40,7 +40,7 @@ public class PlayerLoginLogService {
             loginLogMapper.insert(loginLog);
             log.info("记录玩家登录日志: playerId={}, ip={}", playerId, loginLog.getIpAddress());
             
-            // 检测登录异�?
+            // 检测登录异常
             antiFraudService.detectLoginAbnormal(playerId, loginLog.getIpAddress());
         } catch (Exception e) {
             log.error("记录登录日志失败: playerId={}", playerId, e);
@@ -70,7 +70,7 @@ public class PlayerLoginLogService {
     }
     
     /**
-     * 获取玩家最近登录记�?
+     * 获取玩家最近登录记录
      */
     public List<PlayerLoginLog> getRecentLogins(Integer playerId, int limit) {
         QueryWrapper<PlayerLoginLog> queryWrapper = new QueryWrapper<>();
@@ -98,7 +98,7 @@ public class PlayerLoginLogService {
     }
     
     /**
-     * 清理过期日志（保�?0天）
+     * 清理过期日志（保留90天）
      */
     @Async
     public void cleanExpiredLogs() {
@@ -108,7 +108,7 @@ public class PlayerLoginLogService {
             queryWrapper.lt("login_at", expireTime);
             
             int deletedCount = loginLogMapper.delete(queryWrapper);
-            log.info("清理过期登录日志: {} �?, deletedCount);
+            log.info("清理过期登录日志: {} 条", deletedCount);
         } catch (Exception e) {
             log.error("清理过期登录日志失败", e);
         }

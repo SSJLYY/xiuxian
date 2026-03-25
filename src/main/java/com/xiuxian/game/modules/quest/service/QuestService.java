@@ -1,4 +1,4 @@
-﻿package com.xiuxian.game.modules.quest.service;
+package com.xiuxian.game.modules.quest.service;
 
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
 import com.xiuxian.game.modules.quest.entity.PlayerQuest;
@@ -9,7 +9,6 @@ import com.xiuxian.game.modules.quest.mapper.PlayerQuestMapper;
 import com.xiuxian.game.modules.quest.mapper.QuestMapper;
 import com.xiuxian.game.modules.player.service.PlayerService;
 import com.xiuxian.game.common.util.GameCalculator;
-import com.xiuxian.game.common.util.GameConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,14 +22,14 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 /**
- * 任务服务�?
+ * 任务服务类
  * 负责任务系统的所有业务逻辑
  * 
- * 主要功能�?
+ * 主要功能：
  * - 任务生成和刷新（日常、周常、月常）
  * - 任务进度更新
  * - 任务奖励发放
- * - 任务完成检�?
+ * - 任务完成检测
  * 
  * @author xiuxian
  * @version 1.0
@@ -43,12 +42,9 @@ public class QuestService {
 
     private final QuestMapper questMapper;
     private final PlayerQuestMapper playerQuestMapper;
-    private final PlayerService playerService;  // 妯″潡杈圭晫锛氶€氳繃PlayerService璁块棶鐜╁鏁版嵁
+    private final PlayerService playerService;  // 模块边界：通过PlayerService访问玩家数据
     private final GameCalculator gameCalculator;
 
-    // 【修复】使�?ThreadLocalRandom 替代共享 Random 实例�?
-    // QuestService �?Spring 单例，所有并发请求共享同一实例�?
-    // ThreadLocalRandom 每个线程独立，无锁竞争，性能更优�?
     private static ThreadLocalRandom rng() {
         return ThreadLocalRandom.current();
     }
@@ -56,7 +52,7 @@ public class QuestService {
     public List<PlayerQuest> getPlayerDailyQuests(Integer playerId) {
         List<PlayerQuest> allQuests = playerQuestMapper.selectByPlayerId(playerId);
         
-        // 过滤出日常任�?
+        // 过滤出日常任务
         List<PlayerQuest> dailyQuests = allQuests.stream()
                 .filter(pq -> {
                     Quest quest = questMapper.selectById(pq.getQuestId());
@@ -64,12 +60,12 @@ public class QuestService {
                 })
                 .collect(Collectors.toList());
         
-        // 如果玩家没有日常任务，自动生�?
+        // 如果没有日常任务，生成新的
         if (dailyQuests == null || dailyQuests.isEmpty()) {
             return generateDailyQuestsForPlayer(playerId);
         }
         
-        // 检查是否需要刷新日常任务（每天凌晨刷新�?
+        // 检查是否需要刷新
         if (needsRefreshDailyQuests(dailyQuests)) {
             return refreshDailyQuests(playerId);
         }
@@ -125,7 +121,7 @@ public class QuestService {
             return false;
         }
         
-        // 检查所有日常任务，如果有任何一个过期了，就需要刷�?
+        // 检查是否已过今天零点
         LocalDateTime today = LocalDate.now().atStartOfDay();
         return dailyQuests.stream()
                 .map(pq -> pq.getCreatedAt().toLocalDate().atStartOfDay())
@@ -136,7 +132,7 @@ public class QuestService {
         if (weeklyQuests == null || weeklyQuests.isEmpty()) {
             return false;
         }
-        // 检查所有周常任务，如果有任何一个过期了，就需要刷�?
+        // 检查是否已过本周一零点
         LocalDateTime startOfWeek = LocalDate.now().with(java.time.DayOfWeek.MONDAY).atStartOfDay();
         return weeklyQuests.stream()
                 .map(pq -> pq.getCreatedAt().toLocalDate().atStartOfDay())
@@ -147,7 +143,7 @@ public class QuestService {
         if (monthlyQuests == null || monthlyQuests.isEmpty()) {
             return false;
         }
-        // 检查所有月常任务，如果有任何一个过期了，就需要刷�?
+        // 检查是否已过本月1号零点
         LocalDateTime startOfMonth = LocalDate.now().withDayOfMonth(1).atStartOfDay();
         return monthlyQuests.stream()
                 .map(pq -> pq.getCreatedAt().toLocalDate().atStartOfDay())
@@ -171,7 +167,7 @@ public class QuestService {
     
     @Transactional
     public List<PlayerQuest> generateDailyQuestsForPlayer(Integer playerId) {
-        // 删除当前所有日常任�?
+        // 删除旧的日常任务
         List<PlayerQuest> existingDailyQuests = playerQuestMapper.selectByPlayerId(playerId);
         for (PlayerQuest pq : existingDailyQuests) {
             Quest quest = questMapper.selectById(pq.getQuestId());
@@ -180,23 +176,23 @@ public class QuestService {
             }
         }
         
-        // 获取所有日常任务模�?
+        // 获取日常任务模板
         List<Quest> dailyQuestTemplates = questMapper.selectByType("DAILY");
         
         if (dailyQuestTemplates == null || dailyQuestTemplates.isEmpty()) {
-            // 如果没有任务模板，先初始化默认任�?
+            // 初始化默认任务
             initializeDefaultQuests();
             dailyQuestTemplates = questMapper.selectByType("DAILY");
         }
         
-        // 随机选择3-5个日常任�?
+        // 随机选取3-5个任务
         int questCount = Math.min(dailyQuestTemplates.size(), rng().nextInt(3) + 3);
         List<Quest> selectedQuests = dailyQuestTemplates.stream()
                 .sorted((a, b) -> rng().nextInt() - rng().nextInt())
                 .limit(questCount)
                 .collect(Collectors.toList());
         
-        // 为玩家分配新的日常任�?
+        // 创建玩家任务记录
         List<PlayerQuest> newQuests = selectedQuests.stream()
                 .map(quest -> {
                     PlayerQuest pq = PlayerQuest.builder()
@@ -289,7 +285,7 @@ public class QuestService {
         if (!hasDaily) {
             Quest quest1 = Quest.builder()
                     .title("每日修炼")
-                    .description("完成一次修�?)
+                    .description("完成一次修炼")
                     .type("DAILY")
                     .requiredAmount(1)
                     .rewardExp(100)
@@ -317,7 +313,7 @@ public class QuestService {
         if (!hasWeekly) {
             Quest w1 = Quest.builder()
                     .title("每周勤修")
-                    .description("累计修炼300�?)
+                    .description("累计修炼300次")
                     .type("WEEKLY")
                     .requiredAmount(300)
                     .rewardExp(800)
@@ -329,8 +325,8 @@ public class QuestService {
             questMapper.insert(w1);
             
             Quest w2 = Quest.builder()
-                    .title("每周升级一�?)
-                    .description("提升1�?)
+                    .title("每周升级一次")
+                    .description("提升1级")
                     .type("WEEKLY")
                     .requiredAmount(1)
                     .rewardExp(1000)
@@ -345,7 +341,7 @@ public class QuestService {
         if (!hasMonthly) {
             Quest m1 = Quest.builder()
                     .title("每月突破")
-                    .description("完成10次修�?)
+                    .description("完成10次修炼")
                     .type("MONTHLY")
                     .requiredAmount(10)
                     .rewardExp(10000)
@@ -366,7 +362,7 @@ public class QuestService {
     private PlayerQuest updateQuestProgressInternal(Integer playerId, Integer questId, Integer progress) {
         PlayerQuest playerQuest = playerQuestMapper.selectByPlayerIdAndQuestId(playerId, questId);
         if (playerQuest == null) {
-            throw new IllegalArgumentException("任务不存�?);
+            throw new IllegalArgumentException("任务不存在");
         }
 
         Quest quest = questMapper.selectById(questId);
@@ -385,15 +381,15 @@ public class QuestService {
     public void claimQuestReward(Integer playerId, Integer questId) {
         PlayerQuest playerQuest = playerQuestMapper.selectByPlayerIdAndQuestId(playerId, questId);
         if (playerQuest == null) {
-            throw new IllegalArgumentException("任务不存�?);
+            throw new IllegalArgumentException("任务不存在");
         }
 
         if (!playerQuest.getCompleted()) {
-            throw new IllegalArgumentException("任务未完�?);
+            throw new IllegalArgumentException("任务未完成");
         }
 
         if (playerQuest.getRewardClaimed()) {
-            throw new IllegalArgumentException("奖励已领�?);
+            throw new IllegalArgumentException("奖励已领取");
         }
 
         Quest quest = questMapper.selectById(questId);
@@ -404,15 +400,15 @@ public class QuestService {
         player.setSpiritStones(player.getSpiritStones() + quest.getRewardSpiritStones());
         player.setContributionPoints(player.getContributionPoints() + quest.getRewardContributionPoints());
         
-        // 增加属性点奖励（根据任务奖励设置）
-        int attributePointsReward = quest.getRewardExp() / 100; // �?00经验奖励1属性点
+        // 增加属性点奖励（每100经验奖励1属性点）
+        int attributePointsReward = quest.getRewardExp() / 100;
         if (attributePointsReward > 0) {
             player.setAttributePoints(player.getAttributePoints() + attributePointsReward);
         }
         
         playerService.savePlayerProfile(player);
 
-        // 标记奖励已领�?
+        // 标记奖励已领取
         playerQuest.setRewardClaimed(true);
         playerQuest.setUpdatedAt(LocalDateTime.now());
         playerQuestMapper.updateById(playerQuest);
@@ -422,10 +418,10 @@ public class QuestService {
     public void claimQuestRewardByPlayerQuestId(Integer playerId, Integer playerQuestId) {
         PlayerQuest playerQuest = playerQuestMapper.selectById(playerQuestId);
         if (playerQuest == null) {
-            throw new IllegalArgumentException("任务不存�?);
+            throw new IllegalArgumentException("任务不存在");
         }
         if (!playerQuest.getPlayerId().equals(playerId)) {
-            throw new IllegalArgumentException("无权操作其他玩家的任�?);
+            throw new IllegalArgumentException("无权操作其他玩家的任务");
         }
         claimQuestReward(playerId, playerQuest.getQuestId());
     }
@@ -456,7 +452,7 @@ public class QuestService {
         return getPlayerQuestsByType(playerId, type).stream().map(this::toDetail).collect(Collectors.toList());
     }
 
-    // 批量领取所有已完成任务的奖�?
+    // 批量领取所有已完成任务奖励
     @Transactional
     public int claimAllCompletedQuestRewards(Integer playerId) {
         List<PlayerQuest> allQuests = playerQuestMapper.selectByPlayerId(playerId);
@@ -479,7 +475,7 @@ public class QuestService {
         return allQuests.stream().anyMatch(pq -> !pq.getCompleted());
     }
 
-    // 获取未领取奖励的已完成任务数�?
+    // 获取已完成但未领取奖励的任务数量
     public long getUnclaimedCompletedQuestsCount(Integer playerId) {
         List<PlayerQuest> allQuests = playerQuestMapper.selectByPlayerId(playerId);
         
@@ -523,4 +519,3 @@ public class QuestService {
                 .build();
     }
 }
-

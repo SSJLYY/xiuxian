@@ -39,7 +39,7 @@ public class PlayerController {
         try {
             PlayerProfile profile = playerService.getCurrentPlayerProfile();
             playerService.cultivate();
-            LogUtils.logUserAction(null, profile.getId(), "START_CULTIVATION", "玩家开始修�?);
+            LogUtils.logUserAction(null, profile.getId(), "START_CULTIVATION", "玩家开始修炼");
             return ResponseEntity.ok(ApiResponse.success("修炼成功", null));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
@@ -95,7 +95,7 @@ public class PlayerController {
     @PreAuthorize("isAuthenticated()")
     @Deprecated
     public ResponseEntity<ApiResponse<?>> claimOfflineRewards() {
-        return ResponseEntity.ok(ApiResponse.success("请使�?/api/offline-reward 接口", null));
+        return ResponseEntity.ok(ApiResponse.success("请使用 /api/offline-reward 接口", null));
     }
 
     @PostMapping("/reset-cultivation")
@@ -105,7 +105,7 @@ public class PlayerController {
             PlayerProfile profile = playerService.getCurrentPlayerProfile();
             profile.setIsCultivating(false);
             playerService.savePlayerProfile(profile);
-            LogUtils.logUserAction(null, profile.getId(), "RESET_CULTIVATION", "重置修炼状�?);
+            LogUtils.logUserAction(null, profile.getId(), "RESET_CULTIVATION", "重置修炼状态");
             return ResponseEntity.ok(ApiResponse.success("修炼状态已重置", null));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
@@ -137,4 +137,3 @@ public class PlayerController {
         }
     }
 }
-

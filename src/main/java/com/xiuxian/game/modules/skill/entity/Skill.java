@@ -1,4 +1,4 @@
-package com.xiuxian.game.modules.skill.entity;
+﻿package com.xiuxian.game.modules.skill.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
@@ -63,22 +63,22 @@ public class Skill {
     @TableField(value = "animation")
     private String animation;
 
-    // 新增：技能被动属性加�?
+    // 鏂板锛氭妧鑳借鍔ㄥ睘鎬у姞鎴?
     @TableField(value = "health_bonus")
     @Builder.Default
-    private Integer healthBonus = 0; // 生命值加�?
+    private Integer healthBonus = 0; // 生命值加成
 
     @TableField(value = "mana_bonus")
     @Builder.Default
-    private Integer manaBonus = 0; // 法力值加�?
+    private Integer manaBonus = 0; // 法力值加成
 
     @TableField(value = "attack_bonus")
     @Builder.Default
-    private Integer attackBonus = 0; // 攻击力加�?
+    private Integer attackBonus = 0; // 攻击力加成
 
     @TableField(value = "defense_bonus")
     @Builder.Default
-    private Integer defenseBonus = 0; // 防御力加�?
+    private Integer defenseBonus = 0; // 防御力加成
 
     @TableField(value = "speed_bonus")
     @Builder.Default

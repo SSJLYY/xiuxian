@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * NPC控制�?
+ * NPC控制器
  * 负责NPC列表、NPC详情、NPC关系查询
  */
 @Slf4j
@@ -29,7 +29,7 @@ public class NpcController {
     private final PlayerService playerService;
 
     /**
-     * 获取所有NPC列表（按玩家等级过滤�?
+     * 获取所有NPC列表（按玩家等级过滤）
      */
     @GetMapping("/list")
     public ResponseEntity<ApiResponse<List<Npc>>> getNpcList() {
@@ -48,13 +48,13 @@ public class NpcController {
         LogUtils.info(log, "获取NPC详情", "playerId", playerId, "npcId", npcId);
         NpcService.NpcDetailVo detail = npcService.getNpcDetail(npcId, playerId);
         if (detail == null) {
-            return ResponseEntity.ok(ApiResponse.error("NPC不存�?));
+            return ResponseEntity.ok(ApiResponse.error("NPC不存在"));
         }
         return ResponseEntity.ok(ApiResponse.success(detail));
     }
 
     /**
-     * 获取玩家与所有NPC的关系摘�?
+     * 获取玩家与所有NPC的关系摘要
      */
     @GetMapping("/relations")
     public ResponseEntity<ApiResponse<List<NpcService.NpcRelationSummary>>> getNpcRelations() {
@@ -64,4 +64,3 @@ public class NpcController {
         return ResponseEntity.ok(ApiResponse.success(relations));
     }
 }
-

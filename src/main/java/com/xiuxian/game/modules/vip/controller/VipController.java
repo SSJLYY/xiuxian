@@ -69,7 +69,7 @@ public class VipController {
             if (success) {
                 return ApiResponse.success("领取成功", result);
             } else {
-                return ApiResponse.success("今日已领�?, result);
+                return ApiResponse.success("今日已领取", result);
             }
         } catch (Exception e) {
             return ApiResponse.error(e.getMessage());
@@ -77,7 +77,7 @@ public class VipController {
     }
     
     /**
-     * 获取玩家充值记�?
+     * 获取玩家充值记录
      */
     @GetMapping("/recharge-records")
     @PreAuthorize("isAuthenticated()")
@@ -100,17 +100,17 @@ public class VipController {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
             
-            // 创建充值订�?
+            // 创建充值订单
             RechargeRecord record = rechargeService.createRechargeOrder(playerId, amount);
             
-            // 直接处理充值成�?
+            // 直接处理充值成功
             rechargeService.processRechargeSuccess(record.getId());
             
             Map<String, Object> result = new HashMap<>();
             result.put("orderId", record.getId());
             result.put("amount", amount);
             
-            return ApiResponse.success("充值成�?, result);
+            return ApiResponse.success("充值成功", result);
         } catch (Exception e) {
             return ApiResponse.error(e.getMessage());
         }

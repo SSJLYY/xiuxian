@@ -1,4 +1,4 @@
-﻿package com.xiuxian.game.modules.offline.service;
+package com.xiuxian.game.modules.offline.service;
 
 import com.xiuxian.game.modules.offline.entity.OfflineReward;
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
@@ -21,10 +21,10 @@ import java.util.Map;
 public class OfflineRewardService {
 
     private final OfflineRewardMapper offlineRewardMapper;
-    private final PlayerService playerService; // 妯″潡杈圭晫锛氶€氳繃PlayerService璁块棶鐜╁鏁版嵁
+    private final PlayerService playerService; // 模块边界：通过PlayerService访问玩家数据
     
     // 离线收益配置
-    private static final int MAX_OFFLINE_HOURS = 12; // 最多累�?2小时
+    private static final int MAX_OFFLINE_HOURS = 12; // 模块边界：通过PlayerService访问玩家数据
     private static final int BASE_EXP_PER_HOUR = 50;
     private static final int BASE_SPIRIT_STONES_PER_HOUR = 10;
 
@@ -35,7 +35,7 @@ public class OfflineRewardService {
     public Map<String, Object> calculateOfflineReward(Integer playerId) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存�?);
+            throw new IllegalArgumentException("玩家不存在");
         }
 
         // 获取上次登录时间
@@ -48,7 +48,7 @@ public class OfflineRewardService {
         Duration duration = Duration.between(lastLoginTime, now);
         long offlineMinutes = duration.toMinutes();
 
-        // 如果离线时间小于10分钟，不给奖�?
+        // 模块边界：通过PlayerService访问玩家数据
         if (offlineMinutes < 10) {
             Map<String, Object> result = new HashMap<>();
             result.put("hasReward", false);
@@ -56,7 +56,7 @@ public class OfflineRewardService {
             return result;
         }
 
-        // 限制最大离线时�?
+        // 模块边界：通过PlayerService访问玩家数据
         long maxMinutes = MAX_OFFLINE_HOURS * 60;
         long effectiveMinutes = Math.min(offlineMinutes, maxMinutes);
         
@@ -77,7 +77,7 @@ public class OfflineRewardService {
         int expPerHour = BASE_EXP_PER_HOUR + player.getLevel() * 5;
         int spiritStonesPerHour = BASE_SPIRIT_STONES_PER_HOUR + player.getLevel() * 2;
         
-        // 计算总收�?
+        // 模块边界：通过PlayerService访问玩家数据
         int totalExp = (int)(expPerHour * effectiveMinutes / 60.0);
         int totalSpiritStones = (int)(spiritStonesPerHour * effectiveMinutes / 60.0);
         
@@ -93,7 +93,7 @@ public class OfflineRewardService {
         
         offlineRewardMapper.insert(reward);
 
-        // 更新玩家最后登录时�?
+        // 模块边界：通过PlayerService访问玩家数据
         player.setLastLoginAt(now);
         playerService.savePlayerProfile(player);
 
@@ -116,16 +116,16 @@ public class OfflineRewardService {
     public Map<String, Object> claimOfflineReward(Integer playerId, Integer rewardId) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存�?);
+            throw new IllegalArgumentException("玩家不存在");
         }
 
         OfflineReward reward = offlineRewardMapper.selectById(rewardId);
         if (reward == null) {
-            throw new IllegalArgumentException("奖励不存�?);
+            throw new IllegalArgumentException("奖励不存在");
         }
 
         if (!reward.getPlayerId().equals(playerId)) {
-            throw new IllegalArgumentException("无权领取该奖�?);
+            throw new IllegalArgumentException("无权领取该奖励");
         }
 
         if (reward.getClaimed()) {
@@ -136,7 +136,7 @@ public class OfflineRewardService {
         player.setExp(player.getExp() + reward.getExpGained());
         player.setSpiritStones(player.getSpiritStones() + reward.getSpiritStonesGained());
         
-        // 检查升�?
+        // 模块边界：通过PlayerService访问玩家数据
         boolean leveledUp = false;
         int oldLevel = player.getLevel();
         while (player.getExp() >= player.getExpToNext()) {
@@ -144,7 +144,7 @@ public class OfflineRewardService {
             player.setLevel(player.getLevel() + 1);
             player.setExpToNext((long)(player.getExpToNext() * 1.5));
             
-            // 升级属性增�?
+            // 模块边界：通过PlayerService访问玩家数据
             player.setHealth(player.getHealth() + 10);
             player.setMana(player.getMana() + 5);
             player.setAttack(player.getAttack() + 2);
@@ -155,7 +155,7 @@ public class OfflineRewardService {
         
         playerService.savePlayerProfile(player);
 
-        // 标记奖励已领�?
+        // 模块边界：通过PlayerService访问玩家数据
         reward.setClaimed(true);
         reward.setClaimedAt(LocalDateTime.now());
         offlineRewardMapper.updateById(reward);

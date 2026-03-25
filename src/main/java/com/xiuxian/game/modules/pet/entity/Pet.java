@@ -13,8 +13,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * 宠物模板实体�?
- * 对应数据�?pets �?
+ * 宠物模板实体类
+ * 对应数据库 pets 表
  */
 @TableName("pets")
 @Data
@@ -33,11 +33,11 @@ public class Pet {
     private String description;
 
     @TableField(value = "type")
-    private String type; // 灵兽、妖兽、神�?
+    private String type; // 灵兽、伴侣、神兽
 
     @TableField(value = "rarity")
     @Builder.Default
-    private Integer rarity = 1; // 1-普�? 2-稀�? 3-史诗, 4-传说, 5-神话
+    private Integer rarity = 1; // 1-普通, 2-稀有, 3-史诗, 4-传说, 5-神话
 
     @TableField(value = "base_attack")
     @Builder.Default
@@ -88,8 +88,8 @@ public class Pet {
      */
     public String getRarityName() {
         switch (rarity) {
-            case 1: return "普�?;
-            case 2: return "稀�?;
+            case 1: return "普通";
+            case 2: return "稀有";
             case 3: return "史诗";
             case 4: return "传说";
             case 5: return "神话";
@@ -97,4 +97,3 @@ public class Pet {
         }
     }
 }
-

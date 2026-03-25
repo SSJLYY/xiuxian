@@ -15,8 +15,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 叙事控制�?
- * 负责离线事件、flag查询等叙事相关功�?
+ * 叙事控制器
+ * 负责离线事件、Flag查询等叙事相关功能
  */
 @Slf4j
 @RestController
@@ -35,7 +35,7 @@ public class NarrativeController {
     @GetMapping("/offline-events")
     public ResponseEntity<ApiResponse<List<OfflineNarrativeService.OfflineEventResult>>> checkOfflineEvents() {
         Integer playerId = playerService.getCurrentPlayerId();
-        LogUtils.info(log, "检查离线事�?, "playerId", playerId);
+        LogUtils.info(log, "检查离线事件", "playerId", playerId);
         List<OfflineNarrativeService.OfflineEventResult> events = offlineNarrativeService.checkOfflineEvents(playerId);
         return ResponseEntity.ok(ApiResponse.success(events));
     }
@@ -62,4 +62,3 @@ public class NarrativeController {
         return ResponseEntity.ok(ApiResponse.success(Map.of("flagKey", flagKey, "has", has)));
     }
 }
-

@@ -1,4 +1,4 @@
-﻿package com.xiuxian.game.modules.vip.service;
+package com.xiuxian.game.modules.vip.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -20,7 +20,7 @@ public class VipService extends ServiceImpl<PlayerVipMapper, PlayerVip> {
     
     private final PlayerVipMapper playerVipMapper;
     private final VipLevelMapper vipLevelMapper;
-    private final PlayerService playerService; // 妯″潡杈圭晫锛氶€氳繃PlayerService璁块棶鐜╁鏁版嵁
+    private final PlayerService playerService; // 模块边界：通过PlayerService访问玩家数据
     private final MailService mailService;
     
     /**
@@ -53,7 +53,7 @@ public class VipService extends ServiceImpl<PlayerVipMapper, PlayerVip> {
     
     /**
      * 根据充值金额计算VIP等级
-     * @param totalRecharge 累计充值金�?
+     * @param totalRecharge 累计充值金额
      * @return VIP等级
      */
     public Integer calculateVipLevel(Integer totalRecharge) {
@@ -75,13 +75,13 @@ public class VipService extends ServiceImpl<PlayerVipMapper, PlayerVip> {
     /**
      * 更新玩家VIP信息
      * @param playerId 玩家ID
-     * @param rechargeAmount 充值金�?
+     * @param rechargeAmount 充值金额
      * @return 更新后的玩家VIP信息
      */
     public PlayerVip updateVipInfo(Integer playerId, Integer rechargeAmount) {
         PlayerVip playerVip = getPlayerVip(playerId);
         
-        // 更新累计充值金�?
+        // 模块边界：通过PlayerService访问玩家数据
         playerVip.setTotalRecharge(playerVip.getTotalRecharge() + rechargeAmount);
         
         // 计算新的VIP等级
@@ -91,7 +91,7 @@ public class VipService extends ServiceImpl<PlayerVipMapper, PlayerVip> {
         // 更新VIP等级
         playerVip.setVipLevel(newVipLevel);
         
-        // 增加元宝（假�?�?10元宝�?
+        // 模块边界：通过PlayerService访问玩家数据
         Integer yuanbaoToAdd = rechargeAmount * 10;
         
         // 检查是否为首充（累计充值金额等于本次充值金额）
@@ -103,10 +103,10 @@ public class VipService extends ServiceImpl<PlayerVipMapper, PlayerVip> {
         
         playerVip.setYuanbao(playerVip.getYuanbao() + yuanbaoToAdd);
         
-        // 更新数据�?
+        // 模块边界：通过PlayerService访问玩家数据
         playerVipMapper.updateById(playerVip);
         
-        // 如果VIP等级提升，发送奖励邮�?
+        // 模块边界：通过PlayerService访问玩家数据
         if (newVipLevel > oldVipLevel) {
             sendVipUpgradeReward(playerId, newVipLevel);
         }
@@ -121,7 +121,7 @@ public class VipService extends ServiceImpl<PlayerVipMapper, PlayerVip> {
      */
     private void sendVipUpgradeReward(Integer playerId, Integer newVipLevel) {
         String subject = "VIP等级提升奖励";
-        String content = String.format("恭喜您的VIP等级提升�?d级！获得了丰厚的奖励�?, newVipLevel);
+        String content = String.format("恭喜您的VIP等级提升到%d级！获得了丰厚的奖励。", newVipLevel);
         
         // 发送邮件给玩家
         mailService.sendSystemMail(playerId, subject, content, null, null, 0);
@@ -139,23 +139,23 @@ public class VipService extends ServiceImpl<PlayerVipMapper, PlayerVip> {
         LocalDateTime lastRewardTime = playerVip.getLastDailyRewardAt();
         LocalDateTime now = LocalDateTime.now();
         
-        // 如果是同一天，则不能重复领�?
+        // 模块边界：通过PlayerService访问玩家数据
         if (lastRewardTime.toLocalDate().equals(now.toLocalDate())) {
             return false;
         }
         
-        // 获取当前VIP等级对应的奖�?
+        // 模块边界：通过PlayerService访问玩家数据
         VipLevel currentVipLevel = getVipLevelConfig(playerVip.getVipLevel());
         if (currentVipLevel != null && currentVipLevel.getDailySpiritStones() > 0) {
-            // 发送每日奖励邮�?
+            // 模块边界：通过PlayerService访问玩家数据
             String subject = "VIP每日奖励";
-            String content = String.format("VIP%d每日奖励已发放，包括%d灵石�?, 
+            String content = String.format("VIP%d每日奖励已发放，包括%d灵石。", 
                                          playerVip.getVipLevel(), 
                                          currentVipLevel.getDailySpiritStones());
             
             mailService.sendSystemMail(playerId, subject, content, "ITEM", 6, currentVipLevel.getDailySpiritStones());
             
-            // 更新最后领取时�?
+            // 模块边界：通过PlayerService访问玩家数据
             playerVip.setLastDailyRewardAt(now);
             playerVipMapper.updateById(playerVip);
             
@@ -166,7 +166,7 @@ public class VipService extends ServiceImpl<PlayerVipMapper, PlayerVip> {
     }
     
     /**
-     * 获取指定VIP等级的配�?
+     * 获取指定VIP等级的配置
      * @param level VIP等级
      * @return VIP等级配置
      */
@@ -178,7 +178,7 @@ public class VipService extends ServiceImpl<PlayerVipMapper, PlayerVip> {
      * 检查玩家是否有指定VIP特权
      * @param playerId 玩家ID
      * @param requiredVipLevel 所需VIP等级
-     * @return 是否有权�?
+     * @return 是否有权限
      */
     public boolean hasVipPrivilege(Integer playerId, Integer requiredVipLevel) {
         PlayerVip playerVip = getPlayerVip(playerId);

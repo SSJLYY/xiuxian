@@ -1,6 +1,5 @@
 package com.xiuxian.game.modules.quest.service;
 
-import com.xiuxian.game.modules.player.entity.PlayerProfile;
 import com.xiuxian.game.modules.quest.entity.Quest;
 import com.xiuxian.game.modules.quest.mapper.PlayerQuestMapper;
 import com.xiuxian.game.modules.quest.mapper.QuestMapper;
@@ -20,22 +19,22 @@ public class QuestProgressService {
     private final QuestMapper questMapper;
 
     /**
-     * 鏇存柊鐜╁浠诲姟杩涘害
-     * 
-     * @param playerId 鐜╁ID
-     * @param questType 浠诲姟绫诲瀷
-     * @param progressIncrement 杩涘害澧為噺
+     * 更新玩家任务进度
+     *
+     * @param playerId          玩家ID
+     * @param questType         任务类型
+     * @param progressIncrement 进度增量
      */
     public void updateQuestProgressByType(Integer playerId, Quest.QuestType questType, int progressIncrement) {
         try {
-            // 鑾峰彇鐜╁鐨勬墍鏈変换鍔?
+            // 获取玩家的所有任务
             List<com.xiuxian.game.modules.quest.entity.PlayerQuest> playerQuests = playerQuestMapper.selectByPlayerId(playerId);
-            
+
             if (playerQuests == null || playerQuests.isEmpty()) {
                 return;
             }
 
-            // 杩囨护鍑烘寚瀹氱被鍨嬬殑浠诲姟
+            // 过滤出指定类型的任务
             playerQuests.stream()
                 .filter(pq -> {
                     Quest quest = questMapper.selectById(pq.getQuestId());
@@ -45,27 +44,27 @@ public class QuestProgressService {
                     try {
                         Quest quest = questMapper.selectById(playerQuest.getQuestId());
                         if (quest == null) return;
-                        
-                        // 鏇存柊杩涘害
-                        int newProgress = Math.min(playerQuest.getCurrentProgress() + progressIncrement, 
+
+                        // 更新进度
+                        int newProgress = Math.min(playerQuest.getCurrentProgress() + progressIncrement,
                                                    quest.getRequiredAmount());
                         playerQuest.setCurrentProgress(newProgress);
-                        
-                        // 濡傛灉瀹屾垚锛岃缃畬鎴愮姸鎬?
+
+                        // 如果完成，设置完成状态
                         if (newProgress >= quest.getRequiredAmount() && !playerQuest.getCompleted()) {
                             playerQuest.setCompleted(true);
                             playerQuest.setCompletedAt(LocalDateTime.now());
-                            log.info("鐜╁ {} 瀹屾垚浠诲姟 {}", playerId, playerQuest.getQuestId());
+                            log.info("玩家 {} 完成任务 {}", playerId, playerQuest.getQuestId());
                         }
-                        
-                        // 鏇存柊鏁版嵁搴?
+
+                        // 更新数据库
                         playerQuestMapper.updateById(playerQuest);
                     } catch (Exception e) {
-                        log.error("鏇存柊浠诲姟 {} 杩涘害澶辫触: {}", playerQuest.getId(), e.getMessage(), e);
+                        log.error("更新任务 {} 进度失败: {}", playerQuest.getId(), e.getMessage(), e);
                     }
                 });
         } catch (Exception e) {
-            log.error("鏇存柊鐜╁ {} 鐨勪换鍔¤繘搴﹀け璐? {}", playerId, e.getMessage(), e);
+            log.error("更新玩家 {} 的任务进度失败: {}", playerId, e.getMessage(), e);
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿package com.xiuxian.game.modules.skill.service;
+package com.xiuxian.game.modules.skill.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xiuxian.game.modules.player.entity.PlayerProfile;

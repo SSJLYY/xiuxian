@@ -5,7 +5,7 @@ import lombok.Data;
 import java.math.BigDecimal;
 
 /**
- * VIP等级配置实体�?
+ * VIP等级配置实体类
  */
 @Data
 @TableName("vip_levels")

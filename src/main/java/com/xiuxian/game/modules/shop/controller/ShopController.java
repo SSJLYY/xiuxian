@@ -43,7 +43,7 @@ public class ShopController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<SkillShopItem>>> listSkills() {
         try {
-            return ResponseEntity.ok(ApiResponse.success("获取技能商店成�?, shopService.listSkillShop()));
+            return ResponseEntity.ok(ApiResponse.success("获取技能商店成功", shopService.listSkillShop()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
@@ -54,7 +54,7 @@ public class ShopController {
     public ResponseEntity<ApiResponse<Void>> buySkill(@PathVariable Integer skillId) {
         try {
             shopService.buySkill(skillId);
-            return ResponseEntity.ok(ApiResponse.success("购买技能成�?, null));
+            return ResponseEntity.ok(ApiResponse.success("购买技能成功", null));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
