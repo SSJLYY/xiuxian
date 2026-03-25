@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 公告服务�?
+ * 公告服务类
  */
 @Service
 @RequiredArgsConstructor
@@ -36,7 +36,7 @@ public class AnnouncementService {
                                           Integer priority, String displayType, Integer createdBy,
                                           LocalDateTime startTime, LocalDateTime endTime) {
         log.info("创建公告: title={}, type={}, priority={}", title, announcementType, priority);
-        
+
         Announcement announcement = new Announcement();
         announcement.setTitle(title);
         announcement.setContent(content);
@@ -47,18 +47,18 @@ public class AnnouncementService {
         announcement.setCreatedBy(createdBy);
         announcement.setStartTime(startTime);
         announcement.setEndTime(endTime);
-        
+
         announcementMapper.insert(announcement);
-        
+
         // 清除公告缓存
         clearAnnouncementCache();
-        
+
         log.info("公告创建成功: id={}", announcement.getId());
         return announcement;
     }
 
     /**
-     * 创建公告（简化版本，用于管理员控制器�?
+     * 创建公告（简化版本，用于管理员控制器）
      */
     @Transactional
     @CacheEvict(value = "announcements", allEntries = true)
@@ -77,12 +77,12 @@ public class AnnouncementService {
                                           String displayType, LocalDateTime startTime,
                                           LocalDateTime endTime) {
         log.info("更新公告: id={}", id);
-        
+
         Announcement announcement = announcementMapper.selectById(id);
         if (announcement == null) {
             throw new BusinessException(ErrorCode.ANNOUNCEMENT_NOT_FOUND);
         }
-        
+
         if (title != null) {
             announcement.setTitle(title);
         }
@@ -104,15 +104,15 @@ public class AnnouncementService {
         if (endTime != null) {
             announcement.setEndTime(endTime);
         }
-        
+
         announcementMapper.updateById(announcement);
-        
+
         log.info("公告更新成功: id={}", id);
         return announcement;
     }
 
     /**
-     * 更新公告（用于管理员控制器，支持Long类型ID和isActive参数�?
+     * 更新公告（用于管理员控制器，支持Long类型ID和isActive参数）
      */
     @Transactional
     @CacheEvict(value = "announcements", allEntries = true)
@@ -121,12 +121,12 @@ public class AnnouncementService {
                                           LocalDateTime startTime, LocalDateTime endTime,
                                           Boolean isActive) {
         log.info("更新公告: id={}", id);
-        
+
         Announcement announcement = announcementMapper.selectById(id.intValue());
         if (announcement == null) {
             throw new BusinessException(ErrorCode.ANNOUNCEMENT_NOT_FOUND);
         }
-        
+
         if (title != null) {
             announcement.setTitle(title);
         }
@@ -148,9 +148,9 @@ public class AnnouncementService {
         if (isActive != null) {
             announcement.setStatus(isActive ? "PUBLISHED" : "DRAFT");
         }
-        
+
         announcementMapper.updateById(announcement);
-        
+
         log.info("公告更新成功: id={}", id);
         return announcement;
     }
@@ -162,18 +162,18 @@ public class AnnouncementService {
     @CacheEvict(value = "announcements", allEntries = true)
     public void publishAnnouncement(Integer id) {
         log.info("发布公告: id={}", id);
-        
+
         Announcement announcement = announcementMapper.selectById(id);
         if (announcement == null) {
             throw new BusinessException(ErrorCode.ANNOUNCEMENT_NOT_FOUND);
         }
-        
+
         announcement.setStatus("PUBLISHED");
         announcementMapper.updateById(announcement);
-        
+
         // 清除公告缓存
         clearAnnouncementCache();
-        
+
         log.info("公告发布成功: id={}", id);
     }
 
@@ -184,18 +184,18 @@ public class AnnouncementService {
     @CacheEvict(value = "announcements", allEntries = true)
     public void revokeAnnouncement(Integer id) {
         log.info("撤回公告: id={}", id);
-        
+
         Announcement announcement = announcementMapper.selectById(id);
         if (announcement == null) {
             throw new BusinessException(ErrorCode.ANNOUNCEMENT_NOT_FOUND);
         }
-        
+
         announcement.setStatus("REVOKED");
         announcementMapper.updateById(announcement);
-        
+
         // 清除公告缓存
         clearAnnouncementCache();
-        
+
         log.info("公告撤回成功: id={}", id);
     }
 
@@ -206,22 +206,22 @@ public class AnnouncementService {
     @CacheEvict(value = "announcements", allEntries = true)
     public void deleteAnnouncement(Integer id) {
         log.info("删除公告: id={}", id);
-        
+
         Announcement announcement = announcementMapper.selectById(id);
         if (announcement == null) {
             throw new BusinessException(ErrorCode.ANNOUNCEMENT_NOT_FOUND);
         }
-        
+
         announcementMapper.deleteById(id);
-        
+
         // 清除公告缓存
         clearAnnouncementCache();
-        
+
         log.info("公告删除成功: id={}", id);
     }
 
     /**
-     * 删除公告（支持Long类型ID�?
+     * 删除公告（支持Long类型ID）
      */
     @Transactional
     @CacheEvict(value = "announcements", allEntries = true)
@@ -234,17 +234,17 @@ public class AnnouncementService {
      */
     public Announcement getAnnouncementById(Long id) {
         log.debug("获取公告详情: id={}", id);
-        
+
         Announcement announcement = announcementMapper.selectById(id);
         if (announcement == null) {
             throw new BusinessException(ErrorCode.ANNOUNCEMENT_NOT_FOUND);
         }
-        
+
         // 检查公告有效期
         if (!isAnnouncementValid(announcement)) {
             throw new BusinessException(ErrorCode.ANNOUNCEMENT_EXPIRED);
         }
-        
+
         return announcement;
     }
 
@@ -256,13 +256,13 @@ public class AnnouncementService {
     }
 
     /**
-     * 获取最新公�?
-     * 
+     * 获取最新公告
+     *
      * @return 最新的有效公告，如果没有则返回null
      */
     public Announcement getLatestAnnouncement() {
-        log.debug("获取最新公�?);
-        
+        log.debug("获取最新公告");
+
         LocalDateTime now = LocalDateTime.now();
         QueryWrapper<Announcement> wrapper = new QueryWrapper<>();
         wrapper.eq("status", "PUBLISHED")
@@ -271,29 +271,29 @@ public class AnnouncementService {
                .orderByDesc("priority")
                .orderByDesc("created_at")
                .last("LIMIT 1");
-        
+
         Announcement announcement = announcementMapper.selectOne(wrapper);
-        
-        log.debug("获取最新公告完�? {}", announcement != null ? announcement.getId() : "�?);
-        
+
+        log.debug("获取最新公告完成: {}", announcement != null ? announcement.getId() : "无");
+
         return announcement;
     }
 
     /**
-     * 获取有效公告列表（玩家端�?
+     * 获取有效公告列表（玩家端）
      * 使用缓存提高性能
      */
     @SuppressWarnings("unchecked")
     public List<Announcement> getValidAnnouncements() {
         log.debug("获取有效公告列表");
-        
+
         // 先从缓存获取
         List<Announcement> cachedAnnouncements = cacheService.get(CacheService.CacheKeys.ANNOUNCEMENT_LIST);
         if (cachedAnnouncements != null) {
-            log.debug("从缓存获取公告列�?);
+            log.debug("从缓存获取公告列表");
             return cachedAnnouncements;
         }
-        
+
         LocalDateTime now = LocalDateTime.now();
         QueryWrapper<Announcement> wrapper = new QueryWrapper<>();
         wrapper.eq("status", "PUBLISHED")
@@ -301,13 +301,13 @@ public class AnnouncementService {
                .ge("end_time", now)
                .orderByDesc("priority")
                .orderByDesc("created_at");
-        
+
         List<Announcement> announcements = announcementMapper.selectList(wrapper);
-        
-        // 存入缓存，缓�?0分钟
+
+        // 存入缓存，缓存10分钟
         cacheService.put(CacheService.CacheKeys.ANNOUNCEMENT_LIST, announcements, 600);
         log.debug("公告列表已缓存，有效公告数量: {}", announcements.size());
-        
+
         return announcements;
     }
 
@@ -315,17 +315,17 @@ public class AnnouncementService {
      * 获取所有公告列表（管理端）
      */
     public IPage<Announcement> getAllAnnouncements(int page, int size, String status) {
-        log.debug("获取所有公告列�? page={}, size={}, status={}", page, size, status);
-        
+        log.debug("获取所有公告列表: page={}, size={}, status={}", page, size, status);
+
         IPage<Announcement> pageObj = PageUtil.createPage(page, size);
         QueryWrapper<Announcement> wrapper = new QueryWrapper<>();
-        
+
         if (status != null && !status.isEmpty()) {
             wrapper.eq("status", status);
         }
-        
+
         wrapper.orderByDesc("created_at");
-        
+
         return announcementMapper.selectPage(pageObj, wrapper);
     }
 
@@ -343,7 +343,7 @@ public class AnnouncementService {
     @Cacheable(value = "announcements", key = "'scroll_list'")
     public List<Announcement> getScrollAnnouncements() {
         log.debug("获取滚动公告列表");
-        
+
         LocalDateTime now = LocalDateTime.now();
         QueryWrapper<Announcement> wrapper = new QueryWrapper<>();
         wrapper.eq("status", "PUBLISHED")
@@ -352,7 +352,7 @@ public class AnnouncementService {
                .ge("end_time", now)
                .orderByDesc("priority")
                .orderByDesc("created_at");
-        
+
         return announcementMapper.selectList(wrapper);
     }
 
@@ -363,7 +363,7 @@ public class AnnouncementService {
     @Cacheable(value = "announcements", key = "'popup_list'")
     public List<Announcement> getPopupAnnouncements() {
         log.debug("获取弹窗公告列表");
-        
+
         LocalDateTime now = LocalDateTime.now();
         QueryWrapper<Announcement> wrapper = new QueryWrapper<>();
         wrapper.eq("status", "PUBLISHED")
@@ -372,61 +372,61 @@ public class AnnouncementService {
                .ge("end_time", now)
                .orderByDesc("priority")
                .orderByDesc("created_at")
-               .last("LIMIT 5"); // 最多显�?条弹窗公�?
-        
+               .last("LIMIT 5"); // 最多显示5条弹窗公告
+
         return announcementMapper.selectList(wrapper);
     }
 
     /**
-     * 检查公告是否有�?
+     * 检查公告是否有效
      * 验证公告的有效期
      */
     public boolean isAnnouncementValid(Announcement announcement) {
         if (announcement == null) {
             return false;
         }
-        
+
         if (!"PUBLISHED".equals(announcement.getStatus())) {
             return false;
         }
-        
+
         LocalDateTime now = LocalDateTime.now();
-        
-        // 检查开始时�?
+
+        // 检查开始时间
         if (announcement.getStartTime() != null && now.isBefore(announcement.getStartTime())) {
             return false;
         }
-        
-        // 检查结束时�?
+
+        // 检查结束时间
         if (announcement.getEndTime() != null && now.isAfter(announcement.getEndTime())) {
             return false;
         }
-        
+
         return true;
     }
 
     /**
-     * 批量检查并更新过期公告状�?
+     * 批量检查并更新过期公告状态
      * 可以通过定时任务调用
      */
     @Transactional
     @CacheEvict(value = "announcements", allEntries = true)
     public int updateExpiredAnnouncements() {
-        log.info("开始更新过期公告状�?);
-        
+        log.info("开始更新过期公告状态");
+
         LocalDateTime now = LocalDateTime.now();
         QueryWrapper<Announcement> wrapper = new QueryWrapper<>();
         wrapper.eq("status", "PUBLISHED")
                .lt("end_time", now);
-        
+
         List<Announcement> expiredAnnouncements = announcementMapper.selectList(wrapper);
-        
+
         for (Announcement announcement : expiredAnnouncements) {
             announcement.setStatus("REVOKED");
             announcementMapper.updateById(announcement);
         }
-        
-        log.info("过期公告状态更新完�? count={}", expiredAnnouncements.size());
+
+        log.info("过期公告状态更新完成: count={}", expiredAnnouncements.size());
         return expiredAnnouncements.size();
     }
 
@@ -435,7 +435,7 @@ public class AnnouncementService {
      */
     public AnnouncementStats getAnnouncementStats() {
         log.debug("获取公告统计信息");
-        
+
         long totalCount = announcementMapper.selectCount(null);
         long publishedCount = announcementMapper.selectCount(
                 new QueryWrapper<Announcement>().eq("status", "PUBLISHED"));
@@ -443,19 +443,19 @@ public class AnnouncementService {
                 new QueryWrapper<Announcement>().eq("status", "DRAFT"));
         long revokedCount = announcementMapper.selectCount(
                 new QueryWrapper<Announcement>().eq("status", "REVOKED"));
-        
+
         LocalDateTime now = LocalDateTime.now();
         long validCount = announcementMapper.selectCount(
                 new QueryWrapper<Announcement>()
                         .eq("status", "PUBLISHED")
                         .le("start_time", now)
                         .ge("end_time", now));
-        
+
         return new AnnouncementStats(totalCount, publishedCount, draftCount, revokedCount, validCount);
     }
 
     /**
-     * 公告统计信息内部�?
+     * 公告统计信息内部类
      */
     public static class AnnouncementStats {
         private final long totalCount;
@@ -464,7 +464,7 @@ public class AnnouncementService {
         private final long revokedCount;
         private final long validCount;
 
-        public AnnouncementStats(long totalCount, long publishedCount, long draftCount, 
+        public AnnouncementStats(long totalCount, long publishedCount, long draftCount,
                                 long revokedCount, long validCount) {
             this.totalCount = totalCount;
             this.publishedCount = publishedCount;
@@ -499,6 +499,6 @@ public class AnnouncementService {
      */
     private void clearAnnouncementCache() {
         cacheService.remove(CacheService.CacheKeys.ANNOUNCEMENT_LIST);
-        log.debug("公告缓存已清�?);
+        log.debug("公告缓存已清除");
     }
 }

@@ -10,7 +10,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 
 /**
- * 异步任务配置
+ * 异步任务执行器配置
  */
 @Slf4j
 @Configuration
@@ -18,7 +18,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class AsyncConfig {
     
     /**
-     * 邮件发送异步任务执行器
+     * 邮件任务执行器 - 用于发送邮件的线程池
      */
     @Bean("mailTaskExecutor")
     public Executor mailTaskExecutor() {
@@ -33,12 +33,12 @@ public class AsyncConfig {
         executor.setAwaitTerminationSeconds(30);
         executor.initialize();
         
-        log.info("邮件任务执行器初始化完成: corePoolSize=2, maxPoolSize=5, queueCapacity=100");
+        log.info("邮件任务执行器初始化完成，corePoolSize=2, maxPoolSize=5, queueCapacity=100");
         return executor;
     }
     
     /**
-     * 排行榜更新异步任务执行器
+     * 排行榜任务执行器 - 用于更新排行榜的线程池
      */
     @Bean("rankingTaskExecutor")
     public Executor rankingTaskExecutor() {
@@ -53,12 +53,12 @@ public class AsyncConfig {
         executor.setAwaitTerminationSeconds(30);
         executor.initialize();
         
-        log.info("排行榜任务执行器初始化完�? corePoolSize=1, maxPoolSize=2, queueCapacity=50");
+        log.info("排行榜任务执行器初始化完成，corePoolSize=1, maxPoolSize=2, queueCapacity=50");
         return executor;
     }
     
     /**
-     * 统计数据异步任务执行�?
+     * 统计数据任务执行器 - 用于处理统计数据的线程池
      */
     @Bean("statisticsTaskExecutor")
     public Executor statisticsTaskExecutor() {
@@ -73,12 +73,12 @@ public class AsyncConfig {
         executor.setAwaitTerminationSeconds(30);
         executor.initialize();
         
-        log.info("统计任务执行器初始化完成: corePoolSize=1, maxPoolSize=3, queueCapacity=20");
+        log.info("统计数据任务执行器初始化完成，corePoolSize=1, maxPoolSize=3, queueCapacity=20");
         return executor;
     }
     
     /**
-     * 通用异步任务执行�?
+     * 通用任务执行器 - 用于处理通用后台任务的线程池
      */
     @Bean("generalTaskExecutor")
     public Executor generalTaskExecutor() {
@@ -93,7 +93,7 @@ public class AsyncConfig {
         executor.setAwaitTerminationSeconds(30);
         executor.initialize();
         
-        log.info("通用任务执行器初始化完成: corePoolSize=3, maxPoolSize=10, queueCapacity=200");
+        log.info("通用任务执行器初始化完成，corePoolSize=3, maxPoolSize=10, queueCapacity=200");
         return executor;
     }
 }

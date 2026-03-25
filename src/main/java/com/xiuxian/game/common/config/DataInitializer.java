@@ -26,10 +26,10 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        logger.info("寮€濮嬪垵濮嬪寲娓告垙鏁版嵁...");
+        logger.info("开始执行数据初始化...");
         
         try {
-            // 娣诲姞閲嶈瘯鏈哄埗锛屽皾璇曡繛鎺ユ暟鎹簱
+            // 确保技能表存在，最多重试5次
             int retryCount = 0;
             int maxRetries = 5;
             while (retryCount < maxRetries) {
@@ -38,15 +38,15 @@ public class DataInitializer implements CommandLineRunner {
                     break;
                 } catch (Exception e) {
                     retryCount++;
-                    logger.warn("鏁版嵁搴撹繛鎺ュけ璐ワ紝绗瑊}娆￠噸璇? {}", retryCount, e.getMessage());
+                    logger.warn("创建技能表失败，第{}次重试: {}", retryCount, e.getMessage());
                     if (retryCount >= maxRetries) {
-                        throw new RuntimeException("鏁版嵁搴撹繛鎺ュけ璐ワ紝宸查噸璇?+maxRetries+"娆★紝璇锋鏌ユ暟鎹簱閰嶇疆鍜岀綉缁滆繛鎺?, e);
+                        throw new RuntimeException("创建技能表失败，已重试"+maxRetries+"次，请检查数据库连接", e);
                     }
                     try {
-                        Thread.sleep(5000); // 绛夊緟5绉掑悗閲嶈瘯
+                        Thread.sleep(5000); // 等待5秒后重试
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
-                        throw new RuntimeException("绾跨▼涓柇", ie);
+                        throw new RuntimeException("线程被中断", ie);
                     }
                 }
             }
@@ -57,36 +57,36 @@ public class DataInitializer implements CommandLineRunner {
             ensurePlayerItemsDefaults();
             ensureShopItemsDefaults();
             ensureAdminUser();
-            // 鍒濆鍖栨妧鑳芥暟鎹?
-            logger.info("鍒濆鍖栨妧鑳芥暟鎹?..");
+            // 初始化默认技能数据
+            logger.info("初始化默认技能数据...");
             initializeDefaultSkills();
-            logger.info("鎶€鑳芥暟鎹垵濮嬪寲瀹屾垚");
-            // 鍒濆鍖栨妧鑳藉晢搴?
-            logger.info("鍒濆鍖栨妧鑳藉晢搴?..");
+            logger.info("默认技能数据初始化完成");
+            // 初始化技能商店数据
+            logger.info("初始化技能商店数据...");
             initializeSkillShop();
-            logger.info("鎶€鑳藉晢搴楀垵濮嬪寲瀹屾垚");
-            // 鍒濆鍖栦换鍔℃ā鏉?
-            logger.info("鍒濆鍖栦换鍔℃ā鏉?..");
+            logger.info("技能商店数据初始化完成");
+            // 初始化任务模板数据
+            logger.info("初始化任务模板数据...");
             initializeQuestTemplates();
-            logger.info("浠诲姟妯℃澘鍒濆鍖栧畬鎴?);
+            logger.info("任务模板数据初始化完成");
             
-            logger.info("娓告垙鏁版嵁鍒濆鍖栧叏閮ㄥ畬鎴愶紒");
+            logger.info("数据初始化全部完成");
         } catch (Exception e) {
-            logger.error("娓告垙鏁版嵁鍒濆鍖栧け璐?, e);
-            // 鍚姩涓嶄腑鏂細璁板綍閿欒浣嗕笉闃绘搴旂敤鍚姩
+            logger.error("数据初始化失败", e);
+            // 不要抛出异常，避免影响应用启动
         }
     }
 
     /**
-     * 鍒濆鍖栭粯璁ゆ妧鑳芥暟鎹?
+     * 初始化默认技能数据
      */
     private void initializeDefaultSkills() {
         long count = skillMapper.selectList(null).size();
         if (count == 0) {
-            // 鍩虹鎶€鑳?
+            // 基础修炼
             Skill basicCultivation = Skill.builder()
-                    .name("鍩虹鍔熸硶")
-                    .description("鎻愬崌鍩虹淇偧閫熷害")
+                    .name("基础修炼")
+                    .description("吸收天地灵气强身健体")
                     .level(1)
                     .maxLevel(100)
                     .baseDamage(0.05)
@@ -94,21 +94,21 @@ public class DataInitializer implements CommandLineRunner {
                     .cooldown(0)
                     .manaCost(0)
                     .skillType("cultivation")
-                    .element("鏃?)
+                    .element("金")
                     .unlockLevel(1)
-                    .healthBonus(10) // 鏂板锛氱敓鍛藉€煎姞鎴?
-                    .manaBonus(5)    // 鏂板锛氭硶鍔涘€煎姞鎴?
-                    .attackBonus(2)  // 鏂板锛氭敾鍑诲姏鍔犳垚
-                    .defenseBonus(1) // 鏂板锛氶槻寰″姏鍔犳垚
-                    .speedBonus(1)   // 鏂板锛氶€熷害鍔犳垚
+                    .healthBonus(10) // 每级增加的生命值
+                    .manaBonus(5)    // 每级增加的法力值
+                    .attackBonus(2)  // 每级增加的攻击力
+                    .defenseBonus(1) // 每级增加的防御力
+                    .speedBonus(1)   // 每级增加的速度值
                     .active(true)
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
                     .build();
 
             Skill fireball = Skill.builder()
-                    .name("鐏悆鏈?)
-                    .description("鍩虹鐏郴鏀诲嚮娉曟湳")
+                    .name("火球术")
+                    .description("基础火系攻击技能")
                     .level(1)
                     .maxLevel(50)
                     .baseDamage(10.0)
@@ -116,7 +116,7 @@ public class DataInitializer implements CommandLineRunner {
                     .cooldown(5)
                     .manaCost(10)
                     .skillType("attack")
-                    .element("鐏?)
+                    .element("火")
                     .unlockLevel(5)
                     .healthBonus(0)
                     .manaBonus(10)
@@ -129,8 +129,8 @@ public class DataInitializer implements CommandLineRunner {
                     .build();
 
             Skill heal = Skill.builder()
-                    .name("娌荤枟鏈?)
-                    .description("鎭㈠鐢熷懡鍊肩殑娉曟湳")
+                    .name("治疗术")
+                    .description("恢复自身生命值")
                     .level(1)
                     .maxLevel(30)
                     .baseDamage(20.0)
@@ -138,7 +138,7 @@ public class DataInitializer implements CommandLineRunner {
                     .cooldown(8)
                     .manaCost(15)
                     .skillType("heal")
-                    .element("鏈?)
+                    .element("木")
                     .unlockLevel(3)
                     .healthBonus(20)
                     .manaBonus(15)
@@ -151,16 +151,16 @@ public class DataInitializer implements CommandLineRunner {
                     .build();
 
             Skill waterShield = Skill.builder()
-                    .name("姘寸浘鏈?)
-                    .description("鍒涢€犱竴涓按鐩撅紝鍑忓皯鍙楀埌鐨勪激瀹?)
+                    .name("水盾")
+                    .description("凝聚水元素形成护盾抵挡伤害")
                     .level(1)
                     .maxLevel(10)
                     .baseDamage(0.0)
                     .damagePerLevel(0.0)
                     .cooldown(10)
                     .manaCost(15)
-                    .skillType("闃插尽")
-                    .element("姘?)
+                    .skillType("防御技能")
+                    .element("水")
                     .unlockLevel(8)
                     .healthBonus(30)
                     .manaBonus(10)
@@ -173,16 +173,16 @@ public class DataInitializer implements CommandLineRunner {
                     .build();
 
             Skill earthSpike = Skill.builder()
-                    .name("鍦板埡鏈?)
-                    .description("浠庡湴闈㈠彫鍞ゅ皷鍒猴紝瀵规晫浜洪€犳垚鍦熷睘鎬т激瀹?)
+                    .name("土刺")
+                    .description("从地下召唤土刺攻击敌人造成伤害")
                     .level(1)
                     .maxLevel(10)
                     .baseDamage(25.0)
                     .damagePerLevel(10.0)
                     .cooldown(5)
                     .manaCost(20)
-                    .skillType("鏀诲嚮")
-                    .element("鍦?)
+                    .skillType("攻击技能")
+                    .element("土")
                     .unlockLevel(12)
                     .healthBonus(0)
                     .manaBonus(0)
@@ -195,16 +195,16 @@ public class DataInitializer implements CommandLineRunner {
                     .build();
 
             Skill windSlash = Skill.builder()
-                    .name("椋庡垉鏈?)
-                    .description("閲婃斁閿嬪埄鐨勯鍒冿紝瀵规晫浜洪€犳垚椋庡睘鎬т激瀹?)
+                    .name("风刃")
+                    .description("凝聚风元素形成利刃快速攻击敌人造成伤害")
                     .level(1)
                     .maxLevel(10)
                     .baseDamage(15.0)
                     .damagePerLevel(7.0)
                     .cooldown(2)
                     .manaCost(8)
-                    .skillType("鏀诲嚮")
-                    .element("椋?)
+                    .skillType("攻击技能")
+                    .element("风")
                     .unlockLevel(10)
                     .healthBonus(0)
                     .manaBonus(5)
@@ -226,7 +226,7 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     /**
-     * 纭繚鎶€鑳借〃瀛樺湪锛圡ySQL锛?
+     * 确保技能表存在，不存在则创建SQL语句
      */
     private void ensureSkillsTableExists() {
         String ddl = "CREATE TABLE IF NOT EXISTS skills (" +
@@ -256,10 +256,10 @@ public class DataInitializer implements CommandLineRunner {
                 ") ENGINE=InnoDB DEFAULT CHARSET=utf8";
         try (Connection conn = dataSource.getConnection(); Statement st = conn.createStatement()) {
             st.execute(ddl);
-            logger.info("妫€娴嬪苟鍒涘缓鎶€鑳借〃鎴愬姛锛堝涓嶅瓨鍦級");
+            logger.info("技能表检查完成，表已存在或已创建");
         } catch (Exception e) {
-            logger.warn("鎶€鑳借〃妫€娴?鍒涘缓澶辫触: {}", e.getMessage());
-            throw new RuntimeException("鏁版嵁搴撹繛鎺ュけ璐ワ紝璇锋鏌ユ暟鎹簱閰嶇疆鍜岀綉缁滆繛鎺?, e);
+            logger.warn("创建技能表失败: {}", e.getMessage());
+            throw new RuntimeException("创建技能表失败，可能是数据库连接问题", e);
         }
     }
 
@@ -267,9 +267,9 @@ public class DataInitializer implements CommandLineRunner {
         String alter = "ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'USER'";
         try (Connection conn = dataSource.getConnection(); Statement st = conn.createStatement()) {
             st.execute(alter);
-            logger.info("娣诲姞 users.role 鍒楁垚鍔?);
+            logger.info("添加 users.role 列成功");
         } catch (Exception e) {
-            logger.warn("users.role 鍒楀彲鑳藉凡瀛樺湪: {}", e.getMessage());
+            logger.warn("users.role 列可能已存在: {}", e.getMessage());
         }
     }
 
@@ -277,9 +277,9 @@ public class DataInitializer implements CommandLineRunner {
         String alter = "ALTER TABLE users ADD COLUMN must_change_password TINYINT(1) NOT NULL DEFAULT 0";
         try (Connection conn = dataSource.getConnection(); Statement st = conn.createStatement()) {
             st.execute(alter);
-            logger.info("娣诲姞 users.must_change_password 鍒楁垚鍔?);
+            logger.info("添加 users.must_change_password 列成功");
         } catch (Exception e) {
-            logger.warn("users.must_change_password 鍒楀彲鑳藉凡瀛樺湪: {}", e.getMessage());
+            logger.warn("users.must_change_password 列可能已存在: {}", e.getMessage());
         }
     }
 
@@ -295,10 +295,10 @@ public class DataInitializer implements CommandLineRunner {
                         .mustChangePassword(false)
                         .build();
                 userMapper.insert(u);
-                logger.info("鍒涘缓榛樿绠＄悊鍛樻垚鍔?);
+                logger.info("默认管理员账户创建成功");
             }
         } catch (Exception e) {
-            logger.warn("鍒涘缓榛樿绠＄悊鍛樺け璐? {}", e.getMessage());
+            logger.warn("创建默认管理员账户失败: {}", e.getMessage());
         }
     }
     private void ensurePlayerSkillsDefaults() {
@@ -307,9 +307,9 @@ public class DataInitializer implements CommandLineRunner {
         try (Connection conn = dataSource.getConnection(); Statement st = conn.createStatement()) {
             st.execute(alter1);
             st.execute(alter2);
-            logger.info("璋冩暣 player_skills 鏃堕棿鎴抽粯璁ゅ€兼垚鍔?);
+            logger.info("修改表 player_skills 的时间戳字段默认值成功");
         } catch (Exception e) {
-            logger.warn("璋冩暣 player_skills 鏃堕棿鎴抽粯璁ゅ€煎け璐? {}", e.getMessage());
+            logger.warn("修改表 player_skills 的时间戳字段失败: {}", e.getMessage());
         }
     }
 
@@ -319,9 +319,9 @@ public class DataInitializer implements CommandLineRunner {
         try (Connection conn = dataSource.getConnection(); Statement st = conn.createStatement()) {
             st.execute(alter1);
             st.execute(alter2);
-            logger.info("璋冩暣 player_items 鏃堕棿鎴抽粯璁ゅ€兼垚鍔?);
+            logger.info("修改表 player_items 的时间戳字段默认值成功");
         } catch (Exception e) {
-            logger.warn("璋冩暣 player_items 鏃堕棿鎴抽粯璁ゅ€煎け璐? {}", e.getMessage());
+            logger.warn("修改表 player_items 的时间戳字段失败: {}", e.getMessage());
         }
     }
 
@@ -331,18 +331,18 @@ public class DataInitializer implements CommandLineRunner {
         try (Connection conn = dataSource.getConnection(); Statement st = conn.createStatement()) {
             st.execute(alter1);
             st.execute(alter2);
-            logger.info("璋冩暣 shop_items 鏃堕棿鎴抽粯璁ゅ€兼垚鍔?);
+            logger.info("修改表 shop_items 的时间戳字段默认值成功");
         } catch (Exception e) {
-            logger.warn("璋冩暣 shop_items 鏃堕棿鎴抽粯璁ゅ€煎け璐? {}", e.getMessage());
+            logger.warn("修改表 shop_items 的时间戳字段失败: {}", e.getMessage());
         }
     }
     
     /**
-     * 鍒濆鍖栨妧鑳藉晢搴楁暟鎹?
+     * 初始化技能商店数据
      */
     private void initializeSkillShop() {
         try (Connection conn = dataSource.getConnection(); Statement st = conn.createStatement()) {
-            // 妫€鏌kill_shop琛ㄦ槸鍚﹀瓨鍦?
+            // 如果不存在则创建skill_shop表
             String checkTable = "CREATE TABLE IF NOT EXISTS skill_shop (" +
                     "id INT AUTO_INCREMENT PRIMARY KEY," +
                     "skill_id INT NOT NULL," +
@@ -355,52 +355,51 @@ public class DataInitializer implements CommandLineRunner {
                     ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
             st.execute(checkTable);
             
-            // 妫€鏌ユ槸鍚﹀凡鏈夋暟鎹?
+            // 如果表为空则插入初始数据
             java.sql.ResultSet rs = st.executeQuery("SELECT COUNT(*) as count FROM skill_shop");
             rs.next();
             int count = rs.getInt("count");
             
             if (count == 0) {
-                // 鎻掑叆榛樿鎶€鑳藉晢搴楁暟鎹?
+                // 插入默认技能商店数据
                 String insertData = "INSERT INTO skill_shop (skill_id, price, required_level, available) VALUES " +
-                        "(1, 500, 1, 1)," +  // 鍩虹鏀诲嚮
-                        "(2, 1200, 5, 1)," + // 鐏悆鏈?
-                        "(3, 1000, 3, 1)," + // 娌荤枟鏈?
-                        "(4, 1600, 8, 1)," + // 姘寸浘鏈?
-                        "(5, 1400, 12, 1)"  + // 鍦板埡鏈?
+                        "(1, 500, 1, 1)," +  // 基础修炼
+                        "(2, 1200, 5, 1)," + // 火球术
+                        "(3, 1000, 3, 1)," + // 治疗术
+                        "(4, 1600, 8, 1)," + // 水盾
+                        "(5, 1400, 12, 1)"  + // 土刺
                         " ON DUPLICATE KEY UPDATE price=VALUES(price)";
                 st.execute(insertData);
-                logger.info("鎶€鑳藉晢搴楅粯璁ゆ暟鎹垵濮嬪寲鎴愬姛");
+                logger.info("技能商店数据初始化完成");
             }
         } catch (Exception e) {
-            logger.warn("鍒濆鍖栨妧鑳藉晢搴楀け璐? {}", e.getMessage());
+            logger.warn("初始化技能商店数据失败: {}", e.getMessage());
         }
     }
     
     /**
-     * 鍒濆鍖栦换鍔℃ā鏉?
+     * 初始化任务模板数据
      */
     private void initializeQuestTemplates() {
         try (Connection conn = dataSource.getConnection(); Statement st = conn.createStatement()) {
-            // 妫€鏌ユ槸鍚﹀凡鏈変换鍔℃暟鎹?
+            // 如果表为空则插入初始任务模板
             java.sql.ResultSet rs = st.executeQuery("SELECT COUNT(*) as count FROM quests WHERE type IN ('DAILY', 'WEEKLY', 'MONTHLY')");
             rs.next();
             int count = rs.getInt("count");
             
             if (count == 0) {
-                // 鎻掑叆榛樿浠诲姟妯℃澘
+                // 插入默认任务模板
                 String insertQuests = "INSERT INTO quests (title, description, type, required_amount, reward_exp, reward_spirit_stones, reward_contribution_points, created_at, updated_at) VALUES " +
-                        "('姣忔棩淇偧', '瀹屾垚涓€娆′慨鐐?, 'DAILY', 1, 100, 50, 10, NOW(), NOW())," +
-                        "('姣忔棩鏀堕泦鐏电煶', '鑾峰緱100鐏电煶', 'DAILY', 100, 120, 80, 12, NOW(), NOW())," +
-                        "('姣忓懆淇偧杩涘害', '绱淇偧300绉?, 'WEEKLY', 300, 800, 500, 50, NOW(), NOW())," +
-                        "('姣忓懆鍗囩骇涓€娆?, '鎻愬崌1绾?, 'WEEKLY', 1, 1000, 600, 60, NOW(), NOW())," +
-                        "('姣忔湀绐佺牬澧冪晫', '瀹屾垚10娆′慨鐐?, 'MONTHLY', 10, 3000, 2000, 200, NOW(), NOW())";
+                        "('每日签到', '每天登录游戏', 'DAILY', 1, 100, 50, 10, NOW(), NOW())," +
+                        "('每日修炼经验', '获得100修炼经验', 'DAILY', 100, 120, 80, 12, NOW(), NOW())," +
+                        "('每周累计签到奖励', '每周累计签到300次', 'WEEKLY', 300, 800, 500, 50, NOW(), NOW())," +
+                        "('每周境界突破', '突破境界成功', 'WEEKLY', 1, 1000, 600, 60, NOW(), NOW())," +
+                        "('每月累计完成任务', '完成10个任务', 'MONTHLY', 10, 3000, 2000, 200, NOW(), NOW())";
                 st.execute(insertQuests);
-                logger.info("浠诲姟妯℃澘榛樿鏁版嵁鍒濆鍖栨垚鍔?);
+                logger.info("任务模板数据初始化成功");
             }
         } catch (Exception e) {
-            logger.warn("鍒濆鍖栦换鍔℃ā鏉垮け璐? {}", e.getMessage());
+            logger.warn("初始化任务模板数据失败: {}", e.getMessage());
         }
     }
 }
-

@@ -36,7 +36,7 @@ public class ActivityController {
     }
 
     /**
-     * 获取所有活动（包括已结束的�?
+     * 获取所有活动（包括已结束的）
      */
     @GetMapping("/all")
     @PreAuthorize("isAuthenticated()")
@@ -50,7 +50,7 @@ public class ActivityController {
     }
 
     /**
-     * 获取玩家参与的活动进�?
+     * 获取玩家参与的活动进度
      */
     @GetMapping("/my-progress")
     @PreAuthorize("isAuthenticated()")

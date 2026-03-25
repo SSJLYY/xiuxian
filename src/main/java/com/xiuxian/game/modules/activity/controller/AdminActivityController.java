@@ -82,7 +82,7 @@ public class AdminActivityController {
         try {
             Activity activity = activityService.getById(id);
             if (activity == null) {
-                return ApiResponse.error("活动不存�?);
+                return ApiResponse.error("活动不存在");
             }
             return ApiResponse.success("获取成功", activity);
         } catch (Exception e) {
