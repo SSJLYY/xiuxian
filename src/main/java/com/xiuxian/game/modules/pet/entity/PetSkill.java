@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 
 /**
  * 宠物技能实体类
- * 对应数据�?pet_skills �?
+ * 对应数据库 pet_skills 表
  */
 @TableName("pet_skills")
 @Data
@@ -33,7 +33,7 @@ public class PetSkill {
     private String description;
 
     @TableField(value = "skill_type")
-    private String skillType; // 攻击、防御、辅�?
+    private String skillType; // 攻击、防御、辅助
 
     @TableField(value = "base_damage")
     @Builder.Default
@@ -65,4 +65,3 @@ public class PetSkill {
     @TableField(value = "updated_at")
     private LocalDateTime updatedAt;
 }
-

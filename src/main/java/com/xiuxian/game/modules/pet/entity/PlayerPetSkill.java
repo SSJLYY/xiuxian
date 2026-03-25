@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 
 /**
  * 玩家宠物技能实体类
- * 对应数据�?player_pet_skills �?
+ * 对应数据库 player_pet_skills 表
  */
 @TableName("player_pet_skills")
 @Data
@@ -38,4 +38,3 @@ public class PlayerPetSkill {
     @TableField(value = "learned_at")
     private LocalDateTime learnedAt;
 }
-

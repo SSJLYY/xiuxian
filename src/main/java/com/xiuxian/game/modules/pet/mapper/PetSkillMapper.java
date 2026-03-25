@@ -12,15 +12,14 @@ import java.util.List;
 public interface PetSkillMapper extends BaseMapper<PetSkill> {
 
     /**
-     * 根据技能类型查�?
+     * 根据技能类型查询
      */
     @Select("SELECT * FROM pet_skills WHERE skill_type = #{skillType} AND active = true")
     List<PetSkill> selectByType(@Param("skillType") String skillType);
 
     /**
-     * 查询宠物可学习的技�?
+     * 查询宠物可学习的技能
      */
     @Select("SELECT * FROM pet_skills WHERE unlock_pet_level <= #{petLevel} AND active = true")
     List<PetSkill> selectAvailableSkills(@Param("petLevel") Integer petLevel);
 }
-

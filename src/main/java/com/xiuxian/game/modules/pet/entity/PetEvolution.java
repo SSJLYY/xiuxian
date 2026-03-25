@@ -25,7 +25,7 @@ public class PetEvolution {
     private Integer petId;
 
     /**
-     * 进化阶段�?=第一次进化，3=第二次进化）
+     * 进化阶段（1=第一次进化，3=第二次进化）
      */
     private Integer evolutionStage;
 
@@ -35,17 +35,17 @@ public class PetEvolution {
     private String evolutionName;
 
     /**
-     * 需求等�?
+     * 需求等级
      */
     private Integer requiredLevel;
 
     /**
-     * 需求物品ID（进化丹�?
+     * 需求物品ID（进化道具）
      */
     private Integer requiredItemId;
 
     /**
-     * 需求物品数�?
+     * 需求物品数量
      */
     private Integer requiredItemQuantity;
 
@@ -75,8 +75,7 @@ public class PetEvolution {
     private Integer newAbilityId;
 
     /**
-     * 外观变化（JSON格式�?
+     * 外观变化（JSON格式）
      */
     private String appearanceChange;
 }
-

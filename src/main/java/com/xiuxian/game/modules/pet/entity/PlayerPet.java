@@ -12,8 +12,8 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * 玩家宠物实体�?
- * 对应数据�?player_pets �?
+ * 玩家宠物实体类
+ * 对应数据库 player_pets 表
  */
 @TableName("player_pets")
 @Data
@@ -68,11 +68,11 @@ public class PlayerPet {
 
     @TableField(value = "loyalty")
     @Builder.Default
-    private Integer loyalty = 50; // 忠诚�?0-100)
+    private Integer loyalty = 50; // 忠诚度(0-100)
 
     @TableField(value = "hunger")
     @Builder.Default
-    private Integer hunger = 100; // 饱食�?0-100)
+    private Integer hunger = 100; // 饱食度(0-100)
 
     @TableField(value = "is_active")
     @Builder.Default
@@ -116,20 +116,19 @@ public class PlayerPet {
     }
 
     /**
-     * 检查是否需要喂�?
+     * 检查是否需要喂食
      */
     public boolean needsFeeding() {
         return hunger < 30;
     }
 
     /**
-     * 检查忠诚度状�?
+     * 检查忠诚度状态
      */
     public String getLoyaltyStatus() {
         if (loyalty >= 80) return "忠诚";
         if (loyalty >= 50) return "友好";
-        if (loyalty >= 20) return "一�?;
+        if (loyalty >= 20) return "一般";
         return "疏远";
     }
 }
-

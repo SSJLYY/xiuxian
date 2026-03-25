@@ -15,7 +15,7 @@ import java.util.List;
 public interface PetEvolutionMapper extends BaseMapper<PetEvolution> {
 
     /**
-     * 获取宠物所有进化阶�?
+     * 获取宠物所有进化阶段
      */
     @Select("SELECT * FROM pet_evolution WHERE pet_id = #{petId} ORDER BY evolution_stage ASC")
     List<PetEvolution> selectByPetId(@Param("petId") Integer petId);
@@ -32,4 +32,3 @@ public interface PetEvolutionMapper extends BaseMapper<PetEvolution> {
     @Select("SELECT * FROM pet_evolution WHERE pet_id = #{petId} AND evolution_stage > #{currentStage} ORDER BY evolution_stage ASC LIMIT 1")
     PetEvolution selectNextEvolution(@Param("petId") Integer petId, @Param("currentStage") Integer currentStage);
 }
-

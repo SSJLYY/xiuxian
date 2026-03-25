@@ -12,8 +12,8 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * 宠物训练日志实体�?
- * 对应数据�?pet_training_logs �?
+ * 宠物训练日志实体类
+ * 对应数据库 pet_training_logs 表
  */
 @TableName("pet_training_logs")
 @Data
@@ -45,4 +45,3 @@ public class PetTrainingLog {
     @TableField(value = "created_at")
     private LocalDateTime createdAt;
 }
-

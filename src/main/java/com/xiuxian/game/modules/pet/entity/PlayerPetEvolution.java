@@ -3,15 +3,21 @@ package com.xiuxian.game.modules.pet.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 /**
  * 玩家宠物进化记录实体
- * 记录玩家宠物的进化状�?
+ * 记录玩家宠物的进化状态
  */
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @TableName("player_pet_evolution")
 public class PlayerPetEvolution {
 
@@ -33,4 +39,3 @@ public class PlayerPetEvolution {
      */
     private LocalDateTime evolvedAt;
 }
-

@@ -44,7 +44,7 @@ public class AuthService {
 
     @Transactional
     public LoginResponse register(RegisterRequest request) {
-        log.info("开始注册流�? username={}, email={}", request.getUsername(), request.getEmail());
+        log.info("开始注册流程: username={}, email={}", request.getUsername(), request.getEmail());
 
         if (userMapper.selectByUsername(request.getUsername()) != null) {
             throw new BusinessException(ErrorCode.USERNAME_ALREADY_EXISTS);

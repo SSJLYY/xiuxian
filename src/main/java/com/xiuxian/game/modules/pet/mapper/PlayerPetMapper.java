@@ -13,19 +13,19 @@ import java.util.List;
 public interface PlayerPetMapper extends BaseMapper<PlayerPet> {
 
     /**
-     * 查询玩家的所有宠�?
+     * 查询玩家的所有宠物
      */
     @Select("SELECT * FROM player_pets WHERE player_id = #{playerId} ORDER BY is_active DESC, level DESC")
     List<PlayerPet> selectByPlayerId(@Param("playerId") Integer playerId);
 
     /**
-     * 查询玩家的出战宠�?
+     * 查询玩家的出战宠物
      */
     @Select("SELECT * FROM player_pets WHERE player_id = #{playerId} AND is_active = true LIMIT 1")
     PlayerPet selectActivePet(@Param("playerId") Integer playerId);
 
     /**
-     * 取消所有出战状�?
+     * 取消所有出战状态
      */
     @Update("UPDATE player_pets SET is_active = false WHERE player_id = #{playerId}")
     int deactivateAllPets(@Param("playerId") Integer playerId);
@@ -36,4 +36,3 @@ public interface PlayerPetMapper extends BaseMapper<PlayerPet> {
     @Select("SELECT COUNT(*) FROM player_pets WHERE player_id = #{playerId} AND pet_id = #{petId}")
     int countByPlayerIdAndPetId(@Param("playerId") Integer playerId, @Param("petId") Integer petId);
 }
-

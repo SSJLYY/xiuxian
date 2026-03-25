@@ -12,15 +12,14 @@ import java.util.List;
 public interface PlayerPetSkillMapper extends BaseMapper<PlayerPetSkill> {
 
     /**
-     * 查询宠物的所有技�?
+     * 查询宠物的所有技能
      */
     @Select("SELECT * FROM player_pet_skills WHERE player_pet_id = #{playerPetId}")
     List<PlayerPetSkill> selectByPlayerPetId(@Param("playerPetId") Integer playerPetId);
 
     /**
-     * 查询宠物是否已学习某技�?
+     * 查询宠物是否已学习某技能
      */
     @Select("SELECT * FROM player_pet_skills WHERE player_pet_id = #{playerPetId} AND pet_skill_id = #{petSkillId} LIMIT 1")
     PlayerPetSkill selectByPlayerPetIdAndSkillId(@Param("playerPetId") Integer playerPetId, @Param("petSkillId") Integer petSkillId);
 }
-

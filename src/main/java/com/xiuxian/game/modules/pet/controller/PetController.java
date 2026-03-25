@@ -2,28 +2,9 @@ package com.xiuxian.game.modules.pet.controller;
 
 import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.dto.PetEvolutionResult;
-import com.xiuxian.game.modules.player.entity.*;
-import com.xiuxian.game.modules.combat.entity.*;
-import com.xiuxian.game.modules.cultivation.entity.*;
-import com.xiuxian.game.modules.pet.entity.*;
-import com.xiuxian.game.modules.equipment.entity.*;
-import com.xiuxian.game.modules.skill.entity.*;
-import com.xiuxian.game.modules.quest.entity.*;
-import com.xiuxian.game.modules.achievement.entity.*;
-import com.xiuxian.game.modules.guild.entity.*;
-import com.xiuxian.game.modules.ranking.entity.*;
-import com.xiuxian.game.modules.auction.entity.*;
-import com.xiuxian.game.modules.narrative.entity.*;
-import com.xiuxian.game.modules.mail.entity.*;
-import com.xiuxian.game.modules.shop.entity.*;
-import com.xiuxian.game.modules.checkin.entity.*;
-import com.xiuxian.game.modules.activity.entity.*;
-import com.xiuxian.game.modules.giftcode.entity.*;
-import com.xiuxian.game.modules.offline.entity.*;
-import com.xiuxian.game.modules.map.entity.*;
-import com.xiuxian.game.modules.announcement.entity.*;
-import com.xiuxian.game.modules.vip.entity.*;
-import com.xiuxian.game.modules.admin.entity.*;
+import com.xiuxian.game.modules.pet.entity.Pet;
+import com.xiuxian.game.modules.pet.entity.PlayerPet;
+import com.xiuxian.game.modules.pet.entity.PetTrainingLog;
 import com.xiuxian.game.modules.pet.service.PetService;
 import com.xiuxian.game.modules.player.service.PlayerService;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 宠物控制�?
+ * 宠物控制器
  * 处理宠物相关的HTTP请求
  */
 @RestController
@@ -48,7 +29,7 @@ public class PetController {
     private final PlayerService playerService;
 
     /**
-     * 获取所有宠物模�?
+     * 获取所有宠物模板
      */
     @GetMapping
     public ResponseEntity<ApiResponse<List<Pet>>> getAllPets() {
@@ -75,7 +56,7 @@ public class PetController {
     }
 
     /**
-     * 获取玩家的所有宠�?
+     * 获取玩家的所有宠物
      */
     @GetMapping("/my")
     public ResponseEntity<ApiResponse<List<PlayerPet>>> getMyPets() {
@@ -165,7 +146,7 @@ public class PetController {
     }
 
     /**
-     * 重命名宠�?
+     * 重命名宠物
      */
     @PostMapping("/rename/{playerPetId}")
     public ResponseEntity<ApiResponse<Void>> renamePet(
@@ -175,7 +156,7 @@ public class PetController {
             Integer playerId = playerService.getCurrentPlayerId();
             String newNickname = request.get("nickname");
             petService.renamePet(playerId, playerPetId, newNickname);
-            return ResponseEntity.ok(ApiResponse.success("重命名成�?, null));
+            return ResponseEntity.ok(ApiResponse.success("重命名成功", null));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
@@ -227,7 +208,7 @@ public class PetController {
     // ==================== 宠物进化相关API ====================
 
     /**
-     * 检查宠物是否可以进�?
+     * 检查宠物是否可以进化
      */
     @GetMapping("/evolution/check/{playerPetId}")
     public ResponseEntity<ApiResponse<PetEvolutionResult>> checkEvolution(@PathVariable Integer playerPetId) {
@@ -246,7 +227,7 @@ public class PetController {
     public ResponseEntity<ApiResponse<PetEvolutionResult>> evolvePet(@PathVariable Integer playerPetId) {
         try {
             PetEvolutionResult result = petService.evolvePet(playerPetId);
-            return ResponseEntity.ok(ApiResponse.success(result.isSuccess() ? "进化成功�? : "进化失败", result));
+            return ResponseEntity.ok(ApiResponse.success(result.isSuccess() ? "进化成功！" : "进化失败", result));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
@@ -265,5 +246,3 @@ public class PetController {
         }
     }
 }
-
-
