@@ -9,6 +9,9 @@ import com.xiuxian.game.modules.combat.entity.Monster;
 import com.xiuxian.game.modules.combat.mapper.CombatLogMapper;
 import com.xiuxian.game.modules.combat.mapper.MonsterMapper;
 // cross-module entities accessed via Service interfaces
+import com.xiuxian.game.modules.equipment.service.EquipmentService;
+import com.xiuxian.game.modules.pet.entity.PlayerPet;
+import com.xiuxian.game.modules.pet.service.PetService;
 import com.xiuxian.game.modules.player.entity.PlayerItem;
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
 import com.xiuxian.game.modules.skill.entity.PlayerSkill;
@@ -24,7 +27,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Slf4j

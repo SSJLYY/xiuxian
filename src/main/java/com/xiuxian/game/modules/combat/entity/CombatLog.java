@@ -11,6 +11,10 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+/**
+ * 战斗日志实体
+ * 记录每次战斗的结果、回合数、奖励等信息
+ */
 @TableName("combat_logs")
 @Data
 @Builder
@@ -45,9 +49,8 @@ public class CombatLog {
     private Integer equipmentDropped;
 
     @TableField(value = "battle_details")
-    private String battleDetails; // JSON格式的详细战斗记�?
+    private String battleDetails; // JSON格式的详细战斗记录
 
     @TableField(value = "created_at")
     private LocalDateTime createdAt;
 }
-

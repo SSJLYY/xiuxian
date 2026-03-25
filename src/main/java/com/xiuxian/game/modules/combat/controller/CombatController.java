@@ -1,6 +1,6 @@
 package com.xiuxian.game.modules.combat.controller;
 
-import com.xiuxian.game.dto.response.ApiResponse;
+import com.xiuxian.game.response.ApiResponse;
 import com.xiuxian.game.dto.response.CombatResult;
 import com.xiuxian.game.modules.combat.entity.CombatLog;
 import com.xiuxian.game.modules.combat.entity.Monster;
@@ -17,8 +17,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 战斗控制�?
- * 提供战斗相关�?REST API：生成怪物、单次战斗、批量战斗、战斗历�?
+ * 战斗控制器
+ * 提供战斗相关的 REST API：生成怪物、单次战斗、批量战斗、战斗历史
  */
 @Slf4j
 @RestController
@@ -30,6 +30,9 @@ public class CombatController {
     private final EnhancedCombatService enhancedCombatService;
     private final PlayerService playerService;
 
+    /**
+     * 生成怪物
+     */
     @GetMapping("/generate-monster")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Monster>> generateMonster(@RequestParam(required = false) Integer mapId) {
@@ -42,6 +45,9 @@ public class CombatController {
         }
     }
 
+    /**
+     * 开始战斗（随机生成怪物）
+     */
     @PostMapping("/start")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<CombatResult>> startCombat(@RequestBody Map<String, Object> request) {
@@ -58,6 +64,9 @@ public class CombatController {
         }
     }
 
+    /**
+     * 指定怪物开始战斗
+     */
     @PostMapping("/start/{monsterId}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<CombatResult>> startCombatWithMonster(@PathVariable Integer monsterId) {
@@ -76,7 +85,7 @@ public class CombatController {
     }
 
     /**
-     * 增强战斗 - 支持技能、宠物、道�?
+     * 增强战斗 - 支持技能、宠物、道具
      */
     @PostMapping("/enhanced")
     @PreAuthorize("isAuthenticated()")
@@ -95,7 +104,7 @@ public class CombatController {
     }
 
     /**
-     * 批量战斗 - 一次执行多次战斗并返回汇总结�?
+     * 批量战斗 - 一次执行多次战斗并返回汇总结果
      */
     @PostMapping("/batch/{times}")
     @PreAuthorize("isAuthenticated()")
@@ -115,6 +124,9 @@ public class CombatController {
         }
     }
 
+    /**
+     * 获取战斗历史
+     */
     @GetMapping("/history")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<CombatLog>>> getCombatHistory(
@@ -133,7 +145,7 @@ public class CombatController {
     // =====================================================================
 
     /**
-     * 从请求体中安全解�?mapId
+     * 从请求体中安全解析 mapId
      */
     private Integer extractMapId(Map<String, Object> request) {
         if (request == null || !request.containsKey("mapId")) return null;
@@ -164,4 +176,3 @@ public class CombatController {
         public void setItemId(Integer itemId) { this.itemId = itemId; }
     }
 }
-

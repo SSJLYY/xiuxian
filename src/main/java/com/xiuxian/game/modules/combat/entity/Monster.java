@@ -11,6 +11,10 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+/**
+ * 怪物实体
+ * 对应 monsters 表，存储怪物模板数据
+ */
 @TableName("monsters")
 @Data
 @Builder
@@ -32,7 +36,7 @@ public class Monster {
 
     @TableField(value = "type")
     @Builder.Default
-    private String type = "普�?; // 普通、精英、BOSS
+    private String type = "普通"; // 普通、精英、BOSS
 
     @TableField(value = "health")
     @Builder.Default
@@ -60,7 +64,7 @@ public class Monster {
 
     @TableField(value = "drop_rate")
     @Builder.Default
-    private Integer dropRate = 10; // 掉落�?百分�?
+    private Integer dropRate = 10; // 掉落率 百分比
 
     @TableField(value = "drop_equipment_id")
     private Integer dropEquipmentId; // 可能掉落的装备ID
@@ -84,4 +88,3 @@ public class Monster {
         return attack * 2 + defense + health / 10;
     }
 }
-

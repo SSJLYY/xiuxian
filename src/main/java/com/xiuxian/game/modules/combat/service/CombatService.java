@@ -7,9 +7,9 @@ import com.xiuxian.game.common.util.GameBalanceUtils;
 import com.xiuxian.game.dto.response.CombatResult;
 import com.xiuxian.game.dto.response.PetCombatBonus;
 import com.xiuxian.game.modules.combat.entity.CombatLog;
+import com.xiuxian.game.modules.combat.entity.MapMonster;
 import com.xiuxian.game.modules.combat.entity.Monster;
 import com.xiuxian.game.modules.combat.mapper.CombatLogMapper;
-import com.xiuxian.game.modules.combat.entity.MapMonster;
 import com.xiuxian.game.modules.combat.mapper.MapMonsterMapper;
 import com.xiuxian.game.modules.combat.mapper.MonsterMapper;
 import com.xiuxian.game.modules.equipment.service.EquipmentService;
@@ -42,74 +42,79 @@ public class CombatService {
     private final GameBalanceConfig balance;
     private final GameBalanceUtils balanceUtils;
 
+    private static ThreadLocalRandom rng() {
+        return ThreadLocalRandom.current();
+    }
+
     /**
-     * 鐢熸垚鎬墿
+     * 生成怪物（默认地图1）
      */
     public Monster generateMonster(Integer playerLevel) {
-        return generateMonsterByMap(playerLevel, 1); // 榛樿鍦板浘1
+        return generateMonsterByMap(playerLevel, 1);
     }
-    
+
     /**
-     * 鏍规嵁鍦板浘鐢熸垚鎬墿
-     * @param playerLevel 鐜╁绛夌骇
-     * @param mapId 鍦板浘ID (1=鏂版墜鏉? 2=閲庡)
+     * 根据地图生成怪物
+     *
+     * @param playerLevel 玩家等级
+     * @param mapId       地图ID (1=新手村, 2=野外)
      */
     public Monster generateMonster(Integer playerLevel, Integer mapId) {
         return generateMonsterByMap(playerLevel, mapId != null ? mapId : 1);
     }
-    
+
     private Monster generateMonsterByMap(Integer playerLevel, int mapId) {
-        // 鏍规嵁鍦板浘ID璋冩暣鎬墿绛夌骇鑼冨洿
+        // 根据地图ID调整怪物等级范围
         int minLevel, maxLevel;
         String monsterType;
-        
+
         switch (mapId) {
-            case 1: // 鏂版墜鏉?- 绠€鍗曞湴鍥撅紙鎬墿绛夌骇浣庝簬鐜╁锛?
+            case 1: // 新手村 - 简单地图（怪物等级低于玩家）
                 minLevel = Math.max(1, playerLevel - 5);
                 maxLevel = Math.max(1, playerLevel - 2);
                 break;
-            case 2: // 閲庡 - 涓瓑闅惧害鍦板浘
+            case 2: // 野外 - 中等难度地图
                 minLevel = Math.max(1, playerLevel - 1);
                 maxLevel = playerLevel + 1;
                 break;
-            default: // 榛樿鎯呭喌
+            default: // 默认情况
                 minLevel = Math.max(1, playerLevel - 2);
                 maxLevel = playerLevel + 2;
                 break;
         }
-        
-        // 鏍规嵁鍦板浘璋冩暣鎬墿绫诲瀷姒傜巼
+
+        // 根据地图调整怪物类型概率
         int typeRoll = rng().nextInt(100);
         if (mapId == 1) {
-            // 鏂版墜鏉戯細95%鏅€氾紝5%绮捐嫳锛?%BOSS
+            // 新手村：95%普通，5%精英，0%BOSS
             if (typeRoll < 95) {
-                monsterType = "鏅€?;
+                monsterType = "普通";
             } else {
-                monsterType = "绮捐嫳";
+                monsterType = "精英";
             }
         } else if (mapId == 2) {
-            // 閲庡锛?0%鏅€氾紝25%绮捐嫳锛?%BOSS
+            // 野外：70%普通，25%精英，5%BOSS
             if (typeRoll < 70) {
-                monsterType = "鏅€?;
+                monsterType = "普通";
             } else if (typeRoll < 95) {
-                monsterType = "绮捐嫳";
+                monsterType = "精英";
             } else {
                 monsterType = "BOSS";
             }
         } else {
-            // 榛樿锛?0%鏅€氾紝25%绮捐嫳锛?%BOSS
+            // 默认：70%普通，25%精英，5%BOSS
             if (typeRoll < 70) {
-                monsterType = "鏅€?;
+                monsterType = "普通";
             } else if (typeRoll < 95) {
-                monsterType = "绮捐嫳";
+                monsterType = "精英";
             } else {
                 monsterType = "BOSS";
             }
         }
-        
+
         Monster monster = monsterMapper.selectRandomByLevelAndType(playerLevel, monsterType);
-        
-        // 濡傛灉鏁版嵁搴撴病鏈夊搴旀€墿锛屽皾璇曞湪绛夌骇鑼冨洿鍐呴殢鏈洪€夊彇锛屾渶鍚庢寜鏈€澶х瓑绾у厹搴?
+
+        // 如果数据库没有对应怪物，尝试在等级范围内随机选取，最后按最大等级兜底
         if (monster == null) {
             List<Monster> candidates = monsterMapper.selectByLevelRange(minLevel, maxLevel);
             if (candidates != null && !candidates.isEmpty()) {
@@ -118,26 +123,26 @@ public class CombatService {
                 monster = monsterMapper.selectRandomByMaxLevel(maxLevel);
             }
         }
-        
-        // 濡傛灉杩樻槸娌℃湁鎬墿锛岀敓鎴愪复鏃舵€墿
+
+        // 如果还是没有怪物，生成临时怪物
         if (monster == null) {
             int targetLevel = (minLevel + maxLevel) / 2;
             monster = generateTemporaryMonster(targetLevel, monsterType);
         }
-        
-        // 瀵逛簬鏂版墜鏉戯紝杩涗竴姝ラ檷浣庢€墿灞炴€э紙70%锛?
+
+        // 对于新手村，进一步降低怪物属性（70%）
         if (mapId == 1) {
             monster = weakenMonster(monster, 0.7);
         }
-        
+
         return monster;
     }
-    
+
     /**
-     * 鍓婂急鎬墿灞炴€?
+     * 削弱怪物属性
      */
     private Monster weakenMonster(Monster monster, double factor) {
-        Monster weakened = Monster.builder()
+        return Monster.builder()
                 .id(monster.getId())
                 .name(monster.getName())
                 .description(monster.getDescription())
@@ -154,28 +159,27 @@ public class CombatService {
                 .createdAt(monster.getCreatedAt())
                 .updatedAt(monster.getUpdatedAt())
                 .build();
-        return weakened;
     }
 
     /**
-     * 鐢熸垚涓存椂鎬墿锛堝綋鏁版嵁搴撴病鏈夊搴旀€墿鏃讹級- 浼樺寲骞宠　鎬?
+     * 生成临时怪物（当数据库没有对应怪物时）- 优化平衡性
      */
     private Monster generateTemporaryMonster(Integer level, String type) {
-        String[] normalNames = {"閲庣嫾", "灞辫醇", "濡栨€?, "閭慨", "鎭剁伒"};
-        String[] eliteNames = {"鐙傛毚閲庣嫾", "灞辫醇澶寸洰", "鍗冨勾濡栨€?, "閭亾闀胯€?, "鍘夐"};
-        String[] bossNames = {"鐙肩帇", "瀵ㄤ富", "濡栫帇", "閭亾鎶ゆ硶", "楝肩帇"};
-        
-        String[] names = type.equals("BOSS") ? bossNames : 
-                        type.equals("绮捐嫳") ? eliteNames : normalNames;
+        String[] normalNames = {"野狼", "山虎", "妖鬼", "邪修", "恶灵"};
+        String[] eliteNames = {"狂暴野狼", "山虎头目", "千年妖鬼", "邪道长老", "厉鬼"};
+        String[] bossNames = {"狼王", "寇主", "妖王", "邪道护法", "炼王"};
+
+        String[] names = type.equals("BOSS") ? bossNames :
+                        type.equals("精英") ? eliteNames : normalNames;
         String name = names[rng().nextInt(names.length)];
-        
-        double typeMultiplier = type.equals("BOSS") ? 2.5 : 
-                               type.equals("绮捐嫳") ? 1.3 : 0.8;
-        
-        // 浼樺寲灞炴€ц绠楋紝闄嶄綆鎬墿寮哄害
+
+        double typeMultiplier = type.equals("BOSS") ? 2.5 :
+                               type.equals("精英") ? 1.3 : 0.8;
+
+        // 优化属性计算，降低怪物强度
         return Monster.builder()
                 .name(name)
-                .description("绛夌骇" + level + "鐨? + type + "鎬墿")
+                .description("等级" + level + "的" + type + "怪物")
                 .level(level)
                 .type(type)
                 .health((int)(80 + level * 15 * typeMultiplier))
@@ -184,26 +188,26 @@ public class CombatService {
                 .speed(10 + level / 2)
                 .expReward((int)(50 + level * 10 * typeMultiplier))
                 .spiritStonesReward((int)(10 + level * 2 * typeMultiplier))
-                .dropRate(type.equals("BOSS") ? 50 : type.equals("绮捐嫳") ? 20 : 10)
+                .dropRate(type.equals("BOSS") ? 50 : type.equals("精英") ? 20 : 10)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
     }
 
     /**
-     * 鎴樻枟涓婚€昏緫
+     * 战斗主逻辑
      *
-     * <p>銆怭2-9 閲嶆瀯銆戣繑鍥炲€肩敱 {@code Map<String, Object>} 鏀逛负寮虹被鍨?{@link CombatResult}锛?
-     * 娑堥櫎寮辩被鍨嬪甫鏉ョ殑閿悕鎷煎啓椋庨櫓鍜岃繍琛屾椂 ClassCastException 闅愭偅銆?/p>
+     * <p>【P2-9 重构】返回值由 {@code Map<String, Object>} 改为强类型 {@link CombatResult}，
+     * 消除弱类型带来的键名拼写风险和运行时 ClassCastException 隐患。</p>
      */
     @Transactional
     public CombatResult startCombat(Integer playerId, Monster monster) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("鐜╁涓嶅瓨鍦?);
+            throw new IllegalArgumentException("玩家不存在");
         }
 
-        // 鑾峰彇鐜╁鎬诲睘鎬э紙鍩虹+瑁呭鍔犳垚锛?
+        // 获取玩家总属性（基础+装备加成）
         int playerHealth = player.getHealth() + player.getEquipmentHealthBonus();
         int playerAttack = player.getAttack() + player.getEquipmentAttackBonus();
         int playerDefense = player.getDefense() + player.getEquipmentDefenseBonus();
@@ -214,64 +218,69 @@ public class CombatService {
         int monsterDefense = monster.getDefense();
         int monsterSpeed = monster.getSpeed();
 
-        // GDD鏂版墜淇濇姢锛氬墠3鍦烘垬鏂楋紝鎬墿灞炴€ч檷浣?0%锛岀'淇濋鎴樺繀鑳?
-        // 缁熻鐜╁鎴樻枟娆℃暟锛堜粠combat_logs琛級
+        List<String> battleLog = new ArrayList<>();
+
+        // GDD新手保护：前N场战斗，怪物属性降低，确保新玩家必能胜
+        // 统计玩家战斗次数（从combat_logs表）
         long battleCount = combatLogMapper.countByPlayerId(playerId);
         boolean isNewPlayer = battleCount < balance.getCombat().getNewbieBattleProtection();
-        
+
         if (isNewPlayer) {
             double factor = balance.getCombat().getNewbieMonsterWeakFactor();
             monsterHealth = (int)(monsterHealth * factor);
             monsterAttack = (int)(monsterAttack * factor);
             monsterDefense = (int)(monsterDefense * factor);
-            battleLog.add("馃専 鏂版墜淇濇姢涓紒鎬墿灞炴€ч檷浣? + (int)((1-factor)*100) + "%锛屽姪浣犺交鏉捐幏鑳滐紒");
+            battleLog.add("🌟 新手保护中！怪物属性降低" + (int)((1 - factor) * 100) + "%，助你轻松获胜！");
         }
 
-        List<String> battleLog = new ArrayList<>();
-        battleLog.add("鈿旓笍 鎴樻枟寮€濮嬶紒" + player.getNickname() + " VS " + monster.getName());
+        battleLog.add("⚔️ 战斗开始！" + player.getNickname() + " VS " + monster.getName());
 
         int currentPlayerHealth = playerHealth;
         int currentMonsterHealth = monsterHealth;
         int rounds = 0;
         final int maxRounds = balance.getCombat().getMaxRounds();
 
-        // 銆?026-03-24 浼樺寲銆戜娇鐢℅ameBalanceUtils璁＄畻閫熷害浼樺娍
+        // 【2026-03-24 优化】使用GameBalanceUtils计算速度优势行动次数
         int playerSpeedActions = balanceUtils.calculateSpeedAdvantageActions(playerSpeed, monsterSpeed);
         int monsterSpeedActions = balanceUtils.calculateSpeedAdvantageActions(monsterSpeed, playerSpeed);
-        
+
+        double speedRatio = (monsterSpeed > 0) ? (double) playerSpeed / monsterSpeed : 2.0;
+        boolean playerHasSpeedAdvantage = playerSpeedActions > 1;
+        boolean monsterHasSpeedAdvantage = monsterSpeedActions > 1;
+
         if (playerHasSpeedAdvantage) {
-            battleLog.add("馃殌 閫熷害浼樺娍锛佷綘鐨勯€熷害鏄€墿鐨? + String.format("%.1f", speedRatio) + "鍊嶏紝姣忓洖鍚堝彲琛屽姩" + 
-                (speedRatio >= 2.0 ? "3娆? : "2娆?) + "锛?);
+            battleLog.add("🚀 速度优势！你的速度是怪物的" + String.format("%.1f", speedRatio) + "倍，每回合可行动" +
+                (speedRatio >= 2.0 ? "3次" : "2次") + "！");
         } else if (monsterHasSpeedAdvantage) {
-            battleLog.add("鈿狅笍 閫熷害鍔ｅ娍锛佹€墿閫熷害杩滈珮浜庝綘锛屽綋蹇冿紒");
+            battleLog.add("⚠️ 速度劣势！怪物速度远高于你，当心！");
         }
 
-        // GDD瀹犵墿鍙傛垬鏈哄埗锛氳幏鍙栧嚭鎴樺疇鐗╁苟璁＄畻鎴樻枟澧炵泭
+        // GDD宠物参战机制：获取出战宠物并计算战斗增益
         PetCombatBonus petBonus = petService.calculatePetCombatBonus(
             petService.getActivePet(playerId));
-        
+
         if (petBonus != null && petBonus.isEligible()) {
-            battleLog.add("馃惥 鐏靛吔鍔╂垬锛佷綘鐨? + petBonus.getPetName() + "鍑嗗鍙傛垬锛?);
+            battleLog.add("🐾 灵兽助战！你的" + petBonus.getPetName() + "准备参战！");
             if (petBonus.getHunger() < 20) {
-                battleLog.add("鈿狅笍 璀﹀憡锛氬疇鐗╅ゥ楗匡紝鎴樻枟鏁堟灉闄嶄綆50%锛?);
+                battleLog.add("⚠️ 警告：宠物饥饿，战斗效果降低50%！");
             }
         } else if (petBonus != null) {
-            battleLog.add("馃挙 瀹犵墿鍥犻ゥ楗挎棤娉曞弬鎴橈紝蹇幓鍠傞鍚э紒");
-            petBonus = null; // 鏃犳硶鍙傛垬
+            battleLog.add("💙 宠物因饥饿无法参战，快去喂食吧！");
+            petBonus = null; // 无法参战
         }
 
-        // 鎴樻枟寰幆
+        // 战斗循环
         while (currentPlayerHealth > 0 && currentMonsterHealth > 0 && rounds < maxRounds) {
             rounds++;
-            
-            // GDD锛氶€熷害浼樺娍鏃讹紝鐜╁鍙幏寰楅澶栬鍔?
-            // 閫熷害姣?=2.0: 鐜╁3娆¤鍔?vs 鎬墿1娆?
-            // 閫熷害姣?=1.5: 鐜╁2娆¤鍔?vs 鎬墿1娆?
-            // 姝ｅ父: 浜ゆ浛杩涜
-            
+
+            // GDD：速度优势时，玩家可获得额外行动
+            // 速度比>=2.0: 玩家3次行动 vs 怪物1次
+            // 速度比>=1.5: 玩家2次行动 vs 怪物1次
+            // 正常: 交替进行
+
             int playerActionsThisRound = 1;
             int monsterActionsThisRound = 1;
-            
+
             if (speedRatio >= 2.0) {
                 playerActionsThisRound = 3;
                 monsterActionsThisRound = 1;
@@ -285,90 +294,89 @@ public class CombatService {
                 playerActionsThisRound = 1;
                 monsterActionsThisRound = 2;
             }
-            
-            // 鏍规嵁閫熷害鍐冲畾鍏堝悗鎵?
+
+            // 根据速度决定先后手
             boolean playerFirst = playerSpeed >= monsterSpeed;
 
             if (playerFirst) {
-                // 鐜╁琛屽姩
+                // 玩家行动
                 for (int i = 0; i < playerActionsThisRound && currentMonsterHealth > 0; i++) {
-                    int damage = calculateDamage(playerAttack, monsterDefense, player.getLevel(), 
+                    int damage = calculateDamage(playerAttack, monsterDefense, player.getLevel(),
                         monster.getLevel(), playerSpeed, monsterSpeed, true, battleLog);
                     currentMonsterHealth -= damage;
-                    String actionMarker = playerActionsThisRound > 1 ? "銆愯繛鍑? + (i+1) + "銆? : "";
-                    battleLog.add("绗? + rounds + "鍥炲悎: " + actionMarker + player.getNickname() + 
-                        "閫犳垚浜? + damage + "鐐逛激瀹?);
+                    String actionMarker = playerActionsThisRound > 1 ? "【连击" + (i + 1) + "】" : "";
+                    battleLog.add("第" + rounds + "回合: " + actionMarker + player.getNickname() +
+                        "造成了" + damage + "点伤害");
                 }
-                
-                // GDD瀹犵墿鍙傛垬锛氭瘡N鍥炲悎瀹犵墿鍙戝姩鎶€鑳?
+
+                // GDD宠物参战：每N回合宠物发动技能
                 if (petBonus != null && rounds % petBonus.getSkillCooldown() == 0) {
-                    // 妫€鏌ユ槸鍚﹁Е鍙戞妧鑳?
                     if (rng().nextDouble() < petBonus.getSkillTriggerChance()) {
                         int petDamage = petBonus.getSkillDamage();
                         currentMonsterHealth -= petDamage;
-                        String resonanceMsg = petBonus.isResonance() ? "銆愬叡楦ｇ垎鍙戙€? : "";
-                        battleLog.add("馃惥 " + resonanceMsg + petBonus.getPetName() + 
-                            "鍙戝姩鐏靛吔鎶€鑳斤紒閫犳垚浜? + petDamage + "鐐逛激瀹筹紒");
+                        String resonanceMsg = petBonus.isResonance() ? "【共鸣迸发】" : "";
+                        battleLog.add("🐾 " + resonanceMsg + petBonus.getPetName() +
+                            "发动灵兽技能！造成了" + petDamage + "点伤害！");
                     } else {
-                        battleLog.add("馃惥 " + petBonus.getPetName() + "鍑嗗鍙戝姩鎶€鑳斤紝浣嗚繕鏈噯澶囧ソ...");
+                        battleLog.add("🐾 " + petBonus.getPetName() + "准备发动技能，但还未准备好...");
                     }
                 }
-                
+
                 if (currentMonsterHealth <= 0) break;
 
-                // 鎬墿琛屽姩
+                // 怪物行动
                 for (int i = 0; i < monsterActionsThisRound && currentPlayerHealth > 0; i++) {
-                    int monsterDamage = calculateDamage(monsterAttack, playerDefense, 
+                    int monsterDamage = calculateDamage(monsterAttack, playerDefense,
                         monster.getLevel(), player.getLevel(), monsterSpeed, playerSpeed, false, battleLog);
                     currentPlayerHealth -= monsterDamage;
-                    String actionMarker = monsterActionsThisRound > 1 ? "銆愯繛鍑? + (i+1) + "銆? : "";
-                    battleLog.add("绗? + rounds + "鍥炲悎: " + actionMarker + monster.getName() + 
-                        "閫犳垚浜? + monsterDamage + "鐐逛激瀹?);
+                    String actionMarker = monsterActionsThisRound > 1 ? "【连击" + (i + 1) + "】" : "";
+                    battleLog.add("第" + rounds + "回合: " + actionMarker + monster.getName() +
+                        "造成了" + monsterDamage + "点伤害");
                 }
             } else {
-                // 鎬墿鍏堣鍔?
+                // 怪物先行动
                 for (int i = 0; i < monsterActionsThisRound && currentPlayerHealth > 0; i++) {
-                    int monsterDamage = calculateDamage(monsterAttack, playerDefense, 
+                    int monsterDamage = calculateDamage(monsterAttack, playerDefense,
                         monster.getLevel(), player.getLevel(), monsterSpeed, playerSpeed, false, battleLog);
                     currentPlayerHealth -= monsterDamage;
-                    String actionMarker = monsterActionsThisRound > 1 ? "銆愯繛鍑? + (i+1) + "銆? : "";
-                    battleLog.add("绗? + rounds + "鍥炲悎: " + actionMarker + monster.getName() + 
-                        "閫犳垚浜? + monsterDamage + "鐐逛激瀹?);
+                    String actionMarker = monsterActionsThisRound > 1 ? "【连击" + (i + 1) + "】" : "";
+                    battleLog.add("第" + rounds + "回合: " + actionMarker + monster.getName() +
+                        "造成了" + monsterDamage + "点伤害");
                 }
-                
+
                 if (currentPlayerHealth <= 0) break;
 
-                // 鐜╁琛屽姩
+                // 玩家行动
                 for (int i = 0; i < playerActionsThisRound && currentMonsterHealth > 0; i++) {
-                    int damage = calculateDamage(playerAttack, monsterDefense, player.getLevel(), 
+                    int damage = calculateDamage(playerAttack, monsterDefense, player.getLevel(),
                         monster.getLevel(), playerSpeed, monsterSpeed, true, battleLog);
                     currentMonsterHealth -= damage;
-                    String actionMarker = playerActionsThisRound > 1 ? "銆愯繛鍑? + (i+1) + "銆? : "";
-                    battleLog.add("绗? + rounds + "鍥炲悎: " + actionMarker + player.getNickname() + 
-                        "閫犳垚浜? + damage + "鐐逛激瀹?);
+                    String actionMarker = playerActionsThisRound > 1 ? "【连击" + (i + 1) + "】" : "";
+                    battleLog.add("第" + rounds + "回合: " + actionMarker + player.getNickname() +
+                        "造成了" + damage + "点伤害");
                 }
-                
-                // GDD瀹犵墿鍙傛垬锛氭瘡N鍥炲悎瀹犵墿鍙戝姩鎶€鑳?
+
+                // GDD宠物参战：每N回合宠物发动技能
                 if (petBonus != null && rounds % petBonus.getSkillCooldown() == 0) {
                     if (rng().nextDouble() < petBonus.getSkillTriggerChance()) {
                         int petDamage = petBonus.getSkillDamage();
                         currentMonsterHealth -= petDamage;
-                        String resonanceMsg = petBonus.isResonance() ? "銆愬叡楦ｇ垎鍙戙€? : "";
-                        battleLog.add("馃惥 " + resonanceMsg + petBonus.getPetName() + 
-                            "鍙戝姩鐏靛吔鎶€鑳斤紒閫犳垚浜? + petDamage + "鐐逛激瀹筹紒");
+                        String resonanceMsg = petBonus.isResonance() ? "【共鸣迸发】" : "";
+                        battleLog.add("🐾 " + resonanceMsg + petBonus.getPetName() +
+                            "发动灵兽技能！造成了" + petDamage + "点伤害！");
                     } else {
-                        battleLog.add("馃惥 " + petBonus.getPetName() + "鍑嗗鍙戝姩鎶€鑳斤紝浣嗚繕鏈噯澶囧ソ...");
+                        battleLog.add("🐾 " + petBonus.getPetName() + "准备发动技能，但还未准备好...");
                     }
                 }
             }
         }
 
-        // GDD锛氭垬鏂楃粨鏉熷悗锛屽疇鐗╅ケ椋熷害鍑忓皯锛堟瘡娆℃垬鏂楁秷鑰?鐐癸級
+        // GDD：战斗结束后，宠物饱食度减少（每次战斗消耗5点）
         if (petBonus != null) {
             petService.consumePetHungerAfterCombat(playerId);
             PlayerPet activePet = petService.getActivePet(playerId);
             if (activePet != null && activePet.getHunger() < 20) {
-                battleLog.add("馃挙 鎴樺悗瀹犵墿楗ラタ鍔犲墽锛屽綋鍓嶉ケ椋熷害锛? + activePet.getHunger() + "锛屽揩鍘诲杺椋熷惂锛?);
+                battleLog.add("💙 战后宠物饥饿加剧，当前饱食度：" + activePet.getHunger() + "，快去喂食吧！");
             }
         }
 
@@ -380,26 +388,26 @@ public class CombatService {
         Integer droppedEquipmentId = null;
 
         if (playerWon) {
-            battleLog.add("鎴樻枟鑳滃埄锛?);
+            battleLog.add("战斗胜利！");
             expGained = calculateExpReward(monster, player.getLevel());
             spiritStonesGained = calculateSpiritStonesReward(monster, player.getLevel());
 
-            // 瑁呭鎺夎惤妫€鏌?
+            // 装备掉落检查
             if (rng().nextInt(100) < monster.getDropRate() && monster.getDropEquipmentId() != null) {
                 droppedEquipmentId = monster.getDropEquipmentId();
                 try {
                     equipmentService.acquireEquipment(droppedEquipmentId, playerId);
-                    battleLog.add("鑾峰緱瑁呭鎺夎惤锛?);
+                    battleLog.add("获得装备掉落！");
                 } catch (Exception e) {
-                    log.warn("瑁呭鎺夎惤澶辫触: {}", e.getMessage());
+                    log.warn("装备掉落失败: {}", e.getMessage());
                 }
             }
 
-            // 鏇存柊鐜╁缁忛獙鍜岀伒鐭?
+            // 更新玩家经验和灵石
             player.setExp(player.getExp() + expGained);
             player.setSpiritStones(player.getSpiritStones() + spiritStonesGained);
 
-            // 鍗囩骇妫€鏌?
+            // 升级检查
             int levelUps = 0;
             while (player.getExp() >= player.getExpToNext() && levelUps < 100) {
                 player.setExp(player.getExp() - player.getExpToNext());
@@ -413,22 +421,22 @@ public class CombatService {
                 levelUps++;
             }
             if (levelUps > 0) {
-                battleLog.add("鎭枩鍗囩骇锛佸綋鍓嶇瓑绾э細" + player.getLevel());
+                battleLog.add("恭喜升级！当前等级：" + player.getLevel());
             }
 
             playerService.savePlayerProfile(player);
-            battleLog.add("鑾峰緱缁忛獙锛? + expGained + "锛岀伒鐭筹細" + spiritStonesGained);
+            battleLog.add("获得经验：" + expGained + "，灵石：" + spiritStonesGained);
         } else {
-            battleLog.add("鎴樻枟澶辫触...");
+            battleLog.add("战斗失败...");
             long lostSpiritStones = spiritStonesGained / 10;
             if (player.getSpiritStones() >= lostSpiritStones && lostSpiritStones > 0) {
                 player.setSpiritStones(player.getSpiritStones() - lostSpiritStones);
                 playerService.savePlayerProfile(player);
-                battleLog.add("鎹熷け鐏电煶锛? + lostSpiritStones);
+                battleLog.add("损失灵石：" + lostSpiritStones);
             }
         }
 
-        // 鎸佷箙鍖栨垬鏂楁棩蹇?
+        // 持久化战斗日志
         saveCombatLog(playerId, monster, result, rounds, expGained, spiritStonesGained, droppedEquipmentId, battleLog);
 
         return CombatResult.builder()
@@ -453,65 +461,65 @@ public class CombatService {
     }
 
     /**
-     * 璁＄畻浼ゅ - GDD浼樺寲鍏紡 v2
-     * 鍖呭惈锛氶槻寰＄巼鏈哄埗銆佹毚鍑荤郴缁熴€侀€熷害浼樺娍
-     * 
-     * GDD璁捐鍘熷垯锛?
-     * - 闃插尽鐜?= defense / (defense + attackerLevel * 10)锛岃闃插尽鏈夌湡瀹炰环鍊?
-     * - 鏆村嚮鐜囬粯璁?%锛屾毚鍑讳激瀹?.8鍊?
-     * - 閫熷害>瀵规柟1.5鍊嶆椂鑾峰緱棰濆琛屽姩鏈轰細
+     * 计算伤害 - GDD优化公式 v2
+     * 包含：防御率机制、暴击系统、速度优势
+     *
+     * GDD设计原则：
+     * - 防御率 = defense / (defense + attackerLevel * 10)，让防御有真实价值
+     * - 暴击率默认5%，暴击伤害1.8倍
+     * - 速度>对方1.5倍时获得额外行动机会
      */
-    private int calculateDamage(int attack, int defense, int attackerLevel, int defenderLevel, 
-                                 int attackerSpeed, int defenderSpeed, boolean isPlayerAttacking, 
+    private int calculateDamage(int attack, int defense, int attackerLevel, int defenderLevel,
+                                 int attackerSpeed, int defenderSpeed, boolean isPlayerAttacking,
                                  List<String> battleLog) {
-        // 1. 绛夌骇鍘嬪埗锛堥檷浣庡奖鍝嶏紝淇濇寔骞宠　锛?
+        // 1. 等级压制（降低影响，保持平衡）
         double levelFactor = 1.0 + (attackerLevel - defenderLevel) * 0.03;
         levelFactor = Math.max(0.7, Math.min(1.3, levelFactor));
-        
-        // 2. GDD闃插尽鐜囧叕寮忥細璁╅槻寰″睘鎬ф湁鎰忎箟
-        // 闃插尽鐜?= defense / (defense + attackerLevel * 10)
+
+        // 2. GDD防御率公式：让防御属性有意义
+        // 防御率 = defense / (defense + attackerLevel * 10)
         double defenseRate = defense / (defense + attackerLevel * 10.0);
-        defenseRate = Math.max(0, Math.min(0.7, defenseRate)); // 鏈€澶氬噺浼?0%
-        
-        // 3. 鍩虹浼ゅ
+        defenseRate = Math.max(0, Math.min(0.7, defenseRate)); // 最多减伤70%
+
+        // 3. 基础伤害
         int baseDamage = (int)(attack * levelFactor);
-        
-        // 4. 搴旂敤闃插尽鐜?
+
+        // 4. 应用防御率
         int finalDamage = (int)(baseDamage * (1 - defenseRate));
-        
-        // 5. 鏆村嚮鏈哄埗锛圙DD鏂板锛?
-        // 榛樿鏆村嚮鐜?%锛岄珮椋庨櫓鐜╁/鐗瑰畾鎶€鑳藉彲鎻愬崌
-        double critChance = 0.05; 
+
+        // 5. 暴击机制（GDD新增）
+        // 默认暴击率5%，高风险玩家/特定技能可提升
+        double critChance = 0.05;
         boolean isCrit = rng().nextDouble() < critChance;
-        
+
         if (isCrit) {
-            finalDamage = (int)(finalDamage * 1.8); // 鏆村嚮浼ゅ1.8鍊?
+            finalDamage = (int)(finalDamage * 1.8); // 暴击伤害1.8倍
             if (battleLog != null) {
-                battleLog.add((isPlayerAttacking ? "銆愭毚鍑汇€? : "銆愭€墿鏆村嚮銆?) + 
-                    (isPlayerAttacking ? "浣? : "鎬墿") + "瑙﹀彂浜嗘毚鍑伙紒浼ゅ澶у箙鎻愬崌锛?);
+                battleLog.add((isPlayerAttacking ? "【暴击】" : "【怪物暴击】") +
+                    (isPlayerAttacking ? "你" : "怪物") + "触发了暴击！伤害大幅提升！");
             }
         }
-        
-        // 6. 闅忔満娉㈠姩 卤15%
+
+        // 6. 随机波动 ±15%
         int variance = (int)(finalDamage * 0.15);
         if (variance > 0) {
             finalDamage += rng().nextInt(variance * 2 + 1) - variance;
         }
-        
-        // 7. 淇濊瘉鏈€灏忎激瀹筹紙鑷冲皯閫犳垚鏀诲嚮鍔涚殑10%锛?
+
+        // 7. 保证最小伤害（至少造成攻击力的10%）
         int minDamage = Math.max(1, attack / 10);
         return Math.max(minDamage, finalDamage);
     }
-    
+
     /**
-     * 绠€鍖栫殑浼ゅ璁＄畻锛堝吋瀹规棫璋冪敤锛?
+     * 简化的伤害计算（兼容旧调用）
      */
     private int calculateDamage(int attack, int defense, int attackerLevel, int defenderLevel) {
         return calculateDamage(attack, defense, attackerLevel, defenderLevel, 10, 10, true, null);
     }
 
     /**
-     * 璁＄畻缁忛獙濂栧姳
+     * 计算经验奖励
      */
     private long calculateExpReward(Monster monster, int playerLevel) {
         long baseExp = monster.getExpReward();
@@ -527,49 +535,49 @@ public class CombatService {
     }
 
     /**
-     * 璁＄畻鐏电煶濂栧姳
-     * GDD璁捐锛氭垬鏂楃伒鐭?= (10 + 鎬墿绛夌骇 脳 2) 脳 鎬墿绫诲瀷鍊嶇巼
-     *   鏅€氭€? 脳1.0
-     *   绮捐嫳鎬? 脳2.5
-     *   BOSS:   脳6.0
+     * 计算灵石奖励
+     * GDD设计：战斗灵石 = (10 + 怪物等级 × 2) × 怪物类型倍率
+     *   普通怪: ×1.0
+     *   精英怪: ×2.5
+     *   BOSS:   ×6.0
      */
     private long calculateSpiritStonesReward(Monster monster, int playerLevel) {
         int monsterLevel = monster.getLevel();
         String monsterType = monster.getType();
 
-        // 璁＄畻鍩虹鐏电煶
+        // 计算基础灵石
         long baseReward = 10 + monsterLevel * 2;
 
-        // 搴旂敤鎬墿绫诲瀷鍊嶇巼
+        // 应用怪物类型倍率
         double typeMultiplier;
         if ("BOSS".equals(monsterType)) {
             typeMultiplier = 6.0;
-        } else if ("绮捐嫳".equals(monsterType)) {
+        } else if ("精英".equals(monsterType)) {
             typeMultiplier = 2.5;
         } else {
-            typeMultiplier = 1.0; // 鏅€氭€?
+            typeMultiplier = 1.0; // 普通怪
         }
 
-        // 绛夌骇宸儵缃氾細鐜╁姣旀€墿楂樺お澶氾紝濂栧姳闄嶄綆
+        // 等级差惩罚：玩家比怪物高太多，奖励降低
         int levelDiff = playerLevel - monsterLevel;
         double levelFactor = 1.0;
         if (levelDiff > 10) {
-            levelFactor = 0.5; // 楂?0绾ф儵缃?0%
+            levelFactor = 0.5; // 高10级惩罚50%
         } else if (levelDiff > 5) {
-            levelFactor = 0.75; // 楂?绾ф儵缃?5%
+            levelFactor = 0.75; // 高5级惩罚25%
         } else if (levelDiff < -5) {
-            levelFactor = 1.25; // 浣?绾у鍔?25%锛堥闄╄ˉ鍋匡級
+            levelFactor = 1.25; // 低5级加成25%（风险补偿）
         }
 
         long finalReward = (long)(baseReward * typeMultiplier * levelFactor);
-        log.debug("鐏电煶璁＄畻: 鍩虹={}, 绫诲瀷鍊嶇巼={}, 绛夌骇鍥犲瓙={}, 鏈€缁?{}",
+        log.debug("灵石计算: 基础={}, 类型倍率={}, 等级因子={}, 最终={}",
                 baseReward, typeMultiplier, levelFactor, finalReward);
 
         return Math.max(1, finalReward);
     }
 
     /**
-     * 鎸佷箙鍖栨垬鏂楁棩蹇楋紙鎶藉彇澶嶇敤锛?
+     * 持久化战斗日志（抽取复用）
      */
     private void saveCombatLog(Integer playerId, Monster monster, String result, int rounds,
                                 long expGained, long spiritStonesGained,
@@ -578,7 +586,7 @@ public class CombatService {
         try {
             battleDetailsJson = objectMapper.writeValueAsString(battleLog);
         } catch (JsonProcessingException e) {
-            log.error("鎴樻枟鏃ュ織搴忓垪鍖栧け璐?, e);
+            log.error("战斗日志序列化失败", e);
         }
 
         CombatLog combatLog = CombatLog.builder()
@@ -595,6 +603,9 @@ public class CombatService {
         combatLogMapper.insert(combatLog);
     }
 
+    /**
+     * 根据怪物ID获取怪物
+     */
     public Monster getMonsterById(Integer monsterId) {
         if (monsterId == null) return null;
         try {
@@ -605,44 +616,44 @@ public class CombatService {
     }
 
     /**
-     * 鑾峰彇鎴樻枟鍘嗗彶
+     * 获取战斗历史
      */
     public List<CombatLog> getCombatHistory(Integer playerId, Integer limit) {
         return combatLogMapper.selectRecentByPlayerId(playerId, limit != null ? limit : 10);
     }
-    
+
     /**
-     * 鎵归噺鎴樻枟
+     * 批量战斗
      *
-     * <p>銆怭1-6 淇銆戝師瀹炵幇鍏堣皟鐢?{@code startCombat()} 鍐欏叆涓€娆℃暟鎹簱锛屽啀鐢ㄥ樊鍊间慨姝ｏ紝
-     * 瀛樺湪涓ゆ鍐欏叆涔嬮棿鍙戠敓宕╂簝瀵艰嚧鏁版嵁涓嶄竴鑷寸殑椋庨櫓銆?/p>
+     * <p>【P1-6 修复】原实现先调用 {@code startCombat()} 写入一次数据库，再用差值修正，
+     * 存在两次写入之间发生崩溃导致数据不一致的风险。</p>
      *
-     * <p>鏂板疄鐜帮細鐩存帴鍦ㄦ湰鏂规硶鍐呭畬鎴愭墍鏈夎绠楋紝鍙啓涓€娆℃暟鎹簱锛屼繚璇佸師瀛愭€с€?
-     * 鎵归噺鎴樻枟鍩轰簬鍗曟鎴樻枟缁撴灉鎺ㄧ畻锛堣儨鍒欑瓑姣旀斁澶э紝璐ュ垯涓嶇粰濂栧姳锛夛紝閫昏緫涓庡師鐗堜竴鑷淬€?/p>
+     * <p>新实现：直接在本方法内完成所有计算，只写一次数据库，保证原子性。
+     * 批量战斗基于单次战斗结果推算（胜则等比放大，败则不给奖励），逻辑与原版一致。</p>
      *
-     * @param playerId    鐜╁ID
-     * @param playerLevel 鐜╁绛夌骇锛堢敤浜庣敓鎴愭€墿锛?
-     * @param mapId       鍦板浘ID
-     * @param times       鎴樻枟娆℃暟锛堜笂闄?00锛?
-     * @return 鎴樻枟姹囨€荤粨鏋?
+     * @param playerId    玩家ID
+     * @param playerLevel 玩家等级（用于生成怪物）
+     * @param mapId       地图ID
+     * @param times       战斗次数（上限100）
+     * @return 战斗汇总结果
      */
     @Transactional
     public CombatResult batchCombat(Integer playerId, Integer playerLevel, Integer mapId, int times) {
-        log.info("鎵归噺鎴樻枟寮€濮? playerId={}, times={}, mapId={}", playerId, times, mapId);
+        log.info("批量战斗开始: playerId={}, times={}, mapId={}", playerId, times, mapId);
 
-        // 涓婇檺淇濇姢
+        // 上限保护
         int actualTimes = Math.min(times, 100);
 
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("鐜╁涓嶅瓨鍦?);
+            throw new IllegalArgumentException("玩家不存在");
         }
 
-        // 鐢熸垚鎬墿
+        // 生成怪物
         Monster monster = generateMonster(playerLevel, mapId);
-        log.debug("鐢熸垚鎬墿: {}(Lv.{} {})", monster.getName(), monster.getLevel(), monster.getType());
+        log.debug("生成怪物: {}(Lv.{} {})", monster.getName(), monster.getLevel(), monster.getType());
 
-        // --- 鍦ㄤ笉鍐欏簱鐨勬儏鍐典笅妯℃嫙涓€娆℃垬鏂楋紝寰楀埌鍩虹缁撴灉 ---
+        // --- 在不写库的情况下模拟一次战斗，得到基础结果 ---
         SingleCombatOutcome outcome = simulateSingleCombat(player, monster);
 
         int wins = 0;
@@ -651,7 +662,7 @@ public class CombatService {
         List<String> battleLog = outcome.battleLog;
 
         if (outcome.playerWon) {
-            // 鑳滃埄锛氬€嶆暟鏀惧ぇ濂栧姳锛屼竴娆℃€у啓搴?
+            // 胜利：倍数放大奖励，一次性写库
             wins = actualTimes;
             totalExpGained = (long) outcome.expGained * actualTimes;
             totalSpiritStonesGained = (long) outcome.spiritStonesGained * actualTimes;
@@ -659,7 +670,7 @@ public class CombatService {
             player.setExp(player.getExp() + totalExpGained);
             player.setSpiritStones(player.getSpiritStones() + totalSpiritStonesGained);
 
-            // 鍗囩骇妫€鏌?
+            // 升级检查
             int levelUps = 0;
             while (player.getExp() >= player.getExpToNext() && levelUps < 200) {
                 player.setExp(player.getExp() - player.getExpToNext());
@@ -673,22 +684,22 @@ public class CombatService {
                 levelUps++;
             }
             if (levelUps > 0) {
-                log.debug("鐜╁鍗囩骇 {} 娆★紝褰撳墠绛夌骇: {}", levelUps, player.getLevel());
+                log.debug("玩家升级 {} 次，当前等级: {}", levelUps, player.getLevel());
             }
 
-            // 涓€娆″啓搴擄紙鍘熷瓙鎬т繚璇侊級
+            // 一次写库（原子性保证）
             playerService.savePlayerProfile(player);
         }
-        // 澶辫触锛氫笉鏇存柊鐜╁鏁版嵁锛屾棤闇€鍐欏簱
+        // 失败：不更新玩家数据，无需写库
 
-        // 鎸佷箙鍖栦竴鏉′唬琛ㄦ€ф垬鏂楁棩蹇?
+        // 持久化一条代表性战斗日志
         saveCombatLog(playerId, monster,
                 outcome.playerWon ? "WIN" : "LOSE",
                 outcome.rounds,
                 totalExpGained, totalSpiritStonesGained,
                 null, battleLog);
 
-        log.info("鎵归噺鎴樻枟瀹屾垚: wins={}/{}, exp={}, stones={}", wins, actualTimes, totalExpGained, totalSpiritStonesGained);
+        log.info("批量战斗完成: wins={}/{}, exp={}, stones={}", wins, actualTimes, totalExpGained, totalSpiritStonesGained);
 
         return CombatResult.builder()
                 .totalBattles(actualTimes)
@@ -709,10 +720,10 @@ public class CombatService {
     }
 
     // =====================================================================
-    // 鍐呴儴杈呭姪锛氫笉鍐欏簱鐨勫崟娆℃垬鏂楁ā鎷燂紙鐢ㄤ簬 batchCombat 璁＄畻锛?
+    // 内部辅助：不写库的单次战斗模拟（用于 batchCombat 计算）
     // =====================================================================
 
-    /** 鍗曟鎴樻枟妯℃嫙缁撴灉锛堝唴閮ㄤ娇鐢級 */
+    /** 单次战斗模拟结果（内部使用） */
     private static class SingleCombatOutcome {
         boolean playerWon;
         int rounds;
@@ -722,8 +733,8 @@ public class CombatService {
     }
 
     /**
-     * 妯℃嫙涓€娆℃垬鏂楀苟杩斿洖缁撴灉锛屼笉鍐欐暟鎹簱
-     * batchCombat 鐢ㄦ鏂规硶鑾峰彇鍩虹鏁版嵁锛屽啀缁熶竴涔樹互鍊嶆暟鍚庝竴娆″啓搴?
+     * 模拟一次战斗并返回结果，不写数据库
+     * batchCombat 用此方法获取基础数据，再统一乘以倍数后一次写库
      */
     private SingleCombatOutcome simulateSingleCombat(PlayerProfile player, Monster monster) {
         int playerAttack = player.getAttack() + player.getEquipmentAttackBonus();
@@ -734,7 +745,7 @@ public class CombatService {
         int currentMonsterHealth = monster.getHealth();
 
         List<String> log = new ArrayList<>();
-        log.add("鎴樻枟寮€濮嬶紒" + player.getNickname() + " VS " + monster.getName());
+        log.add("战斗开始！" + player.getNickname() + " VS " + monster.getName());
 
         int rounds = 0;
         boolean playerFirst = playerSpeed >= monster.getSpeed();
@@ -744,19 +755,19 @@ public class CombatService {
             if (playerFirst) {
                 int dmg = calculateDamage(playerAttack, monster.getDefense(), player.getLevel(), monster.getLevel());
                 currentMonsterHealth -= dmg;
-                log.add("绗? + rounds + "鍥炲悎: " + player.getNickname() + "閫犳垚浜? + dmg + "鐐逛激瀹?);
+                log.add("第" + rounds + "回合: " + player.getNickname() + "造成了" + dmg + "点伤害");
                 if (currentMonsterHealth <= 0) break;
                 int mDmg = calculateDamage(monster.getAttack(), playerDefense, monster.getLevel(), player.getLevel());
                 currentPlayerHealth -= mDmg;
-                log.add("绗? + rounds + "鍥炲悎: " + monster.getName() + "閫犳垚浜? + mDmg + "鐐逛激瀹?);
+                log.add("第" + rounds + "回合: " + monster.getName() + "造成了" + mDmg + "点伤害");
             } else {
                 int mDmg = calculateDamage(monster.getAttack(), playerDefense, monster.getLevel(), player.getLevel());
                 currentPlayerHealth -= mDmg;
-                log.add("绗? + rounds + "鍥炲悎: " + monster.getName() + "閫犳垚浜? + mDmg + "鐐逛激瀹?);
+                log.add("第" + rounds + "回合: " + monster.getName() + "造成了" + mDmg + "点伤害");
                 if (currentPlayerHealth <= 0) break;
                 int dmg = calculateDamage(playerAttack, monster.getDefense(), player.getLevel(), monster.getLevel());
                 currentMonsterHealth -= dmg;
-                log.add("绗? + rounds + "鍥炲悎: " + player.getNickname() + "閫犳垚浜? + dmg + "鐐逛激瀹?);
+                log.add("第" + rounds + "回合: " + player.getNickname() + "造成了" + dmg + "点伤害");
             }
         }
 
@@ -768,9 +779,9 @@ public class CombatService {
         if (result.playerWon) {
             result.expGained = calculateExpReward(monster, player.getLevel());
             result.spiritStonesGained = calculateSpiritStonesReward(monster, player.getLevel());
-            log.add("鎴樻枟鑳滃埄锛佽幏寰楃粡楠岋細" + result.expGained + "锛岀伒鐭筹細" + result.spiritStonesGained);
+            log.add("战斗胜利！获得经验：" + result.expGained + "，灵石：" + result.spiritStonesGained);
         } else {
-            log.add("鎴樻枟澶辫触...");
+            log.add("战斗失败...");
         }
 
         return result;
@@ -779,19 +790,16 @@ public class CombatService {
     // ===================== Map module interface (module boundary) =====================
 
     /**
-     * Get map monster list by map ID (for GameMapService)
+     * 根据地图ID获取地图怪物列表（供 GameMapService 使用）
      */
     public List<MapMonster> getMapMonsters(Integer mapId) {
         return mapMonsterMapper.selectByMapId(mapId);
     }
 
     /**
-     * Get monster template by ID (for GameMapService)
+     * 根据ID获取怪物模板（供 GameMapService 使用）
      */
-    public Monster getMonsterById(Integer monsterId) {
+    public Monster getMonsterTemplateById(Integer monsterId) {
         return monsterMapper.selectById(monsterId);
     }
 }
-
-
-
