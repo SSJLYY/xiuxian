@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * 玩家对话状态实�?
+ * 玩家对话状态实体类
  */
 @TableName("player_dialogue_state")
 @Data

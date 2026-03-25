@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * 玩家叙事标记（flag系统）实�?
+ * 玩家叙事标记（flag系统）实体类
  */
 @TableName("player_narrative_flags")
 @Data

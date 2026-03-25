@@ -38,8 +38,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 /**
- * 鍙欎簨鏈嶅姟 - 鏍稿績瀵硅瘽寮曟搸
- * 璐熻矗瀵硅瘽鏍戠殑鍔犺浇銆佹帹杩涖€佸垎鏀€夋嫨銆乫lag绠＄悊銆佸ソ鎰熷害鍙樻洿
+ * 叙事服务 - 核心对话引擎
+ * 负责对话树的加载、推进、分支选择、flag管理、好感度变更
  */
 @Slf4j
 @Service
@@ -58,7 +58,7 @@ public class NarrativeService {
     // ==================== 瀵硅瘽鏍戝紩鎿?====================
 
     /**
-     * 鑾峰彇NPC鍙敤鐨勫璇濇爲鍒楄〃锛堝惈鍓嶇疆鏉′欢妫€鏌ワ級
+     * 获取NPC可用的对话树列表（含前置条件检查）
      */
     public List<DialogueTree> getAvailableDialogues(Integer playerId, Integer npcId) {
         List<DialogueTree> trees = dialogueTreeMapper.selectByNpcId(npcId);
@@ -70,8 +70,8 @@ public class NarrativeService {
     }
 
     /**
-     * 寮€濮?缁х画涓€涓璇濇爲
-     * 杩斿洖褰撳墠鑺傜偣鐨勫璇濆唴瀹瑰拰鍙€夐€夐」
+     * 开始/继续一个对话树
+     * 返回当前节点的对话内容和可选选项
      */
     @Transactional
     public DialogueSceneData startOrContinueDialogue(Integer playerId, String dialogueKey) {
@@ -80,20 +80,20 @@ public class NarrativeService {
             throw new BusinessException(ErrorCode.NOT_FOUND, "瀵硅瘽涓嶅瓨鍦?);
         }
 
-        // 妫€鏌ュ墠缃潯浠?
+        // 检查前置条件
         Set<String> playerFlags = getPlayerFlags(playerId);
         if (!meetsPrerequisites(tree, playerId, playerFlags)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, "涓嶆弧瓒冲璇濆墠缃潯浠?);
+            throw new BusinessException(ErrorCode.FORBIDDEN, "不满足对话前置条件");
         }
 
         PlayerDialogueState state = playerDialogueStateMapper.selectByPlayerAndTree(playerId, tree.getId());
 
-        // 宸插畬鎴愪笖涓嶅彲閲嶅
+        // 已完成且不可重复
         if (state != null && state.getIsCompleted() && !tree.getIsRepeatable()) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "璇ュ璇濆凡瀹屾垚");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "该对话已完成");
         }
 
-        // 鑾峰彇鎴栧垱寤哄璇濈姸鎬?
+        // 获取或创建对话状态
         if (state == null) {
             state = PlayerDialogueState.builder()
                     .playerId(playerId)
@@ -105,16 +105,16 @@ public class NarrativeService {
                     .build();
             playerDialogueStateMapper.insert(state);
         } else if (!state.getIsCompleted()) {
-            // 鎭㈠杩涜涓殑瀵硅瘽
+            // 恢复进行中的对话
         } else {
-            // 鍙噸澶嶅璇濓紝閲嶇疆鐘舵€?
+            // 可重复对话，重置状态
             state.setCurrentNodeKey(null);
             state.setIsCompleted(false);
             state.setStartedAt(LocalDateTime.now());
             playerDialogueStateMapper.updateById(state);
         }
 
-        // 鑾峰彇璧峰鑺傜偣
+        // 获取起始节点
         String nodeKey = state.getCurrentNodeKey();
         if (nodeKey == null) {
             List<DialogueNode> roots = dialogueNodeMapper.selectRootNodes(tree.getId());
@@ -139,7 +139,7 @@ public class NarrativeService {
 
         PlayerDialogueState state = playerDialogueStateMapper.selectByPlayerAndTree(playerId, tree.getId());
         if (state == null || state.getIsCompleted()) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "瀵硅瘽鏈湪杩涜涓?);
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "对话未在进行中");
         }
 
         DialogueNode chosenNode = dialogueNodeMapper.selectByTreeAndKey(tree.getId(), choiceNodeKey);
@@ -155,10 +155,10 @@ public class NarrativeService {
             state.setLastChoiceTag(chosenNode.getNodeKey());
         }
 
-        // 纭畾涓嬩竴涓妭鐐?
+        // 确定下一个节点
         String nextKey = chosenNode.getNextNodeKey();
 
-        // 濡傛灉鏄痗hoice绫诲瀷锛屾壘瀹冪殑瀛愬璇濊妭鐐?
+        // 如果是choice类型，找它的子对话节点
         if ("choice".equals(chosenNode.getNodeType()) && nextKey == null) {
             List<DialogueNode> children = dialogueNodeMapper.selectChildrenByParent(tree.getId(), choiceNodeKey);
             if (!children.isEmpty()) {
@@ -175,7 +175,7 @@ public class NarrativeService {
 
             // 澶勭悊瀵硅瘽鏍戝畬鎴愭晥鏋?
             if (tree.getRequiredFlags() != null) {
-                // NPC棣栨瑙侀潰
+                // NPC首次见面
                 Npc npc = npcMapper.selectById(tree.getNpcId());
                 if (npc != null) {
                     ensureNpcRelation(playerId, tree.getNpcId());
@@ -200,7 +200,7 @@ public class NarrativeService {
     }
 
     /**
-     * 鏋勫缓鍦烘櫙鏁版嵁锛堝綋鍓嶈妭鐐?+ 鍙€夐€夐」锛?
+     * 构建场景数据（当前节点 + 可选选项）
      */
     private DialogueSceneData buildSceneData(DialogueTree tree, String nodeKey, Integer playerId) {
         DialogueNode currentNode = dialogueNodeMapper.selectByTreeAndKey(tree.getId(), nodeKey);
@@ -430,7 +430,7 @@ public class NarrativeService {
         try {
             Map<String, Object> conditions = objectMapper.readValue(node.getConditions(),
                     new TypeReference<Map<String, Object>>() {});
-            // min_relation: 闇€瑕佸鎸囧畾NPC鐨勫ソ鎰熷害
+            // min_relation: 需要对指定NPC的好感度
             if (conditions.containsKey("min_relation")) {
                 @SuppressWarnings("unchecked")
                 Map<String, Integer> relReqs = objectMapper.convertValue(conditions.get("min_relation"),
