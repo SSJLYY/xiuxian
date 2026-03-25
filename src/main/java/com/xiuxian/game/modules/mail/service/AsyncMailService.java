@@ -56,8 +56,8 @@ public class AsyncMailService {
         } catch (Exception e) {
             log.error("批量发送邮件异常", e);
             // 异步方法中通过 CompletableFuture 传递异常；此处 re-wrap 确保调用方能感知到失败
-            throw new com.xiuxian.game.exception.BusinessException(
-                    com.xiuxian.game.exception.ErrorCode.MAIL_BOX_FULL);
+            throw new com.xiuxian.game.common.exception.BusinessException(
+                    com.xiuxian.game.common.exception.ErrorCode.MAIL_BOX_FULL);
         }
 
         return CompletableFuture.completedFuture(null);
@@ -104,8 +104,8 @@ public class AsyncMailService {
 
         } catch (Exception e) {
             log.error("发送系统通知邮件异常", e);
-            throw new com.xiuxian.game.exception.BusinessException(
-                    com.xiuxian.game.exception.ErrorCode.SYSTEM_ERROR);
+            throw new com.xiuxian.game.common.exception.BusinessException(
+                    com.xiuxian.game.common.exception.ErrorCode.SYSTEM_ERROR);
         }
 
         return CompletableFuture.completedFuture(null);
@@ -147,8 +147,8 @@ public class AsyncMailService {
 
         } catch (Exception e) {
             log.error("发送活动奖励邮件异常", e);
-            throw new com.xiuxian.game.exception.BusinessException(
-                    com.xiuxian.game.exception.ErrorCode.SYSTEM_ERROR);
+            throw new com.xiuxian.game.common.exception.BusinessException(
+                    com.xiuxian.game.common.exception.ErrorCode.SYSTEM_ERROR);
         }
 
         return CompletableFuture.completedFuture(null);

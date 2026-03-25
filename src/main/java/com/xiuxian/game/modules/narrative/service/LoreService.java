@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -28,7 +29,7 @@ public class LoreService {
     private final PlayerLoreCollectionMapper playerLoreCollectionMapper;
 
     /**
-     * 获取所有传说条目（标记哪些已被玩家发现�?
+     * 获取所有传说条目（标记哪些已被玩家发现）
      */
     public List<LoreVo> getAllLoreEntries(Integer playerId) {
         List<LoreEntry> allEntries = loreEntryMapper.selectAllActive();
@@ -63,7 +64,7 @@ public class LoreService {
         progress.setTotalCount(allEntries.size());
         progress.setDiscoveredCount(discoveredIds.size());
 
-        // 按层级统�?
+        // 按层级统计
         long surfaceTotal = allEntries.stream().filter(e -> "表面".equals(e.getLoreLayer())).count();
         long engagedTotal = allEntries.stream().filter(e -> "参与".equals(e.getLoreLayer())).count();
         long deepTotal = allEntries.stream().filter(e -> "深层".equals(e.getLoreLayer())).count();
@@ -86,13 +87,13 @@ public class LoreService {
     }
 
     /**
-     * 发现一条传�?
+     * 发现一条传说
      */
     @Transactional
     public boolean discoverLore(Integer playerId, String loreKey, String source) {
         LoreEntry entry = loreEntryMapper.selectByKey(loreKey);
         if (entry == null) {
-            log.warn("传说条目不存�? {}", loreKey);
+            log.warn("传说条目不存在: {}", loreKey);
             return false;
         }
 
@@ -130,7 +131,7 @@ public class LoreService {
         if (discovered) {
             vo.setContent(entry.getContent());
         } else {
-            vo.setContent("??? 未发�????");
+            vo.setContent("??? 未发现 ???");
         }
         return vo;
     }

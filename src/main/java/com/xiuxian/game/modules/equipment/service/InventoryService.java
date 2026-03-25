@@ -1,4 +1,4 @@
-﻿package com.xiuxian.game.modules.equipment.service;
+package com.xiuxian.game.modules.equipment.service;
 
 import com.xiuxian.game.modules.shop.entity.Item;
 import com.xiuxian.game.modules.player.entity.PlayerItem;
@@ -26,7 +26,7 @@ public class InventoryService {
     public List<PlayerItemResponse> getPlayerInventory(Integer playerId, String type, String search, String sortBy, String order) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存�?);
+            throw new IllegalArgumentException("玩家不存在");
         }
 
         List<PlayerItem> playerItems = playerService.getPlayerItemsByPlayerId(playerId);
@@ -77,15 +77,15 @@ public class InventoryService {
     public PlayerItemResponse addItemToInventory(Integer playerId, Integer itemId, Integer quantity) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存�?);
+            throw new IllegalArgumentException("玩家不存在");
         }
 
         Item item = itemService.getItemById(itemId);
         if (item == null) {
-            throw new IllegalArgumentException("物品不存�?);
+            throw new IllegalArgumentException("物品不存在");
         }
 
-        // 检查是否已存在该物�?
+        // 检查是否已存在该物品
         PlayerItem existingItem = playerService.getPlayerItemByPlayerAndItem(playerId, itemId);
 
         if (existingItem != null) {
@@ -98,7 +98,7 @@ public class InventoryService {
             }
         }
 
-        // 创建新物�?
+        // 创建新物品
         PlayerItem newPlayerItem = PlayerItem.builder()
                 .playerId(playerId)
                 .itemId(itemId)
@@ -116,12 +116,12 @@ public class InventoryService {
     public PlayerItemResponse removeItemFromInventory(Integer playerId, Integer itemId, Integer quantity) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存�?);
+            throw new IllegalArgumentException("玩家不存在");
         }
 
         PlayerItem playerItem = playerService.getPlayerItemByPlayerAndItem(playerId, itemId);
         if (playerItem == null) {
-            throw new IllegalArgumentException("玩家没有该物�?);
+            throw new IllegalArgumentException("玩家没有该物品");
         }
 
         if (playerItem.getQuantity() < quantity) {
@@ -144,37 +144,37 @@ public class InventoryService {
     public PlayerItemResponse useItem(Integer playerId, Integer itemId) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存�?);
+            throw new IllegalArgumentException("玩家不存在");
         }
 
         Item item = itemService.getItemById(itemId);
         if (item == null) {
-            throw new IllegalArgumentException("物品不存�?);
+            throw new IllegalArgumentException("物品不存在");
         }
 
         if (!item.getUsable()) {
-            throw new IllegalArgumentException("该物品不可使�?);
+            throw new IllegalArgumentException("该物品不可使用");
         }
 
         PlayerItem playerItem = playerService.getPlayerItemByPlayerAndItem(playerId, itemId);
         if (playerItem == null) {
-            throw new IllegalArgumentException("玩家没有该物�?);
+            throw new IllegalArgumentException("玩家没有该物品");
         }
 
-        // 应用物品效果(简化处�?
+        // 应用物品效果（简化处理）
         applyItemEffect(player, item);
 
         // 减少物品数量
         return removeItemFromInventory(playerId, itemId, 1);
     }
 
-    // Controller调用的重载方�?
+    // Controller调用的重载方法
     @Transactional
     public Map<String, Object> useItem(Integer playerItemId, Integer quantity, Integer playerId) {
         // 根据playerItemId获取itemId
         PlayerItem playerItem = playerService.getPlayerItemById(playerItemId);
         if (playerItem == null) {
-            throw new IllegalArgumentException("物品不存�?);
+            throw new IllegalArgumentException("物品不存在");
         }
 
         if (playerItem.getQuantity() < quantity) {
@@ -183,12 +183,12 @@ public class InventoryService {
 
         Item item = itemService.getItemById(playerItem.getItemId());
         if (!item.getUsable()) {
-            throw new IllegalArgumentException("该物品不可使�?);
+            throw new IllegalArgumentException("该物品不可使用");
         }
 
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
-        
-        // 使用指定数量的物�?
+
+        // 使用指定数量的物品
         for (int i = 0; i < quantity; i++) {
             applyItemEffect(player, item);
         }
@@ -213,12 +213,12 @@ public class InventoryService {
     public void sellItem(Integer playerId, Integer playerItemId, Integer quantity) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存�?);
+            throw new IllegalArgumentException("玩家不存在");
         }
 
         PlayerItem playerItem = playerService.getPlayerItemById(playerItemId);
         if (playerItem == null) {
-            throw new IllegalArgumentException("物品不存�?);
+            throw new IllegalArgumentException("物品不存在");
         }
 
         if (!playerItem.getPlayerId().equals(playerId)) {
@@ -227,16 +227,16 @@ public class InventoryService {
 
         Item item = itemService.getItemById(playerItem.getItemId());
         if (item == null || !item.getSellable()) {
-            throw new IllegalArgumentException("该物品不可出�?);
+            throw new IllegalArgumentException("该物品不可出售");
         }
 
         if (playerItem.getQuantity() < quantity) {
             throw new IllegalArgumentException("物品数量不足");
         }
 
-        // 计算出售价格（通常是购买价格的50%�?
-        long sellPrice = ((long)item.getPrice() * quantity) / 2;
-        
+        // 计算出售价格（通常是购买价格的50%）
+        long sellPrice = ((long) item.getPrice() * quantity) / 2;
+
         // 增加玩家灵石
         player.setSpiritStones(player.getSpiritStones() + sellPrice);
         playerService.savePlayerProfile(player);
@@ -253,7 +253,7 @@ public class InventoryService {
 
     private void applyItemEffect(PlayerProfile player, Item item) {
         // 简化的物品效果应用
-        // 实际应该根据item.effect来处�?
+        // 实际应该根据item.effect来处理
         playerService.savePlayerProfile(player);
     }
 
@@ -270,14 +270,14 @@ public class InventoryService {
 
     private PlayerItemResponse convertToResponse(PlayerItem playerItem) {
         Item item = itemService.getItemById(playerItem.getItemId());
-        
+
         PlayerItemResponse response = new PlayerItemResponse();
         response.setId(playerItem.getId());
         response.setItemId(playerItem.getItemId());
         response.setQuantity(playerItem.getQuantity());
         response.setCreatedAt(playerItem.getCreatedAt());
         response.setUpdatedAt(playerItem.getUpdatedAt());
-        
+
         if (item != null) {
             response.setItemName(item.getName());
             response.setItemDescription(item.getDescription());
@@ -289,8 +289,7 @@ public class InventoryService {
             response.setSellable(item.getSellable());
             response.setPrice(item.getPrice());
         }
-        
+
         return response;
     }
 }
-

@@ -1,4 +1,4 @@
-﻿package com.xiuxian.game.modules.giftcode.service;
+package com.xiuxian.game.modules.giftcode.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -24,20 +24,20 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
 
     private final GiftCodeMapper giftCodeMapper;
     private final GiftCodeUsageMapper giftCodeUsageMapper;
-    private final PlayerService playerService; // 妯″潡杈圭晫锛氶€氳繃PlayerService璁块棶鐜╁鏁版嵁
+    private final PlayerService playerService; // 模块边界：通过PlayerService访问玩家数据
     private final MailService mailService;
     private final ObjectMapper objectMapper;
 
     /**
-     * 兑换礼包�?
+     * 兑换礼包码
      *
      * @param playerId 玎家ID
-     * @param code     礼包�?
+     * @param code     礼包码
      * @return 兑换结果
      */
     @Transactional
     public boolean redeemGiftCode(Integer playerId, String code) {
-        // 查找礼包�?
+        // 模块边界：通过PlayerService访问玩家数据
         QueryWrapper<GiftCode> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("code", code);
         GiftCode giftCode = giftCodeMapper.selectOne(queryWrapper);
@@ -47,30 +47,30 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
             throw new IllegalArgumentException("礼包码不存在");
         }
 
-        // 检查礼包码状�?
+        // 模块边界：通过PlayerService访问玩家数据
         if (!"ACTIVE".equals(giftCode.getStatus())) {
             throw new IllegalArgumentException("礼包码已失效");
         }
 
-        // 检查是否过�?
+        // 模块边界：通过PlayerService访问玩家数据
         if (giftCode.getExpireAt() != null && giftCode.getExpireAt().isBefore(LocalDateTime.now())) {
-            // 更新状态为已过�?
+            // 模块边界：通过PlayerService访问玩家数据
             giftCode.setStatus("EXPIRED");
             giftCodeMapper.updateById(giftCode);
             throw new IllegalArgumentException("礼包码已过期");
         }
 
-        // 检查玩家等级是否满足要�?
+        // 模块边界：通过PlayerService访问玩家数据
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存�?);
+            throw new IllegalArgumentException("玩家不存在");
         }
 
         if (player.getLevel() < giftCode.getMinLevel()) {
-            throw new IllegalArgumentException("玩家等级不足，需要达�? + giftCode.getMinLevel() + "�?);
+            throw new IllegalArgumentException("玩家等级不足，需要达到" + giftCode.getMinLevel() + "级");
         }
 
-        // 检查是否已使用过（对于唯一性礼包码�?
+        // 模块边界：通过PlayerService访问玩家数据
         if ("UNIQUE".equals(giftCode.getCodeType())) {
             QueryWrapper<GiftCodeUsage> usageQuery = new QueryWrapper<>();
             usageQuery.eq("gift_code_id", giftCode.getId());
@@ -80,7 +80,7 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
             }
         }
 
-        // 检查使用次数是否已达上�?
+        // 模块边界：通过PlayerService访问玩家数据
         if (giftCode.getUsedCount() >= giftCode.getMaxUsage()) {
             giftCode.setStatus("DISABLED");
             giftCodeMapper.updateById(giftCode);
@@ -95,7 +95,7 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
 
         // 增加使用次数
         giftCode.setUsedCount(giftCode.getUsedCount() + 1);
-        // 检查是否达到最大使用次�?
+        // 模块边界：通过PlayerService访问玩家数据
         if (giftCode.getUsedCount() >= giftCode.getMaxUsage()) {
             giftCode.setStatus("DISABLED");
         }
@@ -111,7 +111,7 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
      * 发放奖励
      *
      * @param playerId 玎家ID
-     * @param rewards  奖励内容（JSON格式�?
+     * @param rewards  奖励内容（JSON格式）
      */
     private void distributeRewards(Integer playerId, String rewards) {
         try {
@@ -130,16 +130,16 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
                         playerService.savePlayerProfile(player);
                         break;
                     case "ITEM":
-                        // 发放物品，通过邮件发�?
-                        mailService.sendSystemMail(playerId, "礼包码奖�?, "您通过礼包码获得了物品奖励", "ITEM", id, quantity);
+                        // 模块边界：通过PlayerService访问玩家数据
+                        mailService.sendSystemMail(playerId, "礼包码奖励", "您通过礼包码获得了物品奖励", "ITEM", id, quantity);
                         break;
                     case "EQUIPMENT":
-                        // 发放装备，通过邮件发�?
-                        mailService.sendSystemMail(playerId, "礼包码奖�?, "您通过礼包码获得了装备奖励", "EQUIPMENT", id, quantity);
+                        // 模块边界：通过PlayerService访问玩家数据
+                        mailService.sendSystemMail(playerId, "礼包码奖励", "您通过礼包码获得了装备奖励", "EQUIPMENT", id, quantity);
                         break;
                     default:
-                        // 其他类型奖励也通过邮件发�?
-                        mailService.sendSystemMail(playerId, "礼包码奖�?, "您通过礼包码获得了奖励", type, id, quantity);
+                        // 模块边界：通过PlayerService访问玩家数据
+                        mailService.sendSystemMail(playerId, "礼包码奖励", "您通过礼包码获得了奖励", type, id, quantity);
                         break;
                 }
             }
@@ -150,9 +150,9 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
     }
 
     /**
-     * 创建礼包�?
+     * 创建礼包码
      *
-     * @param giftCode 礼包码信�?
+     * @param giftCode 礼包码信息
      * @return 创建的礼包码
      */
     @Transactional
@@ -165,7 +165,7 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
     }
 
     /**
-     * 获取礼包码使用记�?
+     * 获取礼包码使用记录
      *
      * @param giftCodeId 礼包码ID
      * @return 使用记录列表

@@ -1,4 +1,4 @@
-﻿package com.xiuxian.game.modules.guild.service;
+package com.xiuxian.game.modules.guild.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.xiuxian.game.dto.response.ApiResponse;
@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 
 /**
  * 宗门BOSS服务
- * 负责BOSS刷新、协作挑战、伤害统计、奖励分�?
+ * 负责BOSS刷新、协作挑战、伤害统计、奖励分配
  */
 @Slf4j
 @Service
@@ -40,11 +40,10 @@ public class GuildBossService {
     private final GuildBossMapper guildBossMapper;
     private final GuildBossChallengeMapper challengeMapper;
     private final GuildMemberMapper guildMemberMapper;
-    private final PlayerService playerService;
     // module boundary: access player data via PlayerService
-    private final com.xiuxian.game.modules.player.service.PlayerService playerService;
+    private final PlayerService playerService;
 
-    /** 每人每天最多挑战次�?*/
+    /** 每人每天最多挑战次数 */
     private static final int MAX_DAILY_ATTEMPTS = 5;
     /** BOSS每周一刷新 */
     private static final int BOSS_RESPAWN_DAYS = 7;
@@ -52,13 +51,13 @@ public class GuildBossService {
     // ==================== BOSS 预设配置 ====================
     private static final List<BossTemplate> BOSS_TEMPLATES = Arrays.asList(
         new BossTemplate("妖皇魃影", "远古妖皇的残魂，凶悍无比",  5,  500_000L, 2800, 400, 5000, 8000),
-        new BossTemplate("血魔尸�?, "以怨气凝聚的不死尸�?,     10, 2_000_000L, 6000, 900, 12000, 20000),
-        new BossTemplate("冥狱火龙", "来自冥狱的上古火�?,       15, 8_000_000L, 12000, 1800, 30000, 50000),
-        new BossTemplate("太虚古魔", "太虚时代留存的上古大�?,   20, 30_000_000L, 25000, 3500, 80000, 120000)
+        new BossTemplate("血魔尸王", "以怨气凝聚的不死尸王",     10, 2_000_000L, 6000, 900, 12000, 20000),
+        new BossTemplate("冥狱火龙", "来自冥狱的上古火龙",       15, 8_000_000L, 12000, 1800, 30000, 50000),
+        new BossTemplate("太虚古魔", "太虚时代留存的上古大魔",   20, 30_000_000L, 25000, 3500, 80000, 120000)
     );
 
     /**
-     * 获取当前宗门BOSS（若未刷新则自动生成�?
+     * 获取当前宗门BOSS（若未刷新则自动生成）
      */
     public GuildBossVO getCurrentBoss(Integer playerId) {
         Integer guildId = getPlayerGuildId(playerId);
@@ -89,7 +88,7 @@ public class GuildBossService {
             throw new BusinessException(ErrorCode.GUILD_BOSS_ALREADY_DEFEATED);
         }
 
-        // 检查每日次�?
+        // 检查每日次数
         GuildBossChallenge record = challengeMapper.findByBossAndPlayer(boss.getId(), playerId);
         if (record != null) {
             int todayAttempts = getTodayAttempts(record);
@@ -102,7 +101,7 @@ public class GuildBossService {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         long damage = calculateDamage(player, boss);
 
-        // 扣除BOSS生命�?
+        // 扣除BOSS生命值
         boss.setCurrentHealth(Math.max(0, boss.getCurrentHealth() - damage));
         boolean bossDefeated = boss.getCurrentHealth() <= 0;
         if (bossDefeated) {
@@ -119,7 +118,7 @@ public class GuildBossService {
             distributeRewards(boss);
         }
 
-        log.info("[GuildBoss] 玩家{}挑战BOSS{}造成{}伤害, 剩余血�?{}", playerId, boss.getId(), damage, boss.getCurrentHealth());
+        log.info("[GuildBoss] 玩家{}挑战BOSS{}造成{}伤害, 剩余血量{}", playerId, boss.getId(), damage, boss.getCurrentHealth());
         LogUtils.logBusiness("GUILD_BOSS", "挑战BOSS", "playerId", playerId, "damage", damage, "bossDefeated", bossDefeated);
 
         return ChallengeResult.builder()
@@ -173,7 +172,7 @@ public class GuildBossService {
         Map<String, Object> result = new HashMap<>();
         result.put("spiritStones", stones);
         result.put("exp", exp);
-        result.put("message", "成功击败" + boss.getName() + "！获得奖�?);
+        result.put("message", "成功击败" + boss.getName() + "！获得奖励");
         return result;
     }
 
@@ -209,7 +208,7 @@ public class GuildBossService {
         // 基础伤害 = 攻击 - 防御/2，带随机浮动±10%
         double base = Math.max(attack - defense / 2.0, attack * 0.1);
         double random = 0.9 + ThreadLocalRandom.current().nextDouble() * 0.2;
-        // 连招技能加成：10%暴击概率 × 2�?
+        // 连招技能加成：10%暴击概率 × 2倍
         boolean crit = ThreadLocalRandom.current().nextDouble() < 0.10;
         return Math.round(base * random * (crit ? 2.0 : 1.0));
     }
@@ -403,5 +402,3 @@ public class GuildBossService {
         }
     }
 }
-
-

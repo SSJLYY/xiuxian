@@ -1,4 +1,4 @@
-﻿package com.xiuxian.game.modules.guild.service;
+package com.xiuxian.game.modules.guild.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -22,7 +22,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 宗门服务�?
+ * 宗门服务类
  */
 @Service
 @RequiredArgsConstructor
@@ -32,7 +32,7 @@ public class GuildService {
     private final GuildMapper guildMapper;
     private final GuildMemberMapper guildMemberMapper;
     private final GuildApplicationMapper guildApplicationMapper;
-    private final PlayerService playerService; // 妯″潡杈圭晫锛氶€氳繃PlayerService璁块棶鐜╁鏁版嵁
+    private final PlayerService playerService; // 模块边界：通过PlayerService访问玩家数据
 
     /**
      * 创建宗门
@@ -47,11 +47,11 @@ public class GuildService {
         }
         
         if (guildName.length() > 20) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "宗门名称不能超过20个字�?);
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "宗门名称不能超过20个字符");
         }
         
         if (description != null && description.length() > 200) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "宗门简介不能超�?00个字�?);
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "宗门简介不能超过200个字符");
         }
         
         // 检查玩家是否已加入宗门
@@ -68,20 +68,20 @@ public class GuildService {
             throw new BusinessException(ErrorCode.GUILD_NAME_EXISTS);
         }
         
-        // 检查玩家等级是否满足创建条件（假设需�?0级）
+        // 模块边界：通过PlayerService访问玩家数据
         PlayerProfile profile = playerService.getPlayerProfileById(playerId);
         if (profile == null) {
             throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
         }
         
         if (profile.getLevel() < 20) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "需要达�?0级才能创建宗�?);
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "需要达到20级才能创建宗门");
         }
         
-        // 检查玩家灵石是否足够（创建宗门需�?0000灵石�?
+        // 模块边界：通过PlayerService访问玩家数据
         final long CREATE_COST = 10000L;
         if (profile.getSpiritStones() < CREATE_COST) {
-            throw new BusinessException(ErrorCode.INSUFFICIENT_SPIRIT_STONES, "创建宗门需�? + CREATE_COST + "灵石");
+            throw new BusinessException(ErrorCode.INSUFFICIENT_SPIRIT_STONES, "创建宗门需要" + CREATE_COST + "灵石");
         }
         
         // 扣除创建费用
@@ -126,7 +126,7 @@ public class GuildService {
     public void applyToGuild(Integer playerId, Long guildId) {
         log.info("玩家申请加入宗门: playerId={}, guildId={}", playerId, guildId);
         
-        // 检查是否已申请�?
+        // 模块边界：通过PlayerService访问玩家数据
         GuildApplication existingApp = guildApplicationMapper.selectOne(
                 new QueryWrapper<GuildApplication>()
                         .eq("player_id", playerId)
@@ -136,14 +136,14 @@ public class GuildService {
             throw new BusinessException(ErrorCode.GUILD_APPLICATION_EXISTS);
         }
         
-        // 检查玩家等级是否满足要求（假设需�?0级）
+        // 模块边界：通过PlayerService访问玩家数据
         PlayerProfile profile = playerService.getPlayerProfileById(playerId);
         if (profile == null) {
             throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
         }
         
         if (profile.getLevel() < 10) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "需要达�?0级才能加入宗�?);
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "需要达到10级才能加入宗门");
         }
         
         // 创建申请
@@ -155,7 +155,7 @@ public class GuildService {
         
         guildApplicationMapper.insert(application);
         
-        log.info("宗门申请已提�? applicationId={}, guildId={}, playerId={}", 
+        log.info("宗门申请已提交: applicationId={}, guildId={}, playerId={}", 
                 application.getId(), guildId, playerId);
     }
 
@@ -176,7 +176,7 @@ public class GuildService {
             throw new BusinessException(ErrorCode.GUILD_APPLICATION_ALREADY_HANDLED);
         }
         
-        // 检查处理者权�?
+        // 模块边界：通过PlayerService访问玩家数据
         GuildMember handler = guildMemberMapper.selectOne(
                 new QueryWrapper<GuildMember>()
                         .eq("guild_id", application.getGuildId())
@@ -187,7 +187,7 @@ public class GuildService {
         }
         
         if (approved) {
-            // 检查宗门是否已�?
+            // 模块边界：通过PlayerService访问玩家数据
             Guild guild = guildMapper.selectById(application.getGuildId());
             if (guild.getMemberCount() >= guild.getMaxMembers()) {
                 throw new BusinessException(ErrorCode.GUILD_FULL);
@@ -203,7 +203,7 @@ public class GuildService {
             
             guildMemberMapper.insert(member);
             
-            // 更新宗门成员�?
+            // 模块边界：通过PlayerService访问玩家数据
             guild.setMemberCount(guild.getMemberCount() + 1);
             guildMapper.updateById(guild);
             
@@ -220,11 +220,11 @@ public class GuildService {
     }
 
     /**
-     * 退出宗�?
+     * 退出宗门
      */
     @Transactional
     public void leaveGuild(Integer playerId) {
-        log.info("退出宗�? playerId={}", playerId);
+        log.info("退出宗门: playerId={}", playerId);
         
         GuildMember member = guildMemberMapper.selectOne(
                 new QueryWrapper<GuildMember>().eq("player_id", playerId));
@@ -240,12 +240,12 @@ public class GuildService {
         // 删除成员
         guildMemberMapper.deleteById(member.getId());
         
-        // 更新宗门成员�?
+        // 模块边界：通过PlayerService访问玩家数据
         Guild guild = guildMapper.selectById(member.getGuildId());
         guild.setMemberCount(guild.getMemberCount() - 1);
         guildMapper.updateById(guild);
         
-        log.info("退出宗门成�? playerId={}, guildId={}", playerId, member.getGuildId());
+        log.info("退出宗门成功: playerId={}, guildId={}", playerId, member.getGuildId());
     }
 
     /**
@@ -271,7 +271,7 @@ public class GuildService {
         profile.setSpiritStones(profile.getSpiritStones() - amount);
         playerService.savePlayerProfile(profile);
         
-        // 增加宗门资金和成员贡�?
+        // 模块边界：通过PlayerService访问玩家数据
         Guild guild = guildMapper.selectById(member.getGuildId());
         guild.setGuildFunds(guild.getGuildFunds() + amount);
         guildMapper.updateById(guild);
@@ -316,7 +316,7 @@ public class GuildService {
     }
 
     /**
-     * 获取玩家的宗门信�?
+     * 获取玩家的宗门信息
      */
     public Guild getPlayerGuild(Integer playerId) {
         GuildMember member = guildMemberMapper.selectOne(
