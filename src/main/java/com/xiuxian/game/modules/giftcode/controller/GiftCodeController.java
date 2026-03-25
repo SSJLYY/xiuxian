@@ -16,7 +16,7 @@ public class GiftCodeController {
     private final PlayerService playerService;
 
     /**
-     * 兑换礼包�?
+     * 兑换礼包码
      */
     @PostMapping("/redeem")
     @PreAuthorize("isAuthenticated()")

@@ -1,4 +1,4 @@
-﻿package com.xiuxian.game.modules.checkin.service;
+package com.xiuxian.game.modules.checkin.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.xiuxian.game.modules.checkin.entity.PlayerCheckIn;
@@ -21,7 +21,7 @@ import java.util.*;
 
 /**
  * 每日签到服务
- * 支持连续签到奖励递增、月历展示、补签（预留�?
+ * 支持连续签到奖励递增、月历展示、补签（预留）
  */
 @Slf4j
 @Service
@@ -29,7 +29,7 @@ import java.util.*;
 public class CheckInService {
 
     private final PlayerCheckInMapper checkInMapper;
-    private final PlayerService playerService; // 妯″潡杈圭晫锛氶€氳繃PlayerService璁块棶鐜╁鏁版嵁
+    private final PlayerService playerService; // 模块边界：通过PlayerService访问玩家数据
 
     // ==================== 连续签到奖励配置 ====================
     // key = 连续天数区间（包含），value = [灵石, 经验]
@@ -46,15 +46,15 @@ public class CheckInService {
         {400, 1200},
         // day 6
         {450, 1500},
-        // day 7 �?里程碑奖�?
+        // day 7 — 里程碑奖励
         {800, 3000},
         // day 8-13
         {350, 1000},
-        // day 14 �?里程�?
+        // day 14 — 里程碑
         {1500, 5000},
         // day 15-29
         {400, 1200},
-        // day 30 �?月签到里程碑
+        // day 30 — 月签到里程碑
         {3000, 10000},
     };
 
@@ -65,7 +65,7 @@ public class CheckInService {
     public CheckInResult checkIn(Integer playerId) {
         LocalDate today = LocalDate.now();
 
-        // 判断今天是否已签�?
+        // 判断今天是否已签到
         PlayerCheckIn existing = checkInMapper.findByPlayerAndDate(playerId, today);
         if (existing != null) {
             throw new BusinessException(ErrorCode.CHECK_IN_ALREADY_DONE);
@@ -79,7 +79,7 @@ public class CheckInService {
         int stones = reward[0];
         int exp = reward[1];
 
-        // 里程碑标�?
+        // 里程碑标记
         boolean isMilestone = (consecutiveDays == 7 || consecutiveDays == 14 || consecutiveDays == 30);
 
         // 写入签到记录
@@ -98,7 +98,7 @@ public class CheckInService {
         player.setExp(player.getExp() + exp);
         playerService.savePlayerProfile(player);
 
-        log.info("[CheckIn] 玩家{}签到成功: 连续{}�? 灵石+{}, 经验+{}", playerId, consecutiveDays, stones, exp);
+        log.info("[CheckIn] 玩家{}签到成功: 连续{}天, 灵石+{}, 经验+{}", playerId, consecutiveDays, stones, exp);
         LogUtils.logBusiness("CHECK_IN", "每日签到", "playerId", playerId,
                 "consecutiveDays", consecutiveDays, "stones", stones);
 
@@ -114,7 +114,7 @@ public class CheckInService {
     }
 
     /**
-     * 获取签到状态（月历数据�?
+     * 获取签到状态（月历数据）
      */
     public CheckInStatus getStatus(Integer playerId) {
         LocalDate today = LocalDate.now();
@@ -132,7 +132,7 @@ public class CheckInService {
         int consecutiveDays = checkedToday ? calculateConsecutiveDays(playerId, today) :
                 calculateConsecutiveDays(playerId, today.minusDays(1));
 
-        // 预览今日奖励（未签到�?
+        // 预览今日奖励（未签到）
         int nextConsecutive = checkedToday ? consecutiveDays : consecutiveDays + 1;
         int[] todayReward = getRewardForDay(nextConsecutive);
 
@@ -198,9 +198,9 @@ public class CheckInService {
 
     private String buildMilestoneMsg(int days) {
         switch (days) {
-            case 7: return "🎉 连续签到7天！获得丰厚额外奖励�?;
+            case 7: return "🎉 连续签到7天！获得丰厚额外奖励！";
             case 14: return "🌟 连续签到14天！信念坚定，加倍奖励！";
-            case 30: return "🏆 连续签到30天！道心通明，获得传说级奖励�?;
+            case 30: return "🏆 连续签到30天！道心通明，获得传说级奖励！";
             default: return "🎊 里程碑达成！";
         }
     }
@@ -229,4 +229,3 @@ public class CheckInService {
         private List<Map<String, Object>> calendar;
     }
 }
-

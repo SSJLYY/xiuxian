@@ -12,7 +12,7 @@ import java.util.List;
 public interface CultivationLogMapper extends BaseMapper<CultivationLog> {
     
     /**
-     * 查询玩家的修炼日�?
+     * 查询玩家的修炼日志
      */
     @Select("SELECT * FROM cultivation_logs WHERE player_id = #{playerId} ORDER BY created_at DESC LIMIT #{limit}")
     List<CultivationLog> selectByPlayerId(@Param("playerId") Integer playerId, @Param("limit") int limit);

@@ -1,4 +1,4 @@
-﻿package com.xiuxian.game.modules.equipment.service;
+package com.xiuxian.game.modules.equipment.service;
 
 import com.xiuxian.game.modules.shop.entity.Item;
 import com.xiuxian.game.modules.player.entity.PlayerItem;
@@ -28,7 +28,7 @@ public class EnhancedInventoryService {
     public List<PlayerItemResponse> getPlayerInventory(Integer playerId, String type, String sortBy, String order) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存�?);
+            throw new IllegalArgumentException("玩家不存在");
         }
 
         List<PlayerItem> playerItems = playerService.getPlayerItemsByPlayerId(playerId);
@@ -83,13 +83,13 @@ public class EnhancedInventoryService {
     }
 
     /**
-     * 整理背包 - 自动堆叠相同物品并按类型和品质排�?
+     * 整理背包 - 自动堆叠相同物品并按类型和品质排序
      */
     @Transactional
     public void organizeInventory(Integer playerId) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存�?);
+            throw new IllegalArgumentException("玩家不存在");
         }
 
         List<PlayerItem> playerItems = playerService.getPlayerItemsByPlayerId(playerId);
@@ -132,14 +132,14 @@ public class EnhancedInventoryService {
     public void toggleItemLock(Integer playerId, Integer playerItemId) {
         PlayerItem playerItem = playerService.getPlayerItemById(playerItemId);
         if (playerItem == null) {
-            throw new IllegalArgumentException("物品不存�?);
+            throw new IllegalArgumentException("物品不存在");
         }
         
         if (!playerItem.getPlayerId().equals(playerId)) {
             throw new IllegalArgumentException("该物品不属于当前玩家");
         }
         
-        // 切换锁定状�?
+        // 切换锁定状态
         playerItem.setLocked(!playerItem.getLocked());
         playerItem.setUpdatedAt(LocalDateTime.now());
         playerService.updatePlayerItem(playerItem);
@@ -152,7 +152,7 @@ public class EnhancedInventoryService {
     public Map<String, Object> useItems(Integer playerId, List<ItemUseRequest> useRequests) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存�?);
+            throw new IllegalArgumentException("玩家不存在");
         }
 
         Map<String, Object> result = new HashMap<>();
@@ -161,7 +161,7 @@ public class EnhancedInventoryService {
         for (ItemUseRequest request : useRequests) {
             PlayerItem playerItem = playerService.getPlayerItemById(request.getPlayerItemId());
             if (playerItem == null) {
-                throw new IllegalArgumentException("物品不存�? " + request.getPlayerItemId());
+            throw new IllegalArgumentException("物品不存在: " + request.getPlayerItemId());
             }
 
             if (!playerItem.getPlayerId().equals(playerId)) {
@@ -170,19 +170,19 @@ public class EnhancedInventoryService {
 
             // 检查物品是否被锁定
             if (playerItem.getLocked()) {
-                throw new IllegalArgumentException("物品已被锁定，无法使�? " + request.getPlayerItemId());
+                throw new IllegalArgumentException("物品已被锁定，无法使用: " + request.getPlayerItemId());
             }
 
             Item item = itemService.getItemById(playerItem.getItemId());
             if (item == null || !item.getUsable()) {
-                throw new IllegalArgumentException("该物品不可使�? " + request.getPlayerItemId());
+                throw new IllegalArgumentException("该物品不可使用: " + request.getPlayerItemId());
             }
 
             if (playerItem.getQuantity() < request.getQuantity()) {
                 throw new IllegalArgumentException("物品数量不足: " + request.getPlayerItemId());
             }
 
-            // 使用指定数量的物�?
+            // 使用指定数量的物品
             for (int i = 0; i < request.getQuantity(); i++) {
                 applyItemEffect(player, item);
             }
@@ -201,7 +201,7 @@ public class EnhancedInventoryService {
         playerService.savePlayerProfile(player);
         
         result.put("used", totalUsed);
-        result.put("message", "成功使用 " + totalUsed + " 个物�?);
+        result.put("message", "成功使用 " + totalUsed + " 个物品");
         return result;
     }
 
@@ -212,7 +212,7 @@ public class EnhancedInventoryService {
     public Map<String, Object> sellItems(Integer playerId, List<ItemSellRequest> sellRequests) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存�?);
+            throw new IllegalArgumentException("玩家不存在");
         }
 
         Map<String, Object> result = new HashMap<>();
@@ -222,7 +222,7 @@ public class EnhancedInventoryService {
         for (ItemSellRequest request : sellRequests) {
             PlayerItem playerItem = playerService.getPlayerItemById(request.getPlayerItemId());
             if (playerItem == null) {
-                throw new IllegalArgumentException("物品不存�? " + request.getPlayerItemId());
+            throw new IllegalArgumentException("物品不存在: " + request.getPlayerItemId());
             }
 
             if (!playerItem.getPlayerId().equals(playerId)) {
@@ -231,19 +231,19 @@ public class EnhancedInventoryService {
 
             // 检查物品是否被锁定
             if (playerItem.getLocked()) {
-                throw new IllegalArgumentException("物品已被锁定，无法出�? " + request.getPlayerItemId());
+                throw new IllegalArgumentException("物品已被锁定，无法出售: " + request.getPlayerItemId());
             }
 
             Item item = itemService.getItemById(playerItem.getItemId());
             if (item == null || !item.getSellable()) {
-                throw new IllegalArgumentException("该物品不可出�? " + request.getPlayerItemId());
+                throw new IllegalArgumentException("该物品不可出售: " + request.getPlayerItemId());
             }
 
             if (playerItem.getQuantity() < request.getQuantity()) {
                 throw new IllegalArgumentException("物品数量不足: " + request.getPlayerItemId());
             }
 
-            // 计算出售价格（通常是购买价格的50%�?
+        // 计算出售价格（通常是购买价格的50%）
             long sellPrice = ((long)item.getPrice() * request.getQuantity()) / 2;
             totalEarned += sellPrice;
             totalSold += request.getQuantity();
@@ -269,7 +269,7 @@ public class EnhancedInventoryService {
     }
 
     /**
-     * 检查背包是否已�?
+     * 检查背包是否已满
      */
     public boolean isInventoryFull(Integer playerId, int maxCapacity) {
         List<PlayerItem> playerItems = playerService.getPlayerItemsByPlayerId(playerId);
@@ -285,7 +285,8 @@ public class EnhancedInventoryService {
 
     private void applyItemEffect(PlayerProfile player, Item item) {
         // 简化的物品效果应用
-        // 实际应该根据item.effect来处�?
+        // 简化的物品效果应用
+        // 实际应该根据item.effect来处理
         playerService.savePlayerProfile(player);
     }
 
@@ -311,7 +312,7 @@ public class EnhancedInventoryService {
         Item item = itemService.getItemById(playerItem.getItemId());
         if (item == null) return 0;
         
-        // 定义类型优先�?
+        // 定义类型优先级
         switch (item.getType()) {
             case "装备": return 1;
             case "消耗品": return 2;
@@ -328,7 +329,7 @@ public class EnhancedInventoryService {
         response.setId(playerItem.getId());
         response.setItemId(playerItem.getItemId());
         response.setQuantity(playerItem.getQuantity());
-        response.setLocked(playerItem.getLocked()); // 添加锁定状�?
+        response.setLocked(playerItem.getLocked()); // 添加锁定状态
         response.setCreatedAt(playerItem.getCreatedAt());
         response.setUpdatedAt(playerItem.getUpdatedAt());
         

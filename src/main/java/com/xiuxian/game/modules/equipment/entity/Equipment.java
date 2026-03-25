@@ -35,7 +35,7 @@ public class Equipment {
 
     @TableField(value = "quality")
     @Builder.Default
-    private Integer quality = 1; // 1-普�? 2-精良, 3-稀�? 4-史诗, 5-传说
+    private Integer quality = 1; // 1-普通, 2-精良, 3-稀有, 4-史诗, 5-传说
 
     @TableField(value = "attack_bonus")
     @Builder.Default
@@ -82,9 +82,9 @@ public class Equipment {
 
     public String getQualityName() {
         switch (quality) {
-            case 1: return "普�?;
+            case 1: return "普通";
             case 2: return "精良";
-            case 3: return "稀�?;
+            case 3: return "稀有";
             case 4: return "史诗";
             case 5: return "传说";
             default: return "未知";

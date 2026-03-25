@@ -1,4 +1,4 @@
-﻿package com.xiuxian.game.modules.combat.service;
+package com.xiuxian.game.modules.combat.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

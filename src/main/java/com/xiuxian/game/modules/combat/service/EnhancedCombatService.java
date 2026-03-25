@@ -1,6 +1,5 @@
-﻿package com.xiuxian.game.modules.combat.service;
+package com.xiuxian.game.modules.combat.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 // combat module entities (same module -- OK)
@@ -34,9 +33,9 @@ import java.util.concurrent.ThreadLocalRandom;
 public class EnhancedCombatService {
 
     // module boundary: access player/skill/item data via Service
-    private final com.xiuxian.game.modules.player.service.PlayerService playerService;
-    private final com.xiuxian.game.modules.skill.service.SkillService skillService;
-    private final com.xiuxian.game.modules.shop.service.ItemService itemService;
+    private final PlayerService playerService;
+    private final SkillService skillService;
+    private final ItemService itemService;
     private final MonsterMapper monsterMapper;
     private final CombatLogMapper combatLogMapper;
     private final EquipmentService equipmentService;
@@ -49,31 +48,31 @@ public class EnhancedCombatService {
     // playerItemMapper replaced by playerService
     private final ObjectMapper objectMapper;
 
-    // 【修复】使�?ThreadLocalRandom 替代共享 Random 实例�?
-    // EnhancedCombatService �?Spring 单例，所有并发请求共享同一实例�?
-    // ThreadLocalRandom 每个线程独立，无锁竞争，性能更优�?
+    // 【修复】使用 ThreadLocalRandom 替代共享 Random 实例。
+    // EnhancedCombatService 是 Spring 单例，所有并发请求共享同一实例。
+    // ThreadLocalRandom 每个线程独立，无锁竞争，性能更优。
     private static ThreadLocalRandom rng() {
         return ThreadLocalRandom.current();
     }
 
     /**
-     * 增强战斗主逻辑 - 支持技能、宠物、道�?
+     * 增强战斗主逻辑 - 支持技能、宠物、道具
      */
     @Transactional
     public Map<String, Object> enhancedCombat(Integer playerId, Monster monster, Integer skillId, Integer itemId) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存�?);
+            throw new IllegalArgumentException("玩家不存在");
         }
 
-        // 获取玩家总属性（基础+装备�?
+        // 获取玩家总属性（基础+装备）
         int playerHealth = player.getHealth() + player.getEquipmentHealthBonus();
         int playerAttack = player.getAttack() + player.getEquipmentAttackBonus();
         int playerDefense = player.getDefense() + player.getEquipmentDefenseBonus();
         int playerSpeed = player.getSpeed() + player.getEquipmentSpeedBonus();
         int playerMana = player.getMana();
 
-        // 获取宠物属性加�?
+        // 获取宠物属性加成
         PlayerPet activePet = petService.getActivePet(playerId);
         if (activePet != null) {
             playerHealth += activePet.getHealth();
@@ -90,10 +89,10 @@ public class EnhancedCombatService {
         // 战斗日志
         List<String> battleLog = new ArrayList<>();
         battleLog.add("战斗开始！" + player.getNickname() + " VS " + monster.getName());
-        
+
         // 添加宠物出场信息
         if (activePet != null) {
-            battleLog.add(player.getNickname() + "的宠�? + activePet.getNickname() + "加入战斗�?);
+            battleLog.add(player.getNickname() + "的宠物" + activePet.getNickname() + "加入战斗！");
         }
 
         int currentPlayerHealth = playerHealth;
@@ -105,54 +104,54 @@ public class EnhancedCombatService {
         // 战斗循环
         while (currentPlayerHealth > 0 && currentMonsterHealth > 0 && rounds < maxRounds) {
             rounds++;
-            
+
             // 根据速度决定先手
             boolean playerFirst = playerSpeed >= monsterSpeed;
-            
+
             if (playerFirst) {
                 // 玩家回合
-                String playerAction = executePlayerTurn(player, skillId, itemId, currentPlayerMana, 
+                String playerAction = executePlayerTurn(player, skillId, itemId, currentPlayerMana,
                         monster, currentMonsterHealth, monsterDefense, battleLog);
-                
-                // 更新玩家法力�?
-                if (playerAction.startsWith("使用技�?)) {
+
+                // 更新玩家法力值
+                if (playerAction.startsWith("使用技能")) {
                     Skill skill = skillService.getSkillById(skillId);
                     if (skill != null) {
                         currentPlayerMana = Math.max(0, currentPlayerMana - skill.getManaCost());
                     }
                 }
-                
-                // 解析造成的伤�?
+
+                // 解析造成的伤害
                 int playerDamage = parseDamageFromLog(playerAction);
                 currentMonsterHealth -= playerDamage;
-                
+
                 if (currentMonsterHealth <= 0) break;
-                
+
                 // 怪物回合
                 String monsterAction = executeMonsterTurn(monster, currentPlayerHealth, playerDefense, battleLog);
                 int monsterDamage = parseDamageFromLog(monsterAction);
                 currentPlayerHealth -= monsterDamage;
             } else {
-                // 怪物先攻�?
+                // 怪物先攻击
                 String monsterAction = executeMonsterTurn(monster, currentPlayerHealth, playerDefense, battleLog);
                 int monsterDamage = parseDamageFromLog(monsterAction);
                 currentPlayerHealth -= monsterDamage;
-                
+
                 if (currentPlayerHealth <= 0) break;
-                
+
                 // 玩家回合
-                String playerAction = executePlayerTurn(player, skillId, itemId, currentPlayerMana, 
+                String playerAction = executePlayerTurn(player, skillId, itemId, currentPlayerMana,
                         monster, currentMonsterHealth, monsterDefense, battleLog);
-                
-                // 更新玩家法力�?
-                if (playerAction.startsWith("使用技�?)) {
+
+                // 更新玩家法力值
+                if (playerAction.startsWith("使用技能")) {
                     Skill skill = skillService.getSkillById(skillId);
                     if (skill != null) {
                         currentPlayerMana = Math.max(0, currentPlayerMana - skill.getManaCost());
                     }
                 }
-                
-                // 解析造成的伤�?
+
+                // 解析造成的伤害
                 int playerDamage = parseDamageFromLog(playerAction);
                 currentMonsterHealth -= playerDamage;
             }
@@ -161,54 +160,54 @@ public class EnhancedCombatService {
         // 判断战斗结果
         boolean playerWon = currentMonsterHealth <= 0;
         String result = playerWon ? "WIN" : "LOSE";
-        
+
         int expGained = 0;
         int spiritStonesGained = 0;
         Integer droppedEquipmentId = null;
-        
+
         if (playerWon) {
-            battleLog.add("战斗胜利�?);
-            
+            battleLog.add("战斗胜利！");
+
             // 计算奖励
             expGained = calculateExpReward(monster, player.getLevel());
             spiritStonesGained = calculateSpiritStonesReward(monster, player.getLevel());
-            
-            // 检查装备掉�?
-            if (random.nextInt(100) < monster.getDropRate() && monster.getDropEquipmentId() != null) {
+
+            // 检查装备掉落
+            if (rng().nextInt(100) < monster.getDropRate() && monster.getDropEquipmentId() != null) {
                 droppedEquipmentId = monster.getDropEquipmentId();
                 try {
-                    // 使用非事务方式获取装备，避免影响主事�?
+                    // 使用非事务方式获取装备，避免影响主事务
                     equipmentService.acquireEquipment(droppedEquipmentId, playerId);
-                    battleLog.add("获得装备掉落�?);
+                    battleLog.add("获得装备掉落！");
                 } catch (Exception e) {
                     log.warn("装备掉落失败: {}", e.getMessage());
-                    // 不中断主流程，继续处理其他奖�?
+                    // 不中断主流程，继续处理其他奖励
                 }
             }
-            
+
             // 更新玩家数据
             player.setExp(player.getExp() + expGained);
             player.setSpiritStones(player.getSpiritStones() + spiritStonesGained);
-            
-            // 检查升�?
+
+            // 检查升级
             while (player.getExp() >= player.getExpToNext()) {
                 player.setExp(player.getExp() - player.getExpToNext());
                 player.setLevel(player.getLevel() + 1);
                 player.setExpToNext((long)(player.getExpToNext() * 1.5));
-                
-                // 升级属性增�?
+
+                // 升级属性增加
                 player.setHealth(player.getHealth() + 10);
                 player.setMana(player.getMana() + 5);
                 player.setAttack(player.getAttack() + 2);
                 player.setDefense(player.getDefense() + 1);
                 player.setAttributePoints(player.getAttributePoints() + 5);
-                
+
                 battleLog.add("恭喜升级！当前等级：" + player.getLevel());
             }
-            
+
             playerService.savePlayerProfile(player);
-            
-            battleLog.add("获得经验�? + expGained + "，灵石：" + spiritStonesGained);
+
+            battleLog.add("获得经验：" + expGained + "，灵石：" + spiritStonesGained);
         } else {
             battleLog.add("战斗失败...");
             // 失败惩罚（可选）
@@ -216,7 +215,7 @@ public class EnhancedCombatService {
             if (player.getSpiritStones() >= lostSpiritStones) {
                 player.setSpiritStones(player.getSpiritStones() - lostSpiritStones);
                 playerService.savePlayerProfile(player);
-                battleLog.add("损失灵石�? + lostSpiritStones);
+                battleLog.add("损失灵石：" + lostSpiritStones);
             }
         }
 
@@ -225,9 +224,9 @@ public class EnhancedCombatService {
         try {
             battleDetailsJson = objectMapper.writeValueAsString(battleLog);
         } catch (JsonProcessingException e) {
-            log.error("战斗日志序列化失�?, e);
+            log.error("战斗日志序列化失败", e);
         }
-        
+
         CombatLog combatLog = CombatLog.builder()
                 .playerId(playerId)
                 .monsterId(monster.getId())
@@ -239,7 +238,7 @@ public class EnhancedCombatService {
                 .battleDetails(battleDetailsJson)
                 .createdAt(LocalDateTime.now())
                 .build();
-        
+
         combatLogMapper.insert(combatLog);
 
         // 返回战斗结果
@@ -257,71 +256,71 @@ public class EnhancedCombatService {
         resultMap.put("playerMaxHealth", playerHealth);
         resultMap.put("monsterCurrentHealth", currentMonsterHealth);
         resultMap.put("monsterMaxHealth", monsterHealth);
-        
+
         return resultMap;
     }
 
     /**
      * 执行玩家回合
      */
-    private String executePlayerTurn(PlayerProfile player, Integer skillId, Integer itemId, 
-                                   int currentMana, Monster monster, int monsterHealth, 
+    private String executePlayerTurn(PlayerProfile player, Integer skillId, Integer itemId,
+                                   int currentMana, Monster monster, int monsterHealth,
                                    int monsterDefense, List<String> battleLog) {
-        // 检查是否使用技�?
+        // 检查是否使用技能
         if (skillId != null && skillId > 0) {
             PlayerSkill playerSkill = skillService.getPlayerSkillByPlayerAndSkill(player.getId(), skillId);
             if (playerSkill != null) {
                 Skill skill = skillService.getSkillById(skillId);
                 if (skill != null && currentMana >= skill.getManaCost()) {
-                    // 计算技能伤�?
+                    // 计算技能伤害
                     double skillDamage = skill.getBaseDamage() + (skill.getDamagePerLevel() * playerSkill.getLevel());
                     int damage = calculateDamage((int)skillDamage, monsterDefense, player.getLevel(), monster.getLevel());
-                    
-                    // 检查暴�?
+
+                    // 检查暴击
                     boolean isCritical = checkCriticalHit(player);
                     if (isCritical) {
                         damage = (int)(damage * 1.5);
-                        battleLog.add(player.getNickname() + "使用技能�? + skill.getName() + "】造成�? + damage + "点暴击伤害！");
-                        return "使用技能暴击造成" + damage + "点伤�?;
+                        battleLog.add(player.getNickname() + "使用技能【" + skill.getName() + "】造成了" + damage + "点暴击伤害！");
+                        return "使用技能暴击造成" + damage + "点伤害";
                     } else {
-                        battleLog.add(player.getNickname() + "使用技能�? + skill.getName() + "】造成�? + damage + "点伤�?);
-                        return "使用技能造成" + damage + "点伤�?;
+                        battleLog.add(player.getNickname() + "使用技能【" + skill.getName() + "】造成了" + damage + "点伤害");
+                        return "使用技能造成" + damage + "点伤害";
                     }
                 }
             }
         }
-        
-        // 检查是否使用道�?
+
+        // 检查是否使用道具
         if (itemId != null && itemId > 0) {
             PlayerItem playerItem = getPlayerItem(player.getId(), itemId);
             if (playerItem != null) {
                 Item item = itemService.getItemById(playerItem.getItemId());
                 if (item != null) {
-                    // 消耗道�?
+                    // 消耗道具
                     consumeItem(player.getId(), itemId);
-                    
+
                     // 应用道具效果
                     if (item.getEffect() != null && item.getEffect().contains("恢复生命")) {
-                        int healAmount = 50; // 简化处�?
-                        battleLog.add(player.getNickname() + "使用道具�? + item.getName() + "】恢复了" + healAmount + "点生命�?);
-                        return "使用道具恢复" + healAmount + "点生�?;
+                        int healAmount = 50; // 简化处理
+                        battleLog.add(player.getNickname() + "使用道具【" + item.getName() + "】恢复了" + healAmount + "点生命值");
+                        return "使用道具恢复" + healAmount + "点生命";
                     }
                 }
             }
         }
-        
-        // 普通攻�?
+
+        // 普通攻击
         int damage = calculateDamage(player.getAttack(), monsterDefense, player.getLevel(), monster.getLevel());
-        
-        // 检查暴�?
+
+        // 检查暴击
         boolean isCritical = checkCriticalHit(player);
         if (isCritical) {
             damage = (int)(damage * 1.5);
-            battleLog.add(player.getNickname() + "造成�? + damage + "点暴击伤害！");
-            return "普通攻击暴击造成" + damage + "点伤�?;
+            battleLog.add(player.getNickname() + "造成了" + damage + "点暴击伤害！");
+            return "普通攻击暴击造成" + damage + "点伤害";
         } else {
-            battleLog.add(player.getNickname() + "造成�? + damage + "点伤�?);
-            return "普通攻击造成" + damage + "点伤�?;
+            battleLog.add(player.getNickname() + "造成了" + damage + "点伤害");
+            return "普通攻击造成" + damage + "点伤害";
         }
     }
 
@@ -329,14 +328,14 @@ public class EnhancedCombatService {
      * 执行怪物回合
      */
     private String executeMonsterTurn(Monster monster, int playerHealth, int playerDefense, List<String> battleLog) {
-        // 怪物普通攻�?
+        // 怪物普通攻击
         int damage = calculateDamage(monster.getAttack(), playerDefense, monster.getLevel(), 1); // 简化处理玩家等级为1
-        battleLog.add(monster.getName() + "造成�? + damage + "点伤�?);
-        return "怪物攻击造成" + damage + "点伤�?;
+        battleLog.add(monster.getName() + "造成了" + damage + "点伤害");
+        return "怪物攻击造成" + damage + "点伤害";
     }
 
     /**
-     * 检查是否暴�?
+     * 检查是否暴击
      */
     private boolean checkCriticalHit(PlayerProfile player) {
         // 10%基础暴击率，暂时不考虑装备加成
@@ -344,18 +343,18 @@ public class EnhancedCombatService {
     }
 
     /**
-     * 从战斗日志解析伤害数�?
+     * 从战斗日志解析伤害数值
      */
     private int parseDamageFromLog(String logEntry) {
         // 简化处理，实际应该用正则表达式提取数字
         try {
             String[] parts = logEntry.split("造成");
             if (parts.length > 1) {
-                String damagePart = parts[1].split("�?)[0];
+                String damagePart = parts[1].split("点")[0];
                 return Integer.parseInt(damagePart);
             }
         } catch (Exception e) {
-            // 解析失败，返回默认�?
+            // 解析失败，返回默认值
         }
         return 0;
     }
@@ -370,7 +369,7 @@ public class EnhancedCombatService {
     }
 
     /**
-     * 消耗道�?
+     * 消耗道具
      */
     private void consumeItem(Integer playerId, Integer itemId) {
         PlayerItem playerItem = getPlayerItem(playerId, itemId);
@@ -391,24 +390,24 @@ public class EnhancedCombatService {
         // 等级压制（降低影响）
         double levelFactor = 1.0 + (attackerLevel - defenderLevel) * 0.03;
         levelFactor = Math.max(0.7, Math.min(1.3, levelFactor));
-        
-        // 防御减伤（优化公式，降低防御影响�?
-        // 新公式：减伤 = 防御 / (防御 + 200)，最大减�?0%
+
+        // 防御减伤（优化公式，降低防御影响）
+        // 新公式：减伤 = 防御 / (防御 + 200)，最大减伤50%
         double damageReduction = Math.min(0.5, defense / (defense + 200.0));
-        
+
         // 基础伤害
         int baseDamage = (int)(attack * levelFactor);
-        
+
         // 应用防御
         int finalDamage = (int)(baseDamage * (1 - damageReduction));
-        
+
         // 随机波动 ±15%（增加随机性）
         int variance = (int)(finalDamage * 0.15);
         if (variance > 0) {
             finalDamage += rng().nextInt(variance * 2 + 1) - variance;
         }
-        
-        // 保证最小伤害（至少造成攻击力的20%�?
+
+        // 保证最小伤害（至少造成攻击力的20%）
         int minDamage = Math.max(1, attack / 5);
         return Math.max(minDamage, finalDamage);
     }
@@ -418,17 +417,17 @@ public class EnhancedCombatService {
      */
     private int calculateExpReward(Monster monster, int playerLevel) {
         int baseExp = monster.getExpReward();
-        
-        // 等级差经验衰�?
+
+        // 等级差经验衰减
         int levelDiff = playerLevel - monster.getLevel();
         if (levelDiff > 5) {
             baseExp = (int)(baseExp * 0.1); // 等级高太多，经验大幅降低
         } else if (levelDiff > 0) {
             baseExp = (int)(baseExp * (1 - levelDiff * 0.1));
         } else if (levelDiff < -5) {
-            baseExp = (int)(baseExp * 2.0); // 越级挑战，经验翻�?
+            baseExp = (int)(baseExp * 2.0); // 越级挑战，经验翻倍
         }
-        
+
         return Math.max(1, baseExp);
     }
 
@@ -437,14 +436,13 @@ public class EnhancedCombatService {
      */
     private int calculateSpiritStonesReward(Monster monster, int playerLevel) {
         int baseReward = monster.getSpiritStonesReward();
-        
-        // 等级差影响较�?
+
+        // 等级差影响较小
         int levelDiff = playerLevel - monster.getLevel();
         if (levelDiff > 10) {
             baseReward = (int)(baseReward * 0.5);
         }
-        
+
         return Math.max(1, baseReward);
     }
 }
-

@@ -9,7 +9,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * 每日签到控制�?
+ * 每日签到控制器
  */
 @Slf4j
 @RestController
@@ -31,7 +31,7 @@ public class CheckInController {
             Integer playerId = playerService.getCurrentPlayerId();
             CheckInService.CheckInResult result = checkInService.checkIn(playerId);
             return ApiResponse.success(result.getIsMilestone()
-                    ? result.getMilestoneMessage() : "签到成功！连�? + result.getConsecutiveDays() + "�?, result);
+                    ? result.getMilestoneMessage() : "签到成功！连续" + result.getConsecutiveDays() + "天", result);
         } catch (Exception e) {
             log.error("签到失败", e);
             return ApiResponse.error(e.getMessage());
@@ -39,7 +39,7 @@ public class CheckInController {
     }
 
     /**
-     * 获取签到状态（月历�?
+     * 获取签到状态（月历）
      * GET /api/checkin/status
      */
     @GetMapping("/status")
@@ -50,7 +50,7 @@ public class CheckInController {
             CheckInService.CheckInStatus status = checkInService.getStatus(playerId);
             return ApiResponse.success("获取成功", status);
         } catch (Exception e) {
-            log.error("获取签到状态失�?, e);
+            log.error("获取签到状态失败", e);
             return ApiResponse.error(e.getMessage());
         }
     }
