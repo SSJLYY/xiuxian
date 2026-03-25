@@ -6,6 +6,7 @@ import com.xiuxian.game.modules.activity.entity.Activity;
 import com.xiuxian.game.modules.activity.entity.PlayerActivityProgress;
 import com.xiuxian.game.modules.activity.mapper.ActivityMapper;
 import com.xiuxian.game.modules.activity.mapper.PlayerActivityProgressMapper;
+import com.xiuxian.game.modules.mail.service.MailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -34,14 +35,14 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
     }
 
     /**
-     * 获取所有活动（包括已结束的�?
+     * 获取所有活动（包括已结束的）
      */
     public List<Activity> getAllActivities() {
         return activityMapper.selectList(null);
     }
 
     /**
-     * 获取玩家参与的活动进�?
+     * 获取玩家参与的活动进度
      */
     public List<PlayerActivityProgress> getPlayerActivityProgress(Integer playerId) {
         QueryWrapper<PlayerActivityProgress> queryWrapper = new QueryWrapper<>();
@@ -54,19 +55,19 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
      */
     @Transactional
     public PlayerActivityProgress participateInActivity(Integer playerId, Integer activityId) {
-        // 检查活动是否存在且处于活跃状�?
+        // 检查活动是否存在且处于活跃状态
         Activity activity = activityMapper.selectById(activityId);
         if (activity == null) {
-            throw new IllegalArgumentException("活动不存�?);
+            throw new IllegalArgumentException("活动不存在");
         }
 
-        if (!"ACTIVE".equals(activity.getStatus()) || 
+        if (!"ACTIVE".equals(activity.getStatus()) ||
             activity.getStartTime().isAfter(LocalDateTime.now()) ||
             activity.getEndTime().isBefore(LocalDateTime.now())) {
-            throw new IllegalArgumentException("活动不在进行�?);
+            throw new IllegalArgumentException("活动不在进行中");
         }
 
-        // 检查玩家是否已有进度记�?
+        // 检查玩家是否已有进度记录
         QueryWrapper<PlayerActivityProgress> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("player_id", playerId);
         queryWrapper.eq("activity_id", activityId);
@@ -77,7 +78,7 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
             progress = new PlayerActivityProgress();
             progress.setActivityId(activityId);
             progress.setPlayerId(playerId);
-            progress.setProgress("{\"value\": 0}"); // JSON格式的进度数�?
+            progress.setProgress("{\"value\": 0}"); // JSON格式的进度数据
             progress.setCompleted(false);
             progress.setRewarded(false);
             playerActivityProgressMapper.insert(progress);
@@ -122,8 +123,8 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
             throw new IllegalArgumentException("玩家未参与该活动");
         }
 
-        // 更新积分（从progress JSON中提取并更新�?
-        // 注意：这里简化处理，实际应该解析JSON并更�?
+        // 更新积分（从progress JSON中提取并更新）
+        // 注意：这里简化处理，实际应该解析JSON并更新
         progress.setUpdatedAt(LocalDateTime.now());
         playerActivityProgressMapper.updateById(progress);
 
@@ -138,19 +139,19 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         // 获取活动信息
         Activity activity = activityMapper.selectById(activityId);
         if (activity == null) {
-            throw new IllegalArgumentException("活动不存�?);
+            throw new IllegalArgumentException("活动不存在");
         }
 
-        // 获取所有参与该活动的玩家进�?
+        // 获取所有参与该活动的玩家进度
         QueryWrapper<PlayerActivityProgress> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("activity_id", activityId);
         List<PlayerActivityProgress> progresses = playerActivityProgressMapper.selectList(queryWrapper);
 
-        // 发放奖励（这里只是一个示例，实际奖励逻辑会更复杂�?
+        // 发放奖励（这里只是一个示例，实际奖励逻辑会更复杂）
         for (PlayerActivityProgress progress : progresses) {
-            // 发送邮件通知玩家活动结束和奖�?
+            // 发送邮件通知玩家活动结束和奖励
             String subject = "活动结束通知";
-            String content = String.format("活动�?s》已结束，感谢您的参与！您的最终积分为�?s，排名将在稍后公布�?,
+            String content = String.format("活动【%s】已结束，感谢您的参与！您的最终积分为：%s，排名将在稍后公布。",
                     activity.getName(), progress.getProgress()); // 使用progress字段代替score
 
             mailService.sendSystemMail(progress.getPlayerId(), subject, content, null, null, 0);
@@ -158,9 +159,9 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
     }
 
     /**
-     * 自动检查和更新活动状�?
+     * 自动检查和更新活动状态
      */
-    @Scheduled(fixedRate = 60000) // 每分钟检查一�?
+    @Scheduled(fixedRate = 60000) // 每分钟检查一次
     public void checkAndUpdateActivityStatus() {
         LocalDateTime now = LocalDateTime.now();
 

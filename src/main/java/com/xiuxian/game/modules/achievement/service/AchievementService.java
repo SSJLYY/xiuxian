@@ -1,4 +1,4 @@
-﻿package com.xiuxian.game.modules.achievement.service;
+package com.xiuxian.game.modules.achievement.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xiuxian.game.modules.achievement.entity.Achievement;
@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 成就服务�?
+ * 成就服务类
  */
 @Service
 @RequiredArgsConstructor
@@ -27,10 +27,10 @@ public class AchievementService {
 
     private final AchievementMapper achievementMapper;
     private final PlayerAchievementMapper playerAchievementMapper;
-    private final PlayerService playerService; // 妯″潡杈圭晫锛氶€氳繃PlayerService璁块棶鐜╁鏁版嵁
+    private final PlayerService playerService; // 模块边界：通过PlayerService访问玩家数据
 
     /**
-     * 获取所有成�?
+     * 获取所有成就
      */
     public List<Achievement> getAllAchievements() {
         return achievementMapper.selectList(null);
@@ -67,7 +67,7 @@ public class AchievementService {
             playerAchievementMapper.updateById(playerAchievement);
         }
         
-        // 检查是否完�?
+        // 模块边界：通过PlayerService访问玩家数据
         Achievement achievement = achievementMapper.selectById(achievementId);
         if (achievement != null && progress >= achievement.getConditionValue() && !playerAchievement.getIsCompleted()) {
             playerAchievement.setIsCompleted(true);
