@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 
 /**
  * 宗门BOSS实体
- * 宗门成员协作击败的强力BOSS，每周刷新一�?
+ * 宗门成员协作击杀的强力BOSS，每周刷新一次
  */
 @Data
 @TableName("guild_bosses")
@@ -24,25 +24,25 @@ public class GuildBoss {
     /** BOSS等级 */
     private Integer level;
 
-    /** BOSS最大生命�?*/
+    /** BOSS最大生命值 */
     @TableField(value = "max_health")
     private Long maxHealth;
 
-    /** BOSS当前生命�?*/
+    /** BOSS当前生命值 */
     @TableField(value = "current_health")
     private Long currentHealth;
 
-    /** BOSS攻击�?*/
+    /** BOSS攻击力 */
     private Integer attack;
 
-    /** BOSS防御�?*/
+    /** BOSS防御力 */
     private Integer defense;
 
     /** 所属宗门ID */
     @TableField(value = "guild_id")
     private Integer guildId;
 
-    /** BOSS状�? ALIVE/DEFEATED */
+    /** BOSS状态：ALIVE/DEFEATED */
     private String status;
 
     /** 掉落灵石奖励（总） */
@@ -57,11 +57,11 @@ public class GuildBoss {
     @TableField(value = "reward_item_id")
     private Integer rewardItemId;
 
-    /** 本轮BOSS刷新时间 */
+    /** 本次刷新BOSS时间 */
     @TableField(value = "spawned_at")
     private LocalDateTime spawnedAt;
 
-    /** BOSS被击败时�?*/
+    /** BOSS被击败时间 */
     @TableField(value = "defeated_at")
     private LocalDateTime defeatedAt;
 
@@ -75,4 +75,3 @@ public class GuildBoss {
     @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updatedAt;
 }
-

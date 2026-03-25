@@ -1,6 +1,6 @@
 package com.xiuxian.game.modules.guild.controller;
 
-import com.xiuxian.game.dto.response.ApiResponse;
+import com.xiuxian.game.response.ApiResponse;
 import com.xiuxian.game.modules.guild.service.GuildBossService;
 import com.xiuxian.game.modules.player.service.PlayerService;
 import lombok.RequiredArgsConstructor;
@@ -11,8 +11,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 /**
- * 宗门BOSS控制�?
- * 提供协作击BOSS、伤害榜查询、奖励领取接�?
+ * 宗门BOSS控制器
+ * 提供协作击杀BOSS、伤害查询、奖励领取接口
  */
 @Slf4j
 @RestController
@@ -50,7 +50,7 @@ public class GuildBossController {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
             GuildBossService.ChallengeResult result = guildBossService.challengeBoss(playerId);
-            String msg = result.getBossDefeated() ? "BOSS已被击败！全宗门胜利�? : "攻击成功！造成" + result.getDamage() + "点伤�?;
+            String msg = result.getBossDefeated() ? "BOSS已被击败！全宗门胜利！" : "攻击成功！造成" + result.getDamage() + "点伤害";
             return ApiResponse.success(msg, result);
         } catch (Exception e) {
             log.error("挑战宗门BOSS失败", e);

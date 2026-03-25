@@ -22,7 +22,7 @@ public class GuildBossChallenge {
     @TableField(value = "player_id")
     private Integer playerId;
 
-    /** 本次造成的伤�?*/
+    /** 本次造成的伤害*/
     @TableField(value = "damage_dealt")
     private Long damageDealt;
 
@@ -30,11 +30,11 @@ public class GuildBossChallenge {
     @TableField(value = "today_attempts")
     private Integer todayAttempts;
 
-    /** 最后挑战时�?*/
+    /** 最后挑战时间*/
     @TableField(value = "last_challenge_at")
     private LocalDateTime lastChallengeAt;
 
-    /** 是否已领取奖�?*/
+    /** 是否已领取奖励*/
     @TableField(value = "reward_claimed")
     private Boolean rewardClaimed;
 

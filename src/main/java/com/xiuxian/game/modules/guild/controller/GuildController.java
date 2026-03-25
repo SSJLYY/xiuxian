@@ -1,7 +1,7 @@
 package com.xiuxian.game.modules.guild.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.xiuxian.game.dto.response.ApiResponse;
+import com.xiuxian.game.response.ApiResponse;
 import com.xiuxian.game.modules.guild.entity.Guild;
 import com.xiuxian.game.modules.guild.entity.GuildMember;
 import com.xiuxian.game.modules.guild.service.GuildService;
@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 宗门控制�?
+ * 宗门控制器
  */
 @Slf4j
 @RestController
@@ -53,7 +53,7 @@ public class GuildController {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
             guildService.applyToGuild(playerId, guildId);
-            return ApiResponse.success("申请已提�?, null);
+            return ApiResponse.success("申请已提交", null);
         } catch (Exception e) {
             log.error("申请加入宗门失败: guildId={}", guildId, e);
             return ApiResponse.error(e.getMessage());
@@ -79,7 +79,7 @@ public class GuildController {
     }
 
     /**
-     * 退出宗�?
+     * 退出宗门
      */
     @PostMapping("/leave")
     @PreAuthorize("isAuthenticated()")
@@ -87,9 +87,9 @@ public class GuildController {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
             guildService.leaveGuild(playerId);
-            return ApiResponse.success("已退出宗�?, null);
+            return ApiResponse.success("已退出宗门", null);
         } catch (Exception e) {
-            log.error("退出宗门失�?, e);
+            log.error("退出宗门失败", e);
             return ApiResponse.error(e.getMessage());
         }
     }
@@ -120,14 +120,14 @@ public class GuildController {
             @RequestParam(defaultValue = "20") int size) {
         try {
             IPage<Guild> guildPage = guildService.getGuildList(page, size);
-            
+
             Map<String, Object> result = new HashMap<>();
             result.put("guilds", guildPage.getRecords());
             result.put("total", guildPage.getTotal());
             result.put("page", guildPage.getCurrent());
             result.put("size", guildPage.getSize());
             result.put("pages", guildPage.getPages());
-            
+
             return ApiResponse.success("获取成功", result);
         } catch (Exception e) {
             log.error("获取宗门列表失败", e);
@@ -144,11 +144,11 @@ public class GuildController {
         try {
             Guild guild = guildService.getGuildById(guildId);
             List<GuildMember> members = guildService.getGuildMembers(guildId);
-            
+
             Map<String, Object> result = new HashMap<>();
             result.put("guild", guild);
             result.put("members", members);
-            
+
             return ApiResponse.success("获取成功", result);
         } catch (Exception e) {
             log.error("获取宗门详情失败: guildId={}", guildId, e);
@@ -188,4 +188,3 @@ public class GuildController {
         private Integer amount;
     }
 }
-

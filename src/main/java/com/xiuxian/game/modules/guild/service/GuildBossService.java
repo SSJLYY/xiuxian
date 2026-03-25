@@ -1,7 +1,6 @@
 package com.xiuxian.game.modules.guild.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.xiuxian.game.dto.response.ApiResponse;
 // guild module entities (same module -- OK)
 import com.xiuxian.game.modules.guild.entity.GuildBoss;
 import com.xiuxian.game.modules.guild.entity.GuildBossChallenge;
@@ -24,9 +23,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
 
 /**
  * 宗门BOSS服务

@@ -5,7 +5,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 宗门申请实体�?
+ * 宗门申请实体类
  */
 @Data
 @TableName("guild_applications")
