@@ -1,4 +1,4 @@
-﻿package com.xiuxian.game.modules.map.service;
+package com.xiuxian.game.modules.map.service;
 
 import com.xiuxian.game.modules.map.entity.GameMap;
 import com.xiuxian.game.modules.combat.entity.MapMonster;
@@ -63,7 +63,7 @@ public class GameMapService {
         java.util.Map<Integer, PlayerMapProgress> progressMap = playerProgress.stream()
             .collect(Collectors.toMap(PlayerMapProgress::getMapId, p -> p));
         
-        // 设置解锁状态和当前状�?
+        // 设置解锁状态和当前状态
         for (GameMap map : allMaps) {
             PlayerMapProgress progress = progressMap.get(map.getId());
             if (progress != null) {
@@ -88,12 +88,12 @@ public class GameMapService {
             throw new BusinessException(ErrorCode.MAP_NOT_FOUND);
         }
 
-        // 检查进入条�?
+        // 检查进入条件
         if (!map.canEnter(playerLevel, playerRealm)) {
             throw new BusinessException(ErrorCode.MAP_REQUIREMENTS_NOT_MET);
         }
         
-        // 获取或创建玩家进�?
+        // 获取或创建玩家进度
         PlayerMapProgress progress = playerMapProgressMapper.selectByPlayerAndMap(playerId, mapId);
         if (progress == null) {
             progress = new PlayerMapProgress();
@@ -109,7 +109,7 @@ public class GameMapService {
             progress.setIsUnlocked(true);
         }
         
-        // 清除其他地图的当前标�?
+        // 清除其他地图的当前标记
         playerMapProgressMapper.clearCurrentMap(playerId);
         
         // 设置当前地图
@@ -138,7 +138,7 @@ public class GameMapService {
     }
     
     /**
-     * 获取玩家当前所在地�?
+     * 获取玩家当前所在地图
      */
     public GameMap getCurrentMap(Integer playerId) {
         PlayerMapProgress progress = playerMapProgressMapper.selectCurrentMap(playerId);
@@ -149,14 +149,14 @@ public class GameMapService {
     }
     
     /**
-     * 初始化新玩家的地图进�?
+     * 初始化新玩家的地图进度
      */
     @Transactional
     public void initPlayerMapProgress(Integer playerId) {
-        // 解锁起始地图（青云镇�?
+        // 解锁起始地图（青云镇）
         PlayerMapProgress progress = new PlayerMapProgress();
         progress.setPlayerId(playerId);
-        progress.setMapId(1); // 青云�?
+        progress.setMapId(1); // 青云镇
         progress.setIsUnlocked(true);
         progress.setIsCurrent(true);
         progress.setFirstEnterAt(LocalDateTime.now());
@@ -165,11 +165,11 @@ public class GameMapService {
         progress.setTotalTimeSpent(0);
         playerMapProgressMapper.insert(progress);
         
-        log.info("初始化玩�?{} 的地图进�?, playerId);
+        log.info("初始化玩家 {} 的地图进度", playerId);
     }
     
     /**
-     * 生成遭遇�?
+     * 生成遭遇战
      */
     public MapEncounter generateEncounter(Integer playerId, Integer mapId, int playerLevel) {
         GameMap map = getMapById(mapId);
@@ -202,7 +202,7 @@ public class GameMapService {
             return null;
         }
         
-        // 计算怪物等级和属�?
+        // 计算怪物等级和属性
         int monsterLevel = selected.calculateLevel(playerLevel, map.getRequiredLevel());
         double statMultiplier = selected.calculateStatMultiplier(playerLevel, map.getRequiredLevel());
         
@@ -240,7 +240,7 @@ public class GameMapService {
         // 应用经验倍率
         baseExp = (int)(baseExp * map.getExpModifier().doubleValue());
         
-        // 危险区风险计�?
+        // 危险区风险计算
         int injuryCount = 0;
         int actualSpiritStones = baseSpiritStones;
         
@@ -274,7 +274,7 @@ public class GameMapService {
     private int calculateInjuryCount(int hours, int dangerLevel) {
         int injuryCount = 0;
         
-        // 根据离线时长和危险等级计算受伤概�?
+        // 根据离线时长和危险等级计算受伤概率
         for (int i = 0; i < hours; i += 6) {
             double baseProbability = 0.1; // 基础10%
             double dangerMultiplier = dangerLevel * 0.05; // 危险等级加成
@@ -291,7 +291,7 @@ public class GameMapService {
     }
     
     /**
-     * 内部类：遭遇�?
+     * 内部类：遭遇战
      */
     @lombok.Data
     public static class MapEncounter {
