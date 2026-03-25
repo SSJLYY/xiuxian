@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 /**
- * 对话控制�?
- * 负责对话树的开始、推进和状态查�?
+ * 对话控制器
+ * 负责对话树的开始、推进和状态查询
  */
 @Slf4j
 @RestController
@@ -38,7 +38,7 @@ public class DialogueController {
     }
 
     /**
-     * 开始或继续一个对�?
+     * 开始或继续一个对话
      */
     @PostMapping("/start")
     public ResponseEntity<ApiResponse<NarrativeService.DialogueSceneData>> startDialogue(
@@ -48,7 +48,7 @@ public class DialogueController {
         if (dialogueKey == null || dialogueKey.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.error("dialogueKey不能为空"));
         }
-        LogUtils.info(log, "开始对�?, "playerId", playerId, "dialogueKey", dialogueKey);
+        LogUtils.info(log, "开始对话", "playerId", playerId, "dialogueKey", dialogueKey);
         NarrativeService.DialogueSceneData scene = narrativeService.startOrContinueDialogue(playerId, dialogueKey);
         return ResponseEntity.ok(ApiResponse.success(scene));
     }
@@ -63,7 +63,7 @@ public class DialogueController {
         String dialogueKey = request.get("dialogueKey");
         String choiceNodeKey = request.get("choiceNodeKey");
         if (dialogueKey == null || choiceNodeKey == null) {
-            return ResponseEntity.ok(ApiResponse.error("参数不完�?));
+            return ResponseEntity.ok(ApiResponse.error("参数不完整"));
         }
         LogUtils.info(log, "对话选择", "playerId", playerId, "dialogueKey", dialogueKey, "choice", choiceNodeKey);
         NarrativeService.DialogueSceneData scene = narrativeService.makeChoice(playerId, dialogueKey, choiceNodeKey);

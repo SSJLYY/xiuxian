@@ -254,14 +254,14 @@ public class NarrativeService {
             try {
                 List<String> flags = objectMapper.readValue(node.getSetFlags(), new TypeReference<List<String>>() {});
                 for (String flag : flags) {
-                    setFlag(playerId, flag, "1", "瀵硅瘽鑺傜偣: " + node.getNodeKey());
+                    setFlag(playerId, flag, "1", "对话节点: " + node.getNodeKey());
                 }
             } catch (Exception e) {
-                log.warn("瑙ｆ瀽set_flags澶辫触: {}", node.getSetFlags(), e);
+                log.warn("解析set_flags失败: {}", node.getSetFlags(), e);
             }
         }
 
-        // 娓呴櫎flag
+        // 清除flag
         if (node.getClearFlags() != null && !node.getClearFlags().isEmpty()) {
             try {
                 List<String> flags = objectMapper.readValue(node.getClearFlags(), new TypeReference<List<String>>() {});
@@ -269,11 +269,11 @@ public class NarrativeService {
                     clearFlag(playerId, flag);
                 }
             } catch (Exception e) {
-                log.warn("瑙ｆ瀽clear_flags澶辫触: {}", node.getClearFlags(), e);
+                log.warn("解析clear_flags失败: {}", node.getClearFlags(), e);
             }
         }
 
-        // 濂芥劅搴﹀彉鏇?
+        // 好感度变更
         if (node.getSetReputation() != null && !node.getSetReputation().isEmpty()) {
             try {
                 Map<String, Integer> changes = objectMapper.readValue(node.getSetReputation(),
@@ -283,12 +283,12 @@ public class NarrativeService {
                     changeNpcAffinity(playerId, npcId, entry.getValue());
                 }
             } catch (Exception e) {
-                log.warn("瑙ｆ瀽set_reputation澶辫触: {}", node.getSetReputation(), e);
+                log.warn("解析set_reputation失败: {}", node.getSetReputation(), e);
             }
         }
     }
 
-    // ==================== Flag 绯荤粺 ====================
+    // ==================== Flag 系统 ====================
 
     public Set<String> getPlayerFlags(Integer playerId) {
         List<String> keys = playerNarrativeFlagMapper.selectFlagKeysByPlayerId(playerId);
@@ -325,7 +325,7 @@ public class NarrativeService {
         }
     }
 
-    // ==================== 濂芥劅搴︾郴缁?====================
+    // ==================== 好感度系统 ====================
 
     public PlayerNpcRelation getNpcRelation(Integer playerId, Integer npcId) {
         return playerNpcRelationMapper.selectByPlayerAndNpc(playerId, npcId);
@@ -346,7 +346,7 @@ public class NarrativeService {
         playerNpcRelationMapper.updateById(relation);
 
         if (log.isDebugEnabled()) {
-            log.debug("NPC濂芥劅搴﹀彉鏇? playerId={}, npcId={}, change={}, newAffinity={}",
+            log.debug("NPC好感度变更: playerId={}, npcId={}, change={}, newAffinity={}",
                     playerId, npcId, change, newAffinity);
         }
     }
@@ -383,10 +383,10 @@ public class NarrativeService {
                 .collect(Collectors.toMap(PlayerNpcRelation::getNpcId, PlayerNpcRelation::getAffinity));
     }
 
-    // ==================== 鏃ュ父瀵硅瘽 ====================
+    // ==================== 日常对话 ====================
 
     /**
-     * 鑾峰彇NPC闅忔満鏃ュ父瀵硅瘽
+     * 获取NPC随机日常对话
      */
     public String getDailyDialogue(Integer playerId, Integer npcId) {
         List<NpcDailyDialogue> dialogues = npcDailyDialogueMapper.selectByNpcId(npcId);
@@ -406,10 +406,10 @@ public class NarrativeService {
         return eligible.get(ThreadLocalRandom.current().nextInt(eligible.size())).getText();
     }
 
-    // ==================== 鏉′欢妫€鏌?====================
+    // ==================== 条件检查 ====================
 
     private boolean meetsPrerequisites(DialogueTree tree, Integer playerId, Set<String> playerFlags) {
-        // flag妫€鏌?
+        // flag检查
         if (tree.getRequiredFlags() != null && !tree.getRequiredFlags().isEmpty()) {
             try {
                 List<String> required = objectMapper.readValue(tree.getRequiredFlags(), new TypeReference<List<String>>() {});
@@ -417,7 +417,7 @@ public class NarrativeService {
                     if (!playerFlags.contains(flag)) return false;
                 }
             } catch (Exception e) {
-                log.warn("瑙ｆ瀽required_flags澶辫触: {}", tree.getRequiredFlags(), e);
+                log.warn("解析required_flags失败: {}", tree.getRequiredFlags(), e);
             }
         }
         return true;
@@ -442,7 +442,7 @@ public class NarrativeService {
                     if (current < minRel) return false;
                 }
             }
-            // flags: 闇€瑕佹嫢鏈夋寚瀹歠lag
+            // flags: 需要拥有指定flag
             if (conditions.containsKey("flags")) {
                 List<String> requiredFlags = objectMapper.convertValue(conditions.get("flags"),
                         new TypeReference<List<String>>() {});
@@ -451,7 +451,7 @@ public class NarrativeService {
                 }
             }
         } catch (Exception e) {
-            log.warn("瑙ｆ瀽conditions澶辫触: {}", node.getConditions(), e);
+            log.warn("解析conditions失败: {}", node.getConditions(), e);
         }
         return true;
     }
@@ -468,7 +468,7 @@ public class NarrativeService {
                 return false;
             }
         } catch (Exception e) {
-            log.warn("瑙ｆ瀽鏃ュ父瀵硅瘽鏉′欢澶辫触: {}", dialogue.getConditions(), e);
+            log.warn("解析日常对话条件失败: {}", dialogue.getConditions(), e);
         }
         return true;
     }

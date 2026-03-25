@@ -1,4 +1,4 @@
-﻿package com.xiuxian.game.modules.mail.service;
+package com.xiuxian.game.modules.mail.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 邮件服务�?
+ * 邮件服务类
  */
 @Service
 @RequiredArgsConstructor
@@ -50,7 +50,7 @@ public class MailService {
     @Transactional
     public void sendSystemMail(Integer playerId, String title, String content, String itemType, 
                               Integer itemId, Integer quantity) {
-        log.info("发送系统邮�? playerId={}, title={}, itemType={}, itemId={}, quantity={}", 
+        log.info("发送系统邮件: playerId={}, title={}, itemType={}, itemId={}, quantity={}", 
                 playerId, title, itemType, itemId, quantity);
         
         // 创建附件
@@ -63,7 +63,7 @@ public class MailService {
             attachments.add(attachment);
         }
         
-        // 发送邮�?
+        // 发送邮件
         sendMail(playerId, title, content, "SYSTEM", attachments, LocalDateTime.now().plusDays(30));
     }
 
@@ -73,9 +73,9 @@ public class MailService {
     @Transactional
     public void sendMail(Integer playerId, String title, String content, String mailType, 
                         List<MailAttachment> attachments, LocalDateTime expireAt) {
-        log.info("发送邮�? playerId={}, title={}, mailType={}", playerId, title, mailType);
+        log.info("发送邮件: playerId={}, title={}, mailType={}", playerId, title, mailType);
         
-        // 检查邮箱容�?
+        // 检查邮箱容量
         long mailCount = mailMapper.selectCount(new QueryWrapper<PlayerMail>()
                 .eq("player_id", playerId));
         if (mailCount >= MAX_MAILBOX_SIZE) {
@@ -103,22 +103,22 @@ public class MailService {
             }
         }
         
-        log.info("邮件发送成�? mailId={}", mail.getId());
+        log.info("邮件发送成功: mailId={}", mail.getId());
     }
 
     /**
-     * 批量发送邮�?
+     * 批量发送邮件
      */
     @Transactional
     public void sendBatchMail(List<Integer> playerIds, String title, String content, 
                              String mailType, List<MailAttachment> attachments, LocalDateTime expireAt) {
-        log.info("批量发送邮�? playerCount={}, title={}", playerIds.size(), title);
+        log.info("批量发送邮件: playerCount={}, title={}", playerIds.size(), title);
         
         for (Integer playerId : playerIds) {
             try {
                 sendMail(playerId, title, content, mailType, attachments, expireAt);
             } catch (Exception e) {
-                log.error("发送邮件失�? playerId={}, error={}", playerId, e.getMessage());
+            log.error("发送邮件失败: playerId={}, error={}", playerId, e.getMessage());
             }
         }
     }
@@ -153,7 +153,7 @@ public class MailService {
             throw new BusinessException(ErrorCode.MAIL_ACCESS_DENIED);
         }
         
-        // 标记为已�?
+        // 标记为已读
         if (!mail.getIsRead()) {
             mail.setIsRead(true);
             mailMapper.updateById(mail);
@@ -252,7 +252,7 @@ public class MailService {
                 break;
                 
             default:
-                log.warn("未知的附件类�? {}", itemType);
+            log.warn("未知的附件类型: {}", itemType);
         }
     }
 
@@ -292,12 +292,12 @@ public class MailService {
 
     /**
      * 定时清理过期邮件
-     * 每天凌晨3点执�?
+     * 每天凌晨3点执行
      */
     @Scheduled(cron = "0 0 3 * * ?")
     @Transactional
     public void cleanExpiredMails() {
-        log.info("开始清理过期邮�?);
+        log.info("开始清理过期邮件");
         
         LocalDateTime now = LocalDateTime.now();
         List<PlayerMail> expiredMails = mailMapper.selectList(

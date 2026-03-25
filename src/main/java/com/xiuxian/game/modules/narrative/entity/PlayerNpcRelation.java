@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * 玩家-NPC好感度实�?
+ * 玩家-NPC好感度实体类
  */
 @TableName("player_npc_relations")
 @Data
@@ -61,7 +61,7 @@ public class PlayerNpcRelation {
     public static final String LEVEL_SOULMATE = "至交";
 
     /**
-     * 根据好感度获取关系等�?
+     * 根据好感度获取关系等级
      */
     public static String getRelationshipLevel(int affinity) {
         if (affinity >= 81) return LEVEL_SOULMATE;

@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * NPC日常对话池实�?
+ * NPC日常对话池实体
  */
 @TableName("npc_daily_dialogues")
 @Data

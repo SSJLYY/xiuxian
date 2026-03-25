@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * 玩家传说收集实体
+ * 玩家传说收集记录实体
  */
 @TableName("player_lore_collection")
 @Data

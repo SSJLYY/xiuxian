@@ -24,7 +24,7 @@ public class NpcService {
     private final NarrativeService narrativeService;
 
     /**
-     * 获取所有NPC列表（按玩家等级过滤�?
+     * 获取所有NPC列表（按玩家等级过滤）
      */
     public List<Npc> getAllNpcs(Integer playerLevel) {
         if (playerLevel == null || playerLevel < 1) {
@@ -34,7 +34,7 @@ public class NpcService {
     }
 
     /**
-     * 获取NPC详情（含关系信息�?
+     * 获取NPC详情（含关系信息）
      */
     public NpcDetailVo getNpcDetail(Integer npcId, Integer playerId) {
         Npc npc = npcMapper.selectById(npcId);
@@ -52,7 +52,7 @@ public class NpcService {
         vo.setPersonalityTraits(npc.getPersonalityTraits());
         vo.setLocation(npc.getLocation());
 
-        // 获取玩家与NPC的关�?
+        // 获取玩家与NPC的关系
         PlayerNpcRelation relation = narrativeService.getNpcRelation(playerId, npcId);
         if (relation != null) {
             vo.setAffinity(relation.getAffinity());

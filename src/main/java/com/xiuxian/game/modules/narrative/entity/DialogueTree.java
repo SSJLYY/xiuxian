@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * 对话树实�?
+ * 对话树实体
  */
 @TableName("dialogue_trees")
 @Data
