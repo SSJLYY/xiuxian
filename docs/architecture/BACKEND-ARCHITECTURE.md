@@ -3,7 +3,7 @@
 > 本文档描述修仙挂机游戏后端的技术架构、分层设计和核心设计决策。
 > 适合：新加入的后端开发者、代码审查者、做架构扩展时参考。
 
-**作者**: shaun.sheng &nbsp;|&nbsp; **最后更新**: 2026-03-24
+**作者**: shaun.sheng &nbsp;|&nbsp; **最后更新**: 2026-03-25（代码 v2 同步）
 
 ---
 
@@ -25,55 +25,127 @@
 
 ## 包结构
 
+重构后采用**四包模块化架构**，职责清晰，严格隔离：
+
 ```
 com.xiuxian.game/
-├── XiuxianGameApplication.java   # 启动类
+├── XiuxianGameApplication.java   # 启动类（@MapperScan 扫描 22 个业务模块 + 根 mapper 包）
 │
-├── controller/     # REST 控制器（44 个）
-│   ├── 游戏系统:  AuthController, PlayerController, CombatController,
-│   │             SkillController, PetController, QuestController,
-│   │             EquipmentController, InventoryController, ShopController,
-│   │             OfflineRewardController
-│   ├── 社交系统:  GuildController, GuildBossController, AuctionController,
-│   │             RankingController, AchievementController
-│   ├── 运营系统:  MailController, AnnouncementController, ActivityController,
-│   │             GiftCodeController, VipController, CheckInController
-│   ├── 叙事系统:  NpcController, DialogueController, LoreController,
-│   │             NarrativeController
-│   ├── 地图系统:  GameMapController
-│   └── 管理后台:  Admin* 系列（14 个）
+├── common/         # 公共基础设施（42 个文件）
+│   ├── annotation/     # 自定义注解
+│   │   ├── DataSource.java         # 多数据源切换
+│   │   └── RateLimit.java          # 接口限流
+│   ├── aspect/         # AOP 切面
+│   │   ├── DataSourceAspect.java   # 数据源切换切面
+│   │   └── RateLimitAspect.java    # 限流切面
+│   ├── config/         # Spring 配置（16 个）
+│   │   ├── SecurityConfig.java         # Spring Security 主配置
+│   │   ├── CorsConfig.java             # 跨域配置
+│   │   ├── MybatisPlusConfig.java      # MyBatis-Plus 分页插件
+│   │   ├── RedisConfig.java            # Redis 连接池、序列化、CacheManager
+│   │   ├── DataSourceConfig.java       # 动态数据源配置
+│   │   ├── RoutingDataSource.java      # 路由数据源
+│   │   ├── DegradeConfig.java          # 降级开关配置
+│   │   ├── SentinelConfig.java         # Sentinel 流控配置
+│   │   ├── GameBalanceConfig.java      # 游戏平衡参数
+│   │   ├── DataInitializer.java        # 启动时数据初始化
+│   │   ├── AsyncConfig.java            # 异步任务线程池
+│   │   ├── MetricsConfig.java          # 指标监控配置
+│   │   ├── GameHealthIndicator.java    # Actuator 健康检查
+│   │   ├── JacksonConfig.java          # JSON 序列化
+│   │   ├── LoggingAspect.java          # 全局日志切面
+│   │   └── WebConfig.java              # Web MVC 配置
+│   ├── exception/      # 异常体系
+│   │   ├── BusinessException.java      # 业务异常基类
+│   │   ├── ErrorCode.java              # 错误码枚举
+│   │   └── GlobalExceptionHandler.java # 全局异常处理器
+│   ├── security/       # 安全认证（5 个）
+│   │   ├── JwtTokenProvider.java           # JWT 生成与验证
+│   │   ├── JwtAuthenticationFilter.java    # 游戏端 JWT 过滤器
+│   │   ├── AdminSecurityFilter.java        # 管理端安全过滤器
+│   │   ├── SecurityFilter.java             # 通用安全过滤器
+│   │   └── CustomUserDetailsService.java   # 用户认证服务
+│   └── util/           # 工具类（14 个）
+│       ├── LogUtils.java           # 结构化日志 + MDC 链路追踪
+│       ├── RequestUtils.java       # 客户端 IP 解析（含代理链）
+│       ├── CacheUtils.java         # Redis 直接操作（ZSet/Hash/分布式锁）
+│       ├── GameBalanceUtils.java   # 游戏平衡数值计算
+│       ├── GameCalculator.java     # 通用数值计算器
+│       ├── GameConstants.java      # 游戏全局常量
+│       ├── DegradeUtils.java       # 降级工具
+│       ├── PerformanceMonitor.java # 性能监控
+│       ├── RealmUtil.java          # 境界工具
+│       ├── RateLimiter.java        # 本地限流器
+│       ├── JsonUtil.java           # JSON 工具
+│       ├── DateUtil.java           # 日期工具
+│       ├── PageUtil.java           # 分页工具
+│       └── Java8Compatibility.java # Java 8 兼容工具
 │
-├── service/        # 业务逻辑层（50+ 个）
-├── mapper/         # MyBatis Mapper 接口（62 个）
-├── entity/         # 数据库实体（62 个）
-├── dto/            # 数据传输对象（29 个）
-│   ├── request/    # 请求 DTO（含参数校验注解）
-│   └── response/   # 响应 DTO
+├── modules/        # 业务模块（22 个，221 个文件）
+│   │   # 每个模块包含 controller / entity / mapper / service 四层
+│   ├── player/         # 玩家模块（认证/档案/物品/登录日志）4C+4E+4M+5S=17
+│   ├── combat/         # 战斗模块（PVE战斗/怪物/战斗日志）1C+3E+3M+2S=9
+│   ├── cultivation/    # 修炼模块（仅 entity+mapper，无 controller/service）
+│   ├── equipment/      # 装备模块（装备管理/背包）2C+2E+2M+3S=9（含3个Service）
+│   ├── skill/          # 技能模块（学习/连招/技能商店）1C+5E+5M+2S=13
+│   ├── pet/            # 宠物模块（培养/进化/技能/训练）1C+7E+7M+1S=16
+│   ├── quest/          # 任务模块（每日/每周/每月任务）1C+2E+2M+2S=7
+│   ├── shop/           # 商城模块（物品购买）1C+2E+2M+2S=7
+│   ├── achievement/    # 成就模块（成就/管理员成就）2C+2E+2M+1S=7（含Admin Controller）
+│   ├── guild/          # 宗门模块（公会/公会BOSS）2C+5E+5M+2S=14
+│   ├── ranking/        # 排行榜模块 1C+1E+1M+1S=4
+│   ├── auction/        # 拍卖行模块 1C+1E+1M+1S=4
+│   ├── mail/           # 邮件模块（含异步邮件）1C+2E+2M+2S=7
+│   ├── narrative/      # 叙事模块（NPC/对话树/世界观/离线叙事）4C+10E+10M+4S=28
+│   ├── map/            # 地图模块（地图节点/玩家进度）1C+2E+2M+1S=6
+│   ├── offline/        # 离线挂机模块 1C+1E+1M+1S=4
+│   ├── checkin/        # 签到模块 1C+1E+1M+1S=4
+│   ├── activity/       # 活动模块 2C+2E+2M+1S=7（含Admin Controller）
+│   ├── giftcode/       # 礼包码模块 1C+2E+2M+1S=6
+│   ├── announcement/   # 公告模块 2C+1E+1M+1S=5（含Admin Controller）
+│   ├── vip/            # VIP模块（充值/等级权益）1C+3E+3M+2S=9
+│   └── admin/          # 管理后台模块（16 个 Service，13 个 Controller）共 35 个文件
 │
-├── config/         # Spring 配置类
-│   ├── SecurityConfig.java         # Spring Security 主配置
-│   ├── AdminSecurityConfig.java    # 管理员安全配置（独立）
-│   ├── CorsConfig.java             # 跨域配置
-│   ├── MybatisPlusConfig.java      # MyBatis-Plus 分页插件
-│   ├── RedisConfig.java            # Redis 连接池、序列化、CacheManager
-│   ├── DegradeConfig.java          # 降级开关配置
-│   └── GameHealthIndicator.java    # Actuator 健康检查（含 Redis 状态）
+├── dto/            # 统一数据传输对象（29 个文件）
+│   ├── request/        # 请求 DTO（12 个，含 @Valid 校验注解）
+│   │   ├── LoginRequest.java / RegisterRequest.java
+│   │   ├── AdminLoginRequest.java
+│   │   ├── SkillLearnRequest.java / SkillUpgradeRequest.java / SkillEquipRequest.java
+│   │   ├── ShopBuyRequest.java
+│   │   ├── ItemAddRequest.java / ItemRemoveRequest.java / ItemUseRequest.java
+│   │   └── QuestClaimRequest.java / QuestProgressUpdateRequest.java
+│   ├── response/       # 响应 DTO（14 个）
+│   │   ├── ApiResponse.java / AdminApiResponse.java   # 统一响应包装
+│   │   ├── LoginResponse.java / AdminLoginResponse.java
+│   │   ├── CombatResult.java           # 战斗结果
+│   │   ├── PetCombatBonus.java         # 宠物战斗加成
+│   │   ├── PlayerEquipmentResponse.java / PlayerItemResponse.java
+│   │   ├── PlayerSkillResponse.java / SkillResponse.java
+│   │   ├── PlayerQuestResponse.java / PlayerQuestDetailResponse.java / QuestResponse.java
+│   │   ├── ShopItemResponse.java
+│   │   └── OfflineRewardResponse.java
+│   ├── PetEvolutionResult.java         # 宠物进化结果
+│   └── SkillComboResult.java           # 技能连招结果
 │
-├── security/       # 安全层
-│   ├── JwtTokenProvider.java           # JWT 生成与验证
-│   ├── JwtAuthenticationFilter.java    # 游戏端 JWT 过滤器
-│   ├── AdminJwtAuthenticationFilter.java # 管理端 JWT 过滤器
-│   └── CustomUserDetailsService.java   # 用户认证服务
-│
-├── exception/      # 异常体系
-│   ├── BusinessException.java      # 业务异常基类
-│   ├── ErrorCode.java              # 错误码枚举
-│   └── GlobalExceptionHandler.java # 全局异常处理器
-│
-├── annotation/     # 自定义注解（限流、权限等）
-├── aspect/         # AOP 切面（日志、限流）
-├── util/           # 工具类（11 个）
-└── validation/     # 自定义校验器（39 个）
+└── validation/     # 启动校验框架（39 个文件）
+    # 应用启动时自动校验 API 响应与数据库 Schema 的一致性
+    ├── StartupValidationService.java   # 校验总入口（ApplicationRunner）
+    ├── SchemaAnalyzer.java             # 数据库 Schema 分析
+    ├── FieldMappingValidator.java      # 字段映射校验
+    ├── MissingFieldDetector.java       # 缺失字段检测
+    ├── APIResponseValidator.java       # API 响应结构校验
+    ├── TypeStandardizationService.java # 类型标准化
+    ├── DataConsistencyValidator.java   # 数据一致性校验
+    └── ValidationErrorLogger.java      # 校验错误日志记录
+```
+
+### 模块间依赖规范
+
+```
+modules.A  →  modules.B（通过 B 的 Service 接口）  ✅
+modules.A  →  modules.B.mapper（直接调用 Mapper） ❌ 禁止！
+modules.*  →  common.*（公共组件）                 ✅
+modules.*  →  dto.*（统一 DTO）                    ✅
 ```
 
 ---
@@ -195,8 +267,8 @@ throw new RuntimeException("用户不存在");
 |------|--------|--------|
 | 登录接口 | `POST /api/auth/login` | `POST /api/admin/auth/login` |
 | Token 存储 Key | `authToken` | `adminToken` |
-| JWT 过滤器 | `JwtAuthenticationFilter` | `AdminJwtAuthenticationFilter` |
-| Security 配置 | `SecurityConfig` | `AdminSecurityConfig` |
+| JWT 过滤器 | `JwtAuthenticationFilter` | `AdminSecurityFilter` |
+| Security 配置 | `SecurityConfig`（含双端规则） | `SecurityConfig`（同一配置类） |
 | 用户角色 | `PLAYER` | `ADMIN` |
 
 两套系统**互不影响**——游戏端 Token 无法访问管理端接口，反之亦然。
@@ -256,11 +328,12 @@ LogUtils.error(log, "战斗计算异常", e, "playerId", playerId);
 
 ## 扩展新系统的标准流程
 
-1. **数据库**：在 `init-database.sql` 添加建表语句（同时更新 `docs/architecture/DATABASE-DESIGN.md`）
-2. **Entity**：在 `entity/` 创建实体类，继承 `BaseEntity`（含 createTime/updateTime）
-3. **Mapper**：在 `mapper/` 创建 Mapper 接口
-4. **ErrorCode**：在 `ErrorCode.java` 中分配新段的错误码（参考 [ErrorCode 手册](../standards/ERROR-CODE-REFERENCE.md)）
-5. **Service**：业务逻辑，加上 `@Service`，无状态设计
-6. **DTO**：在 `dto/request/` 和 `dto/response/` 分别创建请求/响应 DTO
-7. **Controller**：路由层，只做参数校验和结果包装，不写业务逻辑
-8. **文档**：更新 `docs/api/` 对应的 API 文档
+1. **建模块目录**：在 `modules/` 下新建 `your-module/{controller,entity,mapper,service}/`
+2. **数据库**：在 `init-database.sql` 添加建表语句（同时更新 `docs/architecture/DATABASE-DESIGN.md`）
+3. **Entity**：在 `modules/your-module/entity/` 创建实体类
+4. **Mapper**：在 `modules/your-module/mapper/` 创建 Mapper 接口，并在 `XiuxianGameApplication.java` 的 `@MapperScan` 中添加包路径
+5. **ErrorCode**：在 `common/exception/ErrorCode.java` 中分配新段错误码（参考 [ErrorCode 手册](../standards/ERROR-CODE-REFERENCE.md)）
+6. **Service**：在 `modules/your-module/service/` 创建业务逻辑类，加上 `@Service`，无状态设计
+7. **DTO**：在 `dto/request/` 和 `dto/response/` 分别创建请求/响应 DTO（全局共享）
+8. **Controller**：在 `modules/your-module/controller/` 创建路由层，只做参数校验和结果包装
+9. **文档**：更新 `docs/api/` 对应的 API 文档

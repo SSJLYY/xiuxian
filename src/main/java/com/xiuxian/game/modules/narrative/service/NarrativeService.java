@@ -1,0 +1,511 @@
+package com.xiuxian.game.modules.narrative.service;
+
+// narrative module entities
+import com.xiuxian.game.modules.narrative.entity.DialogueNode;
+import com.xiuxian.game.modules.narrative.entity.DialogueTree;
+import com.xiuxian.game.modules.narrative.entity.LoreEntry;
+import com.xiuxian.game.modules.narrative.entity.Npc;
+import com.xiuxian.game.modules.narrative.entity.NpcDailyDialogue;
+import com.xiuxian.game.modules.narrative.entity.OfflineNarrativeEvent;
+import com.xiuxian.game.modules.narrative.entity.PlayerDialogueState;
+import com.xiuxian.game.modules.narrative.entity.PlayerLoreCollection;
+import com.xiuxian.game.modules.narrative.entity.PlayerNarrativeFlag;
+import com.xiuxian.game.modules.narrative.entity.PlayerNpcRelation;
+// narrative module mappers (same module — OK)
+import com.xiuxian.game.modules.narrative.mapper.DialogueNodeMapper;
+import com.xiuxian.game.modules.narrative.mapper.DialogueTreeMapper;
+import com.xiuxian.game.modules.narrative.mapper.LoreEntryMapper;
+import com.xiuxian.game.modules.narrative.mapper.NpcDailyDialogueMapper;
+import com.xiuxian.game.modules.narrative.mapper.NpcMapper;
+import com.xiuxian.game.modules.narrative.mapper.OfflineNarrativeEventMapper;
+import com.xiuxian.game.modules.narrative.mapper.PlayerDialogueStateMapper;
+import com.xiuxian.game.modules.narrative.mapper.PlayerLoreCollectionMapper;
+import com.xiuxian.game.modules.narrative.mapper.PlayerNarrativeFlagMapper;
+import com.xiuxian.game.modules.narrative.mapper.PlayerNpcRelationMapper;
+import com.xiuxian.game.common.exception.BusinessException;
+import com.xiuxian.game.common.exception.ErrorCode;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
+
+/**
+ * 鍙欎簨鏈嶅姟 - 鏍稿績瀵硅瘽寮曟搸
+ * 璐熻矗瀵硅瘽鏍戠殑鍔犺浇銆佹帹杩涖€佸垎鏀€夋嫨銆乫lag绠＄悊銆佸ソ鎰熷害鍙樻洿
+ */
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class NarrativeService {
+
+    private final DialogueTreeMapper dialogueTreeMapper;
+    private final DialogueNodeMapper dialogueNodeMapper;
+    private final PlayerDialogueStateMapper playerDialogueStateMapper;
+    private final PlayerNarrativeFlagMapper playerNarrativeFlagMapper;
+    private final PlayerNpcRelationMapper playerNpcRelationMapper;
+    private final NpcMapper npcMapper;
+    private final NpcDailyDialogueMapper npcDailyDialogueMapper;
+    private final ObjectMapper objectMapper;
+
+    // ==================== 瀵硅瘽鏍戝紩鎿?====================
+
+    /**
+     * 鑾峰彇NPC鍙敤鐨勫璇濇爲鍒楄〃锛堝惈鍓嶇疆鏉′欢妫€鏌ワ級
+     */
+    public List<DialogueTree> getAvailableDialogues(Integer playerId, Integer npcId) {
+        List<DialogueTree> trees = dialogueTreeMapper.selectByNpcId(npcId);
+        Set<String> playerFlags = getPlayerFlags(playerId);
+
+        return trees.stream()
+                .filter(tree -> meetsPrerequisites(tree, playerId, playerFlags))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 寮€濮?缁х画涓€涓璇濇爲
+     * 杩斿洖褰撳墠鑺傜偣鐨勫璇濆唴瀹瑰拰鍙€夐€夐」
+     */
+    @Transactional
+    public DialogueSceneData startOrContinueDialogue(Integer playerId, String dialogueKey) {
+        DialogueTree tree = dialogueTreeMapper.selectActiveByKey(dialogueKey);
+        if (tree == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "瀵硅瘽涓嶅瓨鍦?);
+        }
+
+        // 妫€鏌ュ墠缃潯浠?
+        Set<String> playerFlags = getPlayerFlags(playerId);
+        if (!meetsPrerequisites(tree, playerId, playerFlags)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "涓嶆弧瓒冲璇濆墠缃潯浠?);
+        }
+
+        PlayerDialogueState state = playerDialogueStateMapper.selectByPlayerAndTree(playerId, tree.getId());
+
+        // 宸插畬鎴愪笖涓嶅彲閲嶅
+        if (state != null && state.getIsCompleted() && !tree.getIsRepeatable()) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "璇ュ璇濆凡瀹屾垚");
+        }
+
+        // 鑾峰彇鎴栧垱寤哄璇濈姸鎬?
+        if (state == null) {
+            state = PlayerDialogueState.builder()
+                    .playerId(playerId)
+                    .dialogueTreeId(tree.getId())
+                    .currentNodeKey(null)
+                    .isCompleted(false)
+                    .timesCompleted(0)
+                    .startedAt(LocalDateTime.now())
+                    .build();
+            playerDialogueStateMapper.insert(state);
+        } else if (!state.getIsCompleted()) {
+            // 鎭㈠杩涜涓殑瀵硅瘽
+        } else {
+            // 鍙噸澶嶅璇濓紝閲嶇疆鐘舵€?
+            state.setCurrentNodeKey(null);
+            state.setIsCompleted(false);
+            state.setStartedAt(LocalDateTime.now());
+            playerDialogueStateMapper.updateById(state);
+        }
+
+        // 鑾峰彇璧峰鑺傜偣
+        String nodeKey = state.getCurrentNodeKey();
+        if (nodeKey == null) {
+            List<DialogueNode> roots = dialogueNodeMapper.selectRootNodes(tree.getId());
+            if (roots.isEmpty()) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "瀵硅瘽鏍戞病鏈夎捣濮嬭妭鐐?);
+            }
+            nodeKey = roots.get(0).getNodeKey();
+        }
+
+        return buildSceneData(tree, nodeKey, playerId);
+    }
+
+    /**
+     * 鍋氬嚭閫夋嫨 / 鎺ㄨ繘瀵硅瘽
+     */
+    @Transactional
+    public DialogueSceneData makeChoice(Integer playerId, String dialogueKey, String choiceNodeKey) {
+        DialogueTree tree = dialogueTreeMapper.selectActiveByKey(dialogueKey);
+        if (tree == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "瀵硅瘽涓嶅瓨鍦?);
+        }
+
+        PlayerDialogueState state = playerDialogueStateMapper.selectByPlayerAndTree(playerId, tree.getId());
+        if (state == null || state.getIsCompleted()) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "瀵硅瘽鏈湪杩涜涓?);
+        }
+
+        DialogueNode chosenNode = dialogueNodeMapper.selectByTreeAndKey(tree.getId(), choiceNodeKey);
+        if (chosenNode == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "瀵硅瘽鑺傜偣涓嶅瓨鍦?);
+        }
+
+        // 澶勭悊鑺傜偣鏁堟灉锛歠lag銆佸ソ鎰熷害
+        processNodeEffects(playerId, chosenNode);
+
+        // 璁板綍閫夋嫨tag
+        if (chosenNode.getNodeType().equals("choice")) {
+            state.setLastChoiceTag(chosenNode.getNodeKey());
+        }
+
+        // 纭畾涓嬩竴涓妭鐐?
+        String nextKey = chosenNode.getNextNodeKey();
+
+        // 濡傛灉鏄痗hoice绫诲瀷锛屾壘瀹冪殑瀛愬璇濊妭鐐?
+        if ("choice".equals(chosenNode.getNodeType()) && nextKey == null) {
+            List<DialogueNode> children = dialogueNodeMapper.selectChildrenByParent(tree.getId(), choiceNodeKey);
+            if (!children.isEmpty()) {
+                nextKey = children.get(0).getNodeKey();
+            }
+        }
+
+        // 瀵硅瘽缁撴潫
+        if (nextKey == null || "end".equals(nextKey)) {
+            state.setIsCompleted(true);
+            state.setTimesCompleted(state.getTimesCompleted() + 1);
+            state.setCompletedAt(LocalDateTime.now());
+            playerDialogueStateMapper.updateById(state);
+
+            // 澶勭悊瀵硅瘽鏍戝畬鎴愭晥鏋?
+            if (tree.getRequiredFlags() != null) {
+                // NPC棣栨瑙侀潰
+                Npc npc = npcMapper.selectById(tree.getNpcId());
+                if (npc != null) {
+                    ensureNpcRelation(playerId, tree.getNpcId());
+                }
+            }
+
+            // 鏇存柊NPC浜掑姩
+            updateNpcInteraction(playerId, tree.getNpcId());
+
+            DialogueSceneData result = new DialogueSceneData();
+            result.setDialogueKey(dialogueKey);
+            result.setCompleted(true);
+            result.setNpcName(getNpcName(tree.getNpcId()));
+            return result;
+        }
+
+        // 鏇存柊褰撳墠鑺傜偣
+        state.setCurrentNodeKey(nextKey);
+        playerDialogueStateMapper.updateById(state);
+
+        return buildSceneData(tree, nextKey, playerId);
+    }
+
+    /**
+     * 鏋勫缓鍦烘櫙鏁版嵁锛堝綋鍓嶈妭鐐?+ 鍙€夐€夐」锛?
+     */
+    private DialogueSceneData buildSceneData(DialogueTree tree, String nodeKey, Integer playerId) {
+        DialogueNode currentNode = dialogueNodeMapper.selectByTreeAndKey(tree.getId(), nodeKey);
+        if (currentNode == null) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "瀵硅瘽鑺傜偣涓㈠け: " + nodeKey);
+        }
+
+        DialogueSceneData scene = new DialogueSceneData();
+        scene.setDialogueKey(tree.getDialogueKey());
+        scene.setNpcId(tree.getNpcId());
+        scene.setNpcName(getNpcName(tree.getNpcId()));
+        scene.setScene(tree.getScene());
+        scene.setCompleted(false);
+
+        // 褰撳墠鑺傜偣
+        DialogueSceneData.DialogueLine line = new DialogueSceneData.DialogueLine();
+        line.setSpeaker(currentNode.getSpeaker());
+        line.setText(currentNode.getText());
+        line.setPortrait(currentNode.getPortrait());
+        line.setNodeType(currentNode.getNodeType());
+        scene.setCurrentLine(line);
+
+        // 濡傛灉鏄痗hoice鑺傜偣锛岃幏鍙栭€夐」
+        if ("choice".equals(currentNode.getNodeType())) {
+            List<DialogueNode> options = dialogueNodeMapper.selectChildrenByParent(tree.getId(), nodeKey);
+            Set<String> playerFlags = getPlayerFlags(playerId);
+            Map<Integer, Integer> npcRelations = getNpcAffinities(playerId);
+
+            List<DialogueSceneData.ChoiceOption> choiceOptions = options.stream()
+                    .filter(opt -> meetsNodeConditions(opt, playerFlags, npcRelations))
+                    .map(opt -> {
+                        DialogueSceneData.ChoiceOption co = new DialogueSceneData.ChoiceOption();
+                        co.setNodeKey(opt.getNodeKey());
+                        co.setText(opt.getText());
+                        co.setTag(opt.getNodeKey()); // 鐢╪odeKey浣滀负tag
+                        return co;
+                    })
+                    .collect(Collectors.toList());
+            scene.setChoices(choiceOptions);
+        }
+
+        return scene;
+    }
+
+    /**
+     * 澶勭悊鑺傜偣鏁堟灉锛坒lag璁剧疆/娓呴櫎銆佸ソ鎰熷害鍙樻洿锛?
+     */
+    private void processNodeEffects(Integer playerId, DialogueNode node) {
+        // 璁剧疆flag
+        if (node.getSetFlags() != null && !node.getSetFlags().isEmpty()) {
+            try {
+                List<String> flags = objectMapper.readValue(node.getSetFlags(), new TypeReference<List<String>>() {});
+                for (String flag : flags) {
+                    setFlag(playerId, flag, "1", "瀵硅瘽鑺傜偣: " + node.getNodeKey());
+                }
+            } catch (Exception e) {
+                log.warn("瑙ｆ瀽set_flags澶辫触: {}", node.getSetFlags(), e);
+            }
+        }
+
+        // 娓呴櫎flag
+        if (node.getClearFlags() != null && !node.getClearFlags().isEmpty()) {
+            try {
+                List<String> flags = objectMapper.readValue(node.getClearFlags(), new TypeReference<List<String>>() {});
+                for (String flag : flags) {
+                    clearFlag(playerId, flag);
+                }
+            } catch (Exception e) {
+                log.warn("瑙ｆ瀽clear_flags澶辫触: {}", node.getClearFlags(), e);
+            }
+        }
+
+        // 濂芥劅搴﹀彉鏇?
+        if (node.getSetReputation() != null && !node.getSetReputation().isEmpty()) {
+            try {
+                Map<String, Integer> changes = objectMapper.readValue(node.getSetReputation(),
+                        new TypeReference<Map<String, Integer>>() {});
+                for (Map.Entry<String, Integer> entry : changes.entrySet()) {
+                    Integer npcId = Integer.parseInt(entry.getKey());
+                    changeNpcAffinity(playerId, npcId, entry.getValue());
+                }
+            } catch (Exception e) {
+                log.warn("瑙ｆ瀽set_reputation澶辫触: {}", node.getSetReputation(), e);
+            }
+        }
+    }
+
+    // ==================== Flag 绯荤粺 ====================
+
+    public Set<String> getPlayerFlags(Integer playerId) {
+        List<String> keys = playerNarrativeFlagMapper.selectFlagKeysByPlayerId(playerId);
+        return new HashSet<>(keys);
+    }
+
+    public boolean hasFlag(Integer playerId, String flagKey) {
+        return playerNarrativeFlagMapper.selectByPlayerAndKey(playerId, flagKey) != null;
+    }
+
+    @Transactional
+    public void setFlag(Integer playerId, String flagKey, String value, String source) {
+        PlayerNarrativeFlag existing = playerNarrativeFlagMapper.selectByPlayerAndKey(playerId, flagKey);
+        if (existing != null) {
+            existing.setFlagValue(value);
+            existing.setSource(source);
+            playerNarrativeFlagMapper.updateById(existing);
+        } else {
+            PlayerNarrativeFlag flag = PlayerNarrativeFlag.builder()
+                    .playerId(playerId)
+                    .flagKey(flagKey)
+                    .flagValue(value)
+                    .source(source)
+                    .build();
+            playerNarrativeFlagMapper.insert(flag);
+        }
+    }
+
+    @Transactional
+    public void clearFlag(Integer playerId, String flagKey) {
+        PlayerNarrativeFlag flag = playerNarrativeFlagMapper.selectByPlayerAndKey(playerId, flagKey);
+        if (flag != null) {
+            playerNarrativeFlagMapper.deleteById(flag.getId());
+        }
+    }
+
+    // ==================== 濂芥劅搴︾郴缁?====================
+
+    public PlayerNpcRelation getNpcRelation(Integer playerId, Integer npcId) {
+        return playerNpcRelationMapper.selectByPlayerAndNpc(playerId, npcId);
+    }
+
+    public List<PlayerNpcRelation> getAllNpcRelations(Integer playerId) {
+        return playerNpcRelationMapper.selectByPlayerId(playerId);
+    }
+
+    @Transactional
+    public void changeNpcAffinity(Integer playerId, Integer npcId, int change) {
+        PlayerNpcRelation relation = ensureNpcRelation(playerId, npcId);
+        int newAffinity = Math.max(-100, Math.min(100, relation.getAffinity() + change));
+        relation.setAffinity(newAffinity);
+        relation.setRelationshipLevel(PlayerNpcRelation.getRelationshipLevel(newAffinity));
+        relation.setLastInteractAt(LocalDateTime.now());
+        relation.setTotalInteractions(relation.getTotalInteractions() + 1);
+        playerNpcRelationMapper.updateById(relation);
+
+        if (log.isDebugEnabled()) {
+            log.debug("NPC濂芥劅搴﹀彉鏇? playerId={}, npcId={}, change={}, newAffinity={}",
+                    playerId, npcId, change, newAffinity);
+        }
+    }
+
+    @Transactional
+    public PlayerNpcRelation ensureNpcRelation(Integer playerId, Integer npcId) {
+        PlayerNpcRelation relation = playerNpcRelationMapper.selectByPlayerAndNpc(playerId, npcId);
+        if (relation == null) {
+            relation = PlayerNpcRelation.builder()
+                    .playerId(playerId)
+                    .npcId(npcId)
+                    .affinity(0)
+                    .relationshipLevel(PlayerNpcRelation.LEVEL_STRANGER)
+                    .firstMetAt(LocalDateTime.now())
+                    .lastInteractAt(LocalDateTime.now())
+                    .totalInteractions(0)
+                    .build();
+            playerNpcRelationMapper.insert(relation);
+        }
+        return relation;
+    }
+
+    @Transactional
+    public void updateNpcInteraction(Integer playerId, Integer npcId) {
+        PlayerNpcRelation relation = ensureNpcRelation(playerId, npcId);
+        relation.setLastInteractAt(LocalDateTime.now());
+        relation.setTotalInteractions(relation.getTotalInteractions() + 1);
+        playerNpcRelationMapper.updateById(relation);
+    }
+
+    private Map<Integer, Integer> getNpcAffinities(Integer playerId) {
+        List<PlayerNpcRelation> relations = playerNpcRelationMapper.selectByPlayerId(playerId);
+        return relations.stream()
+                .collect(Collectors.toMap(PlayerNpcRelation::getNpcId, PlayerNpcRelation::getAffinity));
+    }
+
+    // ==================== 鏃ュ父瀵硅瘽 ====================
+
+    /**
+     * 鑾峰彇NPC闅忔満鏃ュ父瀵硅瘽
+     */
+    public String getDailyDialogue(Integer playerId, Integer npcId) {
+        List<NpcDailyDialogue> dialogues = npcDailyDialogueMapper.selectByNpcId(npcId);
+        if (dialogues.isEmpty()) {
+            return null;
+        }
+
+        Set<String> playerFlags = getPlayerFlags(playerId);
+        List<NpcDailyDialogue> eligible = dialogues.stream()
+                .filter(d -> meetsDailyConditions(d, playerId, playerFlags))
+                .collect(Collectors.toList());
+
+        if (eligible.isEmpty()) {
+            return null;
+        }
+
+        return eligible.get(ThreadLocalRandom.current().nextInt(eligible.size())).getText();
+    }
+
+    // ==================== 鏉′欢妫€鏌?====================
+
+    private boolean meetsPrerequisites(DialogueTree tree, Integer playerId, Set<String> playerFlags) {
+        // flag妫€鏌?
+        if (tree.getRequiredFlags() != null && !tree.getRequiredFlags().isEmpty()) {
+            try {
+                List<String> required = objectMapper.readValue(tree.getRequiredFlags(), new TypeReference<List<String>>() {});
+                for (String flag : required) {
+                    if (!playerFlags.contains(flag)) return false;
+                }
+            } catch (Exception e) {
+                log.warn("瑙ｆ瀽required_flags澶辫触: {}", tree.getRequiredFlags(), e);
+            }
+        }
+        return true;
+    }
+
+    private boolean meetsNodeConditions(DialogueNode node, Set<String> playerFlags, Map<Integer, Integer> npcRelations) {
+        if (node.getConditions() == null || node.getConditions().isEmpty()) {
+            return true;
+        }
+        try {
+            Map<String, Object> conditions = objectMapper.readValue(node.getConditions(),
+                    new TypeReference<Map<String, Object>>() {});
+            // min_relation: 闇€瑕佸鎸囧畾NPC鐨勫ソ鎰熷害
+            if (conditions.containsKey("min_relation")) {
+                @SuppressWarnings("unchecked")
+                Map<String, Integer> relReqs = objectMapper.convertValue(conditions.get("min_relation"),
+                        new TypeReference<Map<String, Integer>>() {});
+                for (Map.Entry<String, Integer> entry : relReqs.entrySet()) {
+                    int npcId = Integer.parseInt(entry.getKey());
+                    int minRel = entry.getValue();
+                    Integer current = npcRelations.getOrDefault(npcId, 0);
+                    if (current < minRel) return false;
+                }
+            }
+            // flags: 闇€瑕佹嫢鏈夋寚瀹歠lag
+            if (conditions.containsKey("flags")) {
+                List<String> requiredFlags = objectMapper.convertValue(conditions.get("flags"),
+                        new TypeReference<List<String>>() {});
+                for (String flag : requiredFlags) {
+                    if (!playerFlags.contains(flag)) return false;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("瑙ｆ瀽conditions澶辫触: {}", node.getConditions(), e);
+        }
+        return true;
+    }
+
+    private boolean meetsDailyConditions(NpcDailyDialogue dialogue, Integer playerId, Set<String> playerFlags) {
+        if (dialogue.getConditions() == null || dialogue.getConditions().isEmpty()) {
+            return true;
+        }
+        try {
+            Map<String, Object> conditions = objectMapper.readValue(dialogue.getConditions(),
+                    new TypeReference<Map<String, Object>>() {});
+            // has_flag
+            if (conditions.containsKey("has_flag") && !playerFlags.contains(conditions.get("has_flag"))) {
+                return false;
+            }
+        } catch (Exception e) {
+            log.warn("瑙ｆ瀽鏃ュ父瀵硅瘽鏉′欢澶辫触: {}", dialogue.getConditions(), e);
+        }
+        return true;
+    }
+
+    private String getNpcName(Integer npcId) {
+        if (npcId == null) return null;
+        Npc npc = npcMapper.selectById(npcId);
+        return npc != null ? npc.getName() : null;
+    }
+
+    // ==================== DTO ====================
+
+    @Data
+    public static class DialogueSceneData {
+        private String dialogueKey;
+        private Integer npcId;
+        private String npcName;
+        private String scene;
+        private boolean completed;
+        private DialogueLine currentLine;
+        private List<ChoiceOption> choices;
+
+        @Data
+        public static class DialogueLine {
+            private String speaker;
+            private String text;
+            private String portrait;
+            private String nodeType;
+        }
+
+        @Data
+        public static class ChoiceOption {
+            private String nodeKey;
+            private String text;
+            private String tag;
+        }
+    }
+}
+
+

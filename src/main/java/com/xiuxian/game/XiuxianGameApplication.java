@@ -47,7 +47,31 @@ import java.net.UnknownHostException;
  */
 @Slf4j
 @SpringBootApplication
-@MapperScan("com.xiuxian.game.mapper")
+@MapperScan({
+    "com.xiuxian.game.mapper",
+    "com.xiuxian.game.modules.player.mapper",
+    "com.xiuxian.game.modules.combat.mapper",
+    "com.xiuxian.game.modules.cultivation.mapper",
+    "com.xiuxian.game.modules.pet.mapper",
+    "com.xiuxian.game.modules.equipment.mapper",
+    "com.xiuxian.game.modules.skill.mapper",
+    "com.xiuxian.game.modules.quest.mapper",
+    "com.xiuxian.game.modules.achievement.mapper",
+    "com.xiuxian.game.modules.guild.mapper",
+    "com.xiuxian.game.modules.ranking.mapper",
+    "com.xiuxian.game.modules.auction.mapper",
+    "com.xiuxian.game.modules.narrative.mapper",
+    "com.xiuxian.game.modules.mail.mapper",
+    "com.xiuxian.game.modules.shop.mapper",
+    "com.xiuxian.game.modules.checkin.mapper",
+    "com.xiuxian.game.modules.activity.mapper",
+    "com.xiuxian.game.modules.giftcode.mapper",
+    "com.xiuxian.game.modules.offline.mapper",
+    "com.xiuxian.game.modules.map.mapper",
+    "com.xiuxian.game.modules.announcement.mapper",
+    "com.xiuxian.game.modules.vip.mapper",
+    "com.xiuxian.game.modules.admin.mapper"
+})
 @EnableScheduling
 @EnableCaching
 public class XiuxianGameApplication {

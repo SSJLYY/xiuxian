@@ -1,0 +1,379 @@
+﻿package com.xiuxian.game.modules.mail.service;
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+// mail module entities (same module -- OK)
+import com.xiuxian.game.modules.mail.entity.MailAttachment;
+import com.xiuxian.game.modules.mail.entity.PlayerMail;
+// mail module mappers (same module -- OK)
+import com.xiuxian.game.modules.mail.mapper.MailAttachmentMapper;
+import com.xiuxian.game.modules.mail.mapper.PlayerMailMapper;
+// cross-module entities accessed via Service interfaces
+import com.xiuxian.game.modules.player.entity.PlayerItem;
+import com.xiuxian.game.modules.player.entity.PlayerProfile;
+// cross-module services (module boundary)
+import com.xiuxian.game.modules.player.service.PlayerService;
+import com.xiuxian.game.modules.equipment.service.EquipmentService;
+import com.xiuxian.game.common.exception.BusinessException;
+import com.xiuxian.game.common.exception.ErrorCode;
+import com.xiuxian.game.common.util.PageUtil;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * 邮件服务�?
+ */
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class MailService {
+
+    private final PlayerMailMapper mailMapper;
+    private final MailAttachmentMapper attachmentMapper;
+    // module boundary: access player/equipment data via Service, not direct Mapper injection
+    private final PlayerService playerService;
+    private final EquipmentService equipmentService;
+
+    private static final int MAX_MAILBOX_SIZE = 100;
+
+    /**
+     * 发送系统邮件给单个玩家
+     */
+    @Transactional
+    public void sendSystemMail(Integer playerId, String title, String content, String itemType, 
+                              Integer itemId, Integer quantity) {
+        log.info("发送系统邮�? playerId={}, title={}, itemType={}, itemId={}, quantity={}", 
+                playerId, title, itemType, itemId, quantity);
+        
+        // 创建附件
+        List<MailAttachment> attachments = new ArrayList<>();
+        if (itemType != null && itemId != null && quantity != null) {
+            MailAttachment attachment = new MailAttachment();
+            attachment.setItemType(itemType);
+            attachment.setItemId(itemId);
+            attachment.setQuantity(quantity);
+            attachments.add(attachment);
+        }
+        
+        // 发送邮�?
+        sendMail(playerId, title, content, "SYSTEM", attachments, LocalDateTime.now().plusDays(30));
+    }
+
+    /**
+     * 发送邮件给单个玩家
+     */
+    @Transactional
+    public void sendMail(Integer playerId, String title, String content, String mailType, 
+                        List<MailAttachment> attachments, LocalDateTime expireAt) {
+        log.info("发送邮�? playerId={}, title={}, mailType={}", playerId, title, mailType);
+        
+        // 检查邮箱容�?
+        long mailCount = mailMapper.selectCount(new QueryWrapper<PlayerMail>()
+                .eq("player_id", playerId));
+        if (mailCount >= MAX_MAILBOX_SIZE) {
+            throw new BusinessException(ErrorCode.MAIL_BOX_FULL);
+        }
+        
+        // 创建邮件
+        PlayerMail mail = new PlayerMail();
+        mail.setPlayerId(playerId);
+        mail.setTitle(title);
+        mail.setContent(content);
+        mail.setMailType(mailType);
+        mail.setIsRead(false);
+        mail.setHasAttachment(attachments != null && !attachments.isEmpty());
+        mail.setIsClaimed(false);
+        mail.setExpireAt(expireAt);
+        
+        mailMapper.insert(mail);
+        
+        // 保存附件
+        if (attachments != null && !attachments.isEmpty()) {
+            for (MailAttachment attachment : attachments) {
+                attachment.setMailId(mail.getId());
+                attachmentMapper.insert(attachment);
+            }
+        }
+        
+        log.info("邮件发送成�? mailId={}", mail.getId());
+    }
+
+    /**
+     * 批量发送邮�?
+     */
+    @Transactional
+    public void sendBatchMail(List<Integer> playerIds, String title, String content, 
+                             String mailType, List<MailAttachment> attachments, LocalDateTime expireAt) {
+        log.info("批量发送邮�? playerCount={}, title={}", playerIds.size(), title);
+        
+        for (Integer playerId : playerIds) {
+            try {
+                sendMail(playerId, title, content, mailType, attachments, expireAt);
+            } catch (Exception e) {
+                log.error("发送邮件失�? playerId={}, error={}", playerId, e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * 获取邮件列表
+     */
+    public IPage<PlayerMail> getMailList(Integer playerId, int page, int size) {
+        log.debug("获取邮件列表: playerId={}, page={}, size={}", playerId, page, size);
+        
+        IPage<PlayerMail> pageObj = PageUtil.createPage(page, size);
+        QueryWrapper<PlayerMail> wrapper = new QueryWrapper<>();
+        wrapper.eq("player_id", playerId)
+               .orderByDesc("created_at");
+        
+        return mailMapper.selectPage(pageObj, wrapper);
+    }
+
+    /**
+     * 获取邮件详情
+     */
+    @Transactional
+    public PlayerMail getMailDetail(Integer playerId, Long mailId) {
+        log.debug("获取邮件详情: playerId={}, mailId={}", playerId, mailId);
+        
+        PlayerMail mail = mailMapper.selectById(mailId);
+        if (mail == null) {
+            throw new BusinessException(ErrorCode.MAIL_NOT_FOUND);
+        }
+        
+        if (!mail.getPlayerId().equals(playerId)) {
+            throw new BusinessException(ErrorCode.MAIL_ACCESS_DENIED);
+        }
+        
+        // 标记为已�?
+        if (!mail.getIsRead()) {
+            mail.setIsRead(true);
+            mailMapper.updateById(mail);
+        }
+        
+        return mail;
+    }
+
+    /**
+     * 领取邮件附件
+     */
+    @Transactional
+    public void claimAttachment(Integer playerId, Long mailId) {
+        log.info("领取邮件附件: playerId={}, mailId={}", playerId, mailId);
+        
+        PlayerMail mail = mailMapper.selectById(mailId);
+        if (mail == null) {
+            throw new BusinessException(ErrorCode.MAIL_NOT_FOUND);
+        }
+        
+        if (!mail.getPlayerId().equals(playerId)) {
+            throw new BusinessException(ErrorCode.MAIL_ACCESS_DENIED);
+        }
+        
+        if (!mail.getHasAttachment()) {
+            throw new BusinessException(ErrorCode.MAIL_NO_ATTACHMENT);
+        }
+        
+        if (mail.getIsClaimed()) {
+            throw new BusinessException(ErrorCode.MAIL_ALREADY_CLAIMED);
+        }
+        
+        // 获取附件列表
+        List<MailAttachment> attachments = attachmentMapper.selectList(
+                new QueryWrapper<MailAttachment>().eq("mail_id", mailId));
+        
+        if (attachments.isEmpty()) {
+            throw new BusinessException(ErrorCode.MAIL_NO_ATTACHMENT);
+        }
+        
+        // 发放附件奖励
+        PlayerProfile profile = playerService.getPlayerProfileById(playerId);
+        for (MailAttachment attachment : attachments) {
+            grantAttachment(profile, attachment);
+        }
+        
+        // 标记为已领取
+        mail.setIsClaimed(true);
+        mailMapper.updateById(mail);
+        
+        log.info("附件领取成功: mailId={}, attachmentCount={}", mailId, attachments.size());
+    }
+
+    /**
+     * 发放附件奖励
+     */
+    private void grantAttachment(PlayerProfile profile, MailAttachment attachment) {
+        String itemType = attachment.getItemType();
+        Integer itemId = attachment.getItemId();
+        Integer quantity = attachment.getQuantity();
+        
+        switch (itemType) {
+            case "SPIRIT_STONES":
+                profile.setSpiritStones(profile.getSpiritStones() + quantity);
+                playerService.savePlayerProfile(profile);
+                log.info("发放灵石: playerId={}, quantity={}", profile.getId(), quantity);
+                break;
+                
+            case "EXP":
+                profile.setExp(profile.getExp() + quantity);
+                playerService.savePlayerProfile(profile);
+                log.info("发放经验: playerId={}, quantity={}", profile.getId(), quantity);
+                break;
+                
+            case "ITEM":
+                PlayerItem existingItem = playerService.getPlayerItemByPlayerAndItem(profile.getId(), itemId);
+                
+                if (existingItem != null) {
+                    existingItem.setQuantity(existingItem.getQuantity() + quantity);
+                    playerService.updatePlayerItem(existingItem);
+                } else {
+                    PlayerItem newItem = new PlayerItem();
+                    newItem.setPlayerId(profile.getId());
+                    newItem.setItemId(itemId);
+                    newItem.setQuantity(quantity);
+                    newItem.setCreatedAt(LocalDateTime.now());
+                    newItem.setUpdatedAt(LocalDateTime.now());
+                    playerService.savePlayerItem(newItem);
+                }
+                log.info("发放物品: playerId={}, itemId={}, quantity={}", profile.getId(), itemId, quantity);
+                break;
+                
+            case "EQUIPMENT":
+                equipmentService.grantEquipmentDirectly(profile.getId(), itemId);
+                log.info("发放装备: playerId={}, equipmentId={}", profile.getId(), itemId);
+                break;
+                
+            default:
+                log.warn("未知的附件类�? {}", itemType);
+        }
+    }
+
+    /**
+     * 删除邮件
+     */
+    @Transactional
+    public void deleteMail(Integer playerId, Long mailId) {
+        log.info("删除邮件: playerId={}, mailId={}", playerId, mailId);
+        
+        PlayerMail mail = mailMapper.selectById(mailId);
+        if (mail == null) {
+            throw new BusinessException(ErrorCode.MAIL_NOT_FOUND);
+        }
+        
+        if (!mail.getPlayerId().equals(playerId)) {
+            throw new BusinessException(ErrorCode.MAIL_ACCESS_DENIED);
+        }
+        
+        // 删除附件
+        attachmentMapper.delete(new QueryWrapper<MailAttachment>().eq("mail_id", mailId));
+        
+        // 删除邮件
+        mailMapper.deleteById(mailId);
+        
+        log.info("邮件删除成功: mailId={}", mailId);
+    }
+
+    /**
+     * 获取未读邮件数量
+     */
+    public long getUnreadCount(Integer playerId) {
+        return mailMapper.selectCount(new QueryWrapper<PlayerMail>()
+                .eq("player_id", playerId)
+                .eq("is_read", false));
+    }
+
+    /**
+     * 定时清理过期邮件
+     * 每天凌晨3点执�?
+     */
+    @Scheduled(cron = "0 0 3 * * ?")
+    @Transactional
+    public void cleanExpiredMails() {
+        log.info("开始清理过期邮�?);
+        
+        LocalDateTime now = LocalDateTime.now();
+        List<PlayerMail> expiredMails = mailMapper.selectList(
+                new QueryWrapper<PlayerMail>()
+                        .lt("expire_at", now));
+        
+        for (PlayerMail mail : expiredMails) {
+            // 删除附件
+            attachmentMapper.delete(new QueryWrapper<MailAttachment>().eq("mail_id", mail.getId()));
+            // 删除邮件
+            mailMapper.deleteById(mail.getId());
+        }
+        
+        log.info("过期邮件清理完成: count={}", expiredMails.size());
+    }
+
+    /**
+     * 获取邮件附件列表
+     */
+    public List<MailAttachment> getMailAttachments(Long mailId) {
+        return attachmentMapper.selectList(
+                new QueryWrapper<MailAttachment>().eq("mail_id", mailId));
+    }
+
+    // ===================== Admin Feedback interface (for AdminFeedbackService) =====================
+
+    /** Get feedback mail list paged (admin use) */
+    public Page<PlayerMail> getFeedbackList(int page, int size, Integer playerId, Boolean isRead) {
+        Page<PlayerMail> pageObj = new Page<>(page, size);
+        QueryWrapper<PlayerMail> qw = new QueryWrapper<PlayerMail>().eq("mail_type", "FEEDBACK");
+        if (playerId != null) qw.eq("player_id", playerId);
+        if (isRead != null) qw.eq("is_read", isRead);
+        qw.orderByDesc("created_at");
+        return mailMapper.selectPage(pageObj, qw);
+    }
+
+    /** Get single feedback mail by ID (admin use) */
+    public PlayerMail getFeedbackById(Long feedbackId) {
+        PlayerMail m = mailMapper.selectById(feedbackId);
+        return (m != null && "FEEDBACK".equals(m.getMailType())) ? m : null;
+    }
+
+    /** Mark feedback as read (admin use) */
+    public PlayerMail markFeedbackAsRead(Long feedbackId) {
+        PlayerMail m = mailMapper.selectById(feedbackId);
+        if (m == null || !"FEEDBACK".equals(m.getMailType())) throw new IllegalArgumentException("Feedback not found");
+        m.setIsRead(true);
+        mailMapper.updateById(m);
+        return m;
+    }
+
+    /** Delete feedback mail (admin use) */
+    public boolean deleteFeedback(Long feedbackId) {
+        PlayerMail m = mailMapper.selectById(feedbackId);
+        if (m == null || !"FEEDBACK".equals(m.getMailType())) return false;
+        return mailMapper.deleteById(feedbackId) > 0;
+    }
+
+    /** Reply to feedback (admin use) */
+    public boolean replyToFeedback(Long feedbackId, String replyContent, Integer adminId) {
+        PlayerMail orig = mailMapper.selectById(feedbackId);
+        if (orig == null || !"FEEDBACK".equals(orig.getMailType())) return false;
+        PlayerMail reply = new PlayerMail();
+        reply.setPlayerId(orig.getPlayerId());
+        reply.setTitle("Reply: " + orig.getTitle());
+        reply.setContent(replyContent);
+        reply.setMailType("SYSTEM");
+        reply.setIsRead(false);
+        reply.setHasAttachment(false);
+        reply.setIsClaimed(false);
+        reply.setExpireAt(java.time.LocalDateTime.now().plusDays(30));
+        mailMapper.insert(reply);
+        orig.setIsRead(true);
+        mailMapper.updateById(orig);
+        return true;
+    }
+}
+
+

@@ -1,9 +1,9 @@
 # 后端编码规范
 
 > 本规范是代码审查的基准线。新功能提交前请对照检查。  
-> 更新日期：2026-03-24
+> 更新日期：2026-03-25（代码 v2 同步）
 
-**作者**: shaun.sheng &nbsp;|&nbsp; **最后更新**: 2026-03-24
+**作者**: shaun.sheng &nbsp;|&nbsp; **最后更新**: 2026-03-25（代码 v2 同步）
 
 ---
 
@@ -201,7 +201,50 @@ result.put("damage", 150);
 
 ---
 
-## 10. 代码审查清单
+## 10. 模块化架构规范
+
+项目采用 `common / modules / dto / validation` 四包结构，**新代码必须放入正确位置**：
+
+| 代码类型 | 正确位置 | 错误位置 |
+|---------|---------|---------|
+| Controller / Entity / Mapper / Service | `modules/{模块名}/` | 根包下 |
+| 公共配置 / 安全认证 / 工具类 | `common/{config|security|util}/` | 各模块内 |
+| 请求/响应 DTO | `dto/request/` 或 `dto/response/` | `modules/` 内 |
+| AOP 切面 | `common/aspect/` | 各模块内 |
+| 自定义注解 | `common/annotation/` | 各模块内 |
+
+**模块间依赖规则**（强制）：
+```java
+// ✅ 正确：模块 A 调用模块 B 的 Service 接口
+@Autowired
+private PetService petService;   // 在 CombatService 中引用宠物模块
+
+// ❌ 禁止：跨模块直接调用 Mapper
+@Autowired
+private PetMapper petMapper;     // 在 CombatService 中！—— 破坏模块边界
+```
+
+**新模块标准目录结构**：
+```
+modules/your-module/
+├── controller/
+│   └── YourModuleController.java
+├── entity/
+│   └── YourEntity.java
+├── mapper/
+│   └── YourMapper.java
+└── service/
+    └── YourService.java
+```
+
+新增模块后在 `XiuxianGameApplication.java` 的 `@MapperScan` 中添加：
+```java
+"com.xiuxian.game.modules.your-module.mapper"
+```
+
+---
+
+## 11. 代码审查清单
 
 提交 PR 前自查：
 
@@ -212,12 +255,13 @@ result.put("damage", 150);
 - [ ] 日志分级正确（循环内无 `info`，`error` 带异常对象）
 - [ ] Controller 无业务逻辑（只有参数校验+Service调用+结果包装）
 - [ ] IP 获取使用 `RequestUtils.getClientIp()`
-- [ ] 新 ErrorCode 已在 `ErrorCode.java` 和 [ErrorCode 手册](../standards/ERROR-CODE-REFERENCE.md) 中登记
+- [ ] 新 ErrorCode 已在 `common/exception/ErrorCode.java` 和 [ErrorCode 手册](../standards/ERROR-CODE-REFERENCE.md) 中登记
+- [ ] 新代码放入正确模块目录（`modules/{模块名}/`），未跨模块直接调用 Mapper
 - [ ] 相关 API 文档已更新
 
 ---
 
-## 11. 相关文档
+## 12. 相关文档
 
 - **[代码审查标准](./CODE-REVIEW-STANDARDS.md)** — 完整的审查检查清单和优先级定义
 - **[代码审查流程](./CODE-REVIEW-PROCESS.md)** — PR流程、角色职责、工具使用
