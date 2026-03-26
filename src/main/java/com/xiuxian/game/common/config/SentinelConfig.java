@@ -38,43 +38,43 @@ public class SentinelConfig {
     public static void initFlowRules() {
         List<FlowRule> rules = new ArrayList<>();
 
-        // 战斗接口限流 - 每秒100次
+        // 战斗接口限流 - 每秒30次
         FlowRule combatRule = createFlowRule("/api/combat/**", 30, RuleConstant.FLOW_GRADE_QPS); // 2H4G optimized
         rules.add(combatRule);
 
-        // 核心玩家接口限流 - 每秒200次
+        // 核心玩家接口限流 - 每秒50次
         FlowRule playerRule = createFlowRule("/api/player/**", 50, RuleConstant.FLOW_GRADE_QPS); // 2H4G optimized
         rules.add(playerRule);
 
-        // 技能接口限流 - 每秒150次
+        // 技能接口限流 - 每秒40次
         FlowRule skillRule = createFlowRule("/api/skill/**", 40, RuleConstant.FLOW_GRADE_QPS); // 2H4G optimized
         rules.add(skillRule);
 
-        // 宠物接口限流 - 每秒150次
+        // 宠物接口限流 - 每秒40次
         FlowRule petRule = createFlowRule("/api/pet/**", 40, RuleConstant.FLOW_GRADE_QPS); // 2H4G optimized
         rules.add(petRule);
 
-        // 修炼接口限流 - 每秒100次
+        // 修炼接口限流 - 每秒30次
         FlowRule cultivationRule = createFlowRule("/api/cultivation/**", 30, RuleConstant.FLOW_GRADE_QPS); // 2H4G optimized
         rules.add(cultivationRule);
 
-        // 社交接口限流 - 每秒100次
+        // 社交接口限流 - 每秒30次
         FlowRule socialRule = createFlowRule("/api/guild/**", 30, RuleConstant.FLOW_GRADE_QPS); // 2H4G optimized
         rules.add(socialRule);
 
-        // 排行榜接口限流 - 每秒50次
+        // 排行榜接口限流 - 每秒20次
         FlowRule rankingRule = createFlowRule("/api/ranking/**", 20, RuleConstant.FLOW_GRADE_QPS); // 2H4G optimized
         rules.add(rankingRule);
 
-        // 拍卖行接口限流 - 每秒80次
+        // 拍卖行接口限流 - 每秒15次
         FlowRule auctionRule = createFlowRule("/api/auction/**", 15, RuleConstant.FLOW_GRADE_QPS); // 2H4G optimized
         rules.add(auctionRule);
 
-        // 认证接口限流 - 每秒20次（防暴力破解）
+        // 认证接口限流 - 每秒20次
         FlowRule authRule = createFlowRule("/api/auth/**", 20, RuleConstant.FLOW_GRADE_QPS);
         rules.add(authRule);
 
-        // 管理后台接口限流 - 每秒100次
+        // 管理员后台接口限流 - 每秒20次
         FlowRule adminRule = createFlowRule("/api/admin/**", 20, RuleConstant.FLOW_GRADE_QPS); // 2H4G optimized
         rules.add(adminRule);
 
@@ -100,13 +100,13 @@ public class SentinelConfig {
         rtRule.setCount(1000);
         rules.add(rtRule);
 
-        // 线程数超过 200 时触发限流
+        // 线程数超过 50 时触发限流
         SystemRule threadRule = new SystemRule();
         threadRule.setGrade(RuleConstant.THREAD_NUM);
         threadRule.setCount(50); // 2H4G optimized
         rules.add(threadRule);
 
-        // QPS 超过 500 时触发限流
+        // QPS 超过 150 时触发限流
         SystemRule qpsRule = new SystemRule();
         qpsRule.setGrade(RuleConstant.QPS);
         qpsRule.setCount(150); // 2H4G optimized
@@ -127,11 +127,10 @@ public class SentinelConfig {
     }
 
     /**
-     * 静态初始化器 - 应用启动时加载规则
+     * 静态初始化块 - 应用启动时加载规则
      */
     static {
         initFlowRules();
         initSystemRules();
     }
 }
-

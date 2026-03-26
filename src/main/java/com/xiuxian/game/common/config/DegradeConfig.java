@@ -8,8 +8,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 服务降级开关配�?
- * 用于控制各业务模块的降级策略
+ * 降级配置属性类
+ * 配置降级策略前缀，通过配置文件控制游戏各模块的降级行为
  *
  * @author shaun.sheng
  */
@@ -19,50 +19,50 @@ import java.util.Map;
 public class DegradeConfig {
 
     /**
-     * 掉落倍率�?.1 = 10%掉落率）
+     * 掉落倍率系数，1.0 = 100%不掉落
      */
     private double dropRateMultiplier = 1.0;
 
     /**
-     * 是否启用降级
+     * 是否启用降级策略
      */
     private boolean fallbackEnabled = false;
 
     /**
-     * 降级策略映射
+     * 降级策略开关
      */
     private Map<String, Boolean> strategies = new HashMap<>();
 
     /**
-     * 战斗降级：降低掉落率
+     * 战斗掉落降级开关
      */
     public boolean isCombatDropReduced() {
         return fallbackEnabled && strategies.getOrDefault("reduceDrop", false);
     }
 
     /**
-     * 排行榜降级：返回缓存数据
+     * 排行榜是否只读缓存
      */
     public boolean isRankingCacheOnly() {
         return fallbackEnabled && strategies.getOrDefault("rankingCacheOnly", false);
     }
 
     /**
-     * 拍卖行降级：关闭竞价
+     * 拍卖功能是否禁用
      */
     public boolean isAuctionDisabled() {
         return fallbackEnabled && strategies.getOrDefault("disableAuction", false);
     }
 
     /**
-     * 战斗日志降级：异步写�?
+     * 战斗日志是否异步写入
      */
     public boolean isCombatLogAsync() {
         return fallbackEnabled && strategies.getOrDefault("combatLogAsync", true);
     }
 
     /**
-     * 初始化默认策�?
+     * 初始化默认降级策略
      */
     public void initDefaultStrategies() {
         strategies.put("reduceDrop", false);
@@ -71,4 +71,3 @@ public class DegradeConfig {
         strategies.put("combatLogAsync", true);
     }
 }
-

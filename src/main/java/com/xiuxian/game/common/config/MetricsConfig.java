@@ -11,7 +11,7 @@ import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * 监控指标配置
+ * 监控指标配置类
  * 集成 Prometheus + Micrometer
  *
  * @author shaun.sheng
@@ -20,8 +20,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class MetricsConfig {
 
     /**
-     * 自定义业务指标注�?
-     * 在需要的地方注入 MeterRegistry 使用
+     * 注册业务指标到 Micrometer 注册表
      */
     @Bean
     public BusinessMetrics businessMetrics(MeterRegistry registry) {
@@ -29,28 +28,28 @@ public class MetricsConfig {
     }
 
     /**
-     * 业务指标工具�?
+     * 业务指标统计类
      */
     public static class BusinessMetrics {
         private final MeterRegistry registry;
 
-        // 战斗相关指标
+        // 战斗相关计数器
         private final AtomicLong combatTotal = new AtomicLong(0);
         private final AtomicLong combatSuccess = new AtomicLong(0);
         private final AtomicLong combatFailure = new AtomicLong(0);
 
-        // 玩家相关指标
+        // 玩家相关计数器
         private final AtomicLong playerLoginTotal = new AtomicLong(0);
         private final AtomicLong playerRegisterTotal = new AtomicLong(0);
 
-        // 交易相关指标
+        // 交易相关计数器
         private final AtomicLong tradeTotal = new AtomicLong(0);
         private final AtomicLong tradeSuccess = new AtomicLong(0);
 
         public BusinessMetrics(MeterRegistry registry) {
             this.registry = registry;
 
-            // 初始化计数器
+            // 注册计数器
             registry.counter("game.combat.total", "game", "xiuxian");
             registry.counter("game.combat.success", "game", "xiuxian");
             registry.counter("game.combat.failure", "game", "xiuxian");
@@ -59,12 +58,12 @@ public class MetricsConfig {
             registry.counter("game.trade.total", "game", "xiuxian");
             registry.counter("game.trade.success", "game", "xiuxian");
 
-            // 初始�?gauge
+            // 注册 Gauge
             registry.gauge("game.players.online", 0);
             registry.gauge("game.cache.hit.rate", 0);
         }
 
-        // ========== 战斗指标 ==========
+        // ========== 战斗相关指标 ==========
 
         public void recordCombat() {
             combatTotal.incrementAndGet();
@@ -85,7 +84,7 @@ public class MetricsConfig {
             return combatTotal.get();
         }
 
-        // ========== 玩家指标 ==========
+        // ========== 玩家相关指标 ==========
 
         public void recordPlayerLogin() {
             playerLoginTotal.incrementAndGet();
@@ -97,7 +96,7 @@ public class MetricsConfig {
             registry.counter("game.player.register.total").increment();
         }
 
-        // ========== 交易指标 ==========
+        // ========== 交易相关指标 ==========
 
         public void recordTrade() {
             tradeTotal.incrementAndGet();
@@ -109,13 +108,13 @@ public class MetricsConfig {
             registry.counter("game.trade.success").increment();
         }
 
-        // ========== 在线人数 ==========
+        // ========== 在线玩家数 ==========
 
         public void updateOnlinePlayers(int count) {
             registry.gauge("game.players.online", count);
         }
 
-        // ========== 缓存命中�?==========
+        // ========== 缓存命中率 ==========
 
         public void updateCacheHitRate(double rate) {
             registry.gauge("game.cache.hit.rate", rate);
@@ -123,7 +122,7 @@ public class MetricsConfig {
     }
 
     /**
-     * 配置 Prometheus 端点
+     * 配置 Prometheus 过滤链
      */
     @Bean
     public FilterRegistrationBean<WebMvcMetricsFilter> prometheusFilterRegistration(
@@ -136,4 +135,3 @@ public class MetricsConfig {
         return registration;
     }
 }
-

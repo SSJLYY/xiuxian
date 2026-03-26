@@ -23,8 +23,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Redis 配置�?
- * 支持缓存、分布式锁、Session共享
+ * Redis 缓存配置类
+ * 注册 Redis 缓存管理器，支持 Session 分布式存储
  *
  * @author shaun.sheng
  */
@@ -34,14 +34,14 @@ import java.util.Map;
 public class RedisConfig {
 
     /**
-     * RedisTemplate 配置
+     * RedisTemplate 缓存配置
      */
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
 
-        // JSON 序列化配�?
+        // JSON 序列化器配置
         ObjectMapper mapper = new ObjectMapper();
         mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
         mapper.activateDefaultTyping(LaissezFaireSubTypeValidator.instance,
@@ -51,21 +51,21 @@ public class RedisConfig {
         Jackson2JsonRedisSerializer<Object> jsonSerializer = new Jackson2JsonRedisSerializer<>(mapper, Object.class);
         StringRedisSerializer stringSerializer = new StringRedisSerializer();
 
-        // key 使用 String 序列�?
+        // key 使用 String 序列化器
         template.setKeySerializer(stringSerializer);
         template.setHashKeySerializer(stringSerializer);
 
-        // value 使用 JSON 序列�?
+        // value 使用 JSON 序列化器
         template.setValueSerializer(jsonSerializer);
         template.setHashValueSerializer(jsonSerializer);
 
         template.afterPropertiesSet();
-        log.info("RedisTemplate 初始化完�?);
+        log.info("RedisTemplate 初始化完成");
         return template;
     }
 
     /**
-     * CacheManager 配置 - 按业务划分不同缓存空�?
+     * CacheManager 缓存配置 - 支持不同缓存使用不同TTL和前缀
      */
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
@@ -97,17 +97,17 @@ public class RedisConfig {
                 .entryTtl(Duration.ofHours(24))
                 .prefixCacheNameWith("xiuxian:token:"));
 
-        // 排行榜缓�?- 5分钟TTL
+        // 排行榜数据缓存 - 5分钟TTL
         cacheConfigurations.put("rankingCache", defaultConfig
                 .entryTtl(Duration.ofMinutes(5))
                 .prefixCacheNameWith("xiuxian:ranking:"));
 
-        // 拍卖行缓�?- 1分钟TTL
+        // 拍卖行数据缓存 - 1分钟TTL
         cacheConfigurations.put("auctionCache", defaultConfig
                 .entryTtl(Duration.ofMinutes(1))
                 .prefixCacheNameWith("xiuxian:auction:"));
 
-        // 战斗缓存 - 10秒TTL（高频计算结果）
+        // 战斗数据缓存 - 10秒TTL（频繁更新）
         cacheConfigurations.put("combatCache", defaultConfig
                 .entryTtl(Duration.ofSeconds(10))
                 .prefixCacheNameWith("xiuxian:combat:"));
@@ -117,7 +117,7 @@ public class RedisConfig {
                 .entryTtl(Duration.ofHours(1))
                 .prefixCacheNameWith("xiuxian:config:"));
 
-        // NPC对话缓存 - 10分钟TTL
+        // NPC对话数据缓存 - 10分钟TTL
         cacheConfigurations.put("narrativeCache", defaultConfig
                 .entryTtl(Duration.ofMinutes(10))
                 .prefixCacheNameWith("xiuxian:narrative:"));
@@ -129,4 +129,3 @@ public class RedisConfig {
                 .build();
     }
 }
-

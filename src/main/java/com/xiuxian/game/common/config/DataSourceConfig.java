@@ -14,9 +14,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 多数据源配置 - 支持读写分离
- * 主库：负责写入操�?
- * 从库：负责读取操�?
+ * 数据源自动配置类 - 支持读写分离配置
+ * 主数据源用于写操作
+ * 从数据源用于读操作
  *
  * @author shaun.sheng
  */
@@ -26,30 +26,30 @@ import java.util.Map;
 public class DataSourceConfig {
 
     /**
-     * 主库（写）数据源配置
+     * 主数据源自动配置类
      */
     @Bean(name = "masterDataSource")
     @ConfigurationProperties(prefix = "spring.datasource.master")
     public DataSource masterDataSource() {
         HikariDataSource dataSource = new HikariDataSource();
-        log.info("主库（写）数据源初始化完�?);
+        log.info("主数据源连接池配置初始化完成");
         return dataSource;
     }
 
     /**
-     * 从库（读）数据源配置
+     * 从数据源自动配置类
      */
     @Bean(name = "slaveDataSource")
     @ConfigurationProperties(prefix = "spring.datasource.slave")
     public DataSource slaveDataSource() {
         HikariDataSource dataSource = new HikariDataSource();
-        log.info("从库（读）数据源初始化完�?);
+        log.info("从数据源连接池配置初始化完成");
         return dataSource;
     }
 
     /**
-     * 路由数据�?
-     * 根据 ThreadLocal 中的标记决定使用主库还是从库
+     * 动态数据源路由
+     * 使用 ThreadLocal 记录当前数据源，实现主从自动切换
      */
     @Bean(name = "routingDataSource")
     @Primary
@@ -63,10 +63,9 @@ public class DataSourceConfig {
 
         RoutingDataSource routingDataSource = new RoutingDataSource();
         routingDataSource.setTargetDataSources(targetDataSources);
-        routingDataSource.setDefaultTargetDataSource(master); // 默认使用主库
+        routingDataSource.setDefaultTargetDataSource(master); // 默认使用主数据源
 
-        log.info("读写分离路由数据源初始化完成");
+        log.info("数据源配置：动态数据源路由初始化完成");
         return routingDataSource;
     }
 }
-

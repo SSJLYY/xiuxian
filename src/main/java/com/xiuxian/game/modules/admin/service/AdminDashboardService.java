@@ -1,4 +1,4 @@
-﻿package com.xiuxian.game.modules.admin.service;
+package com.xiuxian.game.modules.admin.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
@@ -20,6 +20,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Admin 仪表板服务（聚合层）
+ * 提供实时在线人数、今日新增用户、今日活跃、收入等核心运营指标。
+ * admin 聚合层务实例外，允许直接访问各模块 Mapper。
+ *
+ * @author shaun.sheng
+ */
 @Service
 @RequiredArgsConstructor
 public class AdminDashboardService {
@@ -31,31 +38,31 @@ public class AdminDashboardService {
     private final PlayerLoginLogMapper playerLoginLogMapper;
 
     /**
-     * 获取仪表板统计数�?
+     * 获取仪表板核心运营指标
      *
-     * @return 仪表板统计数�?
+     * @return 包含在线人数、新增用户、活跃玩家、收入等统计数据的 Map
      */
     public Map<String, Object> getDashboardStats() {
         Map<String, Object> stats = new HashMap<>();
 
-        // 获取在线玩家数（最�?分钟内活跃）
+        // 5 分钟内有心跳的玩家视为在线
         LocalDateTime fiveMinutesAgo = LocalDateTime.now().minusMinutes(5);
         QueryWrapper<PlayerProfile> onlineQuery = new QueryWrapper<>();
         onlineQuery.gt("last_online_time", fiveMinutesAgo);
         Long onlinePlayers = playerProfileMapper.selectCount(onlineQuery);
 
-        // 今日注册�?
+        // 今日新注册用户
         LocalDateTime today = LocalDate.now().atStartOfDay();
         QueryWrapper<User> newUsersQuery = new QueryWrapper<>();
         newUsersQuery.gt("created_at", today);
         Long newUsersToday = userMapper.selectCount(newUsersQuery);
 
-        // 今日活跃数（今日登录过的玩家�?
+        // 今日活跃玩家（今日有登录记录）
         QueryWrapper<PlayerLoginLog> activeTodayQuery = new QueryWrapper<>();
         activeTodayQuery.gt("login_at", today);
         Long activeToday = playerLoginLogMapper.selectCount(activeTodayQuery);
 
-        // 总收入和今日收入
+        // 总收入与今日收入
         QueryWrapper<RechargeRecord> totalIncomeQuery = new QueryWrapper<>();
         totalIncomeQuery.eq("status", "SUCCESS");
         List<RechargeRecord> allRechargeRecords = rechargeRecordMapper.selectList(totalIncomeQuery);
@@ -71,7 +78,7 @@ public class AdminDashboardService {
                 .mapToLong(RechargeRecord::getAmount)
                 .sum();
 
-        // 今日统计数据
+        // 今日统计快照
         QueryWrapper<DailyStatistics> todayStatsQuery = new QueryWrapper<>();
         todayStatsQuery.eq("stat_date", LocalDate.now());
         DailyStatistics todayStats = dailyStatisticsMapper.selectOne(todayStatsQuery);
@@ -87,10 +94,10 @@ public class AdminDashboardService {
     }
 
     /**
-     * 获取最近的统计数据
+     * 获取近 N 天的每日统计数据
      *
      * @param days 天数
-     * @return 统计数据列表
+     * @return 每日统计数据列表（倒序）
      */
     public List<DailyStatistics> getRecentStats(int days) {
         QueryWrapper<DailyStatistics> queryWrapper = new QueryWrapper<>();
@@ -99,4 +106,3 @@ public class AdminDashboardService {
         return dailyStatisticsMapper.selectList(queryWrapper);
     }
 }
-

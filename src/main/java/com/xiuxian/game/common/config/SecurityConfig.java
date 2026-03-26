@@ -63,7 +63,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeRequests(auth -> auth
-                        // 静态资源允许匿名访�?
+                        // 静态资源和错误页面放行
                         .antMatchers(
                                 "/",
                                 "/**/*.html",
@@ -94,19 +94,19 @@ public class SecurityConfig {
                                 "/error/**"
                         ).permitAll()
 
-                        // 认证相关API允许匿名访问
+                        // 玩家认证API放行
                         .antMatchers(
                                 "/api/auth/login",
                                 "/api/auth/register",
                                 "/api/auth/validate"
                         ).permitAll()
 
-                        // 管理员认证API允许匿名访问
+                        // 管理员认证API放行
                         .antMatchers(
                                 "/api/admin/auth/login"
                         ).permitAll()
 
-                        // 公共API允许匿名访问（只读操作）
+                        // 公开数据API放行
                         .antMatchers(
                                 "/api/players/public/**",
                                 "/api/skills/public/**",
@@ -116,7 +116,7 @@ public class SecurityConfig {
                                 "/api/shop/public/**"
                         ).permitAll()
 
-                        // 其他所有API需要认�?
+                        // 其他请求需要认证
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(adminSecurityFilter, UsernamePasswordAuthenticationFilter.class)

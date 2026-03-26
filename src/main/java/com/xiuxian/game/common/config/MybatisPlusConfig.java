@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * MyBatis-Plus 配置
- * 分页插件始终注册，不受读写分离开关影响
+ * 分页插件自动注册，不受读写分离影响
  *
  * @author shaun.sheng
  */

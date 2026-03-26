@@ -1,4 +1,4 @@
-﻿package com.xiuxian.game.modules.admin.service;
+package com.xiuxian.game.modules.admin.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xiuxian.game.modules.admin.entity.DailyStatistics;
@@ -18,11 +18,17 @@ import com.xiuxian.game.modules.mail.mapper.PlayerMailMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
+/**
+ * Admin 统计服务（聚合层）
+ * 提供总体统计、收入统计、玩家增长等多维度运营报表。
+ * admin 聚合层务实例外，允许直接访问各模块 Mapper。
+ *
+ * @author shaun.sheng
+ */
 @Service
 @RequiredArgsConstructor
 public class AdminStatisticsService {
@@ -36,34 +42,34 @@ public class AdminStatisticsService {
     private final PlayerMailMapper playerMailMapper;
 
     /**
-     * 获取综合统计数据
+     * 获取全局统计概览
      *
-     * @return 统计数据
+     * @return 包含玩家数、在线数、收入、拍卖行、邮件等维度的统计 Map
      */
     public Map<String, Object> getOverallStats() {
         Map<String, Object> stats = new HashMap<>();
 
-        // 总玩家数
+        // 总注册用户
         long totalPlayers = userMapper.selectCount(null);
 
-        // 在线玩家数（最�?分钟�?
+        // 在线人数（5 分钟内有心跳）
         LocalDateTime fiveMinutesAgo = LocalDateTime.now().minusMinutes(5);
         QueryWrapper<PlayerProfile> onlineQuery = new QueryWrapper<>();
         onlineQuery.gt("last_online_time", fiveMinutesAgo);
         long onlinePlayers = playerProfileMapper.selectCount(onlineQuery);
 
-        // 今日注册�?
+        // 今日新增用户
         LocalDateTime today = LocalDate.now().atStartOfDay();
         QueryWrapper<User> newUsersQuery = new QueryWrapper<>();
         newUsersQuery.gt("created_at", today);
         long newUsersToday = userMapper.selectCount(newUsersQuery);
 
-        // 今日活跃�?
+        // 今日活跃玩家
         QueryWrapper<PlayerLoginLog> activeTodayQuery = new QueryWrapper<>();
         activeTodayQuery.gt("login_at", today);
         long activeToday = playerLoginLogMapper.selectCount(activeTodayQuery);
 
-        // 总充值金�?
+        // 累计总收入
         QueryWrapper<RechargeRecord> totalIncomeQuery = new QueryWrapper<>();
         totalIncomeQuery.eq("status", "SUCCESS");
         List<RechargeRecord> allRechargeRecords = rechargeRecordMapper.selectList(totalIncomeQuery);
@@ -71,7 +77,7 @@ public class AdminStatisticsService {
                 .mapToLong(RechargeRecord::getAmount)
                 .sum();
 
-        // 今日充值金�?
+        // 今日收入
         QueryWrapper<RechargeRecord> todayIncomeQuery = new QueryWrapper<>();
         todayIncomeQuery.eq("status", "SUCCESS");
         todayIncomeQuery.gt("completed_at", today);
@@ -80,7 +86,7 @@ public class AdminStatisticsService {
                 .mapToLong(RechargeRecord::getAmount)
                 .sum();
 
-        // 拍卖行统�?
+        // 拍卖行统计
         long totalAuctions = auctionItemMapper.selectCount(null);
         QueryWrapper<AuctionItem> activeAuctionsQuery = new QueryWrapper<>();
         activeAuctionsQuery.eq("status", "ACTIVE");
@@ -107,10 +113,10 @@ public class AdminStatisticsService {
     }
 
     /**
-     * 获取最近的统计数据
+     * 获取近 N 天的每日统计数据
      *
      * @param days 天数
-     * @return 统计数据列表
+     * @return 每日统计数据列表（倒序）
      */
     public List<DailyStatistics> getRecentStats(int days) {
         QueryWrapper<DailyStatistics> queryWrapper = new QueryWrapper<>();
@@ -120,15 +126,15 @@ public class AdminStatisticsService {
     }
 
     /**
-     * 获取收入统计
+     * 获取收入统计（按天分组）
      *
-     * @param days 天数
-     * @return 收入统计数据
+     * @param days 统计天数
+     * @return 包含每日收入 Map 的统计结果
      */
     public Map<String, Object> getRevenueStats(int days) {
         Map<String, Object> stats = new HashMap<>();
 
-        // 获取最近几天的充值记�?
+        // 查询指定日期范围内的成功充值记录
         LocalDateTime startDate = LocalDate.now().minusDays(days - 1).atStartOfDay();
         QueryWrapper<RechargeRecord> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("status", "SUCCESS");
@@ -137,7 +143,7 @@ public class AdminStatisticsService {
 
         List<RechargeRecord> records = rechargeRecordMapper.selectList(queryWrapper);
 
-        // 按日期分组统�?
+        // 初始化每天收入为 0
         Map<LocalDate, Long> dailyRevenue = new LinkedHashMap<>();
         for (int i = days - 1; i >= 0; i--) {
             LocalDate date = LocalDate.now().minusDays(i);
@@ -154,22 +160,22 @@ public class AdminStatisticsService {
     }
 
     /**
-     * 获取玩家增长统计
+     * 获取玩家增长统计（按天分组）
      *
-     * @param days 天数
-     * @return 玩家增长统计数据
+     * @param days 统计天数
+     * @return 包含每日新增/活跃玩家 Map 的统计结果
      */
     public Map<String, Object> getPlayerGrowthStats(int days) {
         Map<String, Object> stats = new HashMap<>();
 
-        // 获取最近几天的每日统计数据
+        // 从每日统计快照中读取数据
         QueryWrapper<DailyStatistics> queryWrapper = new QueryWrapper<>();
         queryWrapper.orderByDesc("stat_date");
         queryWrapper.last("LIMIT " + days);
 
         List<DailyStatistics> dailyStats = dailyStatisticsMapper.selectList(queryWrapper);
 
-        // 按日期分组统�?
+        // 初始化默认值为 0
         Map<LocalDate, Integer> dailyNewPlayers = new LinkedHashMap<>();
         Map<LocalDate, Integer> dailyActivePlayers = new LinkedHashMap<>();
 
@@ -189,4 +195,3 @@ public class AdminStatisticsService {
         return stats;
     }
 }
-

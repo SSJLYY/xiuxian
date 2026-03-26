@@ -15,28 +15,28 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 全局异常处理�?
+ * 全局异常处理器
  *
- * <p>异常处理优先级说明（从最具体到最通用）：</p>
+ * <p>统一处理所有控制器抛出的异常，包括：</p>
  * <ol>
- *   <li>BusinessException - 业务异常，携带结构化错误�?/li>
+ *   <li>BusinessException - 业务异常，直接返回错误码和错误信息</li>
  *   <li>MethodArgumentNotValidException - 参数校验失败</li>
- *   <li>IllegalArgumentException - 非法参数</li>
+ *   <li>IllegalArgumentException - 非法参数异常</li>
  *   <li>BadCredentialsException - 认证失败</li>
  *   <li>AccessDeniedException - 权限不足</li>
- *   <li>Exception - 所有未捕获异常的兜底处�?/li>
+ *   <li>Exception - 其他未知异常，统一返回系统错误</li>
  * </ol>
  *
- * <p>注意：不要单独添�?RuntimeException 处理器，否则会拦截掉 BusinessException 等子类，
- * 导致错误码丢失。所有非业务异常统一�?Exception 兜底处理�?/p>
+ * <p>注意：不要在 RuntimeException 子类（如 NullPointerException）上加 @ExceptionHandler，
+ * 这类异常应该在代码中修复，而不是通过全局处理器掩盖。只有 Exception 兜底处理。</p>
  */
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     /**
-     * 处理业务异常（最高优先级�?
-     * BusinessException 携带结构化错误码，返�?200 + 业务错误码，便于前端区分
+     * 处理业务异常
+     * BusinessException 直接返回 HTTP 200 + 业务错误码，前端根据 code 判断是否成功
      */
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException ex) {
@@ -46,8 +46,8 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 处理参数校验异常（@Valid 校验失败�?
-     * 收集所有字段错误并�?Map 形式返回，方便前端精确定�?
+     * 处理参数校验失败异常（@Valid 校验失败）
+     * 收集所有字段错误，返回 Map 格式的错误信息，方便前端定位具体字段
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(
@@ -68,7 +68,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(IllegalArgumentException ex) {
-        log.warn("非法参数: {}", ex.getMessage());
+        log.warn("非法参数异常: {}", ex.getMessage());
         return ResponseEntity.badRequest()
                 .body(ApiResponse.error(ex.getMessage()));
     }
@@ -84,26 +84,25 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 处理访问拒绝异常
+     * 处理权限不足异常
      */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
-        log.warn("访问被拒�? {}", ex.getMessage());
+        log.warn("权限不足: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(ApiResponse.error("没有权限访问该资�?));
+                .body(ApiResponse.error("权限不足，无法执行该操作"));
     }
 
     /**
-     * 兜底处理所有未被上面捕获的异常
+     * 兜底处理所有未捕获的异常
      *
-     * <p>包含 RuntimeException、NullPointerException 等所有未处理异常�?
-     * 不对外暴露内部错误细节（安全考虑），仅记录完整堆栈到日志�?/p>
+     * <p>捕获 RuntimeException（如 NullPointerException）等未预期异常，
+     * 避免将堆栈信息暴露给客户端，同时记录完整日志便于排查问题。</p>
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleAllExceptions(Exception ex) {
-        log.error("未处理的异常: {}", ex.getMessage(), ex);
+        log.error("未知系统异常: {}", ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error("系统内部错误，请稍后重试"));
+                .body(ApiResponse.error("系统繁忙，请稍后重试"));
     }
 }
-
