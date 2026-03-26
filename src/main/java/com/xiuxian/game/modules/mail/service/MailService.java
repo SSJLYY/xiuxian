@@ -138,9 +138,10 @@ public class MailService {
     }
 
     /**
-     * 获取邮件详情
+     * 获取邮件详情（含标记已读）
+     * 标记已读是单条 updateById，不需要独立事务；
+     * 若被外层事务调用则自动加入，独立调用时单条更新天然原子。
      */
-    @Transactional
     public PlayerMail getMailDetail(Integer playerId, Long mailId) {
         log.debug("获取邮件详情: playerId={}, mailId={}", playerId, mailId);
         

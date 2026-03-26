@@ -410,7 +410,6 @@ public class SkillService {
      * @param baseDamage 基础伤害（用于计算连招加成）
      * @return 连招结果
      */
-    @Transactional
     public SkillComboResult checkAndTriggerCombo(Integer playerId, Integer skillId, int baseDamage) {
         // 1. 获取玩家等级，检查连招是否满足等级要求
         PlayerProfile player = playerService.getPlayerProfileById(playerId);

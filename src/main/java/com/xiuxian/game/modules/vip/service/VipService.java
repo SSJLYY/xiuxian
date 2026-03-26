@@ -10,6 +10,7 @@ import com.xiuxian.game.modules.vip.mapper.PlayerVipMapper;
 import com.xiuxian.game.modules.vip.mapper.VipLevelMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -74,10 +75,12 @@ public class VipService extends ServiceImpl<PlayerVipMapper, PlayerVip> {
     
     /**
      * 更新玩家VIP信息
+     * 事务保护：VIP信息更新（充值金额、VIP等级、元宝）和升级奖励邮件在同一事务中
      * @param playerId 玩家ID
      * @param rechargeAmount 充值金额
      * @return 更新后的玩家VIP信息
      */
+    @Transactional(rollbackFor = Exception.class)
     public PlayerVip updateVipInfo(Integer playerId, Integer rechargeAmount) {
         PlayerVip playerVip = getPlayerVip(playerId);
         
@@ -129,9 +132,12 @@ public class VipService extends ServiceImpl<PlayerVipMapper, PlayerVip> {
     
     /**
      * 领取VIP每日奖励
+     * 事务保护：领取时间更新和奖励邮件在同一事务中
+     * 幂等性：通过 lastDailyRewardAt 日期判断已领取，天然幂等
      * @param playerId 玩家ID
      * @return 是否成功领取
      */
+    @Transactional(rollbackFor = Exception.class)
     public boolean claimDailyReward(Integer playerId) {
         PlayerVip playerVip = getPlayerVip(playerId);
         

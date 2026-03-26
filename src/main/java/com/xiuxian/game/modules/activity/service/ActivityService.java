@@ -160,8 +160,13 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
 
     /**
      * 自动检查和更新活动状态
+     * 事务保护：活动状态更新（DRAFT→ACTIVE、ACTIVE→ENDED）与奖励分发在同一事务中，
+     * 避免状态已变但奖励未发出的不一致问题。
+     * 幂等性：状态更新是幂等的（重复设置同一状态无副作用）；
+     * 奖励分发通过 MailService.sendSystemMail 有邮箱容量校验天然防重。
      */
     @Scheduled(fixedRate = 60000) // 每分钟检查一次
+    @Transactional(rollbackFor = Exception.class)
     public void checkAndUpdateActivityStatus() {
         LocalDateTime now = LocalDateTime.now();
 
@@ -186,7 +191,7 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
             activity.setStatus("ENDED");
             activityMapper.updateById(activity);
 
-            // 发放奖励
+            // 发放奖励（同一事务内，distributeActivityRewards 的 @Transactional 会加入当前事务）
             distributeActivityRewards(activity.getId());
         }
     }

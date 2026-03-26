@@ -159,3 +159,27 @@ com.xiuxian.game/
 1. 执行 SQL 迁移脚本 `docs/sql/add-optimistic-lock-columns.sql`（给4张表加 `version` INT DEFAULT 0）
 2. 编译部署（`MybatisPlusConfig` 已注册 `OptimisticLockerInnerInterceptor`，自动处理 `@Version` 字段）
 3. 注意：乐观锁冲突时 MyBatis-Plus updateById 返回 0 影响行，需在业务层 catch 并重试或抛异常
+
+## 数据一致性审计（2026-03-26）
+
+### 修复清单
+| 优先级 | 问题 | 修复方案 | 涉及文件 |
+|--------|------|----------|----------|
+| P1 | RankingService `@Async+@Transactional` + 自调用 `refreshRankings()` 事务失效 | `updateRankings()`: 加 `rollbackFor=Exception.class`，移除 try-catch（异常由调度框架处理）；`refreshRankings()`: 不再自调用，改为内联逻辑 + `@Transactional(rollbackFor=Exception.class)` | RankingService.java |
+| P2 | ActivityService.checkAndUpdateActivityStatus 无事务 | 加 `@Scheduled+@Transactional(rollbackFor=Exception.class)`，状态更新和奖励分发在同一事务 | ActivityService.java |
+| P2 | VipService.updateVipInfo/claimDailyReward 无事务 | 两个方法均加 `@Transactional(rollbackFor=Exception.class)` + import | VipService.java |
+| P2 | GuildService 4个写方法 `rollbackFor` 不一致 | `applyToGuild`/`handleApplication`/`leaveGuild`/`donate` 全部改为 `@Transactional(rollbackFor=Exception.class)` | GuildService.java |
+| P2 | PlayerService.stopCultivate 任务进度异常被吞 | log.warn→log.error + 完整异常对象 + 注释说明不回滚原因 | PlayerService.java |
+| P3 | MailService.getMailDetail 不必要事务 | 移除 `@Transactional`（单条标记已读，被外层事务调用时自动加入） | MailService.java |
+| P3 | PlayerService.savePlayerProfile 不必要事务 | 移除 `@Transactional`（单条 updateById，被外层事务调用时自动加入） | PlayerService.java |
+| P3 | SkillService.checkAndTriggerCombo 不必要事务 | 移除 `@Transactional`（查询+记录，被 EnhancedCombatService 事务调用时自动加入） | SkillService.java |
+
+### 审计确认的健康项
+- ✅ AuctionService.processExpiredAuctions：原子SQL幂等
+- ✅ AsyncStatisticsService.aggregateDailyStatistics：DuplicateKeyException幂等
+- ✅ AnnouncementService.updateExpiredAnnouncements：重复设置 REVOKED 天然幂等
+- ✅ MailService.cleanExpiredMails：删除已处理邮件天然幂等
+- ✅ CombatService/EnhancedCombatService/EquipmentService/PetService/InventoryService：事务边界完整
+- ✅ GiftCodeService/RechargeService/CheckInService/AchievementService：事务完整
+
+*最后更新：2026-03-26（数据一致性审计全量修复完成）*

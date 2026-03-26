@@ -78,27 +78,24 @@ public class RankingService {
     }
 
     /**
-     * 定时更新排行榜
-     * 每小时执行一次
+     * 定时更新排行榜（每小时执行一次）
+     * 注意：@Async + @Transactional 同时使用时，Spring 代理机制正常工作，
+     * 因为定时触发走的是代理对象（非自调用）。保留 @Async 避免阻塞调度线程。
      */
     @Scheduled(cron = "0 0 * * * ?")
     @Async("rankingTaskExecutor")
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void updateRankings() {
         log.info("开始更新排行榜");
-        
-        try {
-            updateLevelRanking();
-            updateSpiritStonesRanking();
-            updateCombatPowerRanking();
-            
-            // 清除排行榜缓存
-            clearRankingCache();
-            
-            log.info("排行榜更新完成");
-        } catch (Exception e) {
-            log.error("更新排行榜失败", e);
-        }
+
+        updateLevelRanking();
+        updateSpiritStonesRanking();
+        updateCombatPowerRanking();
+
+        // 清除排行榜缓存
+        clearRankingCache();
+
+        log.info("排行榜更新完成");
     }
     
     /**
@@ -213,10 +210,16 @@ public class RankingService {
 
     /**
      * 手动刷新排行榜
+     * 注意：自调用 updateRankings() 时 @Transactional 不通过代理生效，
+     * 因此手动刷新时直接内联逻辑而非自调用。
      */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void refreshRankings() {
         log.info("手动刷新排行榜");
-        updateRankings();
+        updateLevelRanking();
+        updateSpiritStonesRanking();
+        updateCombatPowerRanking();
+        clearRankingCache();
+        log.info("手动刷新排行榜完成");
     }
 }

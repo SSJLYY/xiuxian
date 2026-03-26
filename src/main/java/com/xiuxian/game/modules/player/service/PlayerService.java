@@ -267,7 +267,9 @@ public class PlayerService {
                 questProgressService.updateQuestProgressByType(profile.getId(), com.xiuxian.game.modules.quest.entity.Quest.QuestType.WEEKLY, (int) actualCultivationTime);
                 questProgressService.updateQuestProgressByType(profile.getId(), com.xiuxian.game.modules.quest.entity.Quest.QuestType.MONTHLY, 1);
             } catch (Exception qe) {
-                log.warn("更新任务进度失败: {}", qe.getMessage());
+                log.error("更新任务进度失败，修炼收益不受影响: playerId={}", profile.getId(), qe);
+                // 不抛出异常，确保修炼收益和属性更新正常提交
+                // 任务进度丢失不影响核心游戏数据
             }
         } else {
             log.warn("修炼开始时间为null，无法计算收益");
@@ -281,8 +283,9 @@ public class PlayerService {
 
     /**
      * 保存玩家档案
+     * 单条 updateById，不需要独立事务；
+     * 被外层事务（如 GuildService.donate）调用时自动加入外层事务。
      */
-    @Transactional
     public void savePlayerProfile(PlayerProfile playerProfile) {
         playerProfileMapper.updateById(playerProfile);
         log.debug("保存玩家档案成功: ID={}", playerProfile.getId());

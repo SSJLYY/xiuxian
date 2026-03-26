@@ -122,7 +122,7 @@ public class GuildService {
      * @param playerId 玩家ID
      * @param guildId 宗门ID
      */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void applyToGuild(Integer playerId, Long guildId) {
         log.info("玩家申请加入宗门: playerId={}, guildId={}", playerId, guildId);
         
@@ -162,7 +162,7 @@ public class GuildService {
     /**
      * 处理宗门申请
      */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void handleApplication(Long applicationId, Integer handlerId, boolean approved) {
         log.info("处理宗门申请: applicationId={}, handlerId={}, approved={}", 
                 applicationId, handlerId, approved);
@@ -226,7 +226,7 @@ public class GuildService {
     /**
      * 退出宗门
      */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void leaveGuild(Integer playerId) {
         log.info("退出宗门: playerId={}", playerId);
         
@@ -253,7 +253,7 @@ public class GuildService {
     /**
      * 宗门捐献
      */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void donate(Integer playerId, Integer amount) {
         log.info("宗门捐献: playerId={}, amount={}", playerId, amount);
         
