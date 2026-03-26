@@ -42,7 +42,7 @@ public class GameConstants {
     };
 
     public static final String[] ELEMENTS = {
-        "光", "暗", "木", "水", "火", "土", "风", "雷", "冰", "金", "暗"
+        "金", "木", "水", "火", "土", "风", "雷", "冰", "毒", "暗"
     };
 
     // 物品相关常量

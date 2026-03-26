@@ -14,7 +14,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 管理员配置管理控制器
+ * 游戏配置管理控制器
+ * 提供游戏参数的增删改查和缓存刷新功能
+ *
+ * @author shaun.sheng
  */
 @Slf4j
 @RestController
@@ -22,12 +25,12 @@ import java.util.Map;
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminConfigController {
-    
+
     private final GameConfigService gameConfigService;
     private final AdminOperationLogService adminOperationLogService;
-    
+
     /**
-     * 获取所有配�?
+     * 获取所有游戏配置
      */
     @GetMapping("/list")
     public ApiResponse<List<GameConfig>> getAllConfigs() {
@@ -35,13 +38,13 @@ public class AdminConfigController {
             List<GameConfig> configs = gameConfigService.getAllConfigs();
             return ApiResponse.success(configs);
         } catch (Exception e) {
-            log.error("获取配置列表失败", e);
-            return ApiResponse.error("获取失败");
+            log.error("获取所有配置失败", e);
+            return ApiResponse.error("获取配置失败");
         }
     }
-    
+
     /**
-     * 按分类获取配�?
+     * 按分类获取配置
      */
     @GetMapping("/category/{category}")
     public ApiResponse<List<GameConfig>> getConfigsByCategory(@PathVariable String category) {
@@ -49,79 +52,79 @@ public class AdminConfigController {
             List<GameConfig> configs = gameConfigService.getConfigsByCategory(category);
             return ApiResponse.success(configs);
         } catch (Exception e) {
-            log.error("获取分类配置失败: category={}", category, e);
-            return ApiResponse.error("获取失败");
+            log.error("按分类获取配置失败, category={}", category, e);
+            return ApiResponse.error("获取配置失败");
         }
     }
-    
+
     /**
-     * 更新配置
+     * 更新配置项
      */
     @PutMapping("/update")
     public ApiResponse<Void> updateConfig(@RequestParam String key,
-                                        @RequestParam String value,
-                                        @RequestParam(required = false) String description,
-                                        @RequestParam(required = false) String category,
-                                        HttpServletRequest request) {
+                                          @RequestParam String value,
+                                          @RequestParam(required = false) String description,
+                                          @RequestParam(required = false) String category,
+                                          HttpServletRequest request) {
         try {
             String oldValue = gameConfigService.getString(key, null);
             gameConfigService.setConfig(key, value, description, category);
-            
-            // 记录管理员操作日�?
-            adminOperationLogService.recordOperation(1, "UPDATE_CONFIG", "CONFIG", 
-                    key, String.format("更新配置: %s �?%s 改为 %s", key, oldValue, value), request);
-            
-            return ApiResponse.success("更新成功", null);
+
+            // 记录操作日志
+            adminOperationLogService.recordOperation(1, "UPDATE_CONFIG", "CONFIG",
+                    key, String.format("更新配置: %s 旧值=%s 新值=%s", key, oldValue, value), request);
+
+            return ApiResponse.success("配置更新成功", null);
         } catch (Exception e) {
-            log.error("更新配置失败: key={}, value={}", key, value, e);
-            return ApiResponse.error("更新失败");
+            log.error("更新配置失败, key={}, value={}", key, value, e);
+            return ApiResponse.error("更新配置失败");
         }
     }
-    
+
     /**
-     * 创建配置
+     * 新增配置项
      */
     @PostMapping("/create")
     public ApiResponse<Void> createConfig(@RequestParam String key,
-                                        @RequestParam String value,
-                                        @RequestParam String description,
-                                        @RequestParam String category,
-                                        HttpServletRequest request) {
+                                          @RequestParam String value,
+                                          @RequestParam String description,
+                                          @RequestParam String category,
+                                          HttpServletRequest request) {
         try {
             gameConfigService.setConfig(key, value, description, category);
-            
-            // 记录管理员操作日�?
-            adminOperationLogService.recordOperation(1, "CREATE_CONFIG", "CONFIG", 
-                    key, String.format("创建配置: %s = %s", key, value), request);
-            
-            return ApiResponse.success("创建成功", null);
+
+            // 记录操作日志
+            adminOperationLogService.recordOperation(1, "CREATE_CONFIG", "CONFIG",
+                    key, String.format("新增配置: %s = %s", key, value), request);
+
+            return ApiResponse.success("配置新增成功", null);
         } catch (Exception e) {
-            log.error("创建配置失败: key={}, value={}", key, value, e);
-            return ApiResponse.error("创建失败");
+            log.error("新增配置失败, key={}, value={}", key, value, e);
+            return ApiResponse.error("新增配置失败");
         }
     }
-    
+
     /**
-     * 删除配置
+     * 删除配置项
      */
     @DeleteMapping("/delete")
     public ApiResponse<Void> deleteConfig(@RequestParam String key,
-                                        HttpServletRequest request) {
+                                          HttpServletRequest request) {
         try {
             String oldValue = gameConfigService.getString(key, null);
             gameConfigService.deleteConfig(key);
-            
-            // 记录管理员操作日�?
-            adminOperationLogService.recordOperation(1, "DELETE_CONFIG", "CONFIG", 
-                    key, String.format("删除配置: %s (原�? %s)", key, oldValue), request);
-            
-            return ApiResponse.success("删除成功", null);
+
+            // 记录操作日志
+            adminOperationLogService.recordOperation(1, "DELETE_CONFIG", "CONFIG",
+                    key, String.format("删除配置: %s (原值=%s)", key, oldValue), request);
+
+            return ApiResponse.success("配置删除成功", null);
         } catch (Exception e) {
-            log.error("删除配置失败: key={}", key, e);
-            return ApiResponse.error("删除失败");
+            log.error("删除配置失败, key={}", key, e);
+            return ApiResponse.error("删除配置失败");
         }
     }
-    
+
     /**
      * 刷新配置缓存
      */
@@ -129,106 +132,106 @@ public class AdminConfigController {
     public ApiResponse<Void> refreshCache(HttpServletRequest request) {
         try {
             gameConfigService.refreshCache();
-            
-            // 记录管理员操作日�?
-            adminOperationLogService.recordOperation(1, "REFRESH_CONFIG_CACHE", null, 
-                    null, "刷新配置缓存", request);
-            
-            return ApiResponse.success("刷新成功", null);
+
+            // 记录操作日志
+            adminOperationLogService.recordOperation(1, "REFRESH_CONFIG_CACHE", null,
+                    null, "刷新游戏配置缓存", request);
+
+            return ApiResponse.success("配置缓存刷新成功", null);
         } catch (Exception e) {
             log.error("刷新配置缓存失败", e);
-            return ApiResponse.error("刷新失败");
+            return ApiResponse.error("刷新缓存失败");
         }
     }
-    
+
     /**
      * 批量更新配置
      */
     @PostMapping("/batch-update")
     public ApiResponse<Void> batchUpdateConfigs(@RequestBody Map<String, String> configs,
-                                              HttpServletRequest request) {
+                                                HttpServletRequest request) {
         try {
             StringBuilder logDetail = new StringBuilder("批量更新配置: ");
-            
+
             for (Map.Entry<String, String> entry : configs.entrySet()) {
                 String key = entry.getKey();
                 String newValue = entry.getValue();
                 String oldValue = gameConfigService.getString(key, null);
-                
+
                 gameConfigService.setConfig(key, newValue, null, null);
                 logDetail.append(String.format("%s: %s->%s; ", key, oldValue, newValue));
             }
-            
-            // 记录管理员操作日�?
-            adminOperationLogService.recordOperation(1, "BATCH_UPDATE_CONFIG", "CONFIG", 
+
+            // 记录操作日志
+            adminOperationLogService.recordOperation(1, "BATCH_UPDATE_CONFIG", "CONFIG",
                     null, logDetail.toString(), request);
-            
+
             return ApiResponse.success("批量更新成功", null);
         } catch (Exception e) {
             log.error("批量更新配置失败", e);
             return ApiResponse.error("批量更新失败");
         }
     }
-    
+
     /**
-     * 开�?关闭双倍经验活�?
+     * 开启/关闭双倍经验活动
      */
     @PostMapping("/toggle-double-exp")
     public ApiResponse<Void> toggleDoubleExp(@RequestParam boolean enabled,
-                                           HttpServletRequest request) {
+                                             HttpServletRequest request) {
         try {
-            gameConfigService.setConfig(GameConfigService.ConfigKeys.DOUBLE_EXP_ENABLED, 
-                    String.valueOf(enabled), "双倍经验活动开�?, "ACTIVITY");
-            
-            // 记录管理员操作日�?
-            adminOperationLogService.recordOperation(1, "TOGGLE_DOUBLE_EXP", "ACTIVITY", 
-                    null, "双倍经验活�? " + (enabled ? "开�? : "关闭"), request);
-            
-            return ApiResponse.success(enabled ? "双倍经验活动已开�? : "双倍经验活动已关闭", null);
+            gameConfigService.setConfig(GameConfigService.ConfigKeys.DOUBLE_EXP_ENABLED,
+                    String.valueOf(enabled), "双倍经验活动开关", "ACTIVITY");
+
+            // 记录操作日志
+            adminOperationLogService.recordOperation(1, "TOGGLE_DOUBLE_EXP", "ACTIVITY",
+                    null, "双倍经验活动: " + (enabled ? "已开启" : "已关闭"), request);
+
+            return ApiResponse.success(enabled ? "双倍经验已开启" : "双倍经验已关闭", null);
         } catch (Exception e) {
-            log.error("切换双倍经验活动失�? enabled={}", enabled, e);
+            log.error("切换双倍经验状态失败, enabled={}", enabled, e);
             return ApiResponse.error("操作失败");
         }
     }
-    
+
     /**
-     * 开�?关闭双倍掉落活�?
+     * 开启/关闭双倍掉落活动
      */
     @PostMapping("/toggle-double-drop")
     public ApiResponse<Void> toggleDoubleDrop(@RequestParam boolean enabled,
-                                            HttpServletRequest request) {
+                                              HttpServletRequest request) {
         try {
-            gameConfigService.setConfig(GameConfigService.ConfigKeys.DOUBLE_DROP_ENABLED, 
-                    String.valueOf(enabled), "双倍掉落活动开�?, "ACTIVITY");
-            
-            // 记录管理员操作日�?
-            adminOperationLogService.recordOperation(1, "TOGGLE_DOUBLE_DROP", "ACTIVITY", 
-                    null, "双倍掉落活�? " + (enabled ? "开�? : "关闭"), request);
-            
-            return ApiResponse.success(enabled ? "双倍掉落活动已开�? : "双倍掉落活动已关闭", null);
+            gameConfigService.setConfig(GameConfigService.ConfigKeys.DOUBLE_DROP_ENABLED,
+                    String.valueOf(enabled), "双倍掉落活动开关", "ACTIVITY");
+
+            // 记录操作日志
+            adminOperationLogService.recordOperation(1, "TOGGLE_DOUBLE_DROP", "ACTIVITY",
+                    null, "双倍掉落活动: " + (enabled ? "已开启" : "已关闭"), request);
+
+            return ApiResponse.success(enabled ? "双倍掉落已开启" : "双倍掉落已关闭", null);
         } catch (Exception e) {
-            log.error("切换双倍掉落活动失�? enabled={}", enabled, e);
+            log.error("切换双倍掉落状态失败, enabled={}", enabled, e);
             return ApiResponse.error("操作失败");
         }
     }
-    
+
     /**
-     * 开�?关闭维护模式
+     * 开启/关闭维护模式
      */
     @PostMapping("/toggle-maintenance")
     public ApiResponse<Void> toggleMaintenance(@RequestParam boolean enabled,
-                                             HttpServletRequest request) {
+                                               HttpServletRequest request) {
         try {
-            gameConfigService.setConfig(GameConfigService.ConfigKeys.MAINTENANCE_MODE, 
-                    String.valueOf(enabled), "维护模式", "SYSTEM");
-            
-            // 记录管理员操作日�?
-            adminOperationLogService.recordOperation(1, "TOGGLE_MAINTENANCE", "SYSTEM", 
-                    null, "维护模式: " + (enabled ? "开�? : "关闭"), request);
-            
-            return ApiResponse.success(enabled ? "维护模式已开�? : "维护模式已关�?, null);
+            gameConfigService.setConfig(GameConfigService.ConfigKeys.MAINTENANCE_MODE,
+                    String.valueOf(enabled), "维护模式开关", "SYSTEM");
+
+            // 记录操作日志
+            adminOperationLogService.recordOperation(1, "TOGGLE_MAINTENANCE", "SYSTEM",
+                    null, "维护模式: " + (enabled ? "已开启" : "已关闭"), request);
+
+            return ApiResponse.success(enabled ? "维护模式已开启" : "维护模式已关闭", null);
         } catch (Exception e) {
-            log.error("切换维护模式失败: enabled={}", enabled, e);
+            log.error("切换维护模式失败, enabled={}", enabled, e);
             return ApiResponse.error("操作失败");
         }
     }

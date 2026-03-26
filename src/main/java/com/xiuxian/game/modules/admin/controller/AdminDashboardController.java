@@ -8,7 +8,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 管理员仪表板控制�?
+ * 管理后台仪表盘控制器
+ *
+ * @author shaun.sheng
  */
 @RestController
 @RequestMapping("/api/admin/dashboard")
@@ -16,7 +18,7 @@ import java.util.Map;
 public class AdminDashboardController {
 
     /**
-     * 获取仪表板统计数�?
+     * 获取仪表盘统计数据
      */
     @GetMapping("/stats")
     public ResponseEntity<AdminApiResponse> getDashboardStats() {
@@ -26,10 +28,10 @@ public class AdminDashboardController {
             stats.put("newUsersToday", 0);
             stats.put("activeToday", 0);
             stats.put("todayIncome", 0);
-            
-            return ResponseEntity.ok(AdminApiResponse.success("获取仪表板数据成�?, stats));
+
+            return ResponseEntity.ok(AdminApiResponse.success("获取统计数据成功", stats));
         } catch (Exception e) {
-            return ResponseEntity.ok(AdminApiResponse.error("获取仪表板数据失�? " + e.getMessage()));
+            return ResponseEntity.ok(AdminApiResponse.error("获取统计数据失败: " + e.getMessage()));
         }
     }
 }

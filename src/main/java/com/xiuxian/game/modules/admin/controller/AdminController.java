@@ -20,8 +20,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * 后台管理控制器
- * 模块边界：通过各模块Service访问数据，禁止直接使用跨模块Mapper
+ * 管理员综合控制器
+ * 提供用户管理、商店管理等基础管理功能
+ * 注意：复杂操作通过 Service 接口调用，不直接访问 Mapper
  *
  * @author shaun.sheng
  */
@@ -30,15 +31,15 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AdminController {
 
-    private final AdminPlayerService adminPlayerService;  // 用户/玩家管理
-    private final ShopService shopService;                // 商店管理
-    private final SkillShopService skillShopService;      // 技能商店管理
+    private final AdminPlayerService adminPlayerService;  // 玩家管理服务
+    private final ShopService shopService;                // 商店服务
+    private final SkillShopService skillShopService;      // 技能商店服务
     private final PasswordEncoder passwordEncoder;
 
     @GetMapping("/users")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<User>>> listUsers() {
-        return ResponseEntity.ok(ApiResponse.success("获取用户成功", adminPlayerService.listAllUsers()));
+        return ResponseEntity.ok(ApiResponse.success("获取用户列表成功", adminPlayerService.listAllUsers()));
     }
 
     @PostMapping("/users/{id}/role")
@@ -62,26 +63,26 @@ public class AdminController {
     @GetMapping("/shop/items")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<ShopItem>>> listShopItems() {
-        return ResponseEntity.ok(ApiResponse.success("获取商店商品成功", shopService.listItems(null)));
+        return ResponseEntity.ok(ApiResponse.success("获取商品列表成功", shopService.listAllItems()));
     }
 
     @PostMapping("/shop/items")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<ShopItem>> upsertShopItem(@RequestBody ShopItem item) {
         shopService.upsertShopItem(item);
-        return ResponseEntity.ok(ApiResponse.success("保存成功", item));
+        return ResponseEntity.ok(ApiResponse.success("商品保存成功", item));
     }
 
     @GetMapping("/shop/skills")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<SkillShopItem>>> listSkillShop() {
-        return ResponseEntity.ok(ApiResponse.success("获取技能商店成功", skillShopService.listAvailable()));
+        return ResponseEntity.ok(ApiResponse.success("获取技能商品列表成功", skillShopService.listAvailable()));
     }
 
     @PostMapping("/shop/skills")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<SkillShopItem>> upsertSkillShop(@RequestBody SkillShopItem item) {
         skillShopService.upsertSkillShopItem(item);
-        return ResponseEntity.ok(ApiResponse.success("保存成功", item));
+        return ResponseEntity.ok(ApiResponse.success("技能商品保存成功", item));
     }
 }

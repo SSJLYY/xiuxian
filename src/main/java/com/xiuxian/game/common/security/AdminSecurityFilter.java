@@ -14,8 +14,7 @@ import java.io.IOException;
 import java.util.Collections;
 
 /**
- * 管理员安全过滤器 - 独立于游戏用户过滤器
- * 完全处理管理员认证，避免被其他过滤器干扰
+ * 管理后台安全过滤器 - 验证管理员身份的专用过滤器
  */
 @Component
 public class AdminSecurityFilter implements Filter {
@@ -32,57 +31,57 @@ public class AdminSecurityFilter implements Filter {
 
         String requestURI = httpRequest.getRequestURI();
 
-        // 只对管理员API进行过滤
+        // 放行：非管理员API路径
         if (!requestURI.startsWith("/api/admin/")) {
             chain.doFilter(request, response);
             return;
         }
 
-        // 管理员登录接口不需要验�?
+        // 管理后台登录接口直接放行
         if (requestURI.equals("/api/admin/auth/login")) {
             chain.doFilter(request, response);
             return;
         }
 
-        // 静态资源不需要验�?
-        if (requestURI.endsWith(".html") || requestURI.endsWith(".css") || 
-            requestURI.endsWith(".js") || requestURI.endsWith(".png") || 
+        // 静态资源文件直接放行
+        if (requestURI.endsWith(".html") || requestURI.endsWith(".css") ||
+            requestURI.endsWith(".js") || requestURI.endsWith(".png") ||
             requestURI.endsWith(".jpg") || requestURI.endsWith(".ico")) {
             chain.doFilter(request, response);
             return;
         }
 
-        // 提取token
+        // 解析Token
         String token = extractToken(httpRequest);
         if (token == null) {
-            sendUnauthorizedResponse(httpResponse, "缺少认证token");
+            sendUnauthorizedResponse(httpResponse, "缺少管理员Token");
             return;
         }
 
-        // 验证管理员token
+        // 验证Token有效性
         if (!adminAuthService.isValidAdminToken(token)) {
-            sendUnauthorizedResponse(httpResponse, "无效的管理员token");
+            sendUnauthorizedResponse(httpResponse, "无效的管理员Token");
             return;
         }
 
-        // 设置管理员认证上下文，避免被其他过滤器处�?
+        // 将管理员信息注入安全上下文
         String adminUsername = adminAuthService.getAdminUsernameByToken(token);
         if (adminUsername != null) {
-            UsernamePasswordAuthenticationToken authentication = 
+            UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(
-                    "admin_" + adminUsername, 
-                    null, 
+                    "admin_" + adminUsername,
+                    null,
                     Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN"))
                 );
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 
-        // 验证通过，继续处理请�?
+        // 继续执行后续过滤器
         chain.doFilter(request, response);
     }
 
     /**
-     * 从请求头中提取token
+     * 从请求头中提取Token
      */
     private String extractToken(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
@@ -101,4 +100,3 @@ public class AdminSecurityFilter implements Filter {
         response.getWriter().write("{\"success\":false,\"code\":401,\"message\":\"" + message + "\"}");
     }
 }
-

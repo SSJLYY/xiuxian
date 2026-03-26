@@ -3,12 +3,12 @@ package com.xiuxian.game.common.util;
 import javax.servlet.http.HttpServletRequest;
 
 /**
- * HTTP 请求工具�?
+ * HTTP 请求工具类
  *
- * <p>提供�?HttpServletRequest 中提取通用信息的静态工具方法�?/p>
+ * <p>用于获取客户端真实IP地址的工具类，支持多层代理场景。</p>
  *
- * <p>【P1-4 重构】原�?{@code getClientIpAddress()} 在多�?Controller 中重复定义，
- * 现统一提取到此工具类，消除代码重复，保持一致的 IP 解析逻辑�?/p>
+ * <p>说明：以下 1-4 种 header 在 Controller 获取客户端真实 IP 时可能无效，
+ * 因为某些代理服务器不会传递原始 IP。</p>
  *
  * @author xiuxian
  * @version 1.0
@@ -16,8 +16,9 @@ import javax.servlet.http.HttpServletRequest;
 public final class RequestUtils {
 
     /**
-     * 需要检查的代理头，按优先级排列
-     * X-Forwarded-For 是最常见的反向代理头，优先级最�?
+     * 按优先级从高到低尝试从这些请求头中获取真实IP
+     * X-Forwarded-For 是最常用的记录原始IP的代理头，
+     * 其他头由不同代理软件或网关设置
      */
     private static final String[] PROXY_HEADERS = {
             "X-Forwarded-For",
@@ -29,17 +30,17 @@ public final class RequestUtils {
     };
 
     private RequestUtils() {
-        // 工具类禁止实例化
+        // 私有构造函数，禁止外部实例化
     }
 
     /**
-     * 获取客户端真�?IP 地址
+     * 获取客户端真实IP地址
      *
-     * <p>处理常见的反向代理场景（Nginx、CDN、负载均衡等）�?
-     * 对于多级代理（X-Forwarded-For 包含多个 IP），取第一个（最接近客户端）�?IP�?/p>
+     * <p>优先从代理服务器的请求头中获取真实IP，兼容Nginx、代理服务器或SLB等负载均衡场景。
+     * 如果获取到多个IP（逗号分隔），会取第一个有效IP而非unknown。</p>
      *
      * @param request HTTP 请求对象
-     * @return 客户�?IP 地址，无法获取时返回 {@code request.getRemoteAddr()}
+     * @return 客户端真实IP地址，如果无法获取则返回 {@code request.getRemoteAddr()}
      */
     public static String getClientIp(HttpServletRequest request) {
         if (request == null) {
@@ -48,7 +49,7 @@ public final class RequestUtils {
         for (String header : PROXY_HEADERS) {
             String ip = request.getHeader(header);
             if (isValidIp(ip)) {
-                // 多级代理：取第一个非 unknown �?IP
+                // 解析逗号分隔的IP列表，取第一个有效IP而非unknown
                 if (ip.contains(",")) {
                     for (String part : ip.split(",")) {
                         String candidate = part.trim();
@@ -64,10 +65,9 @@ public final class RequestUtils {
     }
 
     /**
-     * 判断 IP 字符串是否有效（非空、非 unknown�?
+     * 校验IP是否合法
      */
     private static boolean isValidIp(String ip) {
         return ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip);
     }
 }
-

@@ -12,6 +12,11 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * 管理端玩家管理服务（admin 聚合层，务实例外允许直接使用玩家 Mapper）
+ *
+ * @author shaun.sheng
+ */
 @Service
 @RequiredArgsConstructor
 public class AdminPlayerService {
@@ -20,13 +25,13 @@ public class AdminPlayerService {
     private final UserMapper userMapper;
 
     /**
-     * 鑾峰彇鐜╁鍒楄〃锛堟敮鎸佸垎椤靛拰鎼滅储锛?
+     * 分页查询玩家列表，支持按昵称和用户ID过滤
      *
-     * @param page     椤电爜
-     * @param size     姣忛〉澶у皬
-     * @param nickname 鏄电О鎼滅储鍏抽敭璇?
-     * @param userId   鐢ㄦ埛ID鎼滅储
-     * @return 鐜╁鍒嗛〉鍒楄〃
+     * @param page     页码（从1开始）
+     * @param size     每页大小
+     * @param nickname 昵称模糊搜索（可为null）
+     * @param userId   用户ID精确搜索（可为null）
+     * @return 玩家档案分页结果
      */
     public Page<PlayerProfile> getPlayerList(int page, int size, String nickname, Integer userId) {
         Page<PlayerProfile> pageObj = new Page<>(page, size);
@@ -45,29 +50,28 @@ public class AdminPlayerService {
     }
 
     /**
-     * 鏍规嵁ID鑾峰彇鐜╁璇︽儏
+     * 根据玩家ID获取详情
      *
-     * @param playerId 鐜╁ID
-     * @return 鐜╁璇︽儏
+     * @param playerId 玩家ID
+     * @return 玩家档案，不存在返回null
      */
     public PlayerProfile getPlayerDetail(Integer playerId) {
         return playerProfileMapper.selectById(playerId);
     }
 
     /**
-     * 鏇存柊鐜╁灞炴€?
+     * 更新玩家档案信息
      *
-     * @param playerId 鐜╁ID
-     * @param profile  鏇存柊鐨勭帺瀹朵俊鎭?
-     * @return 鏇存柊鍚庣殑鐜╁淇℃伅
+     * @param playerId 玩家ID
+     * @param profile  新的档案数据
+     * @return 更新后的档案
      */
     public PlayerProfile updatePlayerProfile(Integer playerId, PlayerProfile profile) {
         PlayerProfile existingProfile = playerProfileMapper.selectById(playerId);
         if (existingProfile == null) {
-            throw new IllegalArgumentException("鐜╁涓嶅瓨鍦?);
+            throw new IllegalArgumentException("玩家不存在: playerId=" + playerId);
         }
 
-        // 鍙洿鏂板厑璁镐慨鏀圭殑瀛楁
         existingProfile.setNickname(profile.getNickname());
         existingProfile.setLevel(profile.getLevel());
         existingProfile.setRealm(profile.getRealm());
@@ -84,55 +88,51 @@ public class AdminPlayerService {
     }
 
     /**
-     * 灏佺/瑙ｅ皝鐜╁
+     * 封禁或解封玩家账号
      *
-     * @param userId   鐢ㄦ埛ID
-     * @param ban      true涓哄皝绂侊紝false涓鸿В灏?
-     * @param reason   灏佺鍘熷洜
-     * @return 鏇存柊鍚庣殑鐢ㄦ埛淇℃伅
+     * @param userId 用户ID
+     * @param ban    true=封禁，false=解封
+     * @param reason 封禁原因（可为null）
+     * @return 更新后的用户对象
      */
     public User banPlayer(Integer userId, boolean ban, String reason) {
         User user = userMapper.selectById(userId);
         if (user == null) {
-            throw new IllegalArgumentException("鐢ㄦ埛涓嶅瓨鍦?);
+            throw new IllegalArgumentException("用户不存在: userId=" + userId);
         }
 
         user.setRole(ban ? "BANNED" : "USER");
-        if (ban && reason != null && !reason.isEmpty()) {
-            // 鍙互灏嗗皝绂佸師鍥犲瓨鍌ㄥ湪澶囨敞瀛楁鎴栧叾浠栧湴鏂?
-        }
         userMapper.updateById(user);
         return user;
     }
 
     /**
-     * 鍒犻櫎鐜╁锛堣皑鎱庢搷浣滐級
+     * 删除玩家档案
      *
-     * @param playerId 鐜╁ID
-     * @return 鏄惁鍒犻櫎鎴愬姛
+     * @param playerId 玩家ID
+     * @return 是否删除成功
      */
     public boolean deletePlayer(Integer playerId) {
         PlayerProfile profile = playerProfileMapper.selectById(playerId);
         if (profile == null) {
-            throw new IllegalArgumentException("鐜╁涓嶅瓨鍦?);
+            throw new IllegalArgumentException("玩家不存在: playerId=" + playerId);
         }
 
-        // 鍒犻櫎鐜╁鐩稿叧淇℃伅锛堟敞鎰忥細杩欎細绾ц仈鍒犻櫎鐩稿叧鏁版嵁锛?
         return playerProfileMapper.deleteById(playerId) > 0;
     }
 
     /**
-     * 鍙戞斁濂栧姳缁欑帺瀹?
+     * 给玩家发放奖励（灵石和经验）
      *
-     * @param playerId 鐜╁ID
-     * @param spiritStones 鐏电煶鏁伴噺
-     * @param exp 缁忛獙鍊?
-     * @return 鏇存柊鍚庣殑鐜╁淇℃伅
+     * @param playerId     玩家ID
+     * @param spiritStones 发放灵石数量（可为null）
+     * @param exp          发放经验值（可为null）
+     * @return 更新后的玩家档案
      */
     public PlayerProfile grantReward(Integer playerId, Long spiritStones, Long exp) {
         PlayerProfile profile = playerProfileMapper.selectById(playerId);
         if (profile == null) {
-            throw new IllegalArgumentException("鐜╁涓嶅瓨鍦?);
+            throw new IllegalArgumentException("玩家不存在: playerId=" + playerId);
         }
 
         if (spiritStones != null && spiritStones > 0) {
@@ -149,19 +149,25 @@ public class AdminPlayerService {
     }
 
     /**
-     * 列出所有用户（AdminController用）
+     * 获取所有用户列表
+     *
+     * @return 用户列表
      */
     public List<User> listAllUsers() {
         return userMapper.selectList(null);
     }
 
     /**
-     * 更新用户角色（AdminController用）
+     * 修改用户角色
+     *
+     * @param userId 用户ID
+     * @param role   新角色
+     * @return 更新后的用户
      */
     public User updateUserRole(Integer userId, String role) {
         User u = userMapper.selectById(userId);
         if (u == null) {
-            throw new IllegalArgumentException("用户不存在");
+            throw new IllegalArgumentException("用户不存在: userId=" + userId);
         }
         u.setRole(role);
         userMapper.updateById(u);
@@ -169,13 +175,17 @@ public class AdminPlayerService {
     }
 
     /**
-     * 修改管理员密码（AdminController用）
+     * 修改管理员密码
+     *
+     * @param username        管理员用户名
+     * @param newPassword     新密码（明文）
+     * @param passwordEncoder 密码加密器
      */
     public void changeAdminPassword(String username, String newPassword,
                                     org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
         User u = userMapper.selectByUsername(username);
         if (u == null) {
-            throw new IllegalArgumentException("用户不存在");
+            throw new IllegalArgumentException("管理员不存在: username=" + username);
         }
         u.setPassword(passwordEncoder.encode(newPassword));
         u.setMustChangePassword(false);

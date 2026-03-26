@@ -11,7 +11,10 @@ import org.springframework.stereotype.Service;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 后台管理认证服务 - 独立于游戏登录系�?
+ * 管理员认证服务
+ * 负责管理员登录、Token 验证与注销
+ *
+ * @author shaun.sheng
  */
 @Slf4j
 @Service
@@ -26,23 +29,25 @@ public class AdminAuthService {
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
-    // 管理员token缓存 (生产环境建议使用Redis)
     private final ConcurrentHashMap<String, String> adminTokenCache = new ConcurrentHashMap<>();
 
     /**
-     * 管理员登�?- 使用配置文件认证
+     * 管理员登录
+     *
+     * @param request 登录请求（用户名 + 密码）
+     * @return 登录结果（含 Token）
      */
     public AdminLoginResponse login(AdminLoginRequest request) {
         try {
             if (request.getUsername() == null || request.getUsername().trim().isEmpty()) {
-                return AdminLoginResponse.error("用户名不能为�?);
+                return AdminLoginResponse.error("用户名不能为空");
             }
 
             if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
                 return AdminLoginResponse.error("密码不能为空");
             }
 
-            // 验证用户名和密码是否匹配配置文件
+            // 校验用户名
             if (!adminUsername.equals(request.getUsername().trim())) {
                 return AdminLoginResponse.error("用户名或密码错误");
             }
@@ -51,17 +56,17 @@ public class AdminAuthService {
                 return AdminLoginResponse.error("用户名或密码错误");
             }
 
-            // 生成管理员专用token
+            // 生成 Token
             String token = jwtTokenProvider.generateToken("admin_" + adminUsername);
             
-            // 缓存token
+            // 缓存 Token
             adminTokenCache.put(token, adminUsername);
 
-            // 构建响应数据
+            // 构建返回数据
             AdminLoginResponse.AdminUser adminUser = new AdminLoginResponse.AdminUser(
-                1L, // 固定ID
+                1L, // 管理员固定 ID
                 adminUsername,
-                "admin@xiuxian.com", // 固定邮箱
+                "admin@xiuxian.com", // 管理员默认邮箱
                 "ADMIN"
             );
 
@@ -70,81 +75,88 @@ public class AdminAuthService {
             return AdminLoginResponse.success("登录成功", data);
 
         } catch (Exception e) {
-            log.error("管理员登录失�?, e);
+            log.error("管理员登录异常", e);
             return AdminLoginResponse.error("登录失败: " + e.getMessage());
         }
     }
 
     /**
-     * 验证管理员token - 使用配置文件认证
+     * 验证管理员 Token
+     *
+     * @param token 待验证的 Token
+     * @return 验证结果
      */
     public AdminLoginResponse validateToken(String token) {
         try {
             if (token == null || token.trim().isEmpty()) {
-                return AdminLoginResponse.error("Token不能为空");
+                return AdminLoginResponse.error("Token 不能为空");
             }
 
-            // 验证token格式和有效�?
+            // 校验 Token 签名与有效期
             if (!jwtTokenProvider.validateToken(token)) {
                 adminTokenCache.remove(token);
-                return AdminLoginResponse.error("Token无效或已过期");
+                return AdminLoginResponse.error("Token 已过期或无效");
             }
 
-            // 检查缓�?
+            // 从缓存中获取用户名
             String cachedUsername = adminTokenCache.get(token);
             if (cachedUsername == null) {
-                return AdminLoginResponse.error("Token未找到，请重新登�?);
+                return AdminLoginResponse.error("Token 不存在或已注销，请重新登录");
             }
 
-            // 验证是否为配置的管理员用�?
             if (!adminUsername.equals(cachedUsername)) {
                 adminTokenCache.remove(token);
-                return AdminLoginResponse.error("用户权限不足");
+                return AdminLoginResponse.error("Token 所属用户不匹配");
             }
 
-            // 构建响应数据
+            // 构建返回数据
             AdminLoginResponse.AdminUser adminUser = new AdminLoginResponse.AdminUser(
-                1L, // 固定ID
+                1L, // 管理员固定 ID
                 adminUsername,
-                "admin@xiuxian.com", // 固定邮箱
+                "admin@xiuxian.com", // 管理员默认邮箱
                 "ADMIN"
             );
 
             AdminLoginResponse.AdminData data = new AdminLoginResponse.AdminData(token, adminUser);
 
-            return AdminLoginResponse.success("Token验证成功", data);
-
+            return AdminLoginResponse.success("Token 有效", data);
         } catch (Exception e) {
-            log.error("Token验证失败", e);
-            return AdminLoginResponse.error("Token验证失败: " + e.getMessage());
+            log.error("Token 验证异常", e);
+            return AdminLoginResponse.error("Token 验证失败: " + e.getMessage());
         }
     }
 
     /**
-     * 管理员登�?
+     * 管理员注销
+     *
+     * @param token 当前登录 Token
+     * @return 注销结果
      */
     public AdminLoginResponse logout(String token) {
         try {
             if (token != null) {
                 adminTokenCache.remove(token);
             }
-            return AdminLoginResponse.success("登出成功");
+            return AdminLoginResponse.success("注销成功", null);
         } catch (Exception e) {
-            log.error("管理员登出失�?, e);
-            return AdminLoginResponse.error("登出失败: " + e.getMessage());
+            log.error("管理员注销异常", e);
+            return AdminLoginResponse.error("注销失败: " + e.getMessage());
         }
     }
 
     /**
-     * 获取当前管理员信�?
+     * 获取当前登录管理员信息
+     *
+     * @param token 当前登录 Token
+     * @return 管理员信息
      */
     public AdminLoginResponse getCurrentAdmin(String token) {
         try {
             if (token == null || token.trim().isEmpty()) {
-                return AdminLoginResponse.error("Token不能为空");
+                return AdminLoginResponse.error("Token 不能为空");
             }
 
-            // 验证token
+            // 通过 Token 验证获取管理员信息
             AdminLoginResponse validateResult = validateToken(token);
             if (!validateResult.isSuccess()) {
                 return validateResult;
@@ -153,13 +165,16 @@ public class AdminAuthService {
             return validateResult;
 
         } catch (Exception e) {
-            log.error("获取管理员信息失�?, e);
-            return AdminLoginResponse.error("获取管理员信息失�? " + e.getMessage());
+            log.error("获取当前管理员信息异常", e);
+            return AdminLoginResponse.error("获取失败: " + e.getMessage());
         }
     }
 
     /**
-     * 根据token获取管理员用户名
+     * 通过 Token 获取管理员用户名
+     *
+     * @param token 登录 Token
+     * @return 管理员用户名，Token 无效时返回 null
      */
     public String getAdminUsernameByToken(String token) {
         if (token == null || !jwtTokenProvider.validateToken(token)) {
@@ -169,7 +184,10 @@ public class AdminAuthService {
     }
 
     /**
-     * 检查是否为有效的管理员token
+     * 校验 Token 是否为有效的管理员 Token
+     *
+     * @param token 待校验 Token
+     * @return true 表示有效
      */
     public boolean isValidAdminToken(String token) {
         if (token == null) {

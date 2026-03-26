@@ -8,6 +8,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 玩家反馈管理控制器
+ *
+ * @author shaun.sheng
+ */
 @RestController
 @RequestMapping("/api/admin/feedback")
 @RequiredArgsConstructor
@@ -16,7 +21,7 @@ public class AdminFeedbackController {
     private final AdminFeedbackService adminFeedbackService;
 
     /**
-     * 获取反馈列表
+     * 获取反馈列表（分页）
      */
     @GetMapping("/")
     @PreAuthorize("hasRole('ADMIN')")
@@ -27,7 +32,7 @@ public class AdminFeedbackController {
             @RequestParam(required = false) Boolean isRead) {
         try {
             Page<PlayerMail> feedbacks = adminFeedbackService.getFeedbackList(page, size, playerId, isRead);
-            return ApiResponse.success("获取成功", feedbacks);
+            return ApiResponse.success("获取反馈列表成功", feedbacks);
         } catch (Exception e) {
             return ApiResponse.error(e.getMessage());
         }
@@ -42,9 +47,9 @@ public class AdminFeedbackController {
         try {
             PlayerMail feedback = adminFeedbackService.getFeedbackById(feedbackId);
             if (feedback == null) {
-                return ApiResponse.error("反馈不存在");
+                return ApiResponse.error("反馈记录不存在");
             }
-            return ApiResponse.success("获取成功", feedback);
+            return ApiResponse.success("获取反馈详情成功", feedback);
         } catch (Exception e) {
             return ApiResponse.error(e.getMessage());
         }
@@ -58,7 +63,7 @@ public class AdminFeedbackController {
     public ApiResponse<PlayerMail> markAsRead(@PathVariable Long feedbackId) {
         try {
             PlayerMail feedback = adminFeedbackService.markAsRead(feedbackId);
-            return ApiResponse.success("标记成功", feedback);
+            return ApiResponse.success("已标记为已读", feedback);
         } catch (Exception e) {
             return ApiResponse.error(e.getMessage());
         }
@@ -73,9 +78,9 @@ public class AdminFeedbackController {
         try {
             boolean result = adminFeedbackService.deleteFeedback(feedbackId);
             if (result) {
-                return ApiResponse.success("删除成功", null);
+                return ApiResponse.success("删除反馈成功", null);
             } else {
-                return ApiResponse.error("删除失败");
+                return ApiResponse.error("操作失败");
             }
         } catch (Exception e) {
             return ApiResponse.error(e.getMessage());

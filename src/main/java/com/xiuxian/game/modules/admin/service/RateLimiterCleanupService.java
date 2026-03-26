@@ -7,25 +7,28 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 /**
- * 限流器清理服�?
+ * 限流令牌桶清理服务
+ * 定时清理过期的限流桶，防止内存泄漏
+ *
+ * @author shaun.sheng
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class RateLimiterCleanupService {
-    
+
     private final RateLimiter rateLimiter;
-    
+
     /**
-     * �?分钟清理一次过期的令牌�?
+     * 每5分钟清理一次过期的限流桶
      */
     @Scheduled(fixedRate = 300000) // 5分钟
     public void cleanupExpiredBuckets() {
         try {
             rateLimiter.cleanup();
-            log.debug("清理过期的限流令牌桶");
+            log.debug("限流桶清理完成");
         } catch (Exception e) {
-            log.error("清理限流令牌桶失�?, e);
+            log.error("限流桶清理失败", e);
         }
     }
 }

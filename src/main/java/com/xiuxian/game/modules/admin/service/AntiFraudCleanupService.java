@@ -6,25 +6,28 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 /**
- * 反作弊清理服�?
+ * 反作弊计数器清理服务
+ * 定时清理过期的反作弊计数器数据
+ *
+ * @author shaun.sheng
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AntiFraudCleanupService {
-    
+
     private final AntiFraudService antiFraudService;
-    
+
     /**
-     * 每小时清理一次过期的异常行为计数�?
+     * 每小时清理一次过期的反作弊计数器
      */
-    @Scheduled(fixedRate = 3600000) // 1小时
+    @Scheduled(fixedRate = 3600000)
     public void cleanupExpiredCounters() {
         try {
             antiFraudService.cleanupExpiredCounters();
-            log.debug("清理过期的异常行为计数器");
+            log.debug("反作弊过期计数器清理完成");
         } catch (Exception e) {
-            log.error("清理异常行为计数器失�?, e);
+            log.error("反作弊过期计数器清理失败", e);
         }
     }
 }

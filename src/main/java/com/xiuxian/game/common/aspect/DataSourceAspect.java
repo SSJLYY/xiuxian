@@ -13,8 +13,8 @@ import org.springframework.stereotype.Component;
 import java.lang.reflect.Method;
 
 /**
- * 鏁版嵁婧愬垏鎹㈠垏闈?
- * 鏍规嵁 @DataSource 娉ㄨВ鑷姩鍒囨崲鏁版嵁婧?
+ * 数据源动态切换切面
+ * 拦截标注了@DataSource 注解的方法，自动切换数据源
  *
  * @author shaun.sheng
  */
@@ -25,14 +25,14 @@ import java.lang.reflect.Method;
 public class DataSourceAspect {
 
     /**
-     * 鐜粫閫氱煡锛氭牴鎹敞瑙ｅ垏鎹㈡暟鎹簮
+     * 拦截@DataSource注解的方法，动态切换数据源
      */
     @Around("@annotation(com.xiuxian.game.common.annotation.DataSource) || @within(com.xiuxian.game.common.annotation.DataSource)")
     public Object around(ProceedingJoinPoint point) throws Throwable {
         MethodSignature signature = (MethodSignature) point.getSignature();
         Method method = signature.getMethod();
 
-        // 鑾峰彇娉ㄨВ锛堜紭鍏堟柟娉曟敞瑙ｏ紝鍏舵绫绘敞瑙ｏ級
+        // 获取方法上的DataSource注解，类上没有则查找方法上的
         DataSource annotation = method.getAnnotation(DataSource.class);
         if (annotation == null) {
             annotation = method.getDeclaringClass().getAnnotation(DataSource.class);
@@ -45,19 +45,19 @@ public class DataSourceAspect {
                 switch (annotation.value()) {
                     case MASTER:
                         RoutingDataSource.useMaster();
-                        log.debug("鍒囨崲鍒颁富搴? {}.{}",
+                        log.debug("切换到主库 {}.{}",
                                 method.getDeclaringClass().getSimpleName(),
                                 method.getName());
                         break;
                     case SLAVE:
                         RoutingDataSource.useSlave();
-                        log.debug("鍒囨崲鍒颁粠搴? {}.{}",
+                        log.debug("切换到从库 {}.{}",
                                 method.getDeclaringClass().getSimpleName(),
                                 method.getName());
                         break;
                     case AUTO:
                     default:
-                        // 鑷姩鍒ゆ柇锛氬啓鏂规硶鐢ㄤ富搴擄紝璇绘柟娉曠敤浠庡簱
+                        // 自动判断：写方法切主库，读方法切从库
                         String methodName = method.getName();
                         if (isWriteMethod(methodName)) {
                             RoutingDataSource.useMaster();
@@ -67,14 +67,14 @@ public class DataSourceAspect {
                         break;
                 }
             } else {
-                // 娌℃湁娉ㄨВ锛岄粯璁や娇鐢ㄤ粠搴擄紙璇诲鍐欏皯锛?
+                // 没有注解，默认切换到从库
                 RoutingDataSource.useSlave();
             }
 
             return point.proceed();
 
         } finally {
-            // 鎭㈠鍘熸潵鐨勬暟鎹簮
+            // 恢复原来的数据源
             if (originalDataSource != null) {
                 RoutingDataSource.setDataSource(originalDataSource);
             } else {
@@ -84,11 +84,11 @@ public class DataSourceAspect {
     }
 
     /**
-     * 鍒ゆ柇鏄惁涓哄啓鏂规硶
-     * 閫氳繃鏂规硶鍚嶅墠缂€鍒ゆ柇
+     * 判断是否为写方法
+     * 写方法前缀：insert、update、delete、save、add、create、remove
      */
     private boolean isWriteMethod(String methodName) {
-        String[] writePrefixes = {"insert", "update", "delete", "save", "add", "create", "remove", "delete"};
+        String[] writePrefixes = {"insert", "update", "delete", "save", "add", "create", "remove"};
         String lowerName = methodName.toLowerCase();
         for (String prefix : writePrefixes) {
             if (lowerName.startsWith(prefix)) {
@@ -98,5 +98,3 @@ public class DataSourceAspect {
         return false;
     }
 }
-
-

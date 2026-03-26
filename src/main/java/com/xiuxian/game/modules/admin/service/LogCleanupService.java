@@ -6,33 +6,35 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 /**
- * 日志清理定时任务服务
+ * 日志清理服务
+ * 定时清理过期的登录日志和操作日志
+ *
+ * @author shaun.sheng
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class LogCleanupService {
-    
+
     private final PlayerLoginLogService playerLoginLogService;
     private final AdminOperationLogService adminOperationLogService;
-    
+
     /**
-     * 每天凌晨2点清理过期日�?
+     * 每天凌晨2点执行日志清理任务
      */
     @Scheduled(cron = "0 0 2 * * ?")
     public void cleanupExpiredLogs() {
-        log.info("开始清理过期日�?);
-        
+        log.info("开始执行过期日志清理任务");
+
         try {
-            // 清理玩家登录日志（保�?0天）
+            // 清理过期的玩家登录日志（保留最近30天）
             playerLoginLogService.cleanExpiredLogs();
-            
-            // 清理管理员操作日志（保留180天）
+
             adminOperationLogService.cleanExpiredLogs();
-            
-            log.info("过期日志清理完成");
+
+            log.info("过期日志清理任务执行完成");
         } catch (Exception e) {
-            log.error("清理过期日志失败", e);
+            log.error("过期日志清理任务执行失败", e);
         }
     }
 }

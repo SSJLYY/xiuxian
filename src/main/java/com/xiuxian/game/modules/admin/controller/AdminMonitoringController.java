@@ -10,6 +10,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
+/**
+ * 系统监控 Controller
+ * 提供 CPU、内存、磁盘及系统综合信息的查询接口
+ *
+ * @author shaun.sheng
+ */
 @RestController
 @RequestMapping("/api/admin/monitoring")
 @RequiredArgsConstructor
@@ -18,7 +24,7 @@ public class AdminMonitoringController {
     private final AdminMonitoringService adminMonitoringService;
 
     /**
-     * 获取系统基本信息
+     * 获取操作系统基础信息
      */
     @GetMapping("/system")
     @PreAuthorize("hasRole('ADMIN')")
@@ -32,7 +38,7 @@ public class AdminMonitoringController {
     }
 
     /**
-     * 获取CPU使用情况
+     * 获取 CPU 使用率信息
      */
     @GetMapping("/cpu")
     @PreAuthorize("hasRole('ADMIN')")
@@ -74,7 +80,7 @@ public class AdminMonitoringController {
     }
 
     /**
-     * 获取所有监控信�?
+     * 获取全部监控信息（系统 + CPU + 内存 + 磁盘）
      */
     @GetMapping("/all")
     @PreAuthorize("hasRole('ADMIN')")

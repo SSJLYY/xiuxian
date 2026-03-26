@@ -10,6 +10,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 管理后台统计数据 Controller
+ * 提供整体统计、最近每日统计、收入统计、玩家增长统计等接口
+ *
+ * @author shaun.sheng
+ */
 @RestController
 @RequestMapping("/api/admin/statistics")
 @RequiredArgsConstructor
@@ -18,7 +24,9 @@ public class AdminStatisticsController {
     private final AdminStatisticsService adminStatisticsService;
 
     /**
-     * 获取综合统计数据
+     * 获取整体统计数据（累计玩家数、累计收入等）
+     *
+     * @return 整体统计 Map
      */
     @GetMapping("/overall")
     @PreAuthorize("hasRole('ADMIN')")
@@ -32,7 +40,10 @@ public class AdminStatisticsController {
     }
 
     /**
-     * 获取最近的统计数据
+     * 获取最近 N 天的每日统计数据
+     *
+     * @param days 查询天数（默认 7 天）
+     * @return 每日统计列表
      */
     @GetMapping("/recent")
     @PreAuthorize("hasRole('ADMIN')")
@@ -47,7 +58,10 @@ public class AdminStatisticsController {
     }
 
     /**
-     * 获取收入统计
+     * 获取收入统计数据
+     *
+     * @param days 查询天数（默认 7 天）
+     * @return 收入统计 Map
      */
     @GetMapping("/revenue")
     @PreAuthorize("hasRole('ADMIN')")
@@ -62,7 +76,10 @@ public class AdminStatisticsController {
     }
 
     /**
-     * 获取玩家增长统计
+     * 获取玩家增长统计数据
+     *
+     * @param days 查询天数（默认 7 天）
+     * @return 玩家增长统计 Map
      */
     @GetMapping("/player-growth")
     @PreAuthorize("hasRole('ADMIN')")

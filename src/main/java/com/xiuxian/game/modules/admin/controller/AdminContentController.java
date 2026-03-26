@@ -8,7 +8,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 管理员内容管理控制器
+ * 内容管理控制器
+ * 提供游戏内容统计查询功能
+ *
+ * @author shaun.sheng
  */
 @RestController
 @RequestMapping("/api/admin/content")
@@ -27,10 +30,10 @@ public class AdminContentController {
             stats.put("skills", 0);
             stats.put("pets", 0);
             stats.put("monsters", 0);
-            
-            return ResponseEntity.ok(AdminApiResponse.success("获取内容统计数据成功", stats));
+
+            return ResponseEntity.ok(AdminApiResponse.success("获取内容统计成功", stats));
         } catch (Exception e) {
-            return ResponseEntity.ok(AdminApiResponse.error("获取内容统计数据失败: " + e.getMessage()));
+            return ResponseEntity.ok(AdminApiResponse.error("获取内容统计失败: " + e.getMessage()));
         }
     }
 }

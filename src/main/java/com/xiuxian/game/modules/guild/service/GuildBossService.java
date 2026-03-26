@@ -31,8 +31,8 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * 宗门BOSS服务
- * 负责BOSS刷新、协作挑战、伤害统计、奖励分配
+ * 仙盟BOSS战斗管理类
+ * 提供仙盟BOSS的生成、挑战、奖励领取等核心功能
  */
 @Slf4j
 @Service
@@ -45,21 +45,21 @@ public class GuildBossService {
     // module boundary: access player data via PlayerService
     private final PlayerService playerService;
 
-    /** 每人每天最多挑战次数 */
+    /** 每日最大挑战次数 */
     private static final int MAX_DAILY_ATTEMPTS = 5;
-    /** BOSS每周一刷新 */
+    /** BOSS复活周期（天） */
     private static final int BOSS_RESPAWN_DAYS = 7;
 
-    // ==================== BOSS 预设配置 ====================
+    // ==================== BOSS 模板定义 ====================
     private static final List<BossTemplate> BOSS_TEMPLATES = Arrays.asList(
-        new BossTemplate("妖皇魃影", "远古妖皇的残魂，凶悍无比",  5,  500_000L, 2800, 400, 5000, 8000),
-        new BossTemplate("血魔尸王", "以怨气凝聚的不死尸王",     10, 2_000_000L, 6000, 900, 12000, 20000),
-        new BossTemplate("冥狱火龙", "来自冥狱的上古火龙",       15, 8_000_000L, 12000, 1800, 30000, 50000),
-        new BossTemplate("太虚古魔", "太虚时代留存的上古大魔",   20, 30_000_000L, 25000, 3500, 80000, 120000)
+        new BossTemplate("青牛兽", "筑基境界精英魔兽",  5,  500_000L, 2800, 400, 5000, 8000),
+        new BossTemplate("修罗牛魔王", "金丹境界凶猛魔兽",     10, 2_000_000L, 6000, 900, 12000, 20000),
+        new BossTemplate("九幽冥凤", "元婴境界远古神兽",       15, 8_000_000L, 12000, 1800, 30000, 50000),
+        new BossTemplate("万妖狼王", "化神境界绝世妖王",   20, 30_000_000L, 25000, 3500, 80000, 120000)
     );
 
     /**
-     * 获取当前宗门BOSS（若未刷新则自动生成）
+     * 获取仙盟BOSS信息
      */
     public GuildBossVO getCurrentBoss(Integer playerId) {
         Integer guildId = getPlayerGuildId(playerId);
@@ -76,7 +76,7 @@ public class GuildBossService {
     }
 
     /**
-     * 挑战宗门BOSS
+     * 挑战仙盟BOSS
      */
     @Transactional
     public ChallengeResult challengeBoss(Integer playerId) {
@@ -90,7 +90,7 @@ public class GuildBossService {
             throw new BusinessException(ErrorCode.GUILD_BOSS_ALREADY_DEFEATED);
         }
 
-        // 检查每日次数
+        // 检测每日挑战次数
         GuildBossChallenge record = challengeMapper.findByBossAndPlayer(boss.getId(), playerId);
         if (record != null) {
             int todayAttempts = getTodayAttempts(record);
@@ -99,11 +99,11 @@ public class GuildBossService {
             }
         }
 
-        // 计算伤害（基于玩家战斗属性）
+        // 计算玩家对BOSS的伤害
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         long damage = calculateDamage(player, boss);
 
-        // 扣除BOSS生命值
+        // 更新BOSS当前血量
         boss.setCurrentHealth(Math.max(0, boss.getCurrentHealth() - damage));
         boolean bossDefeated = boss.getCurrentHealth() <= 0;
         if (bossDefeated) {
@@ -115,13 +115,13 @@ public class GuildBossService {
         // 更新挑战记录
         updateChallengeRecord(boss.getId(), playerId, damage, record);
 
-        // BOSS被击败时分配奖励
+        // BOSS死亡时分发奖励
         if (bossDefeated) {
             distributeRewards(boss);
         }
 
-        log.info("[GuildBoss] 玩家{}挑战BOSS{}造成{}伤害, 剩余血量{}", playerId, boss.getId(), damage, boss.getCurrentHealth());
-        LogUtils.logBusiness("GUILD_BOSS", "挑战BOSS", "playerId", playerId, "damage", damage, "bossDefeated", bossDefeated);
+        log.info("[GuildBoss] 玩家{}挑战BOSS{}造成伤害{}，BOSS剩余血量{}", playerId, boss.getId(), damage, boss.getCurrentHealth());
+        LogUtils.logBusiness("GUILD_BOSS", "挑战仙盟BOSS", "playerId", playerId, "damage", damage, "bossDefeated", bossDefeated);
 
         return ChallengeResult.builder()
                 .damage(damage)
@@ -133,13 +133,13 @@ public class GuildBossService {
     }
 
     /**
-     * 领取BOSS击败奖励
+     * 领取BOSS击杀奖励
      */
     @Transactional
     public Map<String, Object> claimReward(Integer playerId) {
         Integer guildId = getPlayerGuildId(playerId);
 
-        // 找最近击败的BOSS
+        // 查询已击杀的仙盟BOSS
         LambdaQueryWrapper<GuildBoss> bossQuery = new LambdaQueryWrapper<GuildBoss>()
                 .eq(GuildBoss::getGuildId, guildId)
                 .eq(GuildBoss::getStatus, "DEFEATED")
@@ -157,7 +157,7 @@ public class GuildBossService {
             throw new BusinessException(ErrorCode.GUILD_BOSS_REWARD_CLAIMED);
         }
 
-        // 发放奖励
+        // 发放个人奖励
         int stones = record.getPersonalRewardStones() != null ? record.getPersonalRewardStones() : 0;
         int exp = (int) (boss.getRewardExp() * getDamageRatio(boss.getId(), playerId));
 
@@ -169,19 +169,19 @@ public class GuildBossService {
         record.setRewardClaimed(true);
         challengeMapper.updateById(record);
 
-        log.info("[GuildBoss] 玩家{}领取BOSS奖励: 灵石+{}, 经验+{}", playerId, stones, exp);
+        log.info("[GuildBoss] 玩家{}领取仙盟BOSS奖励: 灵石+{}, 经验+{}", playerId, stones, exp);
 
         Map<String, Object> result = new HashMap<>();
         result.put("spiritStones", stones);
         result.put("exp", exp);
-        result.put("message", "成功击败" + boss.getName() + "！获得奖励");
+        result.put("message", "恭喜击杀" + boss.getName() + "获得灵石奖励");
         return result;
     }
 
-    // ==================== 私有方法 ====================
+    // ==================== 内部辅助方法 ====================
 
     private GuildBoss spawnBoss(Integer guildId) {
-        // 根据宗门成员平均等级选择BOSS模板
+        // 根据仙盟平均等级生成匹配的BOSS
         double avgLevel = getGuildAvgLevel(guildId);
         BossTemplate template = selectBossTemplate(avgLevel);
 
@@ -200,17 +200,17 @@ public class GuildBossService {
         boss.setSpawnedAt(LocalDateTime.now());
         boss.setNextSpawnAt(LocalDateTime.now().plusDays(BOSS_RESPAWN_DAYS));
         guildBossMapper.insert(boss);
-        log.info("[GuildBoss] 宗门{}刷新BOSS: {}", guildId, template.name);
+        log.info("[GuildBoss] 仙盟{}召唤BOSS: {}", guildId, template.name);
         return boss;
     }
 
     private long calculateDamage(PlayerProfile player, GuildBoss boss) {
         int attack = player.getAttack() != null ? player.getAttack() : 100;
         int defense = boss.getDefense() != null ? boss.getDefense() : 50;
-        // 基础伤害 = 攻击 - 防御/2，带随机浮动±10%
+        // 基础伤害 = 攻击 - 防御/2（最低为攻击的10%）
         double base = Math.max(attack - defense / 2.0, attack * 0.1);
         double random = 0.9 + ThreadLocalRandom.current().nextDouble() * 0.2;
-        // 连招技能加成：10%暴击概率 × 2倍
+        // 有10%概率暴击，暴击伤害翻2倍
         boolean crit = ThreadLocalRandom.current().nextDouble() < 0.10;
         return Math.round(base * random * (crit ? 2.0 : 1.0));
     }
@@ -257,7 +257,7 @@ public class GuildBossService {
     private int getTodayAttempts(GuildBossChallenge record) {
         if (record == null) return 0;
         if (record.getLastChallengeAt() == null) return 0;
-        // 如果最后挑战时间是今天，返回累计次数；否则返回0
+        // 挑战日期是今天则返回当日次数，否则返回0（新的一天重置次数）
         if (record.getLastChallengeAt().toLocalDate().equals(java.time.LocalDate.now())) {
             return record.getTodayAttempts() != null ? record.getTodayAttempts() : 0;
         }
@@ -304,7 +304,7 @@ public class GuildBossService {
             rank = (int) all.stream().filter(c -> c.getDamageDealt() > myDamage).count() + 1;
         }
 
-        // 构建伤害排行
+        // 构建伤害排行榜
         List<Map<String, Object>> damageRanking = new ArrayList<>();
         for (int i = 0; i < Math.min(all.size(), 10); i++) {
             GuildBossChallenge c = all.get(i);
@@ -312,7 +312,7 @@ public class GuildBossService {
             entry.put("rank", i + 1);
             entry.put("playerId", c.getPlayerId());
             PlayerProfile p = playerService.getPlayerProfileById(c.getPlayerId());
-            entry.put("playerName", p != null ? p.getNickname() : "未知");
+            entry.put("playerName", p != null ? p.getNickname() : "未知玩家");
             entry.put("damage", c.getDamageDealt());
             entry.put("ratio", totalDamage > 0 ? String.format("%.1f%%", c.getDamageDealt() * 100.0 / totalDamage) : "0%");
             damageRanking.add(entry);
@@ -365,7 +365,7 @@ public class GuildBossService {
         private LocalDateTime spawnedAt;
         private LocalDateTime nextSpawnAt;
         private LocalDateTime defeatedAt;
-        // 玩家个人数据
+        // 个人伤害统计
         private Long myDamage;
         private String myDamageRatio;
         private Integer myRank;
@@ -374,7 +374,7 @@ public class GuildBossService {
         private Integer remainingAttempts;
         private Boolean canClaimReward;
         private Boolean rewardClaimed;
-        // 宗门整体
+        // 仙盟总体数据
         private Integer totalParticipants;
         private Long totalDamage;
         private List<Map<String, Object>> damageRanking;
@@ -390,7 +390,7 @@ public class GuildBossService {
         private Integer remainingAttempts;
     }
 
-    /** BOSS模板（内部配置） */
+    /** BOSS模板数据 */
     @Data
     private static class BossTemplate {
         final String name, description;

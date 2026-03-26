@@ -15,7 +15,10 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 
 /**
- * 管理员日志管理控制器
+ * 日志管理控制器
+ * 提供玩家登录日志和管理员操作日志的查询功能
+ *
+ * @author shaun.sheng
  */
 @Slf4j
 @RestController
@@ -23,12 +26,12 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminLogController {
-    
+
     private final PlayerLoginLogService playerLoginLogService;
     private final AdminOperationLogService adminOperationLogService;
-    
+
     /**
-     * 分页查询玩家登录日志
+     * 查询玩家登录日志（分页）
      */
     @GetMapping("/player-login")
     public ApiResponse<Page<PlayerLoginLog>> getPlayerLoginLogs(
@@ -37,7 +40,7 @@ public class AdminLogController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
-        
+
         try {
             Page<PlayerLoginLog> result = playerLoginLogService.getLoginLogs(
                     playerId, startTime, endTime, page, size);
@@ -47,7 +50,7 @@ public class AdminLogController {
             return ApiResponse.error("查询失败");
         }
     }
-    
+
     /**
      * 统计玩家登录次数
      */
@@ -56,18 +59,18 @@ public class AdminLogController {
             @RequestParam Integer playerId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime) {
-        
+
         try {
             Long count = playerLoginLogService.countPlayerLogins(playerId, startTime, endTime);
             return ApiResponse.success(count);
         } catch (Exception e) {
             log.error("统计玩家登录次数失败", e);
-            return ApiResponse.error("统计失败");
+            return ApiResponse.error("查询失败");
         }
     }
-    
+
     /**
-     * 分页查询管理员操作日志
+     * 查询管理员操作日志（分页）
      */
     @GetMapping("/admin-operation")
     public ApiResponse<Page<AdminOperationLog>> getAdminOperationLogs(
@@ -78,7 +81,7 @@ public class AdminLogController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
-        
+
         try {
             Page<AdminOperationLog> result = adminOperationLogService.getOperationLogs(
                     adminId, operationType, targetType, startTime, endTime, page, size);
@@ -88,7 +91,7 @@ public class AdminLogController {
             return ApiResponse.error("查询失败");
         }
     }
-    
+
     /**
      * 统计管理员操作次数
      */
@@ -98,18 +101,18 @@ public class AdminLogController {
             @RequestParam(required = false) String operationType,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime) {
-        
+
         try {
             Long count = adminOperationLogService.countOperations(adminId, operationType, startTime, endTime);
             return ApiResponse.success(count);
         } catch (Exception e) {
             log.error("统计管理员操作次数失败", e);
-            return ApiResponse.error("统计失败");
+            return ApiResponse.error("查询失败");
         }
     }
-    
+
     /**
-     * 获取操作类型列表
+     * 获取所有操作类型列表
      */
     @GetMapping("/operation-types")
     public ApiResponse<String[]> getOperationTypes() {

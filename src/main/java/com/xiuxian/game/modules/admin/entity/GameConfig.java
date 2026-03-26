@@ -5,7 +5,9 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 游戏配置实体�?
+ * 游戏配置实体
+ *
+ * @author shaun.sheng
  */
 @Data
 @TableName("game_configs")

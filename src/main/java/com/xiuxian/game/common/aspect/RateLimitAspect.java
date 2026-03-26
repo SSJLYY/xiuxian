@@ -18,8 +18,8 @@ import org.springframework.stereotype.Component;
 import java.lang.reflect.Method;
 
 /**
- * 闄愭祦鍒囬潰
- * 浣跨敤 Sentinel 瀹炵幇鏂规硶绾ч檺娴?
+ * 限流拦截器
+ * 基于 Sentinel 的流量控制切面增强逻辑
  *
  * @author shaun.sheng
  */
@@ -29,7 +29,7 @@ import java.lang.reflect.Method;
 public class RateLimitAspect {
 
     /**
-     * 鐜粫閫氱煡锛氶檺娴佸鐞?
+     * 拦截@RateLimit注解的方法进行限流保护
      */
     @Around("@annotation(com.xiuxian.game.common.annotation.RateLimit)")
     public Object around(ProceedingJoinPoint point) throws Throwable {
@@ -41,7 +41,7 @@ public class RateLimitAspect {
             return point.proceed();
         }
 
-        // 璧勬簮鍚嶇О
+        // 获取限流资源名
         String resourceName = rateLimit.value();
         if (resourceName.isEmpty()) {
             resourceName = method.getDeclaringClass().getName() + ":" + method.getName();
@@ -49,25 +49,25 @@ public class RateLimitAspect {
 
         Entry entry = null;
         try {
-            // 杩涘叆璧勬簮
+            // 创建Sentinel资源入口
             entry = SphU.entry(resourceName, EntryType.IN);
 
-            // 鎵ц鏂规硶
+            // 执行业务方法
             return point.proceed();
 
         } catch (BlockException e) {
-            // 琚檺娴?
-            log.warn("璇锋眰琚檺娴? resource={}, method={}.{}",
+            // 触发限流，返回友好提示
+            log.warn("请求被限流: resource={}, method={}.{}",
                     resourceName,
                     method.getDeclaringClass().getSimpleName(),
                     method.getName());
 
-            throw new BusinessException(ErrorCode.SERVER_BUSY, "绯荤粺绻佸繖锛岃绋嶅悗閲嶈瘯");
+            throw new BusinessException(ErrorCode.SERVER_BUSY, "请求过于频繁，请稍后再试");
 
         } catch (Throwable e) {
-            // 璁板綍寮傚父
+            // 记录异常并重新抛出
             Tracer.trace(e);
-            log.error("Sentinel 璧勬簮鎵ц寮傚父: resource={}", resourceName, e);
+            log.error("Sentinel资源记录异常: resource={}", resourceName, e);
             throw e;
 
         } finally {
@@ -77,4 +77,3 @@ public class RateLimitAspect {
         }
     }
 }
-

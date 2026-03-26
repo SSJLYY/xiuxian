@@ -15,8 +15,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * 自定义用户详情服�?
- * Spring Security 在认证时调用此服务加载用户信�?
+ * 用户认证服务
+ * Spring Security 认证提供者，将用户信息加载为安全上下文用户对象
  */
 @Slf4j
 @Service
@@ -27,11 +27,11 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        log.debug("加载用户信息: username={}", username);
+        log.debug("根据用户名加载用户详情: username={}", username);
 
         User user = userMapper.selectByUsername(username);
         if (user == null) {
-            log.warn("用户不存�? {}", username);
+            log.warn("用户名不存在: {}", username);
             throw new UsernameNotFoundException("User not found: " + username);
         }
 
@@ -48,4 +48,3 @@ public class CustomUserDetailsService implements UserDetailsService {
         );
     }
 }
-

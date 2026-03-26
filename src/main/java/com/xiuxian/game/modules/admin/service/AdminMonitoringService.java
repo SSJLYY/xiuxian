@@ -10,12 +10,16 @@ import oshi.software.os.OperatingSystem;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * 系统监控服务
+ * 提供 CPU、内存、磁盘、系统信息等监控数据
+ *
+ * @author shaun.sheng
+ */
 @Service
 @RequiredArgsConstructor
 public class AdminMonitoringService {
@@ -25,9 +29,9 @@ public class AdminMonitoringService {
     private final HardwareAbstractionLayer hardwareAbstractionLayer = systemInfo.getHardware();
 
     /**
-     * 获取系统基本信息
+     * 获取操作系统信息
      *
-     * @return 系统基本信息
+     * @return 系统基础信息 Map
      */
     public Map<String, Object> getSystemInfo() {
         Map<String, Object> info = new HashMap<>();
@@ -36,11 +40,11 @@ public class AdminMonitoringService {
         info.put("osName", operatingSystem.getFamily() + " " + operatingSystem.getVersionInfo().getVersion());
         info.put("osArch", System.getProperty("os.arch"));
 
-        // JVM信息
+        // JVM 信息
         info.put("javaVersion", System.getProperty("java.version"));
         info.put("javaVendor", System.getProperty("java.vendor"));
 
-        // 应用信息
+        // 运行时信息
         RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
         info.put("uptime", formatUptime(runtimeMXBean.getUptime()));
         info.put("startTime", new Date(runtimeMXBean.getStartTime()));
@@ -49,9 +53,9 @@ public class AdminMonitoringService {
     }
 
     /**
-     * 获取CPU使用情况
+     * 获取 CPU 使用率信息
      *
-     * @return CPU使用情况
+     * @return CPU 使用率数据 Map
      */
     public Map<String, Object> getCpuInfo() {
         Map<String, Object> info = new HashMap<>();
@@ -59,9 +63,9 @@ public class AdminMonitoringService {
         CentralProcessor processor = hardwareAbstractionLayer.getProcessor();
         info.put("physicalCoreCount", processor.getPhysicalProcessorCount());
         info.put("logicalCoreCount", processor.getLogicalProcessorCount());
-        info.put("systemLoadAverage", processor.getSystemLoadAverage(1)); // 传入参数1
+        info.put("systemLoadAverage", processor.getSystemLoadAverage(1)); // 1 分钟负载均值
 
-        // 获取CPU使用�?
+        // 计算 CPU 使用率（采样间隔 1 秒）
         long[] prevTicks = processor.getSystemCpuLoadTicks();
         try {
             Thread.sleep(1000);
@@ -78,7 +82,7 @@ public class AdminMonitoringService {
     /**
      * 获取内存使用情况
      *
-     * @return 内存使用情况
+     * @return 系统内存与 JVM 内存使用情况 Map
      */
     public Map<String, Object> getMemoryInfo() {
         Map<String, Object> info = new HashMap<>();
@@ -93,7 +97,6 @@ public class AdminMonitoringService {
         info.put("availableMemory", formatBytes(availableMemory));
         info.put("memoryUsage", String.format("%.2f%%", (double) usedMemory / totalMemory * 100));
 
-        // JVM内存信息
         Runtime runtime = Runtime.getRuntime();
         long jvmMaxMemory = runtime.maxMemory();
         long jvmTotalMemory = runtime.totalMemory();
@@ -112,12 +115,12 @@ public class AdminMonitoringService {
     /**
      * 获取磁盘使用情况
      *
-     * @return 磁盘使用情况
+     * @return 磁盘容量与使用情况 Map
      */
     public Map<String, Object> getDiskInfo() {
         Map<String, Object> info = new HashMap<>();
 
-        // 获取应用根路�?
+        // 以应用工作目录所在磁盘为准
         String rootPath = System.getProperty("user.dir");
         java.io.File rootDir = new java.io.File(rootPath);
 
@@ -136,9 +139,9 @@ public class AdminMonitoringService {
     }
 
     /**
-     * 格式化字节大�?
+     * 字节数格式化为可读字符串（B/KB/MB/GB）
      *
-     * @param bytes 字节�?
+     * @param bytes 字节数
      * @return 格式化后的字符串
      */
     private String formatBytes(long bytes) {
@@ -149,10 +152,10 @@ public class AdminMonitoringService {
     }
 
     /**
-     * 格式化运行时�?
+     * 毫秒数格式化为可读运行时长字符串
      *
-     * @param uptime 运行时间（毫秒）
-     * @return 格式化后的字符串
+     * @param uptime 运行毫秒数
+     * @return 格式化后的时长字符串（天/时/分/秒）
      */
     private String formatUptime(long uptime) {
         long seconds = uptime / 1000;
@@ -166,15 +169,15 @@ public class AdminMonitoringService {
 
         StringBuilder sb = new StringBuilder();
         if (days > 0) {
-            sb.append(days).append("�?");
+            sb.append(days).append("天");
         }
         if (hours > 0) {
-            sb.append(hours).append("小时 ");
+            sb.append(hours).append("小时");
         }
         if (minutes > 0) {
-            sb.append(minutes).append("分钟 ");
+            sb.append(minutes).append("分钟");
         }
-        sb.append(seconds).append("�?);
+        sb.append(seconds).append("秒");
 
         return sb.toString().trim();
     }

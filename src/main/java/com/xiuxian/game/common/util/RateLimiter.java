@@ -8,37 +8,37 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * 基于内存的令牌桶限流�?
+ * 基于令牌桶算法的限流工具
  */
 @Slf4j
 @Component
 public class RateLimiter {
-    
+
     private final ConcurrentHashMap<String, TokenBucket> buckets = new ConcurrentHashMap<>();
-    
+
     /**
-     * 检查是否允许请�?
-     * 
-     * @param key 限流键（通常是用户ID或IP地址�?
-     * @param maxRequests 最大请求数
-     * @param windowSeconds 时间窗口（秒�?
-     * @return 是否允许请求
+     * 判断请求是否允许通过
+     *
+     * @param key 用于标识不同接口的唯一键（如IP地址或用户ID）
+     * @param maxRequests 窗口期内的最大请求数
+     * @param windowSeconds 统计窗口时长（秒）
+     * @return 是否允许通过
      */
     public boolean isAllowed(String key, int maxRequests, int windowSeconds) {
         TokenBucket bucket = buckets.computeIfAbsent(key, k -> new TokenBucket(maxRequests, windowSeconds));
         return bucket.tryConsume();
     }
-    
+
     /**
-     * 获取剩余令牌�?
+     * 获取剩余令牌数
      */
     public int getRemainingTokens(String key) {
         TokenBucket bucket = buckets.get(key);
         return bucket != null ? bucket.getAvailableTokens() : 0;
     }
-    
+
     /**
-     * 清理过期的令牌桶
+     * 清理过期的限流桶
      */
     public void cleanup() {
         long now = System.currentTimeMillis();
@@ -47,47 +47,47 @@ public class RateLimiter {
             return now - bucket.getLastRefillTime() > bucket.getWindowMillis() * 2;
         });
     }
-    
+
     /**
-     * 令牌桶实�?
+     * 令牌桶内部类
      */
     private static class TokenBucket {
         private final int capacity;
         private final long windowMillis;
         private final AtomicInteger tokens;
         private final AtomicLong lastRefillTime;
-        
+
         public TokenBucket(int capacity, int windowSeconds) {
             this.capacity = capacity;
             this.windowMillis = windowSeconds * 1000L;
             this.tokens = new AtomicInteger(capacity);
             this.lastRefillTime = new AtomicLong(System.currentTimeMillis());
         }
-        
+
         public boolean tryConsume() {
             refill();
             return tokens.getAndDecrement() > 0;
         }
-        
+
         public int getAvailableTokens() {
             refill();
             return Math.max(0, tokens.get());
         }
-        
+
         public long getLastRefillTime() {
             return lastRefillTime.get();
         }
-        
+
         public long getWindowMillis() {
             return windowMillis;
         }
-        
+
         private void refill() {
             long now = System.currentTimeMillis();
             long lastRefill = lastRefillTime.get();
-            
+
             if (now - lastRefill >= windowMillis) {
-                // 时间窗口已过，重置令牌桶
+                // 时间窗口已过，重新填充令牌桶
                 if (lastRefillTime.compareAndSet(lastRefill, now)) {
                     tokens.set(capacity);
                 }

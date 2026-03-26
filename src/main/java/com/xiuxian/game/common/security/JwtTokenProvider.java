@@ -11,8 +11,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 /**
- * JWT Token 提供�?
- * 负责 JWT 的生成、解析和验证
+ * JWT Token 工具类
+ * 提供 JWT Token 生成、解析和验证功能
  */
 @Slf4j
 @Component
@@ -31,10 +31,10 @@ public class JwtTokenProvider {
 
     /**
      * 生成 JWT Token
-     * 
-     * @param username 用户名（将作�?subject 存入 token�?
-     * @return JWT Token 字符�?
-     * @throws JwtException �?token 生成失败时抛�?
+     *
+     * @param username 用户名（subject 决定 token 的有效期等属性）
+     * @return JWT Token 字符串
+     * @throws JwtException 如果 token 生成过程发生异常
      */
     public String generateToken(String username) {
         log.debug("生成JWT Token: username={}", username);
@@ -50,11 +50,11 @@ public class JwtTokenProvider {
     }
 
     /**
-     * �?Token 中提取用户名
-     * 
-     * @param token JWT Token 字符�?
-     * @return 用户�?
-     * @throws JwtException �?token 解析失败时抛�?
+     * 从Token中解析用户名
+     *
+     * @param token JWT Token 字符串
+     * @return 用户名
+     * @throws JwtException 如果 token 无效或已过期
      */
     public String getUsernameFromToken(String token) {
         log.debug("解析JWT Token");
@@ -67,10 +67,10 @@ public class JwtTokenProvider {
     }
 
     /**
-     * 验证 JWT Token 有效�?
-     * 
-     * @param authToken JWT Token 字符�?
-     * @return true 表示有效，false 表示无效/过期/签名错误
+     * 验证JWT Token 的有效性
+     *
+     * @param authToken JWT Token 字符串
+     * @return true 表示有效，false 表示无效或已过期/签名不匹配
      */
     public boolean validateToken(String authToken) {
         try {
@@ -85,4 +85,3 @@ public class JwtTokenProvider {
         }
     }
 }
-

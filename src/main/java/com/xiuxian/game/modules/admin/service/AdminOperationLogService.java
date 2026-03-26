@@ -13,20 +13,30 @@ import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 
 /**
- * 管理员操作日志服�?
+ * 管理员操作日志服务
+ * 记录管理员的各类操作，支持日志查询和自动清理
+ *
+ * @author shaun.sheng
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AdminOperationLogService {
-    
+
     private final AdminOperationLogMapper operationLogMapper;
-    
+
     /**
-     * 记录管理员操作日�?
+     * 异步记录管理员操作（含目标对象）
+     *
+     * @param adminId         管理员ID
+     * @param operationType   操作类型
+     * @param targetType      目标类型
+     * @param targetId        目标ID
+     * @param operationDetail 操作详情
+     * @param request         HTTP请求（用于获取IP）
      */
     @Async
-    public void recordOperation(Integer adminId, String operationType, String targetType, 
+    public void recordOperation(Integer adminId, String operationType, String targetType,
                               String targetId, String operationDetail, HttpServletRequest request) {
         try {
             AdminOperationLog operationLog = new AdminOperationLog();
@@ -37,33 +47,47 @@ public class AdminOperationLogService {
             operationLog.setOperationDetail(operationDetail);
             operationLog.setIpAddress(getClientIpAddress(request));
             operationLog.setCreatedAt(LocalDateTime.now());
-            
+
             operationLogMapper.insert(operationLog);
-            log.info("记录管理员操作日�? adminId={}, operation={}, target={}:{}", 
+            log.info("管理员操作已记录: adminId={}, operation={}, target={}:{}",
                     adminId, operationType, targetType, targetId);
         } catch (Exception e) {
-            log.error("记录管理员操作日志失�? adminId={}, operation={}", adminId, operationType, e);
+            log.error("记录管理员操作失败: adminId={}, operation={}", adminId, operationType, e);
         }
     }
-    
+
     /**
-     * 记录管理员操作日志（简化版本）
+     * 异步记录管理员操作（不含目标对象）
+     *
+     * @param adminId         管理员ID
+     * @param operationType   操作类型
+     * @param operationDetail 操作详情
+     * @param request         HTTP请求
      */
     @Async
-    public void recordOperation(Integer adminId, String operationType, String operationDetail, 
+    public void recordOperation(Integer adminId, String operationType, String operationDetail,
                               HttpServletRequest request) {
         recordOperation(adminId, operationType, null, null, operationDetail, request);
     }
-    
+
     /**
      * 分页查询操作日志
+     *
+     * @param adminId       管理员ID（可为null）
+     * @param operationType 操作类型（可为null）
+     * @param targetType    目标类型（可为null）
+     * @param startTime     开始时间（可为null）
+     * @param endTime       结束时间（可为null）
+     * @param page          页码
+     * @param size          每页大小
+     * @return 分页日志结果
      */
-    public Page<AdminOperationLog> getOperationLogs(Integer adminId, String operationType, 
-                                                   String targetType, LocalDateTime startTime, 
+    public Page<AdminOperationLog> getOperationLogs(Integer adminId, String operationType,
+                                                   String targetType, LocalDateTime startTime,
                                                    LocalDateTime endTime, int page, int size) {
         Page<AdminOperationLog> pageParam = new Page<>(page, size);
         QueryWrapper<AdminOperationLog> queryWrapper = new QueryWrapper<>();
-        
+
         if (adminId != null) {
             queryWrapper.eq("admin_id", adminId);
         }
@@ -79,18 +103,18 @@ public class AdminOperationLogService {
         if (endTime != null) {
             queryWrapper.le("created_at", endTime);
         }
-        
+
         queryWrapper.orderByDesc("created_at");
         return operationLogMapper.selectPage(pageParam, queryWrapper);
     }
-    
+
     /**
      * 统计操作次数
      */
-    public Long countOperations(Integer adminId, String operationType, LocalDateTime startTime, 
+    public Long countOperations(Integer adminId, String operationType, LocalDateTime startTime,
                                LocalDateTime endTime) {
         QueryWrapper<AdminOperationLog> queryWrapper = new QueryWrapper<>();
-        
+
         if (adminId != null) {
             queryWrapper.eq("admin_id", adminId);
         }
@@ -103,12 +127,12 @@ public class AdminOperationLogService {
         if (endTime != null) {
             queryWrapper.le("created_at", endTime);
         }
-        
+
         return operationLogMapper.selectCount(queryWrapper);
     }
-    
+
     /**
-     * 清理过期日志（保�?80天）
+     * 清理180天前的过期日志
      */
     @Async
     public void cleanExpiredLogs() {
@@ -116,31 +140,31 @@ public class AdminOperationLogService {
             LocalDateTime expireTime = LocalDateTime.now().minusDays(180);
             QueryWrapper<AdminOperationLog> queryWrapper = new QueryWrapper<>();
             queryWrapper.lt("created_at", expireTime);
-            
+
             int deletedCount = operationLogMapper.delete(queryWrapper);
-            log.info("清理过期管理员操作日�? {} �?, deletedCount);
+            log.info("过期操作日志清理完成，共删除 {} 条", deletedCount);
         } catch (Exception e) {
-            log.error("清理过期管理员操作日志失�?, e);
+            log.error("清理过期操作日志失败", e);
         }
     }
-    
+
     /**
-     * 获取客户端IP地址
+     * 获取客户端真实IP
      */
     private String getClientIpAddress(HttpServletRequest request) {
         String xForwardedFor = request.getHeader("X-Forwarded-For");
         if (xForwardedFor != null && !xForwardedFor.isEmpty() && !"unknown".equalsIgnoreCase(xForwardedFor)) {
             return xForwardedFor.split(",")[0].trim();
         }
-        
+
         String xRealIp = request.getHeader("X-Real-IP");
         if (xRealIp != null && !xRealIp.isEmpty() && !"unknown".equalsIgnoreCase(xRealIp)) {
             return xRealIp;
         }
-        
+
         return request.getRemoteAddr();
     }
-    
+
     /**
      * 操作类型常量
      */

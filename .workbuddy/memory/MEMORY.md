@@ -106,4 +106,21 @@ com.xiuxian.game/
 - `--color-primary: #1a1a2e`（深蓝背景）、`--color-gold: #d4af37`（金色）
 - `--color-aqua: #7fffd4`（淡青）、`--color-text: #e8e8e8`（主文字）
 
-*最后更新：2026-03-25（模块边界重构 + 通配符 import 清理全量完成，所有 Service 文件精确 import）*
+## 项目编码规范（基础规范，必须遵守）
+- **全项目统一 UTF-8 无 BOM 编码**，覆盖所有文件类型：`.java`、`.yml`、`.yaml`、`.properties`、`.xml`、`.sql`、`.conf`、`.sh`、`.bat`
+- **已完成全量转换（2026-03-25）**：346 个文件全部验证为有效 UTF-8（无 BOM = 0，非 UTF-8 = 0）
+- **历史问题**：项目曾混用 GBK + UTF-8 BOM 两种编码，导致大量"未结束的字符串文字"编译错误；已全部修复
+- **新建文件必须用 UTF-8 无 BOM**；IDE 需配置 File Encoding = UTF-8，不勾选 "Add BOM"
+- **pom.xml 须声明**：`<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>` + `<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>`
+- PowerShell 批量编码处理脚本逻辑：用 `[System.IO.File]::ReadAllBytes()` + 严格 UTF-8 解码检测，BOM 去除用字节截断（`$rawBytes[3..($rawBytes.Length-1)]`）而非 Encoding API
+- Maven 编译参数：`-Dfile.encoding=UTF-8`（已在 settings.xml 的 JDK8 profile 中配置）
+
+## Admin 模块乱码修复（2026-03-26）
+- **修复范围**：`modules/admin` 目录下 36 个 Java 文件，全部清零乱码
+- **修复文件数**：36 个文件（含 controller 13 个、service 15 个、mapper 2 个、entity 3 个 + 其他 3 个）
+- **乱码类型**：① 注释行乱码（已删除乱码注释行）② 第一行 package 前缀乱码（已重建 package 声明）③ 字符串字面量乱码（log/return/throw/message 中的中文替换为合理占位文本）
+- **修复方式**：Python 脚本分批完整重写（fix_entities.py、fix_batch.py、fix_admin_final.py）
+- **最终状态**：扫描 36 文件，乱码行 = 0，All clean（2026-03-26 二轮扫描确认）
+- **本轮新修复（2026-03-26 第二轮）**：AdminAuthService、AdminMonitoringService、AdminMailController、AdminMonitoringController、AdminPlayerController、AdminSecurityController、AdminStatisticsController（共 7 个文件，全量重写，JavaDoc 注释、字符串字面量全部替换为规范中文）
+
+*最后更新：2026-03-26（admin 模块 36 文件乱码全量清零，二轮确认）*

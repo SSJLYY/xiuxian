@@ -15,39 +15,39 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 /**
- * 安全过滤�?
+ * 安全过滤拦截器
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class SecurityFilter extends OncePerRequestFilter {
-    
+
     private final AccountSecurityService accountSecurityService;
     private final ObjectMapper objectMapper;
-    
+
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, 
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                   FilterChain filterChain) throws ServletException, IOException {
-        
+
         String requestURI = request.getRequestURI();
-        
-        // 跳过静态资源和公开接口
+
+        // 放行：无需过滤的静态资源和公开接口
         if (shouldSkipFilter(requestURI)) {
             filterChain.doFilter(request, response);
             return;
         }
-        
-        // 检查IP黑名�?
+
+        // 检测黑名单IP并拦截
         String clientIp = getClientIpAddress(request);
         if (accountSecurityService.isIpBlacklisted(clientIp)) {
-            log.warn("拒绝黑名单IP访问: ip={}, uri={}", clientIp, requestURI);
-            sendErrorResponse(response, "访问被拒�?);
+            log.warn("黑名单IP尝试访问被拦截: ip={}, uri={}", clientIp, requestURI);
+            sendErrorResponse(response, "拒绝访问：该IP已被禁止");
             return;
         }
-        
+
         filterChain.doFilter(request, response);
     }
-    
+
     private boolean shouldSkipFilter(String requestURI) {
         return requestURI.startsWith("/css/") ||
                requestURI.startsWith("/js/") ||
@@ -72,30 +72,29 @@ public class SecurityFilter extends OncePerRequestFilter {
                requestURI.endsWith(".ttf") ||
                requestURI.endsWith(".eot");
     }
-    
+
     private String getClientIpAddress(HttpServletRequest request) {
         String xForwardedFor = request.getHeader("X-Forwarded-For");
         if (xForwardedFor != null && !xForwardedFor.isEmpty() && !"unknown".equalsIgnoreCase(xForwardedFor)) {
             return xForwardedFor.split(",")[0].trim();
         }
-        
+
         String xRealIp = request.getHeader("X-Real-IP");
         if (xRealIp != null && !xRealIp.isEmpty() && !"unknown".equalsIgnoreCase(xRealIp)) {
             return xRealIp;
         }
-        
+
         return request.getRemoteAddr();
     }
-    
+
     private void sendErrorResponse(HttpServletResponse response, String message) throws IOException {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType("application/json;charset=UTF-8");
-        
+
         ApiResponse<Void> apiResponse = ApiResponse.error(message);
         String jsonResponse = objectMapper.writeValueAsString(apiResponse);
-        
+
         response.getWriter().write(jsonResponse);
         response.getWriter().flush();
     }
 }
-

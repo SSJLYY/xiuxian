@@ -32,32 +32,32 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
                 log.debug("=== DEBUG: JwtAuthenticationFilter ===");
-                log.debug("提取的JWT token: {}", jwt);
+                log.debug("解析JWT token: {}", jwt);
 
                 String username = tokenProvider.getUsernameFromToken(jwt);
-                log.debug("从token中提取的用户�? {}", username);
+                log.debug("从Token获取用户名: {}", username);
 
-                // 跳过管理员token，由AdminSecurityFilter处理
+                // 放行：Admin Token 不走用户认证过滤器
                 if (username != null && username.startsWith("admin_")) {
-                    log.debug("跳过管理员token，由AdminSecurityFilter处理: {}", username);
+                    log.debug("放行：Admin Token 不走用户认证过滤器: {}", username);
                     filterChain.doFilter(request, response);
                     return;
                 }
 
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                    log.debug("成功加载用户: {}", username);
+                    log.debug("加载用户详情: {}", username);
 
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);
-                    log.debug("设置认证上下�? {}", username);
+                    log.debug("安全上下文设置用户认证: {}", username);
                 }
             }
         } catch (Exception ex) {
-            log.error("设置用户认证失败", ex);
+            log.error("安全过滤器处理异常", ex);
         }
 
         filterChain.doFilter(request, response);

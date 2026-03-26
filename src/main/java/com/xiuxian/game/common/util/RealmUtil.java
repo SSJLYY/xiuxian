@@ -2,7 +2,7 @@ package com.xiuxian.game.common.util;
 
 /**
  * 境界工具类
- * 用于比较境界等级
+ * 用于比较境界等级高低
  *
  * @author LevelDesigner
  * @since 2026-03-23
@@ -11,17 +11,17 @@ public class RealmUtil {
 
     // 境界等级定义（从低到高）
     private static final String[] REALMS = {
-        "练气期",
-        "筑基期",
-        "金丹期",
-        "元婴期",
-        "化神期",
-        "渡劫期"
+        "练气境",
+        "筑基境",
+        "金丹境",
+        "元婴境",
+        "化神境",
+        "渡劫境"
     };
 
     /**
      * 比较两个境界
-     * @return 负数：realm1 < realm2，0：相等，正数：realm1 > realm2
+     * @return 负数，realm1 < realm2；零：相等；正数，realm1 > realm2
      */
     public static int compareRealm(String realm1, String realm2) {
         int index1 = getRealmIndex(realm1);
@@ -43,8 +43,8 @@ public class RealmUtil {
             return -1;
         }
 
-        // 提取基础境界（去掉层数）
-        String baseRealm = realm.replaceAll("[一二三四五六七八九十]+层", "").trim();
+        // 提取基础境界（去掉层次前缀）
+        String baseRealm = realm.replaceAll("[一二三四五六七八九]+[重层]+$", "").trim();
 
         for (int i = 0; i < REALMS.length; i++) {
             if (REALMS[i].equals(baseRealm)) {
