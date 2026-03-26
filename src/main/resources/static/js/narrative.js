@@ -224,8 +224,8 @@ class DialogueUI {
             html += `
                 <button class="dialogue-start-btn" onclick="dialogueUI.startDialogue('${dialogue.dialogueKey}')">
                     <i class="fas fa-comment-dots"></i>
-                    <span>${dialogue.title || dialogue.dialogueKey}</span>
-                    <span class="dialogue-scene">${dialogue.scene || ''}</span>
+                    <span>${escapeHtml(dialogue.title || dialogue.dialogueKey)}</span>
+                    <span class="dialogue-scene">${escapeHtml(dialogue.scene || '')}</span>
                 </button>
             `;
         });
@@ -281,9 +281,9 @@ class DialogueUI {
             choicesHtml = '<div class="dialogue-choices">';
             scene.choices.forEach((choice, idx) => {
                 choicesHtml += `
-                    <button class="choice-btn" onclick="dialogueUI.makeChoice('${choice.nodeKey}')">
+                    <button class="choice-btn" onclick="dialogueUI.makeChoice('${escapeHtml(choice.nodeKey)}')">
                         <span class="choice-number">${idx + 1}.</span>
-                        ${choice.text}
+                        ${escapeHtml(choice.text)}
                     </button>
                 `;
             });
@@ -301,14 +301,14 @@ class DialogueUI {
         let html = `
             <div class="narrative-panel dialogue-scene">
                 <div class="dialogue-scene-header">
-                    <span class="scene-location"><i class="fas fa-map-marker-alt"></i> ${scene.scene || ''}</span>
-                    <span class="scene-npc"><i class="fas fa-user"></i> ${scene.npcName || ''}</span>
+                    <span class="scene-location"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(scene.scene || '')}</span>
+                    <span class="scene-npc"><i class="fas fa-user"></i> ${escapeHtml(scene.npcName || '')}</span>
                 </div>
                 
                 <div class="dialogue-area">
                     <div class="dialogue-bubble ${isNpc ? 'npc-bubble' : 'player-bubble'}">
-                        <span class="dialogue-speaker">${line.speaker || ''}</span>
-                        <p class="dialogue-text" id="dialogueText">${line.text}</p>
+                        <span class="dialogue-speaker">${escapeHtml(line.speaker || '')}</span>
+                        <p class="dialogue-text" id="dialogueText">${escapeHtml(line.text)}</p>
                     </div>
                 </div>
 
@@ -533,14 +533,14 @@ function showOfflineEventModal(event) {
         <div class="offline-event-modal">
             <div class="event-header">
                 <i class="fas fa-star" style="color: var(--accent-gold)"></i>
-                <h3>${event.title || '奇遇'}</h3>
+                <h3>${escapeHtml(event.title || '奇遇')}</h3>
             </div>
             <div class="event-narrative">
-                <p>${event.narrative}</p>
+                <p>${escapeHtml(event.narrative)}</p>
             </div>
             ${event.rewards && event.rewards.length > 0 ? `
                 <div class="event-rewards">
-                    ${event.rewards.map(r => `<span class="reward-tag"><i class="fas fa-gift"></i> ${r}</span>`).join('')}
+                    ${event.rewards.map(r => `<span class="reward-tag"><i class="fas fa-gift"></i> ${escapeHtml(r)}</span>`).join('')}
                 </div>
             ` : ''}
             <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()">

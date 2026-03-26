@@ -97,7 +97,7 @@ class GameManager {
             items.forEach(it => {
                 const el = document.createElement('div');
                 el.className = 'skill-shop-item';
-                el.innerHTML = `技能ID: ${it.skillId} 价格: ${it.price} 要求等级: ${it.requiredLevel} <button class="btn btn-primary btn-sm" data-shop="${it.id}">购买</button>`;
+                el.innerHTML = '技能ID: ' + escapeHtml(String(it.skillId)) + ' 价格: ' + escapeHtml(String(it.price)) + ' 要求等级: ' + escapeHtml(String(it.requiredLevel)) + ' <button class="btn btn-primary btn-sm" data-shop="' + escapeHtml(String(it.id)) + '">购买</button>';
                 list.appendChild(el);
             });
             list.querySelectorAll('button[data-shop]').forEach(btn => {
@@ -134,7 +134,7 @@ class GameManager {
             items.forEach(it => {
                 const el = document.createElement('div');
                 el.className = 'shop-item';
-                el.innerHTML = `物品ID: ${it.itemId || ''} 价格: ${it.priceSpiritStones} 库存: ${it.stock} <button class="btn btn-primary btn-sm" data-id="${it.id}">购买</button>`;
+                el.innerHTML = '物品ID: ' + escapeHtml(String(it.itemId || '')) + ' 价格: ' + escapeHtml(String(it.priceSpiritStones)) + ' 库存: ' + escapeHtml(String(it.stock)) + ' <button class="btn btn-primary btn-sm" data-id="' + escapeHtml(String(it.id)) + '">购买</button>';
                 list.appendChild(el);
             });
             list.querySelectorAll('button[data-id]').forEach(btn => {
@@ -170,7 +170,7 @@ class GameManager {
                 const cell = document.createElement('div');
                 cell.className = 'inventory-cell';
                 // 修复背包显示，使用物品的实际名称而不是"Item itemId"的格式
-                cell.innerHTML = `${it.itemName || '未知物品'} x${it.quantity}`;
+                cell.innerHTML = `${escapeHtml(it.itemName || '未知物品')} x${it.quantity}`;
                 grid.appendChild(cell);
             });
         } catch (e) { this.showToast('获取背包失败: '+e.message,'error'); throw e; }
@@ -190,7 +190,7 @@ class GameManager {
                 item.className = 'quest-item';
                 const progress = Math.min(q.currentProgress || 0, q.quest.requiredAmount || 1);
                 const done = !!q.completed;
-                item.innerHTML = `<div><strong>${q.quest.title}</strong> [${q.quest.type}]</div><div>进度 ${progress}/${q.quest.requiredAmount}</div><div>${done?'已完成':'未完成'}</div>`;
+                item.innerHTML = `<div><strong>${escapeHtml(q.quest.title)}</strong> [${escapeHtml(q.quest.type)}]</div><div>进度 ${progress}/${q.quest.requiredAmount}</div><div>${done?'已完成':'未完成'}</div>`;
                 section.appendChild(item);
             });
             list.appendChild(section);
@@ -226,10 +226,10 @@ class GameManager {
                 const done = !!q.completed;
                 item.innerHTML = `
                     <div class="quest-header">
-                        <strong>${q.quest.title}</strong>
-                        <span class="quest-type">${q.quest.type}</span>
+                        <strong>${escapeHtml(q.quest.title)}</strong>
+                        <span class="quest-type">${escapeHtml(q.quest.type)}</span>
                     </div>
-                    <div class="quest-desc">${q.quest.description || ''}</div>
+                    <div class="quest-desc">${escapeHtml(q.quest.description || '')}</div>
                     <div class="quest-progress">进度：${progress}/${q.quest.requiredAmount}</div>
                     <div class="quest-reward">奖励：经验${q.quest.rewardExp}，灵石${q.quest.rewardSpiritStones}，贡献${q.quest.rewardContributionPoints}</div>
                     <div class="quest-actions">

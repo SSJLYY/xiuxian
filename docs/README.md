@@ -37,6 +37,9 @@
 | **[代码审查标准](./standards/CODE-REVIEW-STANDARDS.md)** | **检查清单、优先级定义、审查规范** |
 | **[代码审查流程](./standards/CODE-REVIEW-PROCESS.md)** | **PR流程、角色职责、工具使用** |
 | **[代码审查模板](./standards/CODE-REVIEW-TEMPLATES.md)** | **标准化审查评论模板、示例** |
+| **[代码审查快速检查清单](./standards/CODE-REVIEW-CHECKLIST.md)** | **日常审查、自查的快速参考工具** |
+| **[代码审查快速上手指南](./standards/CODE-REVIEW-QUICKSTART.md)** | **5分钟了解代码审查,10分钟开始第一次审查** |
+| **[代码审查改进方案](./standards/CODE-REVIEW-IMPROVEMENT-PLAN.md)** | **系统化改进计划、实施方案、ROI分析(2026-03-26)** |
 | [后端编码规范](./standards/BACKEND-CODING-STANDARDS.md) | 异常处理、事务、日志、并发规范 |
 | [ErrorCode 手册](./standards/ERROR-CODE-REFERENCE.md) | 全部错误码分段说明 |
 | [性能优化指南](./standards/PERFORMANCE-GUIDE.md) | 数据库索引、N+1优化、前端懒加载、缓存策略 |

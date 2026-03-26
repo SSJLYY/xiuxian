@@ -63,8 +63,8 @@ function displayActiveActivities(activities) {
     container.innerHTML = activities.map(activity => `
         <div class="activity-card">
             <div class="p-4 border-b border-gray-200">
-                <h3 class="font-bold text-lg">${activity.name}</h3>
-                <p class="text-gray-600 text-sm">${activity.description}</p>
+                <h3 class="font-bold text-lg">${escapeHtml(activity.name)}</h3>
+                <p class="text-gray-600 text-sm">${escapeHtml(activity.description)}</p>
             </div>
             <div class="p-4">
                 <div class="flex justify-between items-center mb-3">
@@ -130,10 +130,10 @@ function displayAllActivities(activities) {
             <div class="activity-history-card border-l-4 border-blue-500">
                 <div class="p-4">
                     <div class="flex justify-between items-start">
-                        <h4 class="font-bold text-lg">${activity.name}</h4>
+                        <h4 class="font-bold text-lg">${escapeHtml(activity.name)}</h4>
                         <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">进行中</span>
                     </div>
-                    <p class="text-gray-600 text-sm mt-2">${activity.description}</p>
+                    <p class="text-gray-600 text-sm mt-2">${escapeHtml(activity.description)}</p>
                     <div class="flex justify-between items-center mt-3">
                         <span class="text-gray-600">时间:</span>
                         <span class="font-semibold">${formatDateTime(activity.startTime)} - ${formatDateTime(activity.endTime)}</span>
@@ -152,10 +152,10 @@ function displayAllActivities(activities) {
             <div class="activity-history-card border-l-4 border-gray-500">
                 <div class="p-4">
                     <div class="flex justify-between items-start">
-                        <h4 class="font-bold text-lg">${activity.name}</h4>
+                        <h4 class="font-bold text-lg">${escapeHtml(activity.name)}</h4>
                         <span class="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">已结束</span>
                     </div>
-                    <p class="text-gray-600 text-sm mt-2">${activity.description}</p>
+                    <p class="text-gray-600 text-sm mt-2">${escapeHtml(activity.description)}</p>
                     <div class="flex justify-between items-center mt-3">
                         <span class="text-gray-600">时间:</span>
                         <span class="font-semibold">${formatDateTime(activity.startTime)} - ${formatDateTime(activity.endTime)}</span>
@@ -198,7 +198,7 @@ function displayActivitiesForRanking(activities) {
     }
     
     select.innerHTML = activities.map(activity => `
-        <option value="${activity.id}">${activity.name}</option>
+        <option value="${activity.id}">${escapeHtml(activity.name)}</option>
     `).join('');
     
     // 默认加载第一个活动的排行
@@ -308,21 +308,21 @@ function displayActivityDetails(activity) {
     if (!modalBody) return;
     
     modalBody.innerHTML = `
-        <h2 class="text-2xl font-bold mb-4">${activity.name}</h2>
+        <h2 class="text-2xl font-bold mb-4">${escapeHtml(activity.name)}</h2>
         <div class="mb-4">
             <h3 class="text-lg font-bold mb-2">活动说明</h3>
-            <p class="text-gray-700">${activity.description}</p>
+            <p class="text-gray-700">${escapeHtml(activity.description)}</p>
         </div>
         <div class="mb-4">
             <h3 class="text-lg font-bold mb-2">活动规则</h3>
             <div class="bg-gray-50 p-3 rounded">
-                <pre class="whitespace-pre-wrap text-sm">${activity.rules || '暂无详细规则'}</pre>
+                <pre class="whitespace-pre-wrap text-sm">${escapeHtml(activity.rules || '暂无详细规则')}</pre>
             </div>
         </div>
         <div class="mb-4">
             <h3 class="text-lg font-bold mb-2">奖励</h3>
             <div class="bg-gray-50 p-3 rounded">
-                <pre class="whitespace-pre-wrap text-sm">${activity.rewards || '暂无详细奖励'}</pre>
+                <pre class="whitespace-pre-wrap text-sm">${escapeHtml(activity.rewards || '暂无详细奖励')}</pre>
             </div>
         </div>
         <div class="flex justify-between items-center mb-4">

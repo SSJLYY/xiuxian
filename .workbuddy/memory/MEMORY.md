@@ -123,4 +123,18 @@ com.xiuxian.game/
 - **最终状态**：扫描 36 文件，乱码行 = 0，All clean（2026-03-26 二轮扫描确认）
 - **本轮新修复（2026-03-26 第二轮）**：AdminAuthService、AdminMonitoringService、AdminMailController、AdminMonitoringController、AdminPlayerController、AdminSecurityController、AdminStatisticsController（共 7 个文件，全量重写，JavaDoc 注释、字符串字面量全部替换为规范中文）
 
-*最后更新：2026-03-26（admin 模块 36 文件乱码全量清零，二轮确认）*
+*最后更新：2026-03-26（admin 模块 36 文件乱码全量清零，二轮确认；新增代码审查改进方案文档）*
+
+## 安全审计修复（2026-03-26）
+
+### 修复的 Blocker/安全问题
+- **P0 AdminAuthService**: 明文密码 `adminPassword.equals()` → `passwordEncoder.matches()`
+- **P0 application.properties**: 明文密码 `password` → BCrypt hash `$2a$10$VsL8ka2FX0nyLWsFoNalZe07L47vTJrikM6C8oC8RxkIr076xhpTW`（Python生成）
+- **P1 JwtAuthenticationFilter**: 完整 token 日志 → 截断为前8字符 `maskedToken`
+- **P1 全项目 XSS 修复**: 在 `api.js`（全局加载）中添加 `escapeHtml` 函数，对 22 个 JS 文件中所有 `innerHTML` + 用户可控数据进行 escapeHtml 包裹
+- **已修复的 JS 文件**：admin.js、pets.js、activity.js、auction.js、skills.js、config-management.js、game.js、modules.js、narrative.js、inventory.js、guild-boss.js、enhanced_combat.js、game-map.js、achievement-panel.js、breakthrough-evolution.js、modern-ui.js、combo-pokedex.js、checkin.js、log-management.js、utils.js
+- **已修复的 HTML 文件**：admin.html（内联脚本中所有用户数据字段）
+- **已有防护的文件**（无需修改）：mail.js（自有escapeHtml）、announcement.js、achievement.js、ranking.js、guild.js
+- **验证结果**：自动化扫描 `innerHTML + ${ 且无 escapeHtml` = 0 行（全量通过）
+- **SQL注入审计**：全项目 MyBatis XML 均使用 `#{}` 参数化查询，无 `${}` 注入风险
+- **认证审计**：游戏端/管理端双认证独立，JWT + AdminSecurityFilter 正常工作

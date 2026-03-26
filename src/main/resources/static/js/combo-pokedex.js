@@ -388,7 +388,7 @@ class PetPokedexSystem {
             grid.innerHTML = pets.map(pet => `
                 <div class="pdx-card ${pet.isCollected ? 'pdx-card--collected' : 'pdx-card--locked'} rarity-${pet.rarity || 1}">
                     <div class="pdx-card-emoji">${pet.isCollected ? this.getPetEmoji(pet.id) : '❓'}</div>
-                    <div class="pdx-card-name">${pet.isCollected ? pet.name : '???'}</div>
+                    <div class="pdx-card-name">${pet.isCollected ? escapeHtml(pet.name) : '???'}</div>
                     <div class="pdx-card-rarity">${this.getRarityName(pet.rarity)}</div>
                     ${pet.isCollected ? `
                         <div class="pdx-card-level">Lv.${pet.myPetData?.level || 1}</div>

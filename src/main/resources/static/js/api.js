@@ -1,3 +1,11 @@
+// XSS防护：HTML转义函数（全局可用）
+function escapeHtml(text) {
+    if (text == null) return '';
+    const str = String(text);
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+    return str.replace(/[&<>"']/g, c => map[c]);
+}
+
 // API配置
 const API_CONFIG = {
     baseURL: '/api',

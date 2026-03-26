@@ -63,7 +63,7 @@ public class Skill {
     @TableField(value = "animation")
     private String animation;
 
-    // 鏂板锛氭妧鑳借鍔ㄥ睘鎬у姞鎴?
+    // 新增：技能被动属性加成
     @TableField(value = "health_bonus")
     @Builder.Default
     private Integer healthBonus = 0; // 生命值加成

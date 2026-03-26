@@ -315,7 +315,7 @@ class SimpleUI {
         
         list.innerHTML = skills.map(skill => `
             <div class="skill-card" style="background:#16213e;padding:15px;border-radius:8px;margin:10px;">
-                <h4 style="margin:10px 0;">${skill.skillName || '未知技能'}</h4>
+                <h4 style="margin:10px 0;">${escapeHtml(skill.skillName || '未知技能')}</h4>
                 <p>等级: ${skill.level || 1}</p>
                 <p>伤害: ${skill.damage || 0}</p>
             </div>
@@ -354,7 +354,7 @@ class SimpleUI {
         
         list.innerHTML = pets.map(pet => `
             <div class="pet-card" style="background:#16213e;padding:15px;border-radius:8px;margin:10px;">
-                <h4 style="margin:10px 0;">${pet.nickname || '未命名'}</h4>
+                <h4 style="margin:10px 0;">${escapeHtml(pet.nickname || '未命名')}</h4>
                 <p>等级: ${pet.level || 1}</p>
             </div>
         `).join('');

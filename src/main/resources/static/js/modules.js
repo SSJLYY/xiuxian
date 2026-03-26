@@ -252,10 +252,10 @@ class ModuleManager {
         mailList.innerHTML = mails.map(mail => `
             <div class="mail-item ${mail.isRead ? '' : 'unread'}" onclick="openMail(${mail.id})">
                 <div class="mail-header">
-                    <h4>${mail.title}</h4>
+                    <h4>${escapeHtml(mail.title)}</h4>
                     <span class="mail-time">${this.formatDate(mail.createdAt)}</span>
                 </div>
-                <p class="mail-content">${mail.content}</p>
+                <p class="mail-content">${escapeHtml(mail.content)}</p>
                 ${mail.hasAttachment ? '<div class="mail-attachment"><i class="fas fa-paperclip"></i> 有附件</div>' : ''}
                 ${!mail.isRead ? '<div class="unread-indicator">未读</div>' : ''}
             </div>
@@ -443,18 +443,18 @@ function showMailModal(mail) {
     modal.innerHTML = `
         <div class="modal-content">
             <div class="modal-header">
-                <h3>${mail.title}</h3>
+                <h3>${escapeHtml(mail.title)}</h3>
                 <button class="close" onclick="this.closest('.modal').remove()">&times;</button>
             </div>
             <div class="modal-body">
                 <p><strong>发送时间:</strong> ${moduleManager.formatDate(mail.createdAt)}</p>
-                <div class="mail-content">${mail.content}</div>
+                <div class="mail-content">${escapeHtml(mail.content)}</div>
                 ${mail.attachments && mail.attachments.length > 0 ? `
                     <div class="mail-attachments">
                         <h4>附件:</h4>
                         ${mail.attachments.map(att => `
                             <div class="attachment-item">
-                                <span>${att.itemName} x${att.quantity}</span>
+                                <span>${escapeHtml(att.itemName)} x${att.quantity}</span>
                                 <button class="btn btn-primary btn-sm" onclick="claimAttachment(${mail.id}, ${att.id})">
                                     领取
                                 </button>

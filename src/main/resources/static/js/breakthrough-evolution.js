@@ -275,7 +275,7 @@ class BreakthroughSystem {
                 if (data.attackIncrease) attrs.push(`⚔️ 攻击 +${data.attackIncrease}`);
                 if (data.defenseIncrease) attrs.push(`🛡️ 防御 +${data.defenseIncrease}`);
                 if (data.expGained) attrs.push(`✨ 经验 +${data.expGained}`);
-                attrsEl.innerHTML = attrs.map(a => `<span class="bt-attr-chip">${a}</span>`).join('');
+                attrsEl.innerHTML = attrs.map(a => '<span class="bt-attr-chip">' + escapeHtml(String(a)) + '</span>').join('');
             }
         } else {
             content.innerHTML = `
@@ -845,7 +845,7 @@ class PetEvolutionSystem {
                         <div style="display:flex;align-items:center;gap:12px;">
                             <div style="font-size:48px;">${this.getPetEmoji(pet.petId)}</div>
                             <div>
-                                <div style="font-size:18px;font-weight:bold;color:#d4af37;">${pet.nickname || '灵兽'}</div>
+                                <div style="font-size:18px;font-weight:bold;color:#d4af37;">${escapeHtml(pet.nickname || '灵兽')}</div>
                                 <div style="color:#a0a0a0;">Lv.${pet.level} | 忠诚:${pet.loyalty}</div>
                                 <div style="color:#888;font-size:12px;">生命:${pet.health}/${pet.maxHealth} 攻击:${pet.attack} 防御:${pet.defense}</div>
                             </div>

@@ -237,15 +237,15 @@ function displayPlayerItems(items, itemType) {
         
         switch (itemType) {
             case 'ITEM':
-                itemName = item.item ? item.item.name : `物品-${item.itemId}`;
+                itemName = item.item ? escapeHtml(item.item.name) : `物品-${item.itemId}`;
                 itemDetails = `${item.quantity}个`;
                 break;
             case 'EQUIPMENT':
-                itemName = item.equipment ? item.equipment.name : `装备-${item.equipmentId}`;
+                itemName = item.equipment ? escapeHtml(item.equipment.name) : `装备-${item.equipmentId}`;
                 itemDetails = `攻击+${item.attackBonus} 防御+${item.defenseBonus}`;
                 break;
             case 'PET':
-                itemName = item.pet ? item.pet.name : `宠物-${item.petId}`;
+                itemName = item.pet ? escapeHtml(item.pet.name) : `宠物-${item.petId}`;
                 itemDetails = `等级${item.level}`;
                 break;
         }

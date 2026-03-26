@@ -100,7 +100,7 @@
     userList.innerHTML = '';
     (users?.data || []).forEach(u => {
       const row = document.createElement('div');
-      row.innerHTML = `${u.id} ${u.username} ${u.role} <button data-id="${u.id}" data-role="ADMIN">设为ADMIN</button> <button data-id="${u.id}" data-role="USER">设为USER</button>`;
+      row.innerHTML = `${escapeHtml(String(u.id))} ${escapeHtml(u.username)} ${escapeHtml(u.role)} <button data-id="${escapeHtml(String(u.id))}" data-role="ADMIN">设为ADMIN</button> <button data-id="${escapeHtml(String(u.id))}" data-role="USER">设为USER</button>`;
       userList.appendChild(row);
     });
     userList.querySelectorAll('button[data-id]').forEach(btn => {
@@ -117,7 +117,7 @@
     shopBox.innerHTML = '';
     (shop?.data || []).forEach(it => {
       const row = document.createElement('div');
-      row.innerHTML = `ID:${it.id} item:${it.itemId} 价:${it.priceSpiritStones} 存:${it.stock}`;
+      row.innerHTML = 'ID:' + escapeHtml(String(it.id)) + ' item:' + escapeHtml(String(it.itemId)) + ' 价:' + escapeHtml(String(it.priceSpiritStones)) + ' 存:' + escapeHtml(String(it.stock));
       shopBox.appendChild(row);
     });
 
@@ -126,7 +126,7 @@
     skillBox.innerHTML = '';
     (skill?.data || []).forEach(it => {
       const row = document.createElement('div');
-      row.innerHTML = `ID:${it.id} skill:${it.skillId} 价:${it.price} 等:${it.requiredLevel}`;
+      row.innerHTML = 'ID:' + escapeHtml(String(it.id)) + ' skill:' + escapeHtml(String(it.skillId)) + ' 价:' + escapeHtml(String(it.price)) + ' 等:' + escapeHtml(String(it.requiredLevel));
       skillBox.appendChild(row);
     });
   }

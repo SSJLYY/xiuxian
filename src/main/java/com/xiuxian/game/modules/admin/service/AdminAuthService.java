@@ -6,6 +6,7 @@ import com.xiuxian.game.common.security.JwtTokenProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * 管理员认证服务
  * 负责管理员登录、Token 验证与注销
+ * 密码验证使用 BCrypt（passwordEncoder.matches），配置中存储 BCrypt 哈希值
  *
  * @author shaun.sheng
  */
@@ -24,10 +26,13 @@ public class AdminAuthService {
     private String adminUsername;
 
     @Value("${spring.security.user.password}")
-    private String adminPassword;
+    private String adminPassword; // BCrypt 哈希值，如 $2a$10$xxxx
 
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     private final ConcurrentHashMap<String, String> adminTokenCache = new ConcurrentHashMap<>();
 
@@ -52,7 +57,8 @@ public class AdminAuthService {
                 return AdminLoginResponse.error("用户名或密码错误");
             }
 
-            if (!adminPassword.equals(request.getPassword())) {
+            // BCrypt 密码验证（adminPassword 配置中存储的是哈希值）
+            if (!passwordEncoder.matches(request.getPassword(), adminPassword)) {
                 return AdminLoginResponse.error("用户名或密码错误");
             }
 

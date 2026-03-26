@@ -892,6 +892,14 @@
     <script src="js/admin-api.js"></script>
     <script src="js/admin-auth.js"></script>
     <script>
+        // 全局 XSS 防护：HTML 转义函数
+        function escapeHtml(text) {
+            if (text == null) return '';
+            var str = String(text);
+            var map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return str.replace(/[&<>"']/g, function(c) { return map[c]; });
+        }
+
         // 全局变量
         let currentPage = 1;
         let totalPages = 1;
@@ -1096,12 +1104,12 @@
 
             tbody.innerHTML = data.records.map(player => `
                 <tr>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${player.id}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${player.nickname}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${player.level}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${player.realm}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${player.spiritStones}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDateTime(player.lastOnlineTime)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(String(player.id))}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${escapeHtml(player.nickname)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(String(player.level))}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(player.realm)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(String(player.spiritStones))}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(formatDateTime(player.lastOnlineTime))}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button onclick="showPlayerDetail(${player.id})" class="text-indigo-600 hover:text-indigo-900 mr-2">
                             <i class="fas fa-eye"></i> 查看
@@ -1109,7 +1117,7 @@
                         <button onclick="showEditPlayerModal(${player.id})" class="text-blue-600 hover:text-blue-900 mr-2">
                             <i class="fas fa-edit"></i> 编辑
                         </button>
-                        <button onclick="banPlayer(${player.userId}, '${player.nickname}')" class="text-red-600 hover:text-red-900">
+                        <button onclick="banPlayer(${player.userId}, '${escapeHtml(player.nickname)}')" class="text-red-600 hover:text-red-900">
                             <i class="fas fa-ban"></i> 封禁
                         </button>
                     </td>
@@ -1315,10 +1323,10 @@
                 case 'items':
                     tbody.innerHTML = data.records.map(item => `
                         <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.id}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.name}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.type || ''}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.description || ''}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(String(item.id))}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${escapeHtml(item.name)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(item.type || '')}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(item.description || '')}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <button onclick="editContent(${item.id})" class="text-indigo-600 hover:text-indigo-900 mr-2">
                                     <i class="fas fa-edit"></i> 编辑
@@ -1333,10 +1341,10 @@
                 case 'equipments':
                     tbody.innerHTML = data.records.map(equipment => `
                         <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${equipment.id}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${equipment.name}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${equipment.slot || ''}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${equipment.rarity || ''}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(String(equipment.id))}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${escapeHtml(equipment.name)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(equipment.slot || '')}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(equipment.rarity || '')}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <button onclick="editContent(${equipment.id})" class="text-indigo-600 hover:text-indigo-900 mr-2">
                                     <i class="fas fa-edit"></i> 编辑
@@ -1351,10 +1359,10 @@
                 case 'skills':
                     tbody.innerHTML = data.records.map(skill => `
                         <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${skill.id}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${skill.name}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${skill.type || ''}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${skill.manaCost || 0}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(String(skill.id))}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${escapeHtml(skill.name)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(skill.type || '')}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(String(skill.manaCost || 0))}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <button onclick="editContent(${skill.id})" class="text-indigo-600 hover:text-indigo-900 mr-2">
                                     <i class="fas fa-edit"></i> 编辑
@@ -1370,11 +1378,11 @@
                 case 'monsters':
                     tbody.innerHTML = data.records.map(entity => `
                         <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${entity.id}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${entity.name}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${entity.level || 1}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${entity.health || 0}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${entity.attack || 0}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(String(entity.id))}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${escapeHtml(entity.name)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(String(entity.level || 1))}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(String(entity.health || 0))}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(String(entity.attack || 0))}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <button onclick="editContent(${entity.id})" class="text-indigo-600 hover:text-indigo-900 mr-2">
                                     <i class="fas fa-edit"></i> 编辑
@@ -1470,11 +1478,11 @@
 
             tbody.innerHTML = data.map(stat => `
                 <tr>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${stat.statDate}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${stat.newPlayers || 0}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${stat.activePlayers || 0}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${stat.totalRecharge || 0}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${stat.payingPlayers || 0}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(String(stat.statDate))}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(String(stat.newPlayers || 0))}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(String(stat.activePlayers || 0))}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(String(stat.totalRecharge || 0))}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(String(stat.payingPlayers || 0))}</td>
                 </tr>
             `).join('');
         }
@@ -1670,15 +1678,15 @@
 
             tbody.innerHTML = data.records.map(feedback => `
                 <tr>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${feedback.id}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${feedback.playerId}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${feedback.title}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(String(feedback.id))}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(String(feedback.playerId))}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${escapeHtml(feedback.title)}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         ${feedback.isRead ? 
                             '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">已读</span>' : 
                             '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">未读</span>'}
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDateTime(feedback.createdAt)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(formatDateTime(feedback.createdAt))}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button onclick="viewFeedbackDetail(${feedback.id})" class="text-indigo-600 hover:text-indigo-900 mr-2">
                             <i class="fas fa-eye"></i> 查看

@@ -194,9 +194,9 @@ class LogManagement {
             row.innerHTML = `
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${log.id}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${log.playerId}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${log.ipAddress || '-'}</td>
-                <td class="px-6 py-4 text-sm text-gray-900" title="${log.deviceInfo || '-'}">
-                    ${this.truncateText(log.deviceInfo || '-', 30)}
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${escapeHtml(log.ipAddress || '-')}</td>
+                <td class="px-6 py-4 text-sm text-gray-900" title="${escapeHtml(log.deviceInfo || '-')}">
+                    ${escapeHtml(this.truncateText(log.deviceInfo || '-', 30))}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${this.formatDateTime(log.loginAt)}</td>
             `;
@@ -266,9 +266,9 @@ class LogManagement {
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${log.id}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${log.adminId}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${this.getOperationTypeName(log.operationType)}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${log.targetType || '-'}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${log.targetId || '-'}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${log.ipAddress || '-'}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${escapeHtml(log.targetType || '-')}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${escapeHtml(log.targetId || '-')}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${escapeHtml(log.ipAddress || '-')}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${this.formatDateTime(log.createdAt)}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     <button onclick="logManagement.showOperationDetail(${log.id})" class="text-blue-600 hover:text-blue-900">查看详情</button>
@@ -331,23 +331,23 @@ class LogManagement {
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">操作类型</label>
-                    <p class="mt-1 text-sm text-gray-900">${detail.operationType}</p>
+                    <p class="mt-1 text-sm text-gray-900">${escapeHtml(detail.operationType)}</p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">目标类型</label>
-                    <p class="mt-1 text-sm text-gray-900">${detail.targetType}</p>
+                    <p class="mt-1 text-sm text-gray-900">${escapeHtml(detail.targetType)}</p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">目标ID</label>
-                    <p class="mt-1 text-sm text-gray-900">${detail.targetId}</p>
+                    <p class="mt-1 text-sm text-gray-900">${escapeHtml(detail.targetId)}</p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">IP地址</label>
-                    <p class="mt-1 text-sm text-gray-900">${detail.ipAddress}</p>
+                    <p class="mt-1 text-sm text-gray-900">${escapeHtml(detail.ipAddress)}</p>
                 </div>
                 <div class="col-span-2">
                     <label class="block text-sm font-medium text-gray-700">操作时间</label>
-                    <p class="mt-1 text-sm text-gray-900">${detail.createdAt}</p>
+                    <p class="mt-1 text-sm text-gray-900">${this.formatDateTime(detail.createdAt)}</p>
                 </div>
             </div>
         `;

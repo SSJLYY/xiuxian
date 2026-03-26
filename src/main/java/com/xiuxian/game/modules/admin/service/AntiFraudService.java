@@ -10,9 +10,11 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -22,6 +24,38 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 @RequiredArgsConstructor
 public class AntiFraudService {
+    
+    // ========== 风控阈值常量 ==========
+    
+    /** 1小时内不同IP登录数量阈值 */
+    private static final int MULTIPLE_IP_THRESHOLD = 3;
+    /** 10分钟内登录次数阈值 */
+    private static final int HIGH_FREQUENCY_LOGIN_THRESHOLD = 20;
+    /** 等级异常提升阈值（1小时内） */
+    private static final int LEVEL_INCREASE_THRESHOLD = 10;
+    /** 异常行为触发自动封禁的累计次数 */
+    private static final int AUTO_BAN_THRESHOLD = 5;
+    /** 行为计数器过期时间（毫秒）：2小时 */
+    private static final long COUNTER_EXPIRE_MS = 2L * 60 * 60 * 1000;
+    
+    /** 资源异常增长阈值（单位：单次增长量） */
+    private static final Map<String, Long> RESOURCE_THRESHOLDS = Collections.unmodifiableMap(new HashMap<>() {{
+        put("SPIRIT_STONES", 100000L); // 灵石一次增长超过10万
+        put("EXP", 50000L);            // 经验一次增长超过5万
+        put("YUANBAO", 10000L);        // 元宝一次增长超过1万
+    }});
+    
+    /** 操作频率阈值（单位：指定时间窗口内次数） */
+    private static final Map<String, Integer> OPERATION_FREQUENCY_THRESHOLDS = Collections.unmodifiableMap(new HashMap<>() {{
+        put("CLAIM_MAIL", 50);  // 1小时内领取邮件超过50次
+        put("SHOP_BUY", 100);   // 1小时内购买超过100次
+        put("COMBAT", 200);     // 1小时内战斗超过200次
+    }});
+    
+    /** 操作频率默认阈值 */
+    private static final int DEFAULT_OPERATION_FREQUENCY_THRESHOLD = 100;
+    
+    // ========== 依赖注入 ==========
     
     private final PlayerService playerService; // module boundary: access player data via PlayerService
     private final AdminOperationLogService adminOperationLogService;
@@ -35,6 +69,10 @@ public class AntiFraudService {
     @Async
     public void detectLoginAbnormal(Integer playerId, String ipAddress) {
         try {
+            if (playerId == null || playerId <= 0) {
+                return;
+            }
+
             // 检测短时间内多IP登录
             if (detectMultipleIpLogin(playerId)) {
                 recordAbnormalBehavior(playerId, "MULTIPLE_IP_LOGIN", "短时间内多IP登录", ipAddress);
@@ -56,6 +94,15 @@ public class AntiFraudService {
     @Async
     public void detectResourceAbnormal(Integer playerId, String resourceType, long oldValue, long newValue) {
         try {
+            if (playerId == null || playerId <= 0 || resourceType == null || resourceType.isBlank()) {
+                return;
+            }
+
+            // 资源减少或不变，不视为异常增长
+            if (newValue <= oldValue) {
+                return;
+            }
+
             long increase = newValue - oldValue;
             
             // 检测资源异常增长
@@ -75,6 +122,10 @@ public class AntiFraudService {
     @Async
     public void detectOperationFrequencyAbnormal(Integer playerId, String operationType) {
         try {
+            if (playerId == null || playerId <= 0 || operationType == null || operationType.isBlank()) {
+                return;
+            }
+
             AbnormalBehaviorCounter counter = behaviorCounters.computeIfAbsent(playerId, 
                     k -> new AbnormalBehaviorCounter());
             
@@ -94,10 +145,19 @@ public class AntiFraudService {
     @Async
     public void detectLevelAbnormal(Integer playerId, int oldLevel, int newLevel) {
         try {
+            if (playerId == null || playerId <= 0 || oldLevel < 0 || newLevel < 0) {
+                return;
+            }
+
+            // 等级未变化或下降，不视为异常提升
+            if (newLevel <= oldLevel) {
+                return;
+            }
+
             int levelIncrease = newLevel - oldLevel;
             
-            // 检测等级异常提升（1小时内提升超�?0级）
-            if (levelIncrease > 10) {
+            // 检测等级异常提升（1小时内提升超过阈值）
+            if (levelIncrease > LEVEL_INCREASE_THRESHOLD) {
                 recordAbnormalBehavior(playerId, "ABNORMAL_LEVEL_INCREASE", 
                         String.format("等级异常提升: 从%d级提升到%d级", oldLevel, newLevel), null);
             }
@@ -112,6 +172,11 @@ public class AntiFraudService {
      */
     private void handleAutoBan(Integer playerId, String reason) {
         try {
+            if (playerId == null || playerId <= 0 || reason == null || reason.isBlank()) {
+                log.warn("自动封禁参数无效，跳过: playerId={}, reason={}", playerId, reason);
+                return;
+            }
+
             // 更新用户状态为封禁
             playerService.banUser(playerId, "BANNED");
             User user = playerService.getUserById(playerId);
@@ -144,7 +209,7 @@ public class AntiFraudService {
                     playerId, behaviorType, description, ipAddress);
             
             // 如果异常行为次数过多，自动封禁
-            if (counter.getTotalAbnormalCount() >= 5) {
+            if (counter.getTotalAbnormalCount() >= AUTO_BAN_THRESHOLD) {
                 handleAutoBan(playerId, "多次异常行为: " + description);
             }
             
@@ -161,7 +226,7 @@ public class AntiFraudService {
         
         List<PlayerLoginLog> logs = playerService.getRecentLoginLogs(playerId, oneHourAgo);
         long distinctIps = logs.stream().map(PlayerLoginLog::getIpAddress).distinct().count();
-        return distinctIps > 3; // 1小时内超过3个不同IP登录
+        return distinctIps > MULTIPLE_IP_THRESHOLD;
     }
     
     /**
@@ -171,19 +236,14 @@ public class AntiFraudService {
         LocalDateTime tenMinutesAgo = LocalDateTime.now().minusMinutes(10);
         
         long count = playerService.countRecentLogins(playerId, tenMinutesAgo);
-        return count > 20; // 10分钟内登录超过20次
+        return count > HIGH_FREQUENCY_LOGIN_THRESHOLD;
     }
     
     /**
-     * 检测资源异常增长
+     * 检测资源异常增长（传入已校验的 resourceType）
      */
     private boolean isAbnormalResourceIncrease(String resourceType, long increase) {
-        Map<String, Long> thresholds = new HashMap<>();
-        thresholds.put("SPIRIT_STONES", 100000L); // 灵石一次增长超过10万
-        thresholds.put("EXP", 50000L); // 经验一次增长超过5万
-        thresholds.put("YUANBAO", 10000L); // 元宝一次增长超过1万
-        
-        Long threshold = thresholds.get(resourceType);
+        Long threshold = RESOURCE_THRESHOLDS.get(resourceType);
         return threshold != null && increase > threshold;
     }
     
@@ -215,13 +275,7 @@ public class AntiFraudService {
             lastUpdateTime = System.currentTimeMillis();
             int count = operationCounts.merge(operationType, 1, Integer::sum);
             
-            // 不同操作类型的频率阈值
-            Map<String, Integer> thresholds = new HashMap<>();
-            thresholds.put("CLAIM_MAIL", 50); // 1小时内领取邮件超过50次
-            thresholds.put("SHOP_BUY", 100); // 1小时内购买超过100次
-            thresholds.put("COMBAT", 200); // 1小时内战斗超过200次
-            
-            Integer threshold = thresholds.getOrDefault(operationType, 100);
+            int threshold = OPERATION_FREQUENCY_THRESHOLDS.getOrDefault(operationType, DEFAULT_OPERATION_FREQUENCY_THRESHOLD);
             return count > threshold;
         }
         
@@ -235,8 +289,7 @@ public class AntiFraudService {
         }
         
         public boolean isExpired() {
-            // 2小时未更新则认为过期
-            return System.currentTimeMillis() - lastUpdateTime > 2 * 60 * 60 * 1000;
+            return System.currentTimeMillis() - lastUpdateTime > COUNTER_EXPIRE_MS;
         }
     }
 }

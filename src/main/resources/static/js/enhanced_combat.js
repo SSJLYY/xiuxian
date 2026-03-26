@@ -140,8 +140,8 @@ async function showItems() {
             return `
                 <div class="item-card p-3 border rounded hover:bg-green-50 cursor-pointer" 
                      onclick="useItem(${item.id})">
-                    <h4 class="font-bold">${itemTemplate?.name || '未知道具'}</h4>
-                    <p class="text-sm text-gray-600">${itemTemplate?.description || ''}</p>
+                    <h4 class="font-bold">${escapeHtml(itemTemplate?.name || '未知道具')}</h4>
+                    <p class="text-sm text-gray-600">${escapeHtml(itemTemplate?.description || '')}</p>
                     <div class="flex justify-between mt-2 text-sm">
                         <span>数量: ${item.quantity}</span>
                     </div>

@@ -65,7 +65,7 @@ class GuildBossSystem {
                         </div>
                     </div>
                     
-                    <p class="boss-desc">${boss.description || ''}</p>
+                    <p class="boss-desc">${escapeHtml(boss.description || '')}</p>
                     
                     <!-- 血条 -->
                     <div class="boss-health-bar-wrap">

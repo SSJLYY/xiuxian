@@ -3,23 +3,17 @@ package com.xiuxian.game.modules.narrative.service;
 // narrative module entities
 import com.xiuxian.game.modules.narrative.entity.DialogueNode;
 import com.xiuxian.game.modules.narrative.entity.DialogueTree;
-import com.xiuxian.game.modules.narrative.entity.LoreEntry;
 import com.xiuxian.game.modules.narrative.entity.Npc;
 import com.xiuxian.game.modules.narrative.entity.NpcDailyDialogue;
-import com.xiuxian.game.modules.narrative.entity.OfflineNarrativeEvent;
 import com.xiuxian.game.modules.narrative.entity.PlayerDialogueState;
-import com.xiuxian.game.modules.narrative.entity.PlayerLoreCollection;
 import com.xiuxian.game.modules.narrative.entity.PlayerNarrativeFlag;
 import com.xiuxian.game.modules.narrative.entity.PlayerNpcRelation;
 // narrative module mappers (same module — OK)
 import com.xiuxian.game.modules.narrative.mapper.DialogueNodeMapper;
 import com.xiuxian.game.modules.narrative.mapper.DialogueTreeMapper;
-import com.xiuxian.game.modules.narrative.mapper.LoreEntryMapper;
 import com.xiuxian.game.modules.narrative.mapper.NpcDailyDialogueMapper;
 import com.xiuxian.game.modules.narrative.mapper.NpcMapper;
-import com.xiuxian.game.modules.narrative.mapper.OfflineNarrativeEventMapper;
 import com.xiuxian.game.modules.narrative.mapper.PlayerDialogueStateMapper;
-import com.xiuxian.game.modules.narrative.mapper.PlayerLoreCollectionMapper;
 import com.xiuxian.game.modules.narrative.mapper.PlayerNarrativeFlagMapper;
 import com.xiuxian.game.modules.narrative.mapper.PlayerNpcRelationMapper;
 import com.xiuxian.game.common.exception.BusinessException;
@@ -55,7 +49,7 @@ public class NarrativeService {
     private final NpcDailyDialogueMapper npcDailyDialogueMapper;
     private final ObjectMapper objectMapper;
 
-    // ==================== 瀵硅瘽鏍戝紩鎿?====================
+    // ==================== 对话树操作 ====================
 
     /**
      * 获取NPC可用的对话树列表（含前置条件检查）
@@ -75,66 +69,92 @@ public class NarrativeService {
      */
     @Transactional
     public DialogueSceneData startOrContinueDialogue(Integer playerId, String dialogueKey) {
+        DialogueTree tree = validateAndCheckPrerequisites(dialogueKey, playerId);
+        PlayerDialogueState state = getOrCreateDialogueState(tree, playerId);
+        String nodeKey = resolveStartingNode(state, tree);
+
+        String npcName = getNpcName(tree.getNpcId());
+        return buildSceneData(tree, nodeKey, playerId, npcName);
+    }
+
+    /**
+     * 校验对话树存在性及前置条件
+     */
+    private DialogueTree validateAndCheckPrerequisites(String dialogueKey, Integer playerId) {
         DialogueTree tree = dialogueTreeMapper.selectActiveByKey(dialogueKey);
         if (tree == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "瀵硅瘽涓嶅瓨鍦?);
+            throw new BusinessException(ErrorCode.NOT_FOUND, "对话不存在");
         }
 
-        // 检查前置条件
         Set<String> playerFlags = getPlayerFlags(playerId);
         if (!meetsPrerequisites(tree, playerId, playerFlags)) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "不满足对话前置条件");
         }
+        return tree;
+    }
 
+    /**
+     * 获取或创建玩家对话状态
+     */
+    private PlayerDialogueState getOrCreateDialogueState(DialogueTree tree, Integer playerId) {
         PlayerDialogueState state = playerDialogueStateMapper.selectByPlayerAndTree(playerId, tree.getId());
 
-        // 已完成且不可重复
-        if (state != null && state.getIsCompleted() && !tree.getIsRepeatable()) {
+        if (state == null) {
+            return createNewDialogueState(tree, playerId);
+        }
+        if (!state.getIsCompleted()) {
+            return state;
+        }
+        if (!tree.getIsRepeatable()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "该对话已完成");
         }
+        return resetRepeatableDialogue(state, tree);
+    }
 
-        // 获取或创建对话状态
-        if (state == null) {
-            state = PlayerDialogueState.builder()
-                    .playerId(playerId)
-                    .dialogueTreeId(tree.getId())
-                    .currentNodeKey(null)
-                    .isCompleted(false)
-                    .timesCompleted(0)
-                    .startedAt(LocalDateTime.now())
-                    .build();
-            playerDialogueStateMapper.insert(state);
-        } else if (!state.getIsCompleted()) {
-            // 恢复进行中的对话
-        } else {
-            // 可重复对话，重置状态
-            state.setCurrentNodeKey(null);
-            state.setIsCompleted(false);
-            state.setStartedAt(LocalDateTime.now());
-            playerDialogueStateMapper.updateById(state);
-        }
+    private PlayerDialogueState createNewDialogueState(DialogueTree tree, Integer playerId) {
+        PlayerDialogueState state = PlayerDialogueState.builder()
+                .playerId(playerId)
+                .dialogueTreeId(tree.getId())
+                .currentNodeKey(null)
+                .isCompleted(false)
+                .timesCompleted(0)
+                .startedAt(LocalDateTime.now())
+                .build();
+        playerDialogueStateMapper.insert(state);
+        return state;
+    }
 
-        // 获取起始节点
+    private PlayerDialogueState resetRepeatableDialogue(PlayerDialogueState state, DialogueTree tree) {
+        state.setCurrentNodeKey(null);
+        state.setIsCompleted(false);
+        state.setStartedAt(LocalDateTime.now());
+        playerDialogueStateMapper.updateById(state);
+        return state;
+    }
+
+    /**
+     * 确定对话起始节点
+     */
+    private String resolveStartingNode(PlayerDialogueState state, DialogueTree tree) {
         String nodeKey = state.getCurrentNodeKey();
         if (nodeKey == null) {
             List<DialogueNode> roots = dialogueNodeMapper.selectRootNodes(tree.getId());
             if (roots.isEmpty()) {
-                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "瀵硅瘽鏍戞病鏈夎捣濮嬭妭鐐?);
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "对话树没有起始节点");
             }
-            nodeKey = roots.get(0).getNodeKey();
+            return roots.get(0).getNodeKey();
         }
-
-        return buildSceneData(tree, nodeKey, playerId);
+        return nodeKey;
     }
 
     /**
-     * 鍋氬嚭閫夋嫨 / 鎺ㄨ繘瀵硅瘽
+     * 做出选择 / 推进对话
      */
     @Transactional
     public DialogueSceneData makeChoice(Integer playerId, String dialogueKey, String choiceNodeKey) {
         DialogueTree tree = dialogueTreeMapper.selectActiveByKey(dialogueKey);
         if (tree == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "瀵硅瘽涓嶅瓨鍦?);
+            throw new BusinessException(ErrorCode.NOT_FOUND, "对话不存在");
         }
 
         PlayerDialogueState state = playerDialogueStateMapper.selectByPlayerAndTree(playerId, tree.getId());
@@ -144,78 +164,92 @@ public class NarrativeService {
 
         DialogueNode chosenNode = dialogueNodeMapper.selectByTreeAndKey(tree.getId(), choiceNodeKey);
         if (chosenNode == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "瀵硅瘽鑺傜偣涓嶅瓨鍦?);
+            throw new BusinessException(ErrorCode.NOT_FOUND, "对话节点不存在");
         }
 
-        // 澶勭悊鑺傜偣鏁堟灉锛歠lag銆佸ソ鎰熷害
+        // 处理节点效果：flag、好感度
         processNodeEffects(playerId, chosenNode);
 
-        // 璁板綍閫夋嫨tag
-        if (chosenNode.getNodeType().equals("choice")) {
+        // 记录选择tag
+        if ("choice".equals(chosenNode.getNodeType())) {
             state.setLastChoiceTag(chosenNode.getNodeKey());
         }
 
         // 确定下一个节点
+        String nextKey = resolveNextNode(tree, chosenNode, choiceNodeKey);
+
+        String npcName = getNpcName(tree.getNpcId());
+
+        // 对话结束
+        if (nextKey == null || "end".equals(nextKey)) {
+            handleDialogueCompletion(state, tree, dialogueKey, npcName);
+            DialogueSceneData result = new DialogueSceneData();
+            result.setDialogueKey(dialogueKey);
+            result.setCompleted(true);
+            result.setNpcName(npcName);
+            return result;
+        }
+
+        // 继续对话
+        state.setCurrentNodeKey(nextKey);
+        playerDialogueStateMapper.updateById(state);
+        return buildSceneData(tree, nextKey, playerId, npcName);
+    }
+
+    /**
+     * 确定下一个对话节点
+     */
+    private String resolveNextNode(DialogueTree tree, DialogueNode chosenNode, String choiceNodeKey) {
         String nextKey = chosenNode.getNextNodeKey();
 
-        // 如果是choice类型，找它的子对话节点
+        // 如果是choice类型且没有直接nextKey，找它的子对话节点
         if ("choice".equals(chosenNode.getNodeType()) && nextKey == null) {
             List<DialogueNode> children = dialogueNodeMapper.selectChildrenByParent(tree.getId(), choiceNodeKey);
             if (!children.isEmpty()) {
                 nextKey = children.get(0).getNodeKey();
             }
         }
+        return nextKey;
+    }
 
-        // 瀵硅瘽缁撴潫
-        if (nextKey == null || "end".equals(nextKey)) {
-            state.setIsCompleted(true);
-            state.setTimesCompleted(state.getTimesCompleted() + 1);
-            state.setCompletedAt(LocalDateTime.now());
-            playerDialogueStateMapper.updateById(state);
-
-            // 澶勭悊瀵硅瘽鏍戝畬鎴愭晥鏋?
-            if (tree.getRequiredFlags() != null) {
-                // NPC首次见面
-                Npc npc = npcMapper.selectById(tree.getNpcId());
-                if (npc != null) {
-                    ensureNpcRelation(playerId, tree.getNpcId());
-                }
-            }
-
-            // 鏇存柊NPC浜掑姩
-            updateNpcInteraction(playerId, tree.getNpcId());
-
-            DialogueSceneData result = new DialogueSceneData();
-            result.setDialogueKey(dialogueKey);
-            result.setCompleted(true);
-            result.setNpcName(getNpcName(tree.getNpcId()));
-            return result;
-        }
-
-        // 鏇存柊褰撳墠鑺傜偣
-        state.setCurrentNodeKey(nextKey);
+    /**
+     * 处理对话完成逻辑
+     */
+    private void handleDialogueCompletion(PlayerDialogueState state, DialogueTree tree,
+                                         String dialogueKey, String npcName) {
+        state.setIsCompleted(true);
+        state.setTimesCompleted(state.getTimesCompleted() + 1);
+        state.setCompletedAt(LocalDateTime.now());
         playerDialogueStateMapper.updateById(state);
 
-        return buildSceneData(tree, nextKey, playerId);
+        // 首次完成时确保NPC关系记录存在
+        Npc npc = npcMapper.selectById(tree.getNpcId());
+        if (npc != null) {
+            ensureNpcRelation(state.getPlayerId(), tree.getNpcId());
+        }
+
+        // 更新NPC互动计数
+        updateNpcInteraction(state.getPlayerId(), tree.getNpcId());
     }
 
     /**
      * 构建场景数据（当前节点 + 可选选项）
      */
-    private DialogueSceneData buildSceneData(DialogueTree tree, String nodeKey, Integer playerId) {
+    private DialogueSceneData buildSceneData(DialogueTree tree, String nodeKey,
+                                             Integer playerId, String npcName) {
         DialogueNode currentNode = dialogueNodeMapper.selectByTreeAndKey(tree.getId(), nodeKey);
         if (currentNode == null) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "瀵硅瘽鑺傜偣涓㈠け: " + nodeKey);
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "对话节点丢失: " + nodeKey);
         }
 
         DialogueSceneData scene = new DialogueSceneData();
         scene.setDialogueKey(tree.getDialogueKey());
         scene.setNpcId(tree.getNpcId());
-        scene.setNpcName(getNpcName(tree.getNpcId()));
+        scene.setNpcName(npcName);
         scene.setScene(tree.getScene());
         scene.setCompleted(false);
 
-        // 褰撳墠鑺傜偣
+        // 当前节点
         DialogueSceneData.DialogueLine line = new DialogueSceneData.DialogueLine();
         line.setSpeaker(currentNode.getSpeaker());
         line.setText(currentNode.getText());
@@ -223,22 +257,9 @@ public class NarrativeService {
         line.setNodeType(currentNode.getNodeType());
         scene.setCurrentLine(line);
 
-        // 濡傛灉鏄痗hoice鑺傜偣锛岃幏鍙栭€夐」
+        // 如果是choice节点，获取选项
         if ("choice".equals(currentNode.getNodeType())) {
-            List<DialogueNode> options = dialogueNodeMapper.selectChildrenByParent(tree.getId(), nodeKey);
-            Set<String> playerFlags = getPlayerFlags(playerId);
-            Map<Integer, Integer> npcRelations = getNpcAffinities(playerId);
-
-            List<DialogueSceneData.ChoiceOption> choiceOptions = options.stream()
-                    .filter(opt -> meetsNodeConditions(opt, playerFlags, npcRelations))
-                    .map(opt -> {
-                        DialogueSceneData.ChoiceOption co = new DialogueSceneData.ChoiceOption();
-                        co.setNodeKey(opt.getNodeKey());
-                        co.setText(opt.getText());
-                        co.setTag(opt.getNodeKey()); // 鐢╪odeKey浣滀负tag
-                        return co;
-                    })
-                    .collect(Collectors.toList());
+            List<DialogueSceneData.ChoiceOption> choiceOptions = buildChoiceOptions(tree, nodeKey, playerId);
             scene.setChoices(choiceOptions);
         }
 
@@ -246,17 +267,38 @@ public class NarrativeService {
     }
 
     /**
-     * 澶勭悊鑺傜偣鏁堟灉锛坒lag璁剧疆/娓呴櫎銆佸ソ鎰熷害鍙樻洿锛?
+     * 构建选项列表（含条件过滤）
+     */
+    private List<DialogueSceneData.ChoiceOption> buildChoiceOptions(DialogueTree tree, String nodeKey,
+                                                                     Integer playerId) {
+        List<DialogueNode> options = dialogueNodeMapper.selectChildrenByParent(tree.getId(), nodeKey);
+        Set<String> playerFlags = getPlayerFlags(playerId);
+        Map<Integer, Integer> npcRelations = getNpcAffinities(playerId);
+
+        return options.stream()
+                .filter(opt -> meetsNodeConditions(opt, playerFlags, npcRelations))
+                .map(opt -> {
+                    DialogueSceneData.ChoiceOption co = new DialogueSceneData.ChoiceOption();
+                    co.setNodeKey(opt.getNodeKey());
+                    co.setText(opt.getText());
+                    co.setTag(opt.getNodeKey());
+                    return co;
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 处理节点效果（flag设置/清除、好感度变更）
      */
     private void processNodeEffects(Integer playerId, DialogueNode node) {
-        // 璁剧疆flag
+        // 设置flag
         if (node.getSetFlags() != null && !node.getSetFlags().isEmpty()) {
             try {
                 List<String> flags = objectMapper.readValue(node.getSetFlags(), new TypeReference<List<String>>() {});
                 for (String flag : flags) {
                     setFlag(playerId, flag, "1", "对话节点: " + node.getNodeKey());
                 }
-            } catch (Exception e) {
+            } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
                 log.warn("解析set_flags失败: {}", node.getSetFlags(), e);
             }
         }
@@ -268,7 +310,7 @@ public class NarrativeService {
                 for (String flag : flags) {
                     clearFlag(playerId, flag);
                 }
-            } catch (Exception e) {
+            } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
                 log.warn("解析clear_flags失败: {}", node.getClearFlags(), e);
             }
         }
@@ -279,10 +321,14 @@ public class NarrativeService {
                 Map<String, Integer> changes = objectMapper.readValue(node.getSetReputation(),
                         new TypeReference<Map<String, Integer>>() {});
                 for (Map.Entry<String, Integer> entry : changes.entrySet()) {
-                    Integer npcId = Integer.parseInt(entry.getKey());
-                    changeNpcAffinity(playerId, npcId, entry.getValue());
+                    try {
+                        Integer npcId = Integer.parseInt(entry.getKey());
+                        changeNpcAffinity(playerId, npcId, entry.getValue());
+                    } catch (NumberFormatException ex) {
+                        log.warn("set_reputation中npcId格式错误: {}", entry.getKey(), ex);
+                    }
                 }
-            } catch (Exception e) {
+            } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
                 log.warn("解析set_reputation失败: {}", node.getSetReputation(), e);
             }
         }
@@ -416,7 +462,7 @@ public class NarrativeService {
                 for (String flag : required) {
                     if (!playerFlags.contains(flag)) return false;
                 }
-            } catch (Exception e) {
+            } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
                 log.warn("解析required_flags失败: {}", tree.getRequiredFlags(), e);
             }
         }
@@ -436,10 +482,14 @@ public class NarrativeService {
                 Map<String, Integer> relReqs = objectMapper.convertValue(conditions.get("min_relation"),
                         new TypeReference<Map<String, Integer>>() {});
                 for (Map.Entry<String, Integer> entry : relReqs.entrySet()) {
-                    int npcId = Integer.parseInt(entry.getKey());
-                    int minRel = entry.getValue();
-                    Integer current = npcRelations.getOrDefault(npcId, 0);
-                    if (current < minRel) return false;
+                    try {
+                        int npcId = Integer.parseInt(entry.getKey());
+                        int minRel = entry.getValue();
+                        Integer current = npcRelations.getOrDefault(npcId, 0);
+                        if (current < minRel) return false;
+                    } catch (NumberFormatException ex) {
+                        log.warn("conditions中min_relation的npcId格式错误: {}", entry.getKey());
+                    }
                 }
             }
             // flags: 需要拥有指定flag
@@ -450,7 +500,7 @@ public class NarrativeService {
                     if (!playerFlags.contains(flag)) return false;
                 }
             }
-        } catch (Exception e) {
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
             log.warn("解析conditions失败: {}", node.getConditions(), e);
         }
         return true;
@@ -467,7 +517,7 @@ public class NarrativeService {
             if (conditions.containsKey("has_flag") && !playerFlags.contains(conditions.get("has_flag"))) {
                 return false;
             }
-        } catch (Exception e) {
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
             log.warn("解析日常对话条件失败: {}", dialogue.getConditions(), e);
         }
         return true;

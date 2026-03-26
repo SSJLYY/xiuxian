@@ -115,12 +115,12 @@ function createItemCard(item) {
     card.innerHTML = `
         <div class="p-4">
             <div class="flex justify-between items-start">
-                <h3 class="font-bold text-lg ${qualityClasses[item.itemQuality] || ''}">${item.itemName}</h3>
+                <h3 class="font-bold text-lg ${qualityClasses[item.itemQuality] || ''}">${escapeHtml(item.itemName)}</h3>
                 <span class="text-xs px-2 py-1 rounded ${qualityClasses[item.itemQuality] || ''} bg-opacity-20">
                     ${qualityText[item.itemQuality] || '未知'}
                 </span>
             </div>
-            <p class="text-gray-600 text-sm mt-1 truncate">${item.itemDescription}</p>
+            <p class="text-gray-600 text-sm mt-1 truncate">${escapeHtml(item.itemDescription)}</p>
             <div class="mt-3 flex justify-between items-center">
                 <span class="text-sm font-medium">数量: ${item.quantity}</span>
                 <span class="text-xs px-2 py-1 rounded bg-gray-100">${item.itemType}</span>

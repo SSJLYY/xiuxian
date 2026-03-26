@@ -67,7 +67,7 @@ class GameMapSystem {
                     <div class="current-location">
                         <span class="location-label">当前位置：</span>
                         <span class="location-name" id="currentMapName">
-                            ${this.currentMap?.map?.name || '未知区域'}
+                            ${escapeHtml(this.currentMap?.map?.name || '未知区域')}
                         </span>
                     </div>
                 </div>
@@ -181,13 +181,13 @@ class GameMapSystem {
                 
                 <div class="map-description">
                     <h4>区域描述</h4>
-                    <p>${map.description || '暂无描述'}</p>
+                    <p>${escapeHtml(map.description || '暂无描述')}</p>
                 </div>
                 
                 ${map.unlockCondition ? `
                     <div class="unlock-condition">
                         <h4>解锁条件</h4>
-                        <p>${map.unlockCondition}</p>
+                        <p>${escapeHtml(map.unlockCondition)}</p>
                     </div>
                 ` : ''}
                 

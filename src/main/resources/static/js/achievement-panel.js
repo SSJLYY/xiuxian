@@ -99,10 +99,10 @@ class AchievementPanel {
                 <div class="badge-wall-grid">
                     ${earned.map(a => `
                         <div class="achievement-badge ${a.isClaimed ? 'claimed' : 'unclaimed'}"
-                             title="${a.name}: ${a.description}"
+                             title="${escapeHtml(a.name)}: ${escapeHtml(a.description)}"
                              onclick="achievementPanel.showBadgeDetail(${a.id})">
                             <div class="badge-icon">${this.getAchievementEmoji(a.achievementType)}</div>
-                            <div class="badge-name">${a.name}</div>
+                            <div class="badge-name">${escapeHtml(a.name)}</div>
                             ${!a.isClaimed ? '<div class="badge-claim-dot"></div>' : ''}
                         </div>
                     `).join('')}
@@ -126,8 +126,8 @@ class AchievementPanel {
                         <div class="ach-emoji ${statusCls}">${this.getAchievementEmoji(a.achievementType)}</div>
                     </div>
                     <div class="ach-card-body">
-                        <div class="ach-name">${a.name}</div>
-                        <div class="ach-desc">${a.description}</div>
+                        <div class="ach-name">${escapeHtml(a.name)}</div>
+                        <div class="ach-desc">${escapeHtml(a.description)}</div>
                         <div class="ach-progress-row">
                             <div class="ach-progress-bar">
                                 <div class="ach-progress-fill ${statusCls}" style="width:${pct}%"></div>

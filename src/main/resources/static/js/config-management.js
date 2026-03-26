@@ -126,18 +126,18 @@ class ConfigManagement {
         filteredConfigs.forEach(config => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${config.configKey}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${escapeHtml(config.configKey)}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <span class="max-w-xs truncate block" title="${config.configValue}">${config.configValue}</span>
+                    <span class="max-w-xs truncate block" title="${escapeHtml(config.configValue)}">${escapeHtml(config.configValue)}</span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <span class="px-2 py-1 text-xs rounded-full ${this.getTypeColor(config.configType)}">${config.configType}</span>
+                    <span class="px-2 py-1 text-xs rounded-full ${this.getTypeColor(config.configType)}">${escapeHtml(config.configType)}</span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">${config.category}</span>
+                    <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">${escapeHtml(config.category)}</span>
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-900">
-                    <span class="max-w-xs truncate block" title="${config.description || '-'}">${config.description || '-'}</span>
+                    <span class="max-w-xs truncate block" title="${escapeHtml(config.description || '-')}">${escapeHtml(config.description || '-')}</span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${this.formatDateTime(config.updatedAt)}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

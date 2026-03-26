@@ -8,11 +8,14 @@ import com.xiuxian.game.modules.player.service.PlayerService;
 import com.xiuxian.game.modules.vip.service.RechargeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -32,24 +35,16 @@ public class AsyncStatisticsService {
     
     /**
      * 每天凌晨1点执行统计数据聚合
+     * 幂等性保护：依赖 daily_statistics 表的 uk_stat_date 唯一索引，
+     * 并发插入时捕获 DuplicateKeyException 实现安全幂等。
      */
     @Scheduled(cron = "0 0 1 * * ?")
-    @Async("statisticsTaskExecutor")
+    @Transactional
     public void aggregateDailyStatistics() {
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+        log.info("开始聚合每日统计数据: date={}", yesterday);
+        
         try {
-            LocalDate yesterday = LocalDate.now().minusDays(1);
-            log.info("开始聚合每日统计数据: date={}", yesterday);
-            
-            // 检查是否已经存在统计数�?
-            QueryWrapper<DailyStatistics> existsWrapper = new QueryWrapper<>();
-            existsWrapper.eq("stat_date", yesterday);
-            DailyStatistics existingStats = dailyStatisticsMapper.selectOne(existsWrapper);
-            
-            if (existingStats != null) {
-                log.info("统计数据已存在，跳过聚合: date={}", yesterday);
-                return;
-            }
-            
             // 计算各项统计数据
             DailyStatistics stats = new DailyStatistics();
             stats.setStatDate(yesterday);
@@ -64,28 +59,36 @@ public class AsyncStatisticsService {
             
             // 充值统计
             RechargeStats rechargeStats = calculateRechargeStats(yesterday);
-            stats.setTotalRecharge((int) rechargeStats.getTotalAmount());
             stats.setPayingPlayers(rechargeStats.getPayingPlayers());
             
-            // 计算ARPU和ARPPU
+            // 充值总额（使用long避免int截断，与RechargeStats.totalAmount类型一致）
+            long totalRechargeAmount = rechargeStats.getTotalAmount();
+            stats.setTotalRecharge((int) Math.min(totalRechargeAmount, Integer.MAX_VALUE));
+
+            // 计算ARPU和ARPPU（精度2位匹配数据库 decimal(10,2)）
+            stats.setArpu(BigDecimal.ZERO);
+            stats.setArppu(BigDecimal.ZERO);
+
             if (activePlayers > 0) {
-                BigDecimal arpu = BigDecimal.valueOf(rechargeStats.getTotalAmount())
-                        .divide(BigDecimal.valueOf(activePlayers), 2, BigDecimal.ROUND_HALF_UP);
+                BigDecimal arpu = BigDecimal.valueOf(totalRechargeAmount)
+                        .divide(BigDecimal.valueOf(activePlayers), 2, RoundingMode.HALF_UP);
                 stats.setArpu(arpu);
             }
-            
+
             if (rechargeStats.getPayingPlayers() > 0) {
-                BigDecimal arppu = BigDecimal.valueOf(rechargeStats.getTotalAmount())
-                        .divide(BigDecimal.valueOf(rechargeStats.getPayingPlayers()), 2, BigDecimal.ROUND_HALF_UP);
+                BigDecimal arppu = BigDecimal.valueOf(totalRechargeAmount)
+                        .divide(BigDecimal.valueOf(rechargeStats.getPayingPlayers()), 2, RoundingMode.HALF_UP);
                 stats.setArppu(arppu);
             }
             
-            // 保存统计数据
+            // 幂等插入：唯一索引 uk_stat_date 保证不会重复
             dailyStatisticsMapper.insert(stats);
             
             log.info("每日统计数据聚合完成: date={}, newPlayers={}, activeUsers={}, totalRecharge={}", 
                     yesterday, newPlayers, activePlayers, rechargeStats.getTotalAmount());
-            
+                    
+        } catch (DuplicateKeyException e) {
+            log.info("统计数据已存在，跳过聚合（幂等）: date={}", yesterday);
         } catch (Exception e) {
             log.error("聚合每日统计数据失败", e);
         }
@@ -100,10 +103,9 @@ public class AsyncStatisticsService {
             log.debug("开始计算留存率: date={}, days={}", date, days);
             
             // 获取指定日期的新用户
-            LocalDateTime startTime = date.atStartOfDay();
-            LocalDateTime endTime = date.plusDays(1).atStartOfDay();
+            LocalDateTime[] dateRange = getDateRange(date);
             
-            Long newUsersCount = playerService.countNewPlayers(startTime, endTime);
+            Long newUsersCount = playerService.countNewPlayers(dateRange[0], dateRange[1]);
             
             if (newUsersCount == 0) {
                 return CompletableFuture.completedFuture(0.0);
@@ -111,10 +113,9 @@ public class AsyncStatisticsService {
             
             // 获取在指定天数后仍然活跃的用户
             LocalDate retentionDate = date.plusDays(days);
-            LocalDateTime retentionStartTime = retentionDate.atStartOfDay();
-            LocalDateTime retentionEndTime = retentionDate.plusDays(1).atStartOfDay();
+            LocalDateTime[] retentionRange = getDateRange(retentionDate);
             
-            Long retainedUsersCount = playerService.countRetainedPlayers(startTime, endTime, retentionStartTime, retentionEndTime);
+            Long retainedUsersCount = playerService.countRetainedPlayers(dateRange[0], dateRange[1], retentionRange[0], retentionRange[1]);
             
             double retentionRate = (double) retainedUsersCount / newUsersCount * 100;
             
@@ -182,50 +183,57 @@ public class AsyncStatisticsService {
     }
     
     /**
+     * 计算指定日期的时间范围（当天 00:00:00 ~ 次日 00:00:00）
+     */
+    private LocalDateTime[] getDateRange(LocalDate date) {
+        return new LocalDateTime[]{ date.atStartOfDay(), date.plusDays(1).atStartOfDay() };
+    }
+    
+    /**
      * 计算新增玩家数
      */
     private int countNewPlayers(LocalDate date) {
-        LocalDateTime startTime = date.atStartOfDay();
-        LocalDateTime endTime = date.plusDays(1).atStartOfDay();
-        return Math.toIntExact(playerService.countNewPlayers(startTime, endTime));
+        LocalDateTime[] range = getDateRange(date);
+        return Math.toIntExact(playerService.countNewPlayers(range[0], range[1]));
     }
     
     /**
      * 计算活跃玩家数
      */
     private int countActivePlayers(LocalDate date) {
-        LocalDateTime startTime = date.atStartOfDay();
-        LocalDateTime endTime = date.plusDays(1).atStartOfDay();
-        return Math.toIntExact(playerService.countActivePlayers(startTime));
+        LocalDateTime[] range = getDateRange(date);
+        return Math.toIntExact(playerService.countActivePlayers(range[0]));
     }
     
     /**
      * 计算充值统计
      */
     private RechargeStats calculateRechargeStats(LocalDate date) {
-        LocalDateTime startTime = date.atStartOfDay();
-        LocalDateTime endTime = date.plusDays(1).atStartOfDay();
-        
-        QueryWrapper<RechargeRecord> wrapper = new QueryWrapper<>();
-        wrapper.eq("status", "SUCCESS")
-               .between("completed_at", startTime, endTime);
-        
-        List<RechargeRecord> rechargeRecords = rechargeService.getSuccessRechargesByDateRange(startTime, endTime);
-        
+        LocalDateTime[] range = getDateRange(date);
+
+        List<RechargeRecord> rechargeRecords = rechargeService.getSuccessRechargesByDateRange(range[0], range[1]);
+
         long totalAmount = 0;
         int payingPlayers = 0;
-        
+
         if (!rechargeRecords.isEmpty()) {
+            // amount 为 Integer（分），转为 long 累加防溢出
             totalAmount = rechargeRecords.stream()
-                    .mapToLong(record -> record.getAmount())
+                    .mapToLong(record -> {
+                        Integer amount = record.getAmount();
+                        return amount != null ? amount.longValue() : 0L;
+                    })
                     .sum();
-            
+
             payingPlayers = (int) rechargeRecords.stream()
-                    .mapToInt(record -> record.getPlayerId())
+                    .mapToInt(record -> {
+                        Integer playerId = record.getPlayerId();
+                        return playerId != null ? playerId : 0;
+                    })
                     .distinct()
                     .count();
         }
-        
+
         return new RechargeStats(totalAmount, payingPlayers);
     }
     

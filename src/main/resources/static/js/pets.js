@@ -98,7 +98,7 @@ function renderMyPets() {
             ${pet.isActive ? '<div class="active-badge">出战中</div>' : ''}
             ${pet.isLocked ? '<div class="locked-badge">🔒</div>' : ''}
             <div class="pet-avatar">${getPetEmoji(pet.petId)}</div>
-            <h4 style="text-align: center; margin: 10px 0;">${pet.nickname || '未命名'}</h4>
+            <h4 style="text-align: center; margin: 10px 0;">${escapeHtml(pet.nickname || '未命名')}</h4>
             <p style="text-align: center; font-size: 12px; color: #666;">等级 ${pet.level}</p>
             
             <div class="pet-stats">
@@ -167,9 +167,9 @@ function renderAvailablePets() {
     container.innerHTML = availablePets.map(pet => `
         <div class="pet-card rarity-${pet.rarity}" onclick="showCaptureDetail(${pet.id})">
             <div class="pet-avatar">${getPetEmoji(pet.id)}</div>
-            <h4 style="text-align: center; margin: 10px 0;">${pet.name}</h4>
-            <p style="text-align: center; font-size: 12px; color: #666;">${getRarityName(pet.rarity)}</p>
-            <p style="text-align: center; font-size: 12px; color: #666; margin: 5px 0;">${pet.type}</p>
+            <h4 style="text-align: center; margin: 10px 0;">${escapeHtml(pet.name)}</h4>
+            <p style="text-align: center; font-size: 12px; color: #666;">${escapeHtml(getRarityName(pet.rarity))}</p>
+            <p style="text-align: center; font-size: 12px; color: #666; margin: 5px 0;">${escapeHtml(pet.type)}</p>
             
             <div class="pet-stats">
                 <div class="stat-item">⚔️ 攻击: ${pet.baseAttack}</div>
@@ -222,7 +222,7 @@ function renderActivePet() {
         <div class="pet-card rarity-${activePet.rarity || 1}" style="max-width: 100%;">
             <div class="active-badge">出战中</div>
             <div class="pet-avatar" style="width: 120px; height: 120px; font-size: 60px;">${getPetEmoji(activePet.petId)}</div>
-            <h3 style="text-align: center; margin: 15px 0;">${activePet.nickname || '未命名'}</h3>
+            <h3 style="text-align: center; margin: 15px 0;">${escapeHtml(activePet.nickname || '未命名')}</h3>
             <p style="text-align: center; font-size: 16px; color: #666;">等级 ${activePet.level}</p>
             
             <div style="margin: 20px 0;">
@@ -332,11 +332,11 @@ function showCaptureDetail(petId) {
     modalContent.innerHTML = `
         <div style="text-align: center;">
             <div class="pet-avatar" style="width: 100px; height: 100px; font-size: 50px; margin: 0 auto;">${getPetEmoji(pet.id)}</div>
-            <p style="margin: 10px 0; color: #666;">${getRarityName(pet.rarity)} - ${pet.type}</p>
+            <p style="margin: 10px 0; color: #666;">${escapeHtml(getRarityName(pet.rarity))} - ${escapeHtml(pet.type)}</p>
         </div>
         
         <div style="margin: 15px 0;">
-            <p style="font-size: 14px; line-height: 1.6;">${pet.description || '暂无描述'}</p>
+            <p style="font-size: 14px; line-height: 1.6;">${escapeHtml(pet.description || '暂无描述')}</p>
         </div>
         
         <div class="pet-stats" style="margin: 15px 0;">

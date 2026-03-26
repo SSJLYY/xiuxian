@@ -91,7 +91,7 @@ function renderMySkills() {
         <div class="skill-card rarity-${skill.rarity || 1}">
             ${skill.isEquipped ? '<div class="equipped-badge">已装备</div>' : ''}
             <div class="skill-icon">${getSkillIcon(skill.skillType)}</div>
-            <h4 style="text-align: center; margin: 10px 0;">${skill.skillName}</h4>
+            <h4 style="text-align: center; margin: 10px 0;">${escapeHtml(skill.skillName)}</h4>
             <p style="text-align: center; font-size: 12px; color: #666;">等级 ${skill.level}</p>
             
             <div class="skill-stats">
@@ -111,7 +111,7 @@ function renderMySkills() {
             </div>
             
             <div style="margin-top: 8px; font-size: 12px; color: #666;">
-                <p>${skill.description || '暂无描述'}</p>
+                <p>${escapeHtml(skill.description || '暂无描述')}</p>
             </div>
             
             <div class="action-buttons" style="margin-top: 10px;">
@@ -154,9 +154,9 @@ function renderAvailableSkills() {
     container.innerHTML = availableSkills.map(skill => `
         <div class="skill-card rarity-${skill.rarity}">
             <div class="skill-icon">${getSkillIcon(skill.skillType)}</div>
-            <h4 style="text-align: center; margin: 10px 0;">${skill.name}</h4>
-            <p style="text-align: center; font-size: 12px; color: #666;">${getRarityName(skill.rarity)}</p>
-            <p style="text-align: center; font-size: 12px; color: #666; margin: 5px 0;">${skill.type}</p>
+            <h4 style="text-align: center; margin: 10px 0;">${escapeHtml(skill.name)}</h4>
+            <p style="text-align: center; font-size: 12px; color: #666;">${escapeHtml(getRarityName(skill.rarity))}</p>
+            <p style="text-align: center; font-size: 12px; color: #666; margin: 5px 0;">${escapeHtml(skill.type)}</p>
             
             <div class="skill-stats">
                 <div class="stat-item">⚔️ 伤害: ${skill.baseDamage}</div>
@@ -211,7 +211,7 @@ function renderEquippedSkills() {
     container.innerHTML = equippedSkills.map(skill => `
         <div class="skill-card equipped rarity-${skill.rarity || 1}">
             <div class="skill-icon">${getSkillIcon(skill.skillType)}</div>
-            <h4 style="text-align: center; margin: 10px 0;">${skill.skillName}</h4>
+            <h4 style="text-align: center; margin: 10px 0;">${escapeHtml(skill.skillName)}</h4>
             <p style="text-align: center; font-size: 12px; color: #666;">等级 ${skill.level}</p>
             
             <div class="skill-stats">

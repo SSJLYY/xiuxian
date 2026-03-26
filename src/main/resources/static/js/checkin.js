@@ -191,7 +191,7 @@ class CheckInSystem {
                     <span>💎 +${data.rewardSpiritStones}</span>
                     <span>⭐ +${data.rewardExp}</span>
                 </div>
-                ${data.isMilestone ? `<p class="milestone-msg">${data.milestoneMessage}</p>` : ''}
+                ${data.isMilestone ? `<p class="milestone-msg">${escapeHtml(data.milestoneMessage)}</p>` : ''}
             </div>
         `;
         container.appendChild(overlay);

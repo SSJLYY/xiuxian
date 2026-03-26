@@ -31,8 +31,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String jwt = getJwtFromRequest(request);
 
             if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
-                log.debug("=== DEBUG: JwtAuthenticationFilter ===");
-                log.debug("解析JWT token: {}", jwt);
+                // 仅打印 token 前 8 位，避免完整 token 泄露到日志
+                String maskedToken = jwt.length() > 8 ? jwt.substring(0, 8) + "..." : "***";
+                log.debug("解析JWT token: {}", maskedToken);
 
                 String username = tokenProvider.getUsernameFromToken(jwt);
                 log.debug("从Token获取用户名: {}", username);
