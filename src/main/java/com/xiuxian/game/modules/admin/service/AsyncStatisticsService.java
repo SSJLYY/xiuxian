@@ -1,4 +1,4 @@
-﻿package com.xiuxian.game.modules.admin.service;
+package com.xiuxian.game.modules.admin.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xiuxian.game.modules.admin.entity.DailyStatistics;
@@ -27,18 +27,18 @@ import java.util.concurrent.CompletableFuture;
 public class AsyncStatisticsService {
     
     private final DailyStatisticsMapper dailyStatisticsMapper;
-    private final PlayerService playerService; // 妯″潡杈圭晫锛氶€氳繃PlayerService璁块棶鐜╁鏁版嵁
+    private final PlayerService playerService; // 模块边界：通过PlayerService访问玩家数据
     private final RechargeService rechargeService; // 模块边界：通过RechargeService访问充值数据
     
     /**
-     * 每天凌晨1点执行统计数据聚�?
+     * 每天凌晨1点执行统计数据聚合
      */
     @Scheduled(cron = "0 0 1 * * ?")
     @Async("statisticsTaskExecutor")
     public void aggregateDailyStatistics() {
         try {
             LocalDate yesterday = LocalDate.now().minusDays(1);
-            log.info("开始聚合每日统计数�? date={}", yesterday);
+            log.info("开始聚合每日统计数据: date={}", yesterday);
             
             // 检查是否已经存在统计数�?
             QueryWrapper<DailyStatistics> existsWrapper = new QueryWrapper<>();
@@ -54,15 +54,15 @@ public class AsyncStatisticsService {
             DailyStatistics stats = new DailyStatistics();
             stats.setStatDate(yesterday);
             
-            // 新增玩家�?
+            // 新增玩家数
             int newPlayers = countNewPlayers(yesterday);
             stats.setNewPlayers(newPlayers);
             
-            // 活跃玩家�?
+            // 活跃玩家数
             int activePlayers = countActivePlayers(yesterday);
             stats.setActivePlayers(activePlayers);
             
-            // 充值统�?
+            // 充值统计
             RechargeStats rechargeStats = calculateRechargeStats(yesterday);
             stats.setTotalRecharge((int) rechargeStats.getTotalAmount());
             stats.setPayingPlayers(rechargeStats.getPayingPlayers());
@@ -92,7 +92,7 @@ public class AsyncStatisticsService {
     }
     
     /**
-     * 异步计算玩家留存�?
+     * 异步计算玩家留存率
      */
     @Async("statisticsTaskExecutor")
     public CompletableFuture<Double> calculateRetentionRateAsync(LocalDate date, int days) {
@@ -109,7 +109,7 @@ public class AsyncStatisticsService {
                 return CompletableFuture.completedFuture(0.0);
             }
             
-            // 获取在指定天数后仍然活跃的用�?
+            // 获取在指定天数后仍然活跃的用户
             LocalDate retentionDate = date.plusDays(days);
             LocalDateTime retentionStartTime = retentionDate.atStartOfDay();
             LocalDateTime retentionEndTime = retentionDate.plusDays(1).atStartOfDay();
@@ -118,11 +118,11 @@ public class AsyncStatisticsService {
             
             double retentionRate = (double) retainedUsersCount / newUsersCount * 100;
             
-            log.debug("留存率计算完�? date={}, days={}, rate={}%", date, days, retentionRate);
+            log.debug("留存率计算完成: date={}, days={}, rate={}%", date, days, retentionRate);
             return CompletableFuture.completedFuture(retentionRate);
             
         } catch (Exception e) {
-            log.error("计算留存率失�? date={}, days={}", date, days, e);
+            log.error("计算留存率失败: date={}, days={}", date, days, e);
             return CompletableFuture.completedFuture(0.0);
         }
     }
@@ -133,13 +133,13 @@ public class AsyncStatisticsService {
     @Async("statisticsTaskExecutor")
     public CompletableFuture<String> generateStatisticsReportAsync(LocalDate startDate, LocalDate endDate) {
         try {
-            log.info("开始生成统计报�? startDate={}, endDate={}", startDate, endDate);
+            log.info("开始生成统计报表: startDate={}, endDate={}", startDate, endDate);
             
             StringBuilder report = new StringBuilder();
             report.append("统计报表\n");
-            report.append("时间范围: ").append(startDate).append(" �?").append(endDate).append("\n\n");
+            report.append("时间范围: ").append(startDate).append(" 至 ").append(endDate).append("\n\n");
             
-            // 获取期间的统计数�?
+            // 获取期间的统计数据
             QueryWrapper<DailyStatistics> wrapper = new QueryWrapper<>();
             wrapper.between("stat_date", startDate, endDate)
                    .orderByAsc("stat_date");
@@ -155,19 +155,19 @@ public class AsyncStatisticsService {
                 totalRecharge += stats.getTotalRecharge();
                 totalPayingPlayers += stats.getPayingPlayers();
                 
-                report.append(String.format("%s: 新增用户=%d, 活跃用户=%d, 充值金�?%d, 付费用户=%d\n",
+                report.append(String.format("%s: 新增用户=%d, 活跃用户=%d, 充值金额=%d, 付费用户=%d\n",
                         stats.getStatDate(), stats.getNewPlayers(), stats.getActivePlayers(),
                         stats.getTotalRecharge(), stats.getPayingPlayers()));
             }
             
-            report.append("\n汇总数�?\n");
-            report.append("总新增用�? ").append(totalNewPlayers).append("\n");
-            report.append("总充值金�? ").append(totalRecharge).append("\n");
-            report.append("总付费用�? ").append(totalPayingPlayers).append("\n");
+            report.append("\n汇总数据\n");
+            report.append("总新增用户: ").append(totalNewPlayers).append("\n");
+            report.append("总充值金额: ").append(totalRecharge).append("\n");
+            report.append("总付费用户: ").append(totalPayingPlayers).append("\n");
             
             if (totalNewPlayers > 0) {
                 double payRate = (double) totalPayingPlayers / totalNewPlayers * 100;
-                report.append("付费�? ").append(String.format("%.2f%%", payRate)).append("\n");
+                report.append("付费率: ").append(String.format("%.2f%%", payRate)).append("\n");
             }
             
             String reportContent = report.toString();
@@ -182,7 +182,7 @@ public class AsyncStatisticsService {
     }
     
     /**
-     * 计算新增玩家�?
+     * 计算新增玩家数
      */
     private int countNewPlayers(LocalDate date) {
         LocalDateTime startTime = date.atStartOfDay();
@@ -191,7 +191,7 @@ public class AsyncStatisticsService {
     }
     
     /**
-     * 计算活跃玩家�?
+     * 计算活跃玩家数
      */
     private int countActivePlayers(LocalDate date) {
         LocalDateTime startTime = date.atStartOfDay();
@@ -200,7 +200,7 @@ public class AsyncStatisticsService {
     }
     
     /**
-     * 计算充值统�?
+     * 计算充值统计
      */
     private RechargeStats calculateRechargeStats(LocalDate date) {
         LocalDateTime startTime = date.atStartOfDay();

@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 
 /**
- * 后台管理认证控制�?- 独立于游戏登录系�?
+ * 后台管理认证控制器 - 独立于游戏登录系统
  */
 @RestController
 @RequestMapping("/api/admin/auth")
@@ -21,7 +21,7 @@ public class AdminAuthController {
     private AdminAuthService adminAuthService;
 
     /**
-     * 管理员登�?
+     * 管理员登录
      */
     @PostMapping("/login")
     public ResponseEntity<AdminLoginResponse> login(@RequestBody AdminLoginRequest request) {
@@ -40,7 +40,7 @@ public class AdminAuthController {
     }
 
     /**
-     * 管理员登�?
+     * 管理员登出
      */
     @PostMapping("/logout")
     public ResponseEntity<AdminLoginResponse> logout(HttpServletRequest request) {
@@ -50,7 +50,7 @@ public class AdminAuthController {
     }
 
     /**
-     * 获取当前管理员信�?
+     * 获取当前管理员信息
      */
     @GetMapping("/me")
     public ResponseEntity<AdminLoginResponse> getCurrentAdmin(HttpServletRequest request) {

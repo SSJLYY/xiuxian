@@ -7,10 +7,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
- * 游戏平衡计算工具�?
+ * 游戏平衡计算工具类
  * 
- * 统一管理所有数值计算，确保与GDD设计一�?
- * 所有公式都基于GameBalanceConfig配置，便于调�?
+ * 统一管理所有数值计算，确保与GDD设计一致
+ * 所有公式都基于GameBalanceConfig配置，便于调整
  * 
  * @author shaun.sheng
  * @version 1.0
@@ -39,8 +39,8 @@ public class GameBalanceUtils {
      * 公式：base_exp × (skill_level ^ 1.6)
      * 根据技能类型调整base_exp
      * 
-     * @param skillLevel 当前技能等�?
-     * @param skillType 技能类型（攻击/防御/辅助/被动�?
+     * @param skillLevel 当前技能等级
+     * @param skillType 技能类型（攻击/防御/辅助/被动）
      * @return 升级所需经验
      */
     public long calculateSkillExpToNext(int skillLevel, String skillType) {
@@ -65,11 +65,11 @@ public class GameBalanceUtils {
     }
 
     /**
-     * 计算技能伤害（基于等级�?
+     * 计算技能伤害（基于等级）
      * 公式：base_damage × (1 + 0.15 × skill_level)
      * 
      * @param baseDamage 基础伤害
-     * @param skillLevel 技能等�?
+     * @param skillLevel 技能等级
      * @return 实际伤害
      */
     public int calculateSkillDamage(int baseDamage, int skillLevel) {
@@ -78,12 +78,12 @@ public class GameBalanceUtils {
     }
 
     /**
-     * 计算技能冷却（基于等级�?
+     * 计算技能冷却（基于等级）
      * 公式：max(1s, base_cool - 0.3s × skill_level)
      * 
-     * @param baseCooldown 基础冷却（秒�?
-     * @param skillLevel 技能等�?
-     * @return 实际冷却（秒�?
+     * @param baseCooldown 基础冷却（秒）
+     * @param skillLevel 技能等级
+     * @return 实际冷却（秒）
      */
     public int calculateSkillCooldown(int baseCooldown, int skillLevel) {
         double reduction = balance.getExperience().getSkillCooldownReductionPerLevel() * skillLevel;
@@ -91,12 +91,12 @@ public class GameBalanceUtils {
     }
 
     /**
-     * 计算技能法力消耗（基于等级�?
+     * 计算技能法力消耗（基于等级）
      * 公式：base_cost × (1 + 0.05 × skill_level)
      * 
-     * @param baseManaCost 基础法力消�?
-     * @param skillLevel 技能等�?
-     * @return 实际法力消�?
+     * @param baseManaCost 基础法力消耗
+     * @param skillLevel 技能等级
+     * @return 实际法力消耗
      */
     public int calculateSkillManaCost(int baseManaCost, int skillLevel) {
         double multiplier = 1.0 + balance.getExperience().getSkillManaCostPerLevel() * skillLevel;
@@ -105,11 +105,11 @@ public class GameBalanceUtils {
 
     /**
      * 计算修炼收益（灵石）
-     * 公式�?20 + level × 5) × cultivation_speed × realm_bonus
+     * 公式：(20 + level × 5) × cultivation_speed × realm_bonus
      * 
      * @param player 玩家
      * @param hours 修炼时长（小时）
-     * @return 获得的灵�?
+     * @return 获得的灵石
      */
     public long calculateCultivationSpiritStones(PlayerProfile player, double hours) {
         int level = player.getLevel();
@@ -136,20 +136,20 @@ public class GameBalanceUtils {
         if (realm == null) return 1.0;
         
         switch (realm) {
-            case "筑基�?:
+            case "筑基期":
                 return balance.getCultivation().getRealmBonusFoundation();
-            case "金丹�?:
+            case "金丹期":
                 return balance.getCultivation().getRealmBonusGoldenCore();
-            case "元婴�?:
+            case "元婴期":
                 return balance.getCultivation().getRealmBonusNascentSoul();
-            default: // 练气�?
+            default: // 练气期
                 return balance.getCultivation().getRealmBonusQiCondensation();
         }
     }
 
     /**
      * 计算灵石上限
-     * 公式�?0000 × realm_bonus
+     * 公式：10000 × realm_bonus
      * 防止通货膨胀
      * 
      * @param realm 境界
@@ -160,13 +160,13 @@ public class GameBalanceUtils {
     }
 
     /**
-     * 计算防御�?
+     * 计算防御率
      * 公式：defense / (defense + attackerLevel × 10)
-     * GDD已验证公式方�?
+     * GDD已验证公式方式
      * 
-     * @param defense 防御�?
-     * @param attackerLevel 攻击者等�?
-     * @return 防御率（0.0-1.0�?
+     * @param defense 防御值
+     * @param attackerLevel 攻击者等级
+     * @return 防御率（0.0-1.0）
      */
     public double calculateDefenseRate(int defense, int attackerLevel) {
         double divisor = defense + attackerLevel * balance.getCombat().getDefenseLevelMultiplier();
@@ -196,7 +196,7 @@ public class GameBalanceUtils {
      * 计算怪物属性（基于等级和类型）
      * 
      * @param level 怪物等级
-     * @param type 怪物类型（普�?精英/BOSS�?
+     * @param type 怪物类型（普通/精英/BOSS）
      * @return [HP, 攻击, 防御]
      */
     public int[] calculateMonsterStats(int level, String type) {
@@ -233,7 +233,7 @@ public class GameBalanceUtils {
 
     /**
      * 计算战斗掉落灵石
-     * 公式�?10 + level × 2) × typeMultiplier × levelDiffFactor
+     * 公式：(10 + level × 2) × typeMultiplier × levelDiffFactor
      * 
      * @param monsterLevel 怪物等级
      * @param monsterType 怪物类型
@@ -243,10 +243,10 @@ public class GameBalanceUtils {
     public int calculateDropSpiritStones(int monsterLevel, String monsterType, int playerLevel) {
         double typeMultiplier = getTypeMultiplier(monsterType);
         
-        // 等级差修正：怪物等级高于玩家时奖励增加，低于时减�?
-        int levelDiff = monsterLevel - playerLevel;
-        double levelDiffFactor = 1.0 + levelDiff * 0.1; // 每级�?0%
-        levelDiffFactor = Math.max(0.5, Math.min(2.0, levelDiffFactor)); // 限制�?.5-2.0�?
+         // 等级差修正：怪物等级高于玩家时奖励增加，低于时减少
+         int levelDiff = monsterLevel - playerLevel;
+         double levelDiffFactor = 1.0 + levelDiff * 0.1; // 每级10%
+         levelDiffFactor = Math.max(0.5, Math.min(2.0, levelDiffFactor)); // 限制在0.5-2.0之间
         
         int baseDrop = balance.getMonster().getBaseDropSpiritStones() + 
                        (int) (balance.getMonster().getDropSpiritStonesPerLevel() * monsterLevel);
@@ -255,11 +255,11 @@ public class GameBalanceUtils {
     }
 
     /**
-     * 计算宠物技能触发概�?
+     * 计算宠物技能触发概率
      * 基于忠诚度：0-30:60%, 31-80:80%, 81-100:100%
      * 
-     * @param loyalty 忠诚�?
-     * @return 触发概率�?.0-1.0�?
+     * @param loyalty 忠诚度
+     * @return 触发概率（0.0-1.0）
      */
     public double calculatePetSkillTriggerChance(int loyalty) {
         if (loyalty <= balance.getPet().getLoyaltyLowThreshold()) {
@@ -272,11 +272,11 @@ public class GameBalanceUtils {
     }
 
     /**
-     * 计算宠物饱食度效果因�?
+     * 计算宠物饱食度效果因子
      * 低于阈值时效果减半
      * 
-     * @param hunger 饱食�?
-     * @return 效果因子�?.0-1.0�?
+     * @param hunger 饱食度
+     * @return 效果因子（0.0-1.0）
      */
     public double calculatePetHungerFactor(int hunger) {
         return (hunger < balance.getPet().getHungerLowThreshold()) 
@@ -285,14 +285,14 @@ public class GameBalanceUtils {
     }
 
     /**
-     * 计算宠物技能伤�?
+     * 计算宠物技能伤害
      * 公式：base_damage × (1 + level × 0.1) × loyalty_factor × hunger_factor
      * 
      * @param basePetDamage 宠物基础伤害
      * @param petLevel 宠物等级
-     * @param loyalty 忠诚�?
-     * @param hunger 饱食�?
-     * @return 技能伤�?
+     * @param loyalty 忠诚度
+     * @param hunger 饱食度
+     * @return 技能伤害
      */
     public int calculatePetSkillDamage(int basePetDamage, int petLevel, int loyalty, int hunger) {
         double levelFactor = 1.0 + petLevel * 0.1;
@@ -308,10 +308,10 @@ public class GameBalanceUtils {
 
     /**
      * 计算宠物技能冷却回合数
-     * 公式�? + speed / 10
+     * 公式：3 + speed / 10
      * 
      * @param petSpeed 宠物速度
-     * @return 冷却回合�?
+     * @return 冷却回合数
      */
     public int calculatePetSkillCooldown(int petSpeed) {
         return balance.getPet().getBaseSkillCooldown() + petSpeed / balance.getPet().getSkillCooldownSpeedDivider();
@@ -319,9 +319,9 @@ public class GameBalanceUtils {
 
     /**
      * 判断宠物是否触发共鸣
-     * 忠诚�?=81时有5%概率触发共鸣×2伤害
+     * 忠诚度>=81时有5%概率触发共鸣×2伤害
      * 
-     * @param loyalty 忠诚�?
+     * @param loyalty 忠诚度
      * @return 是否共鸣
      */
     public boolean isPetResonance(int loyalty) {
@@ -331,9 +331,9 @@ public class GameBalanceUtils {
 
     /**
      * 计算速度优势行动次数
-     * 速度�?=2.0: 3次行�?
-     * 速度�?=1.5: 2次行�?
-     * 正常: 1次行�?
+     * 速度比>=2.0: 3次行动
+     * 速度比>=1.5: 2次行动
+     * 正常: 1次行动
      * 
      * @param playerSpeed 玩家速度
      * @param monsterSpeed 怪物速度

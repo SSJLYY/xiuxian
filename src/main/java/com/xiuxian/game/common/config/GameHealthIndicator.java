@@ -22,7 +22,7 @@ public class GameHealthIndicator implements HealthIndicator {
     @Override
     public Health health() {
         try {
-            // 检�?Redis 连接
+            // 检查Redis 连接
             Boolean redisOk = checkRedis();
 
             if (Boolean.TRUE.equals(redisOk)) {

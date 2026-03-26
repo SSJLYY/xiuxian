@@ -10,8 +10,8 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Redis 缓存工具�?
- * 提供常用的缓存操作方�?
+ * Redis 缓存工具类
+ * 提供常用的缓存操作方法
  *
  * @author shaun.sheng
  */
@@ -36,7 +36,7 @@ public class CacheUtils {
     }
 
     /**
-     * 设置缓存并设置过期时�?
+     * 设置缓存并设置过期时间
      */
     public void set(String key, Object value, long timeout, TimeUnit unit) {
         try {
@@ -54,7 +54,7 @@ public class CacheUtils {
     }
 
     /**
-     * 设置缓存并设置过期时间（分钟�?
+     * 设置缓存并设置过期时间（分钟）
      */
     public void setEx(String key, Object value, long minutes, boolean isMinute) {
         set(key, value, minutes, TimeUnit.MINUTES);
@@ -105,7 +105,7 @@ public class CacheUtils {
         try {
             return redisTemplate.hasKey(key);
         } catch (Exception e) {
-            log.error("缓存检查失�? key={}", key, e);
+             log.error("缓存检查失败: key={}", key, e);
             return false;
         }
     }
@@ -113,10 +113,10 @@ public class CacheUtils {
     // ==================== 分布式锁 ====================
 
     /**
-     * 尝试获取�?
+     * 尝试获取锁
      *
      * @param key     锁key
-     * @param value   锁值（建议使用UUID�?
+     * @param value   锁值（建议使用UUID）
      * @param timeout 过期时间
      * @param unit    时间单位
      * @return 是否获取成功
@@ -125,14 +125,14 @@ public class CacheUtils {
         try {
             return redisTemplate.opsForValue().setIfAbsent(key, value, timeout, unit);
         } catch (Exception e) {
-            log.error("获取锁失�? key={}", key, e);
+            log.error("获取锁失败: key={}", key, e);
             return false;
         }
     }
 
     /**
-     * 释放�?
-     * 注意：需要匹配value，防止误删他人的�?
+     * 释放锁
+     * 注意：需要匹配value，防止误删他人的锁
      */
     public Boolean unlock(String key, String value) {
         try {
@@ -140,12 +140,12 @@ public class CacheUtils {
             redisTemplate.execute(new org.springframework.data.redis.core.script.DefaultRedisScript<>(script), java.util.Collections.singletonList(key), value);
             return true;
         } catch (Exception e) {
-            log.error("释放锁失�? key={}", key, e);
+            log.error("释放锁失败: key={}", key, e);
             return false;
         }
     }
 
-    // ==================== 排行榜相�?====================
+    // ==================== 排行榜相关====================
 
     /**
      * 有序集合添加成员
@@ -184,7 +184,7 @@ public class CacheUtils {
     }
 
     /**
-     * 有序集合获取指定范围的成�?
+     * 有序集合获取指定范围的成员
      */
     public Set<Object> zRange(String key, long start, long end) {
         try {
@@ -196,7 +196,7 @@ public class CacheUtils {
     }
 
     /**
-     * 有序集合获取指定范围的成员（从大到小�?
+     * 有序集合获取指定范围的成员（从大到小）
      */
     public Set<Object> zRevRange(String key, long start, long end) {
         try {
@@ -208,7 +208,7 @@ public class CacheUtils {
     }
 
     /**
-     * 有序集合获取成员的分�?
+     * 有序集合获取成员的分数
      */
     public Double zScore(String key, Object member) {
         try {
@@ -222,7 +222,7 @@ public class CacheUtils {
     // ==================== Hash 操作 ====================
 
     /**
-     * Hash 设置�?
+     * Hash 设置值
      */
     public void hSet(String key, String field, Object value) {
         try {
@@ -233,7 +233,7 @@ public class CacheUtils {
     }
 
     /**
-     * Hash 获取�?
+     * Hash 获取值
      */
     @SuppressWarnings("unchecked")
     public <T> T hGet(String key, String field) {
