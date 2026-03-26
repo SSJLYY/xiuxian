@@ -47,5 +47,11 @@ public class GuildBossChallenge {
 
     @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updatedAt;
+
+    /**
+     * 乐观锁版本号
+     */
+    @Version
+    private Integer version;
 }
 

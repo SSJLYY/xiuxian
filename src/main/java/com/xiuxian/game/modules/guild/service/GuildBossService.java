@@ -103,14 +103,17 @@ public class GuildBossService {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         long damage = calculateDamage(player, boss);
 
-        // 更新BOSS当前血量
-        boss.setCurrentHealth(Math.max(0, boss.getCurrentHealth() - damage));
-        boolean bossDefeated = boss.getCurrentHealth() <= 0;
-        if (bossDefeated) {
-            boss.setStatus("DEFEATED");
-            boss.setDefeatedAt(LocalDateTime.now());
+        // 原子扣减BOSS血量（防止并发伤害丢失）
+        LocalDateTime now = LocalDateTime.now();
+        int rows = guildBossMapper.atomicDamage(boss.getId(), damage, now);
+        if (rows == 0) {
+            // BOSS已被击杀（并发冲突）
+            throw new BusinessException(ErrorCode.GUILD_BOSS_ALREADY_DEFEATED);
         }
-        guildBossMapper.updateById(boss);
+
+        // 重新查询BOSS获取最新血量和状态
+        boss = guildBossMapper.selectBossById(boss.getId());
+        boolean bossDefeated = "DEFEATED".equals(boss.getStatus());
 
         // 更新挑战记录
         updateChallengeRecord(boss.getId(), playerId, damage, record);

@@ -193,7 +193,7 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
             throw new BusinessException(ErrorCode.CANNOT_BUY_OWN_ITEM);
         }
         
-        // 检查买家灵石是否足够?
+        // 检查买家灵石是否足够
         PlayerProfile buyerProfile = playerService.getPlayerProfileById(buyerId);
         if (buyerProfile.getSpiritStones() < auctionItem.getPrice()) {
             throw new BusinessException(ErrorCode.INSUFFICIENT_SPIRIT_STONES);
@@ -209,11 +209,18 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
         sellerProfile.setSpiritStones(sellerProfile.getSpiritStones() + sellerProceeds);
         playerService.savePlayerProfile(sellerProfile);
         
-        // 更新拍卖物品状态?
+        // 原子更新拍卖状态（防止TOCTOU：并发购买时只有一个能成功）
+        LocalDateTime now = LocalDateTime.now();
+        int rows = auctionItemMapper.claimAuctionItem(auctionItemId, buyerId, now);
+        if (rows == 0) {
+            // 并发冲突：另一个事务已抢先购买
+            throw new BusinessException(ErrorCode.AUCTION_ITEM_SOLD);
+        }
+        
+        // 更新本地对象用于后续通知
         auctionItem.setStatus("SOLD");
         auctionItem.setBuyerId(buyerId);
-        auctionItem.setSoldAt(LocalDateTime.now());
-        auctionItemMapper.updateById(auctionItem);
+        auctionItem.setSoldAt(now);
         
         // 将物品添加到买家背包
         addItemToBuyerInventory(buyerId, auctionItem);
@@ -258,9 +265,14 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
         playerProfile.setSpiritStones(playerProfile.getSpiritStones() - cancelFee);
         playerService.savePlayerProfile(playerProfile);
         
-        // 更新拍卖物品状态
+        // 原子更新拍卖状态（防止TOCTOU）
+        int rows = auctionItemMapper.cancelAuctionItem(auctionItemId, playerId);
+        if (rows == 0) {
+            // 并发冲突：物品已被购买或过期
+            throw new BusinessException(ErrorCode.AUCTION_ITEM_SOLD);
+        }
+        
         auctionItem.setStatus("CANCELLED");
-        auctionItemMapper.updateById(auctionItem);
         
         // 将物品退还给卖家
         addItemToSellerInventory(playerId, auctionItem);
@@ -327,9 +339,14 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
         List<AuctionItem> expiredItems = auctionItemMapper.selectList(queryWrapper);
         
         for (AuctionItem item : expiredItems) {
-            item.setStatus("EXPIRED");
-            auctionItemMapper.updateById(item);
+            // 原子更新过期状态（防止与buyItem并发冲突）
+            int rows = auctionItemMapper.expireAuctionItem(item.getId());
+            if (rows == 0) {
+                // 并发冲突：物品在检查期间已被购买或取消
+                continue;
+            }
             
+            item.setStatus("EXPIRED");
             // 将物品退还给卖家邮箱
             returnItemToSellerViaMail(item);
         }

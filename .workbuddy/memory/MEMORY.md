@@ -123,7 +123,7 @@ com.xiuxian.game/
 - **最终状态**：扫描 36 文件，乱码行 = 0，All clean（2026-03-26 二轮扫描确认）
 - **本轮新修复（2026-03-26 第二轮）**：AdminAuthService、AdminMonitoringService、AdminMailController、AdminMonitoringController、AdminPlayerController、AdminSecurityController、AdminStatisticsController（共 7 个文件，全量重写，JavaDoc 注释、字符串字面量全部替换为规范中文）
 
-*最后更新：2026-03-26（admin 模块 36 文件乱码全量清零，二轮确认；新增代码审查改进方案文档）*
+*最后更新：2026-03-26（并发安全审计+全量修复完成；admin 模块 36 文件乱码全量清零；安全审计 XSS/SQL注入/P0密码 全量修复）*
 
 ## 安全审计修复（2026-03-26）
 
@@ -138,3 +138,24 @@ com.xiuxian.game/
 - **验证结果**：自动化扫描 `innerHTML + ${ 且无 escapeHtml` = 0 行（全量通过）
 - **SQL注入审计**：全项目 MyBatis XML 均使用 `#{}` 参数化查询，无 `${}` 注入风险
 - **认证审计**：游戏端/管理端双认证独立，JWT + AdminSecurityFilter 正常工作
+
+## 并发安全审计（2026-03-26）
+
+### 审计结果
+- **随机数**：✅ 全部使用 `ThreadLocalRandom.current()`，无 `new Random()`
+- **线程安全**：✅ 无静态可变状态；`ConcurrentHashMap` 使用正确（CacheService/RedisCacheService）；`volatile boolean redisAvailable` 正确；111+ 处 HashMap/ArrayList 均为局部变量
+
+### 已修复的竞态条件（2026-03-26 全量修复）
+| 优先级 | 问题 | 修复方案 | 涉及文件 |
+|--------|------|----------|----------|
+| P1 | 拍卖行 TOCTOU | `AuctionItemMapper` 新增 `claimAuctionItem`/`cancelAuctionItem`/`expireAuctionItem` 三个原子条件更新方法；`buyItem()`/`cancelAuction()`/`processExpiredAuctions()` 改用原子SQL | AuctionItemMapper.java, AuctionService.java |
+| P1 | 宗门BOSS血量 | `GuildBossMapper.atomicDamage()` SQL原子减 + 状态判断；`challengeBoss()` 先原子更新再重查 | GuildBossMapper.java, GuildBossService.java |
+| P1 | 宗门成员计数/资金/贡献 | `GuildMapper` 新增 `incrementMemberCount`/`decrementMemberCount`/`addGuildFunds`；`GuildMemberMapper` 新增 `addContribution`；`GuildService` 全部改用原子SQL | GuildMapper.java, GuildMemberMapper.java, GuildService.java |
+| P2 | 灵石/经验并发（30+处） | `PlayerProfile` 加 `@Version` 乐观锁；`MybatisPlusConfig` 注册 `OptimisticLockerInnerInterceptor` | PlayerProfile.java, MybatisPlusConfig.java |
+| P2 | guild/guild_boss/guild_boss_challenge | 三个Entity均加 `@Version` 字段 | Guild.java, GuildBoss.java, GuildBossChallenge.java |
+| P3 | DegradeConfig.strategies | getter 返回 `Collections.unmodifiableMap()` 视图 | DegradeConfig.java |
+
+### 乐观锁部署步骤
+1. 执行 SQL 迁移脚本 `docs/sql/add-optimistic-lock-columns.sql`（给4张表加 `version` INT DEFAULT 0）
+2. 编译部署（`MybatisPlusConfig` 已注册 `OptimisticLockerInnerInterceptor`，自动处理 `@Version` 字段）
+3. 注意：乐观锁冲突时 MyBatis-Plus updateById 返回 0 影响行，需在业务层 catch 并重试或抛异常

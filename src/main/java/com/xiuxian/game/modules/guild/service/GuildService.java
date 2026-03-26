@@ -187,7 +187,7 @@ public class GuildService {
         }
         
         if (approved) {
-            // 模块边界：通过PlayerService访问玩家数据
+            // 检查成员上限（通过原子操作判断，而非先查后改）
             Guild guild = guildMapper.selectById(application.getGuildId());
             if (guild.getMemberCount() >= guild.getMaxMembers()) {
                 throw new BusinessException(ErrorCode.GUILD_FULL);
@@ -203,9 +203,13 @@ public class GuildService {
             
             guildMemberMapper.insert(member);
             
-            // 模块边界：通过PlayerService访问玩家数据
-            guild.setMemberCount(guild.getMemberCount() + 1);
-            guildMapper.updateById(guild);
+            // 原子增加成员计数（防止并发加入导致计数不准确）
+            int rows = guildMapper.incrementMemberCount(application.getGuildId());
+            if (rows == 0) {
+                // 宗门已满（并发冲突）
+                guildMemberMapper.deleteById(member.getId());
+                throw new BusinessException(ErrorCode.GUILD_FULL);
+            }
             
             application.setStatus("APPROVED");
         } else {
@@ -240,10 +244,8 @@ public class GuildService {
         // 删除成员
         guildMemberMapper.deleteById(member.getId());
         
-        // 模块边界：通过PlayerService访问玩家数据
-        Guild guild = guildMapper.selectById(member.getGuildId());
-        guild.setMemberCount(guild.getMemberCount() - 1);
-        guildMapper.updateById(guild);
+        // 原子减少成员计数（防止并发退出导致计数不准确）
+        guildMapper.decrementMemberCount(member.getGuildId());
         
         log.info("退出宗门成功: playerId={}, guildId={}", playerId, member.getGuildId());
     }
@@ -271,13 +273,11 @@ public class GuildService {
         profile.setSpiritStones(profile.getSpiritStones() - amount);
         playerService.savePlayerProfile(profile);
         
-        // 模块边界：通过PlayerService访问玩家数据
-        Guild guild = guildMapper.selectById(member.getGuildId());
-        guild.setGuildFunds(guild.getGuildFunds() + amount);
-        guildMapper.updateById(guild);
+        // 原子增加宗门资金（防止并发捐献导致资金不一致）
+        guildMapper.addGuildFunds(member.getGuildId(), amount);
         
-        member.setContribution(member.getContribution() + amount);
-        guildMemberMapper.updateById(member);
+        // 原子增加成员贡献（防止并发捐献导致贡献不一致）
+        guildMemberMapper.addContribution(member.getId(), amount);
         
         log.info("宗门捐献成功: playerId={}, amount={}, contribution={}", 
                 playerId, amount, member.getContribution());

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.Version;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -172,6 +173,14 @@ public class PlayerProfile {
 
     @TableField(value = "updated_at")
     private LocalDateTime updatedAt;
+
+    /**
+     * 乐观锁版本号（MyBatis-Plus @Version）
+     * 每次更新自动 +1，并发冲突时抛出 OptimisticLockerInnerInterceptor 异常
+     */
+    @Version
+    @TableField(value = "version")
+    private Integer version;
 
     /**
      * 获取总攻击力（基础 + 装备加成）

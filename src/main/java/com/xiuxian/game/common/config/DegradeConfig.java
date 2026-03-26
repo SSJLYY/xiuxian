@@ -4,12 +4,14 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * 降级配置属性类
  * 配置降级策略前缀，通过配置文件控制游戏各模块的降级行为
+ * strategies 字段仅启动时由 Spring 注入，运行时只读
  *
  * @author shaun.sheng
  */
@@ -29,9 +31,16 @@ public class DegradeConfig {
     private boolean fallbackEnabled = false;
 
     /**
-     * 降级策略开关
+     * 降级策略开关（仅启动时由 @ConfigurationProperties 注入，运行时不应修改）
      */
     private Map<String, Boolean> strategies = new HashMap<>();
+
+    /**
+     * 获取降级策略的不可变视图（防止运行时意外修改）
+     */
+    public Map<String, Boolean> getStrategies() {
+        return Collections.unmodifiableMap(strategies);
+    }
 
     /**
      * 战斗掉落降级开关
