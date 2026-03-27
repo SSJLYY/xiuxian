@@ -3,7 +3,7 @@
 > 本文档描述修仙挂机游戏后端的技术架构、分层设计和核心设计决策。
 > 适合：新加入的后端开发者、代码审查者、做架构扩展时参考。
 
-**作者**: shaun.sheng &nbsp;|&nbsp; **最后更新**: 2026-03-25（代码 v2 同步）
+**作者**: shaun.sheng &nbsp;|&nbsp; **最后更新**: 2026-03-27（代码 v3 同步：CombatService拆分优化、Java8Compatibility工具类）
 
 ---
 
@@ -125,7 +125,9 @@ com.xiuxian.game/
 │   │   ├── ShopItemResponse.java
 │   │   └── OfflineRewardResponse.java
 │   ├── PetEvolutionResult.java         # 宠物进化结果
-│   └── SkillComboResult.java           # 技能连招结果
+│   ├── SkillComboResult.java           # 技能连招结果
+│   ├── ListAuctionRequest.java         # 拍卖列表查询请求（替代Controller内部类）
+│   └── SystemMailRequest.java          # 系统邮件请求（封装6参数）
 │
 └── validation/     # 启动校验框架（39 个文件）
     # 应用启动时自动校验 API 响应与数据库 Schema 的一致性
@@ -323,6 +325,7 @@ LogUtils.error(log, "战斗计算异常", e, "playerId", playerId);
 | `ThreadLocalRandom.current()` | 随机数 | Service 是单例，**禁止** `new Random()` |
 | `RedisCacheService` | 双层缓存读写 | Redis 优先，失败自动降级到本地缓存 |
 | `CacheUtils` | 直接操作 Redis | 支持 String/ZSet/Hash/分布式锁 |
+| `Java8Compatibility` | Java 8 兼容工具 | 模拟 Java 9+ 的 mapOf()/listOf()/toList()/isEmpty() |
 
 ---
 

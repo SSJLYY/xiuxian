@@ -2,7 +2,7 @@
 
 > 本目录是项目唯一的技术文档入口。所有开发规范、架构说明、API参考均在此维护。
 
-**维护者**: shaun.sheng &nbsp;|&nbsp; **最后更新**: 2026-03-25
+**维护者**: shaun.sheng &nbsp;|&nbsp; **最后更新**: 2026-03-27
 
 ---
 
@@ -86,4 +86,4 @@
 | 地图系统 | ✅ 完成 | ✅ | ✅ | 待完善 |
 | 音频系统 | ✅ 完成 | — | ✅ | ✅ |
 
-*最后更新：2026-03-25（后端完成 common/modules/dto/validation 四包模块化重构，共 332 个 Java 文件，22 个业务模块；代码 v2 与文档同步）*
+*最后更新：2026-03-27（代码大规模重构：CombatService拆分优化、新增Java8Compatibility兼容工具类、新增DTO（ListAuctionRequest/SystemMailRequest）、前端utils.js重构整合；共 334 个 Java 文件）*

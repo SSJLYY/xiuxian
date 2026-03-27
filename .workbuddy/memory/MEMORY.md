@@ -52,6 +52,14 @@ com.xiuxian.game/
 - `PetEvolutionMapper.selectByPetId()` 返回 `List<PetEvolution>`，需取 `get(0)`
 - `ApiResponse.success(msg, data)` — 参数顺序：msg 在前，data 在后
 
+## 数据库规范（2026-03-27 整合）
+- **SQL目录**：`src/main/resources/sql/`
+- **三文件结构**：
+  - `001-schema.sql` (244KB)：表结构 + 索引 + 乐观锁迁移
+  - `002-data.sql` (37KB)：地图数据 + 叙事数据
+  - `003-updates.sql` (2KB)：后续更新占位符
+- **执行顺序**：001 → 002 → 003
+
 ## 历史审计结论（均已修复，仅供参考）
 
 ### 已完成审计（2026-03-25 ～ 2026-03-27）

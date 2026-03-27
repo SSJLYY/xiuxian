@@ -3,7 +3,7 @@
 > 所有业务异常必须通过 `BusinessException(ErrorCode.XXX)` 抛出。  
 > 禁止使用裸字符串或裸数字作为错误码。
 
-**作者**: shaun.sheng &nbsp;|&nbsp; **最后更新**: 2026-03-24
+**作者**: shaun.sheng &nbsp;|&nbsp; **最后更新**: 2026-03-27
 
 ---
 

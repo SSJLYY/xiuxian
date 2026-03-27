@@ -1,9 +1,9 @@
 # 后端编码规范
 
 > 本规范是代码审查的基准线。新功能提交前请对照检查。  
-> 更新日期：2026-03-25（代码 v2 同步）
+> 更新日期：2026-03-27（代码 v3 同步）
 
-**作者**: shaun.sheng &nbsp;|&nbsp; **最后更新**: 2026-03-25（代码 v2 同步）
+**作者**: shaun.sheng &nbsp;|&nbsp; **最后更新**: 2026-03-27（代码 v3 同步：CombatService拆分、Java8Compatibility工具类）
 
 ---
 
@@ -201,7 +201,31 @@ result.put("damage", 150);
 
 ---
 
-## 10. 模块化架构规范
+## 10. Java 8 兼容工具
+
+项目使用 `Java8Compatibility` 工具类在 Java 8 环境中模拟 Java 9+ 的新特性：
+
+```java
+import static com.xiuxian.game.common.util.Java8Compatibility.*;
+
+// 模拟 Java 9 的 Map.of()
+Map<String, Integer> map = mapOf("a", 1, "b", 2, "c", 3);
+
+// 模拟 Java 9 的 List.of()
+List<String> list = listOf("a", "b", "c");
+
+// 模拟 Java 16 的 Stream.toList()
+List<String> result = stream.filter(x -> x.length() > 0).collect(toList());
+
+// 模拟 Java 11 的 Optional.isEmpty()
+if (isEmpty(optional)) { ... }
+```
+
+> **注意**：仅在需要保持 Java 8 兼容性时使用。如果项目升级到 Java 9+，请使用原生 API。
+
+---
+
+## 11. 模块化架构规范
 
 项目采用 `common / modules / dto / validation` 四包结构，**新代码必须放入正确位置**：
 
@@ -244,7 +268,7 @@ modules/your-module/
 
 ---
 
-## 11. 代码审查清单
+## 12. 代码审查清单
 
 提交 PR 前自查：
 
@@ -261,7 +285,7 @@ modules/your-module/
 
 ---
 
-## 12. 相关文档
+## 13. 相关文档
 
 - **[代码审查标准](./CODE-REVIEW-STANDARDS.md)** — 完整的审查检查清单和优先级定义
 - **[代码审查流程](./CODE-REVIEW-PROCESS.md)** — PR流程、角色职责、工具使用

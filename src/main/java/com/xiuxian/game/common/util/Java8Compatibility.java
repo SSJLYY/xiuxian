@@ -13,6 +13,7 @@ public class Java8Compatibility {
     /**
      * Java 8兼容Map.of()方法，快速创建Map (模拟Java 9的Map.of())
      */
+    @SuppressWarnings("unchecked")
     public static <K, V> Map<K, V> mapOf(Object... keyValues) {
         if (keyValues.length % 2 != 0) {
             throw new IllegalArgumentException("键值对必须成对出现");
