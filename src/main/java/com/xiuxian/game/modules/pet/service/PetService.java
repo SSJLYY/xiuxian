@@ -32,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
@@ -166,17 +167,22 @@ public class PetService {
     }
 
     /**
-     * 应用饱食度衰减
+     * 应用饱食度衰减（批量update，避免循环updateById）
      */
     public List<PlayerPet> applyHungerDecay(Integer playerId) {
         List<PlayerPet> pets = getPlayerPets(playerId);
+        List<PlayerPet> toUpdate = new ArrayList<>();
         for (PlayerPet pet : pets) {
             if (pet.getHunger() != null && pet.getHunger() > 0) {
                 int newHunger = Math.max(0, pet.getHunger() - 5);
                 pet.setHunger(newHunger);
-                playerPetMapper.updateById(pet);
+                toUpdate.add(pet);
                 log.debug("宠物饱食度衰减: petId={}, hunger={}", pet.getId(), newHunger);
             }
+        }
+        // 批量更新（MyBatis-Plus IService 默认批量大小1000）
+        if (!toUpdate.isEmpty()) {
+            playerPetMapper.updateHungerBatch(toUpdate);
         }
         return pets;
     }
@@ -228,17 +234,11 @@ public class PetService {
     }
 
     /**
-     * 设置出战宠物
+     * 设置出战宠物（用原子SQL批量取消，避免循环updateById）
      */
     public void setActivePet(Integer playerId, Integer playerPetId) {
-        // 先取消所有出战状态
-        List<PlayerPet> pets = getPlayerPets(playerId);
-        for (PlayerPet pet : pets) {
-            if (Boolean.TRUE.equals(pet.getIsActive())) {
-                pet.setIsActive(false);
-                playerPetMapper.updateById(pet);
-            }
-        }
+        // 原子SQL：取消所有出战状态（1次DB写，替代循环updateById）
+        playerPetMapper.deactivateAllPets(playerId);
         // 设置新的出战宠物
         PlayerPet targetPet = playerPetMapper.selectById(playerPetId);
         if (targetPet != null && targetPet.getPlayerId().equals(playerId)) {

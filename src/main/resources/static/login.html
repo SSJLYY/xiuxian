@@ -14,8 +14,8 @@
             <h1><i class="fa-solid fa-wand-magic-sparkles"></i> xiuxian挂机</h1>
             <p>大道争锋,始于足下</p>
             <div class="tabs">
-                <button class="tab-btn active" onclick="showLogin()">登录</button>
-                <button class="tab-btn" onclick="showRegister()">注册</button>
+                <button class="tab-btn active" onclick="if(window.authManagerInstance) window.authManagerInstance.showLoginForm()">登录</button>
+                <button class="tab-btn" onclick="if(window.authManagerInstance) window.authManagerInstance.showRegisterForm()">注册</button>
             </div>
             <div id="loginForm" class="form-content" style="display: block;">
                 <div class="input-group">
@@ -26,7 +26,7 @@
                     <i class="fa-solid fa-lock"></i>
                     <input type="password" id="loginPassword" placeholder="密码" required>
                 </div>
-                <button class="btn btn-primary" id="loginBtn" onclick="window.login()"><i class="fa-solid fa-right-to-bracket"></i> 登录</button>
+                <button class="btn btn-primary" id="loginBtn"><i class="fa-solid fa-right-to-bracket"></i> 登录</button>
                 
                 <!-- 管理员登录链接 -->
                 <div class="text-center mt-4">
@@ -57,7 +57,7 @@
                     <i class="fa-solid fa-lock"></i>
                     <input type="password" id="registerConfirmPassword" placeholder="确认密码" required>
                 </div>
-                <button class="btn-primary" onclick="register(event)"><i class="fa-solid fa-user-plus"></i> 注册</button>
+                <button class="btn-primary" id="registerBtn"><i class="fa-solid fa-user-plus"></i> 注册</button>
             </div>
         </div>
     </div>
@@ -65,17 +65,21 @@
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
     <script>
-        console.log('gameAPI:', typeof gameAPI);
-        console.log('authManager:', typeof authManager);
-        console.log('authManagerInstance:', typeof window.authManagerInstance);
-        
-        document.getElementById('loginBtn').addEventListener('click', function() {
-            console.log('登录按钮被点击');
-            console.log('gameAPI:', gameAPI);
-            if (gameAPI && window.authManagerInstance) {
-                window.authManagerInstance.login();
-            } else {
-                alert('gameAPI: ' + typeof gameAPI + ', authManager: ' + typeof window.authManagerInstance);
+        // 绑定登录和注册按钮事件
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginBtn = document.getElementById('loginBtn');
+            const registerBtn = document.getElementById('registerBtn');
+            
+            if (loginBtn && window.authManagerInstance) {
+                loginBtn.addEventListener('click', function() {
+                    window.authManagerInstance.login();
+                });
+            }
+            
+            if (registerBtn && window.authManagerInstance) {
+                registerBtn.addEventListener('click', function() {
+                    window.authManagerInstance.register();
+                });
             }
         });
     </script>

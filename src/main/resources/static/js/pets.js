@@ -18,7 +18,7 @@ window.loadMyPets = loadMyPets;
 
 // 检查登录状态
 function checkAuth() {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('authToken');
     if (!token) {
         window.location.href = 'login.html';
         return;
@@ -595,9 +595,9 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
-// API请求函数
+// API 请求函数
 async function apiRequest(url, method = 'GET', data = null) {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('authToken');
     const options = {
         method: method,
         headers: {
@@ -613,7 +613,7 @@ async function apiRequest(url, method = 'GET', data = null) {
     const response = await fetch(url, options);
     
     if (response.status === 401) {
-        localStorage.removeItem('token');
+        localStorage.removeItem('authToken');
         window.location.href = 'login.html';
         throw new Error('未授权，请重新登录');
     }

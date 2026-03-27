@@ -298,13 +298,17 @@ class AuthManager {
                 if (window.api) {
                     window.api.setToken(this.token);
                 }
+                
+                localStorage.setItem('authToken', this.token);
 
                 setTimeout(() => {
                     this.showGamePage();
-                    this.updatePlayerUI();
+                    if (this.player) {
+                        this.updatePlayerUI();
+                    }
                 }, 1000);
             } else {
-                // 如果没有返回token，切换到登录表单
+                // 如果没有返回 token，切换到登录表单
                 this.showLoginForm();
             }
 

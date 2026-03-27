@@ -201,8 +201,9 @@ public class CombatService {
      *
      * <p>【P2-9 重构】返回值由 {@code Map<String, Object>} 改为强类型 {@link CombatResult}，
      * 消除弱类型带来的键名拼写风险和运行时 ClassCastException 隐患。</p>
+     * <p>【性能优化】战斗计算（纯CPU操作）不持有DB事务，仅在最终写库阶段开启事务，
+     * 减少DB连接持有时间（原长事务可能持有数十毫秒）。</p>
      */
-    @Transactional
     public CombatResult startCombat(Integer playerId, Monster monster) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
@@ -580,8 +581,10 @@ public class CombatService {
 
     /**
      * 持久化战斗日志（抽取复用）
+     * 独立 @Transactional，确保战斗结果写库原子性，同时不污染整个战斗计算过程。
      */
-    private void saveCombatLog(Integer playerId, Monster monster, String result, int rounds,
+    @Transactional(rollbackFor = Exception.class)
+    void saveCombatLog(Integer playerId, Monster monster, String result, int rounds,
                                 long expGained, long spiritStonesGained,
                                 Integer droppedEquipmentId, List<String> battleLog) {
         String battleDetailsJson = "[]";

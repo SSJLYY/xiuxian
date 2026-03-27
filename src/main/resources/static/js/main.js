@@ -2,20 +2,6 @@
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
-    // 检查用户是否已经登录
-    const token = localStorage.getItem('token');
-    if (token) {
-        // 如果已登录，显示游戏页面
-        document.getElementById('loginPage').style.display = 'none';
-        document.getElementById('gamePage').style.display = 'flex';
-        loadPlayerData();
-        loadAnnouncements();
-    } else {
-        // 如果未登录，显示登录页面
-        document.getElementById('loginPage').style.display = 'flex';
-        document.getElementById('gamePage').style.display = 'none';
-    }
-    
     // 初始化模块系统
     initializeModules();
 });
@@ -41,125 +27,7 @@ function initializeModules() {
     }
 }
 
-// 显示登录表单
-function showLogin() {
-    document.getElementById('loginForm').style.display = 'block';
-    document.getElementById('registerForm').style.display = 'none';
-    document.querySelector('.tabs .tab-btn:nth-child(1)').classList.add('active');
-    document.querySelector('.tabs .tab-btn:nth-child(2)').classList.remove('active');
-}
 
-// 显示注册表单
-function showRegister() {
-    document.getElementById('loginForm').style.display = 'none';
-    document.getElementById('registerForm').style.display = 'block';
-    document.querySelector('.tabs .tab-btn:nth-child(1)').classList.remove('active');
-    document.querySelector('.tabs .tab-btn:nth-child(2)').classList.add('active');
-}
-
-// 登录功能
-async function login(event) {
-    event.preventDefault();
-    
-    const username = document.getElementById('loginUsername').value;
-    const password = document.getElementById('loginPassword').value;
-    
-    if (!username || !password) {
-        showToast('请输入用户名和密码', 'error');
-        return;
-    }
-    
-    showLoading(true);
-    
-    try {
-        const response = await api.post('/auth/login', {
-            username: username,
-            password: password
-        });
-        
-        if (response.success) {
-            // 保存token到localStorage
-            localStorage.setItem('token', response.data.token);
-            
-            // 显示游戏页面
-            document.getElementById('loginPage').style.display = 'none';
-            document.getElementById('gamePage').style.display = 'flex';
-            
-            // 加载玩家数据
-            loadPlayerData();
-            loadAnnouncements();
-            
-            // 初始化导航栏
-            initializeNavigation();
-            
-            showToast('登录成功', 'success');
-        } else {
-            showToast('登录失败: ' + response.message, 'error');
-        }
-    } catch (error) {
-        showToast('登录失败: ' + error.message, 'error');
-    } finally {
-        showLoading(false);
-    }
-}
-
-// 注册功能
-async function register(event) {
-    event.preventDefault();
-    
-    const username = document.getElementById('registerUsername').value;
-    const nickname = document.getElementById('registerNickname').value;
-    const email = document.getElementById('registerEmail').value;
-    const password = document.getElementById('registerPassword').value;
-    const confirmPassword = document.getElementById('registerConfirmPassword').value;
-    
-    // 基本验证
-    if (!username || !nickname || !email || !password || !confirmPassword) {
-        showToast('请填写所有字段', 'error');
-        return;
-    }
-    
-    if (password !== confirmPassword) {
-        showToast('密码不匹配', 'error');
-        return;
-    }
-    
-    showLoading(true);
-    
-    try {
-        const response = await api.post('/auth/register', {
-            username: username,
-            nickname: nickname,
-            email: email,
-            password: password
-        });
-        
-        if (response.success) {
-            showToast('注册成功，请登录', 'success');
-            showLogin();
-        } else {
-            showToast('注册失败: ' + response.message, 'error');
-        }
-    } catch (error) {
-        showToast('注册失败: ' + error.message, 'error');
-    } finally {
-        showLoading(false);
-    }
-}
-
-// 加载玩家数据
-async function loadPlayerData() {
-    try {
-        const response = await api.get('/player/profile');
-        if (response.success) {
-            updatePlayerStats(response.data);
-        } else {
-            showToast('获取玩家数据失败: ' + response.message, 'error');
-        }
-    } catch (error) {
-        showToast('获取玩家数据失败: ' + error.message, 'error');
-    }
-}
 
 // 更新玩家状态显示
 function updatePlayerStats(profile) {
@@ -217,21 +85,7 @@ function stopCultivation() {
     document.getElementById('cultivationStatus').textContent = '修炼已停止';
 }
 
-// 退出登录
-function logout() {
-    // 清除token
-    localStorage.removeItem('token');
-    
-    // 显示登录页面
-    document.getElementById('loginPage').style.display = 'flex';
-    document.getElementById('gamePage').style.display = 'none';
-    
-    // 清空表单
-    document.getElementById('loginUsername').value = '';
-    document.getElementById('loginPassword').value = '';
-    
-    showToast('已退出登录', 'info');
-}
+
 
 // 显示消息提示
 function showToast(message, type = 'info') {

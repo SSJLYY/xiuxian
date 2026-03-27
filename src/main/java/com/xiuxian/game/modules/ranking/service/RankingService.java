@@ -1,6 +1,7 @@
 package com.xiuxian.game.modules.ranking.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
 import com.xiuxian.game.modules.ranking.entity.Ranking;
 import com.xiuxian.game.modules.player.service.PlayerService;
@@ -13,7 +14,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import com.xiuxian.game.modules.admin.service.CacheService;
 
 /**
@@ -50,12 +55,19 @@ public class RankingService {
         
         List<Ranking> rankings = rankingMapper.selectList(wrapper);
         
-        // 填充玩家信息
-        for (Ranking ranking : rankings) {
-            PlayerProfile player = playerService.getPlayerProfileById(ranking.getPlayerId());
-            if (player != null) {
-                ranking.setPlayerName(player.getNickname());
-                ranking.setRealm(player.getRealm());
+        // 批量加载玩家信息（避免N+1查询）
+        if (!rankings.isEmpty()) {
+            List<Integer> playerIds = rankings.stream()
+                    .map(Ranking::getPlayerId)
+                    .distinct()
+                    .collect(Collectors.toList());
+            Map<Integer, PlayerProfile> playerMap = playerService.getPlayerProfilesByIds(playerIds);
+            for (Ranking ranking : rankings) {
+                PlayerProfile player = playerMap.get(ranking.getPlayerId());
+                if (player != null) {
+                    ranking.setPlayerName(player.getNickname());
+                    ranking.setRealm(player.getRealm());
+                }
             }
         }
         
@@ -82,21 +94,30 @@ public class RankingService {
      * 定时更新排行榜（每小时执行一次）
      * 注意：@Async + @Transactional 同时使用时，Spring 代理机制正常工作，
      * 因为定时触发走的是代理对象（非自调用）。保留 @Async 避免阻塞调度线程。
+     * 注意：clearRankingCache()（Redis调用）在事务提交后执行，避免长事务占用DB连接。
      */
     @Scheduled(cron = "0 0 * * * ?")
     @Async("rankingTaskExecutor")
-    @Transactional(rollbackFor = Exception.class)
     public void updateRankings() {
         log.info("开始更新排行榜");
 
-        updateLevelRanking();
-        updateSpiritStonesRanking();
-        updateCombatPowerRanking();
+        // 事务内仅执行DB操作
+        doUpdateRankingsInTx();
 
-        // 清除排行榜缓存
+        // 事务提交后再清除缓存（Redis操作不应在DB事务内）
         clearRankingCache();
 
         log.info("排行榜更新完成");
+    }
+
+    /**
+     * 排行榜DB更新（独立事务，不含Redis调用）
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void doUpdateRankingsInTx() {
+        updateLevelRanking();
+        updateSpiritStonesRanking();
+        updateCombatPowerRanking();
     }
     
     /**
@@ -129,18 +150,22 @@ public class RankingService {
         // 通过PlayerService查询，遵守模块边界
         List<PlayerProfile> players = playerService.getTopPlayersByLevel(100);
         
-        // 插入新排名
-        int rank = 1;
-        for (PlayerProfile player : players) {
+        // 批量构建排名记录（避免循环insert）
+        List<Ranking> rankings = new ArrayList<>(players.size());
+        LocalDateTime now = LocalDateTime.now();
+        for (int i = 0; i < players.size(); i++) {
+            PlayerProfile player = players.get(i);
             Ranking ranking = new Ranking();
             ranking.setPlayerId(player.getId());
             ranking.setPlayerName(player.getNickname());
             ranking.setRankingType("LEVEL");
-            ranking.setRank(rank++);
+            ranking.setRank(i + 1);
             ranking.setScore(player.getLevel().longValue());
-            ranking.setUpdatedAt(LocalDateTime.now());
-            
-            rankingMapper.insert(ranking);
+            ranking.setUpdatedAt(now);
+            rankings.add(ranking);
+        }
+        if (!rankings.isEmpty()) {
+            rankingMapper.insertBatch(rankings);
         }
         
         log.debug("等级排行榜更新完成: {} 名玩家", players.size());
@@ -159,18 +184,22 @@ public class RankingService {
         // 通过PlayerService查询，遵守模块边界
         List<PlayerProfile> players = playerService.getTopPlayersBySpiritStones(100);
         
-        // 插入新排名
-        int rank = 1;
-        for (PlayerProfile player : players) {
+        // 批量构建排名记录（避免循环insert）
+        List<Ranking> rankings = new ArrayList<>(players.size());
+        LocalDateTime now = LocalDateTime.now();
+        for (int i = 0; i < players.size(); i++) {
+            PlayerProfile player = players.get(i);
             Ranking ranking = new Ranking();
             ranking.setPlayerId(player.getId());
             ranking.setPlayerName(player.getNickname());
             ranking.setRankingType("SPIRIT_STONES");
-            ranking.setRank(rank++);
+            ranking.setRank(i + 1);
             ranking.setScore(player.getSpiritStones());
-            ranking.setUpdatedAt(LocalDateTime.now());
-            
-            rankingMapper.insert(ranking);
+            ranking.setUpdatedAt(now);
+            rankings.add(ranking);
+        }
+        if (!rankings.isEmpty()) {
+            rankingMapper.insertBatch(rankings);
         }
         
         log.debug("灵石排行榜更新完成: {} 名玩家", players.size());
@@ -189,9 +218,11 @@ public class RankingService {
         // 通过PlayerService查询，遵守模块边界
         List<PlayerProfile> players = playerService.getTopPlayersByCultivationSpeed(100);
         
-        // 插入新排名
-        int rank = 1;
-        for (PlayerProfile player : players) {
+        // 批量构建排名记录（避免循环insert）
+        List<Ranking> rankings = new ArrayList<>(players.size());
+        LocalDateTime now = LocalDateTime.now();
+        for (int i = 0; i < players.size(); i++) {
+            PlayerProfile player = players.get(i);
             long combatPower = player.getAttack() + player.getDefense() + 
                               player.getHealth() + player.getMana() + player.getSpeed();
             
@@ -199,11 +230,13 @@ public class RankingService {
             ranking.setPlayerId(player.getId());
             ranking.setPlayerName(player.getNickname());
             ranking.setRankingType("COMBAT_POWER");
-            ranking.setRank(rank++);
+            ranking.setRank(i + 1);
             ranking.setScore(combatPower);
-            ranking.setUpdatedAt(LocalDateTime.now());
-            
-            rankingMapper.insert(ranking);
+            ranking.setUpdatedAt(now);
+            rankings.add(ranking);
+        }
+        if (!rankings.isEmpty()) {
+            rankingMapper.insertBatch(rankings);
         }
         
         log.debug("战力排行榜更新完成: {} 名玩家", players.size());
@@ -214,12 +247,9 @@ public class RankingService {
      * 注意：自调用 updateRankings() 时 @Transactional 不通过代理生效，
      * 因此手动刷新时直接内联逻辑而非自调用。
      */
-    @Transactional(rollbackFor = Exception.class)
     public void refreshRankings() {
         log.info("手动刷新排行榜");
-        updateLevelRanking();
-        updateSpiritStonesRanking();
-        updateCombatPowerRanking();
+        doUpdateRankingsInTx();
         clearRankingCache();
         log.info("手动刷新排行榜完成");
     }

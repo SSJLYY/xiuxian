@@ -76,9 +76,16 @@ public class SkillService {
 
     public List<SkillResponse> getPlayerSkillDetails(Integer playerId) {
         List<PlayerSkill> list = getPlayerSkills(playerId);
+        if (list.isEmpty()) return new ArrayList<>();
+        // 批量加载skill信息（避免N+1查询）
+        List<Integer> skillIds = list.stream().map(PlayerSkill::getSkillId).distinct().collect(Collectors.toList());
+        Map<Integer, Skill> skillMap = skillMapper.selectBatchIds(skillIds)
+                .stream().collect(Collectors.toMap(Skill::getId, s -> s));
+
         java.util.ArrayList<SkillResponse> res = new java.util.ArrayList<>();
         for (PlayerSkill ps : list) {
-            Skill s = skillMapper.selectById(ps.getSkillId());
+            Skill s = skillMap.get(ps.getSkillId());
+            if (s == null) continue;
             SkillResponse.SkillSummary summary = SkillResponse.SkillSummary.builder()
                     .id(s.getId())
                     .name(s.getName())
@@ -92,8 +99,10 @@ public class SkillService {
                     .level(ps.getLevel())
                     .equipped(ps.getEquipped())
                     .slotNumber(ps.getSlotNumber())
-                    .cooldown(getSkillCooldown(ps))
-                    .manaCost(getSkillManaCost(ps))
+                    .cooldown(s.getCooldown() != null
+                            ? Math.max(1, s.getCooldown() - (ps.getLevel() - 1) / 2) : 0)
+                    .manaCost(s.getManaCost() != null
+                            ? s.getManaCost() + (ps.getLevel() - 1) : 0)
                     .skill(summary)
                     .build();
             res.add(sr);
@@ -188,17 +197,22 @@ public class SkillService {
     }
 
     /**
-     * 为新玩家初始化基础技能
+     * 为新玩家初始化基础技能（批量insert，避免N+1校验查询）
      */
     @Transactional
     public void initializePlayerSkills(PlayerProfile player) {
         // 获取所有1级解锁的技能
         List<Skill> basicSkills = skillMapper.selectByUnlockLevelLessThanEqual(1);
+        if (basicSkills.isEmpty()) return;
+
+        // 批量获取玩家已有技能ID集合（1次查询替代循环查询）
+        List<PlayerSkill> existing = playerSkillMapper.selectByPlayerId(player.getId());
+        java.util.Set<Integer> ownedSkillIds = existing.stream()
+                .map(PlayerSkill::getSkillId)
+                .collect(Collectors.toSet());
 
         for (Skill skill : basicSkills) {
-            // 检查玩家是否已经拥有该技能
-            PlayerSkill existingSkill = playerSkillMapper.selectByPlayerIdAndSkillId(player.getId(), skill.getId());
-            if (existingSkill == null) {
+            if (!ownedSkillIds.contains(skill.getId())) {
                 PlayerSkill playerSkill = PlayerSkill.builder()
                         .playerId(player.getId())
                         .skillId(skill.getId())
@@ -351,7 +365,7 @@ public class SkillService {
     }
 
     /**
-     * 计算玩家装备技能的总属性加成
+     * 计算玩家装备技能的总属性加成（批量预加载，避免N+1）
      */
     public Map<String, Integer> calculateSkillBonuses(Integer playerId) {
         List<PlayerSkill> equippedSkills = playerSkillMapper.selectByPlayerIdAndEquipped(playerId, true);
@@ -363,8 +377,16 @@ public class SkillService {
         bonuses.put("defense", 0);
         bonuses.put("speed", 0);
 
+        if (equippedSkills.isEmpty()) return bonuses;
+
+        // 批量加载skill信息（避免N+1查询）
+        List<Integer> skillIds = equippedSkills.stream()
+                .map(PlayerSkill::getSkillId).distinct().collect(Collectors.toList());
+        Map<Integer, Skill> skillMap = skillMapper.selectBatchIds(skillIds)
+                .stream().collect(Collectors.toMap(Skill::getId, s -> s));
+
         for (PlayerSkill playerSkill : equippedSkills) {
-            Skill skill = skillMapper.selectById(playerSkill.getSkillId());
+            Skill skill = skillMap.get(playerSkill.getSkillId());
             if (skill != null) {
                 bonuses.put("health", bonuses.get("health") +
                     (skill.getHealthBonus() != null ? skill.getHealthBonus() * playerSkill.getLevel() : 0));
@@ -565,7 +587,7 @@ public class SkillService {
     }
 
     /**
-     * 获取连招信息DTO
+     * 获取连招信息DTO（批量预加载技能名，避免N+1）
      */
     public Map<String, Object> getComboInfo(SkillCombo combo) {
         Map<String, Object> info = new HashMap<>();
@@ -575,13 +597,17 @@ public class SkillService {
         info.put("bonusPercent", combo.getComboBonus());
         info.put("requiredLevel", combo.getRequiredLevel());
 
-        // 解析技能序列并获取技能名称
+        // 解析技能序列并批量获取技能名称（避免N+1）
         List<Integer> skillIds = parseSkillSequence(combo.getSkillSequence());
         List<String> skillNames = new ArrayList<>();
-        for (Integer skillId : skillIds) {
-            Skill skill = skillMapper.selectById(skillId);
-            if (skill != null) {
-                skillNames.add(skill.getName());
+        if (!skillIds.isEmpty()) {
+            Map<Integer, Skill> skillMap = skillMapper.selectBatchIds(skillIds)
+                    .stream().collect(Collectors.toMap(Skill::getId, s -> s));
+            for (Integer skillId : skillIds) {
+                Skill skill = skillMap.get(skillId);
+                if (skill != null) {
+                    skillNames.add(skill.getName());
+                }
             }
         }
         info.put("skillSequence", skillNames);

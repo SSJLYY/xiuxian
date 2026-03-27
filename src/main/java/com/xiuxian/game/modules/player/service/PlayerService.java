@@ -673,4 +673,20 @@ public class PlayerService {
     public User getUserById(Integer userId) {
         return userMapper.selectById(userId);
     }
+
+    /**
+     * 批量查询玩家档案，返回 playerId -> PlayerProfile 映射。
+     * 用于排行榜/BOSS战等场景避免N+1查询。
+     *
+     * @param playerIds 玩家ID列表
+     * @return playerId -> PlayerProfile（不含null值）
+     */
+    public Map<Integer, PlayerProfile> getPlayerProfilesByIds(List<Integer> playerIds) {
+        if (playerIds == null || playerIds.isEmpty()) {
+            return java.util.Collections.emptyMap();
+        }
+        List<PlayerProfile> profiles = playerProfileMapper.selectBatchIds(playerIds);
+        return profiles.stream()
+                .collect(java.util.stream.Collectors.toMap(PlayerProfile::getId, p -> p));
+    }
 }

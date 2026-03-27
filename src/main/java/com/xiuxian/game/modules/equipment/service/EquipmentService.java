@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 import com.xiuxian.game.common.exception.BusinessException;
 import com.xiuxian.game.common.exception.ErrorCode;
 
@@ -67,43 +68,21 @@ public class EquipmentService {
         }
         
         List<PlayerEquipment> playerEquipments = playerEquipmentMapper.selectByPlayerId(playerId);
+        if (playerEquipments.isEmpty()) return new ArrayList<>();
+
+        // 批量加载装备信息（避免N+1查询）
+        List<Integer> equipmentIds = playerEquipments.stream()
+                .map(PlayerEquipment::getEquipmentId).distinct().collect(Collectors.toList());
+        Map<Integer, Equipment> equipmentMap = equipmentMapper.selectBatchIds(equipmentIds)
+                .stream().collect(Collectors.toMap(Equipment::getId, e -> e));
+
         List<PlayerEquipmentResponse> responses = new ArrayList<>();
-        
         for (PlayerEquipment pe : playerEquipments) {
-            Equipment equipment = equipmentMapper.selectById(pe.getEquipmentId());
+            Equipment equipment = equipmentMap.get(pe.getEquipmentId());
             if (equipment == null) {
                 continue;
             }
-            
-            PlayerEquipmentResponse response = PlayerEquipmentResponse.builder()
-                    .id(pe.getId())
-                    .playerId(pe.getPlayerId())
-                    .equipmentId(pe.getEquipmentId())
-                    .slot(pe.getSlot())
-                    .equipped(pe.getEquipped())
-                    .durability(pe.getDurability())
-                    .maxDurability(pe.getMaxDurability())
-                    .enhanceLevel(pe.getEnhanceLevel())
-                    .enhanceAttackBonus(pe.getEnhanceAttackBonus())
-                    .enhanceDefenseBonus(pe.getEnhanceDefenseBonus())
-                    .enhanceHealthBonus(pe.getEnhanceHealthBonus())
-                    .createdAt(pe.getCreatedAt())
-                    .updatedAt(pe.getUpdatedAt())
-                    .name(equipment.getName())
-                    .description(equipment.getDescription())
-                    .type(equipment.getType())
-                    .level(equipment.getLevel())
-                    .quality(equipment.getQuality())
-                    .attackBonus(equipment.getAttackBonus())
-                    .defenseBonus(equipment.getDefenseBonus())
-                    .healthBonus(equipment.getHealthBonus())
-                    .manaBonus(equipment.getManaBonus())
-                    .speedBonus(equipment.getSpeedBonus())
-                    .requiredLevel(equipment.getRequiredLevel())
-                    .price(equipment.getPrice())
-                    .build();
-            
-            responses.add(response);
+            responses.add(buildEquipmentResponse(pe, equipment));
         }
         
         return responses;
@@ -124,46 +103,57 @@ public class EquipmentService {
         }
         
         List<PlayerEquipment> playerEquipments = playerEquipmentMapper.selectEquippedByPlayerId(playerId);
+        if (playerEquipments.isEmpty()) return new ArrayList<>();
+
+        // 批量加载装备信息（避免N+1查询）
+        List<Integer> equipmentIds = playerEquipments.stream()
+                .map(PlayerEquipment::getEquipmentId).distinct().collect(Collectors.toList());
+        Map<Integer, Equipment> equipmentMap = equipmentMapper.selectBatchIds(equipmentIds)
+                .stream().collect(Collectors.toMap(Equipment::getId, e -> e));
+
         List<PlayerEquipmentResponse> responses = new ArrayList<>();
-        
         for (PlayerEquipment pe : playerEquipments) {
-            Equipment equipment = equipmentMapper.selectById(pe.getEquipmentId());
+            Equipment equipment = equipmentMap.get(pe.getEquipmentId());
             if (equipment == null) {
                 continue;
             }
-            
-            PlayerEquipmentResponse response = PlayerEquipmentResponse.builder()
-                    .id(pe.getId())
-                    .playerId(pe.getPlayerId())
-                    .equipmentId(pe.getEquipmentId())
-                    .slot(pe.getSlot())
-                    .equipped(pe.getEquipped())
-                    .durability(pe.getDurability())
-                    .maxDurability(pe.getMaxDurability())
-                    .enhanceLevel(pe.getEnhanceLevel())
-                    .enhanceAttackBonus(pe.getEnhanceAttackBonus())
-                    .enhanceDefenseBonus(pe.getEnhanceDefenseBonus())
-                    .enhanceHealthBonus(pe.getEnhanceHealthBonus())
-                    .createdAt(pe.getCreatedAt())
-                    .updatedAt(pe.getUpdatedAt())
-                    .name(equipment.getName())
-                    .description(equipment.getDescription())
-                    .type(equipment.getType())
-                    .level(equipment.getLevel())
-                    .quality(equipment.getQuality())
-                    .attackBonus(equipment.getAttackBonus())
-                    .defenseBonus(equipment.getDefenseBonus())
-                    .healthBonus(equipment.getHealthBonus())
-                    .manaBonus(equipment.getManaBonus())
-                    .speedBonus(equipment.getSpeedBonus())
-                    .requiredLevel(equipment.getRequiredLevel())
-                    .price(equipment.getPrice())
-                    .build();
-            
-            responses.add(response);
+            responses.add(buildEquipmentResponse(pe, equipment));
         }
         
         return responses;
+    }
+
+    /**
+     * 将 PlayerEquipment + Equipment 装配为 Response DTO（消除重复代码）
+     */
+    private PlayerEquipmentResponse buildEquipmentResponse(PlayerEquipment pe, Equipment equipment) {
+        return PlayerEquipmentResponse.builder()
+                .id(pe.getId())
+                .playerId(pe.getPlayerId())
+                .equipmentId(pe.getEquipmentId())
+                .slot(pe.getSlot())
+                .equipped(pe.getEquipped())
+                .durability(pe.getDurability())
+                .maxDurability(pe.getMaxDurability())
+                .enhanceLevel(pe.getEnhanceLevel())
+                .enhanceAttackBonus(pe.getEnhanceAttackBonus())
+                .enhanceDefenseBonus(pe.getEnhanceDefenseBonus())
+                .enhanceHealthBonus(pe.getEnhanceHealthBonus())
+                .createdAt(pe.getCreatedAt())
+                .updatedAt(pe.getUpdatedAt())
+                .name(equipment.getName())
+                .description(equipment.getDescription())
+                .type(equipment.getType())
+                .level(equipment.getLevel())
+                .quality(equipment.getQuality())
+                .attackBonus(equipment.getAttackBonus())
+                .defenseBonus(equipment.getDefenseBonus())
+                .healthBonus(equipment.getHealthBonus())
+                .manaBonus(equipment.getManaBonus())
+                .speedBonus(equipment.getSpeedBonus())
+                .requiredLevel(equipment.getRequiredLevel())
+                .price(equipment.getPrice())
+                .build();
     }
 
     @Transactional

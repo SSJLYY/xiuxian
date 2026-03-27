@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 /**
  * 仙盟BOSS战斗管理类
@@ -241,12 +242,14 @@ public class GuildBossService {
         long totalDamage = all.stream().mapToLong(GuildBossChallenge::getDamageDealt).sum();
         if (totalDamage == 0) return;
 
+        // 计算各参与者奖励
         for (GuildBossChallenge c : all) {
             double ratio = (double) c.getDamageDealt() / totalDamage;
             int personalStones = (int) (boss.getRewardSpiritStones() * ratio);
             c.setPersonalRewardStones(personalStones);
-            challengeMapper.updateById(c);
         }
+        // 批量更新，替代循环 updateById（避免N次DB往返）
+        challengeMapper.batchUpdateRewardStones(all);
     }
 
     private double getDamageRatio(Integer bossId, Integer playerId) {
@@ -280,9 +283,14 @@ public class GuildBossService {
                 .eq(GuildMember::getGuildId, guildId);
         List<GuildMember> members = guildMemberMapper.selectList(query);
         if (members.isEmpty()) return 5;
+
+        // 批量加载玩家信息（避免N+1查询）
+        List<Integer> playerIds = members.stream().map(GuildMember::getPlayerId).distinct().collect(Collectors.toList());
+        Map<Integer, PlayerProfile> playerMap = playerService.getPlayerProfilesByIds(playerIds);
+
         return members.stream()
                 .mapToInt(m -> {
-                    PlayerProfile p = playerService.getPlayerProfileById(m.getPlayerId());
+                    PlayerProfile p = playerMap.get(m.getPlayerId());
                     return p != null && p.getLevel() != null ? p.getLevel() : 1;
                 })
                 .average().orElse(5);
@@ -308,14 +316,20 @@ public class GuildBossService {
             rank = (int) all.stream().filter(c -> c.getDamageDealt() > myDamageFinal).count() + 1;
         }
 
-        // 构建伤害排行榜
+        // 构建伤害排行榜（批量加载玩家信息，避免N+1）
+        int rankLimit = Math.min(all.size(), 10);
+        List<GuildBossChallenge> topChallenges = all.subList(0, rankLimit);
+        List<Integer> playerIds = topChallenges.stream()
+                .map(GuildBossChallenge::getPlayerId).distinct().collect(Collectors.toList());
+        Map<Integer, PlayerProfile> playerMap = playerService.getPlayerProfilesByIds(playerIds);
+
         List<Map<String, Object>> damageRanking = new ArrayList<>();
-        for (int i = 0; i < Math.min(all.size(), 10); i++) {
-            GuildBossChallenge c = all.get(i);
+        for (int i = 0; i < rankLimit; i++) {
+            GuildBossChallenge c = topChallenges.get(i);
             Map<String, Object> entry = new HashMap<>();
             entry.put("rank", i + 1);
             entry.put("playerId", c.getPlayerId());
-            PlayerProfile p = playerService.getPlayerProfileById(c.getPlayerId());
+            PlayerProfile p = playerMap.get(c.getPlayerId());
             entry.put("playerName", p != null ? p.getNickname() : "未知玩家");
             entry.put("damage", c.getDamageDealt());
             entry.put("ratio", totalDamage > 0 ? String.format("%.1f%%", c.getDamageDealt() * 100.0 / totalDamage) : "0%");

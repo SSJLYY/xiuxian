@@ -293,26 +293,40 @@ public class MailService {
 
     /**
      * 定时清理过期邮件
-     * 每天凌晨3点执行
+     * 每天凌晨3点执行。
+     * 改为分批处理（每批500条），避免全表加载到内存 + 长事务问题。
+     * 每批独立事务，减少DB连接持有时间。
      */
     @Scheduled(cron = "0 0 3 * * ?")
-    @Transactional
     public void cleanExpiredMails() {
         log.info("开始清理过期邮件");
-        
         LocalDateTime now = LocalDateTime.now();
-        List<PlayerMail> expiredMails = mailMapper.selectList(
-                new QueryWrapper<PlayerMail>()
-                        .lt("expire_at", now));
-        
-        for (PlayerMail mail : expiredMails) {
-            // 删除附件
-            attachmentMapper.delete(new QueryWrapper<MailAttachment>().eq("mail_id", mail.getId()));
-            // 删除邮件
-            mailMapper.deleteById(mail.getId());
-        }
-        
-        log.info("过期邮件清理完成: count={}", expiredMails.size());
+        int totalDeleted = 0;
+        int batchSize = 500;
+        List<Long> expiredIds;
+
+        do {
+            expiredIds = mailMapper.selectExpiredMailIds(now, batchSize);
+            if (expiredIds.isEmpty()) break;
+
+            // 每批附件+邮件一起删，独立事务减少锁持有时长
+            cleanBatch(expiredIds);
+            totalDeleted += expiredIds.size();
+            log.debug("清理过期邮件批次: count={}", expiredIds.size());
+        } while (expiredIds.size() == batchSize);
+
+        log.info("过期邮件清理完成: totalDeleted={}", totalDeleted);
+    }
+
+    /**
+     * 批量删除一批过期邮件及其附件（独立事务）
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void cleanBatch(List<Long> mailIds) {
+        if (mailIds.isEmpty()) return;
+        // 先删附件，再删邮件（遵循外键顺序）
+        attachmentMapper.deleteBatchByMailIds(mailIds);
+        mailMapper.deleteBatchByIds(mailIds);
     }
 
     /**

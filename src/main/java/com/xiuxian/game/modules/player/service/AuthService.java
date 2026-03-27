@@ -115,9 +115,10 @@ public class AuthService {
 
         User adminUser = userMapper.selectByUsername(request.getUsername());
         if (adminUser == null) {
+            log.warn("管理员用户不存在，将使用配置文件中的 BCrypt 哈希值创建管理员用户");
             adminUser = User.builder()
                     .username(request.getUsername())
-                    .password(passwordEncoder.encode(adminPasswordPlain))
+                    .password(adminPasswordPlain)
                     .email("admin@xiuxian.game")
                     .role("ADMIN")
                     .mustChangePassword(false)

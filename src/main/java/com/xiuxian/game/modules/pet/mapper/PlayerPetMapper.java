@@ -25,7 +25,7 @@ public interface PlayerPetMapper extends BaseMapper<PlayerPet> {
     PlayerPet selectActivePet(@Param("playerId") Integer playerId);
 
     /**
-     * 取消所有出战状态
+     * 取消所有出战状态（原子SQL）
      */
     @Update("UPDATE player_pets SET is_active = false WHERE player_id = #{playerId}")
     int deactivateAllPets(@Param("playerId") Integer playerId);
@@ -35,4 +35,16 @@ public interface PlayerPetMapper extends BaseMapper<PlayerPet> {
      */
     @Select("SELECT COUNT(*) FROM player_pets WHERE player_id = #{playerId} AND pet_id = #{petId}")
     int countByPlayerIdAndPetId(@Param("playerId") Integer playerId, @Param("petId") Integer petId);
+
+    /**
+     * 批量更新宠物饱食度（性能优化：避免循环updateById）
+     *
+     * @param list 待更新的宠物列表（hunger 字段已更新）
+     */
+    @Update("<script>" +
+            "<foreach collection='list' item='p' separator=';'>" +
+            "UPDATE player_pets SET hunger = #{p.hunger} WHERE id = #{p.id}" +
+            "</foreach>" +
+            "</script>")
+    void updateHungerBatch(@Param("list") List<PlayerPet> list);
 }
