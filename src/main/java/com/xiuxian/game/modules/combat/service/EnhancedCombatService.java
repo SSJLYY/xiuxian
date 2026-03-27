@@ -14,15 +14,9 @@ import com.xiuxian.game.modules.player.entity.PlayerProfile;
 import com.xiuxian.game.modules.player.service.PlayerService;
 import com.xiuxian.game.modules.skill.entity.PlayerSkill;
 import com.xiuxian.game.modules.skill.entity.Skill;
-import com.xiuxian.game.modules.shop.entity.Item;
-import com.xiuxian.game.modules.equipment.service.EquipmentService;
-import com.xiuxian.game.modules.pet.service.PetService;
-import com.xiuxian.game.modules.player.entity.PlayerItem;
-import com.xiuxian.game.modules.skill.entity.Skill;
 import com.xiuxian.game.modules.skill.service.SkillService;
 import com.xiuxian.game.modules.shop.entity.Item;
 import com.xiuxian.game.modules.shop.service.ItemService;
-import com.xiuxian.game.modules.player.service.PlayerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -169,6 +163,9 @@ public class EnhancedCombatService {
         int spiritStonesGained = 0;
         Integer droppedEquipmentId = null;
 
+        // 累加 totalBattles（无论输赢）
+        player.setTotalBattles(player.getTotalBattles() + 1);
+
         if (playerWon) {
             battleLog.add("战斗胜利！");
 
@@ -204,7 +201,6 @@ public class EnhancedCombatService {
                 battleLog.add("升级！当前等级" + player.getLevel());
             }
 
-            playerService.savePlayerProfile(player);
             battleLog.add("获得经验" + expGained + "，灵石" + spiritStonesGained);
         } else {
             battleLog.add("战斗失败...");
@@ -212,10 +208,11 @@ public class EnhancedCombatService {
             int lostSpiritStones = spiritStonesGained / 10;
             if (player.getSpiritStones() >= lostSpiritStones) {
                 player.setSpiritStones(player.getSpiritStones() - lostSpiritStones);
-                playerService.savePlayerProfile(player);
                 battleLog.add("损失灵石" + lostSpiritStones);
             }
         }
+        // 统一保存
+        playerService.savePlayerProfile(player);
 
         // 保存战斗记录
         String battleDetailsJson = "";

@@ -598,3 +598,142 @@ GameManager.prototype.resetCultivation = async function() {
 window.getGameManager = function() {
     return gameManager;
 };
+
+// ============================================================================
+// 战斗系统 - game.html 战斗模块专用
+// ============================================================================
+
+// 战斗日志
+let combatLogs = [];
+
+function addCombatLog(message) {
+    combatLogs.push({ message: message, timestamp: new Date() });
+    if (combatLogs.length > 50) combatLogs.shift();
+    updateCombatLogDisplay();
+}
+
+function updateCombatLogDisplay() {
+    const logContainer = document.getElementById('combat-log-container');
+    if (!logContainer) return;
+    if (combatLogs.length === 0) {
+        logContainer.innerHTML = '<p class="text-secondary italic">暂无战斗记录</p>';
+        return;
+    }
+    logContainer.innerHTML = combatLogs.slice().reverse().map(log =>
+        `<p>[${log.timestamp.toLocaleTimeString()}] ${log.message}</p>`
+    ).join('');
+    logContainer.scrollTop = logContainer.scrollHeight;
+}
+
+// 生成怪物
+async function generateMonster() {
+    try {
+        const mapSelector = document.getElementById('combat-map-selector');
+        const mapId = mapSelector ? parseInt(mapSelector.value) : 1;
+        const response = await gameAPI.generateMonster(mapId);
+        if (!response?.success) throw new Error(response?.message || '生成怪物失败');
+        const monster = response.data;
+        updateMonsterDisplay(monster);
+        return monster;
+    } catch (error) {
+        addCombatLog(`<span class="text-red-600">生成怪物失败: ${error.message}</span>`);
+        return null;
+    }
+}
+
+// 更新怪物显示
+function updateMonsterDisplay(monster) {
+    if (!monster) return;
+    const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setText('combat-monster-name', monster.name);
+    setText('combat-monster-level', `等级${monster.level}`);
+    setText('combat-monster-type', monster.type);
+    setText('combat-monster-health', monster.health);
+    setText('combat-monster-attack', monster.attack);
+    setText('combat-monster-defense', monster.defense);
+    setText('combat-monster-speed', monster.speed);
+    const healthBar = document.getElementById('combat-monster-health-bar');
+    if (healthBar) healthBar.style.width = '100%';
+}
+
+// 战斗一次
+async function fightOnce() {
+    try {
+        const mapSelector = document.getElementById('combat-map-selector');
+        const mapId = mapSelector ? parseInt(mapSelector.value) : 1;
+        const monsterResponse = await gameAPI.generateMonster(mapId);
+        if (!monsterResponse?.success) throw new Error(monsterResponse?.message || '生成怪物失败');
+        const monster = monsterResponse.data;
+        addCombatLog(`遭遇 ${monster.name} (等级${monster.level} ${monster.type})`);
+        const combatResponse = monster.id
+            ? await gameAPI.startCombatWithMap(monster.id, mapId)
+            : await gameAPI.startCombatGenerateWithMap(mapId);
+        if (!combatResponse?.success) throw new Error(combatResponse?.message || '战斗失败');
+        const result = combatResponse.data;
+        if (result.result === 'WIN') {
+            addCombatLog(`<span class="text-green-600">战斗胜利！获得经验: ${result.totalExpGained}, 灵石: ${result.totalSpiritStonesGained}</span>`);
+            if (result.droppedEquipmentId) {
+                addCombatLog(`<span class="text-blue-600">获得装备掉落!</span>`);
+            }
+        } else {
+            addCombatLog(`<span class="text-red-600">战斗失败!</span>`);
+        }
+        if (window.authManager?.loadPlayerProfile) await window.authManager.loadPlayerProfile();
+    } catch (error) {
+        addCombatLog(`<span class="text-red-600">战斗失败: ${error.message}</span>`);
+    }
+}
+
+// 战斗50次 / 100次
+async function fight50Times() { await batchFight(50); }
+async function fight100Times() { await batchFight(100); }
+
+async function batchFight(times) {
+    const btns = {
+        once: document.getElementById('combat-fight-once-btn'),
+        btn50: document.getElementById('combat-fight-50-btn'),
+        btn100: document.getElementById('combat-fight-100-btn')
+    };
+    const mapSelector = document.getElementById('combat-map-selector');
+    const mapId = mapSelector ? parseInt(mapSelector.value) : 1;
+    Object.values(btns).forEach(b => { if (b) b.disabled = true; });
+    const targetBtn = times === 50 ? btns.btn50 : btns.btn100;
+    const origText = targetBtn ? targetBtn.innerHTML : '';
+    if (targetBtn) targetBtn.innerHTML = '<i class="fa fa-spinner fa-spin mr-1"></i> 战斗中...';
+    try {
+        addCombatLog(`<span class="text-blue-600">开始连续战斗${times}次...</span>`);
+        const response = await gameAPI.batchCombat(times, { mapId });
+        if (!response?.success) throw new Error(response?.message || '批量战斗失败');
+        const result = response.data;
+        addCombatLog(`<span class="text-green-600">连续战斗结束！</span>`);
+        addCombatLog(`总战斗次数: ${result.totalBattles}，胜利: ${result.wins}次，失败: ${result.losses}次`);
+        addCombatLog(`胜率: ${(result.winRate * 100).toFixed(2)}%`);
+        addCombatLog(`获得经验: ${result.totalExpGained}，灵石: ${result.totalSpiritStonesGained}`);
+        if (window.authManager?.loadPlayerProfile) await window.authManager.loadPlayerProfile();
+    } catch (error) {
+        addCombatLog(`<span class="text-red-600">批量战斗失败: ${error.message}</span>`);
+    } finally {
+        Object.values(btns).forEach(b => { if (b) b.disabled = false; });
+        if (targetBtn) targetBtn.innerHTML = origText;
+    }
+}
+
+// 初始化战斗模块
+window.initCombatModule = function() {
+    generateMonster();
+    const fightOnceBtn = document.getElementById('combat-fight-once-btn');
+    const fight50Btn = document.getElementById('combat-fight-50-btn');
+    const fight100Btn = document.getElementById('combat-fight-100-btn');
+    if (fightOnceBtn) fightOnceBtn.addEventListener('click', fightOnce);
+    if (fight50Btn) fight50Btn.addEventListener('click', fight50Times);
+    if (fight100Btn) fight100Btn.addEventListener('click', fight100Times);
+};
+
+// 模块切换时重新绑定（使用 ModuleManager 的 showModule）
+window._origShowModule = window.showModule;
+window.showModule = function(moduleName) {
+    if (window._origShowModule) window._origShowModule(moduleName);
+    if (moduleName === 'combat') {
+        setTimeout(() => window.initCombatModule(), 50);
+    }
+};

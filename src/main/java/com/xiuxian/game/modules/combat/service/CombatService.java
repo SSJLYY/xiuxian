@@ -396,6 +396,13 @@ public class CombatService {
     private void processBattleOutcome(CombatContext ctx) {
         ctx.playerWon = ctx.currentMonsterHealth <= 0;
 
+        // 累加总战斗次数（无论输赢都计数），复用 processBattleOutcome 中的 savePlayerProfile
+        if (ctx.player.getTotalBattles() == null) {
+            ctx.player.setTotalBattles(1);
+        } else {
+            ctx.player.setTotalBattles(ctx.player.getTotalBattles() + 1);
+        }
+
         if (ctx.playerWon) {
             ctx.battleLog.add("战斗胜利！");
             ctx.expGained = calculateExpReward(ctx.monster, ctx.player.getLevel());
@@ -415,17 +422,17 @@ public class CombatService {
             ctx.player.setExp(ctx.player.getExp() + ctx.expGained);
             ctx.player.setSpiritStones(ctx.player.getSpiritStones() + ctx.spiritStonesGained);
             processLevelUp(ctx);
-            playerService.savePlayerProfile(ctx.player);
             ctx.battleLog.add("获得经验：" + ctx.expGained + "，灵石：" + ctx.spiritStonesGained);
         } else {
             ctx.battleLog.add("战斗失败...");
             long lostSpiritStones = ctx.spiritStonesGained / 10;
             if (ctx.player.getSpiritStones() >= lostSpiritStones && lostSpiritStones > 0) {
                 ctx.player.setSpiritStones(ctx.player.getSpiritStones() - lostSpiritStones);
-                playerService.savePlayerProfile(ctx.player);
                 ctx.battleLog.add("损失灵石：" + lostSpiritStones);
             }
         }
+        // 统一保存：累加了 totalBattles，并持久化 if/else 中修改的属性
+        playerService.savePlayerProfile(ctx.player);
     }
 
     /** 升级循环 */
@@ -651,6 +658,8 @@ public class CombatService {
         List<String> battleLog = outcome.battleLog;
 
         if (outcome.playerWon) {
+            // 累加 totalBattles（倍数）
+            player.setTotalBattles(player.getTotalBattles() + actualTimes);
             // 胜利：倍数放大奖励，一次性写库
             wins = actualTimes;
             totalExpGained = (long) outcome.expGained * actualTimes;
@@ -679,7 +688,11 @@ public class CombatService {
             // 一次写库（原子性保证）
             playerService.savePlayerProfile(player);
         }
-        // 失败：不更新玩家数据，无需写库
+        // 失败：仍需累加 totalBattles
+        if (!outcome.playerWon) {
+            player.setTotalBattles(player.getTotalBattles() + actualTimes);
+            playerService.savePlayerProfile(player);
+        }
 
         // 持久化一条代表性战斗日志
         saveCombatLog(playerId, monster,

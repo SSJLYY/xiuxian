@@ -98,6 +98,11 @@ public class PlayerProfile {
     @Builder.Default
     private Long totalCultivationTime = 0L;
 
+    @TableField(value = "total_battles")
+    @JsonProperty("totalBattles")
+    @Builder.Default
+    private Integer totalBattles = 0;
+
     // 修炼状态
     @TableField(value = "is_cultivating")
     @JsonProperty("isCultivating")

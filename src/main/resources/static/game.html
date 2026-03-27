@@ -106,11 +106,56 @@
                     </div>
                 </div>
 
-                <!-- 其他模块 -->
+                <!-- 战斗模块 -->
                 <div id="combat-module" class="module">
-                    <div style="padding: 2rem;">
-                        <h2>战斗系统</h2>
-                        <p>战斗功能开发中...</p>
+                    <div class="module-header">
+                        <h2><i class="fa-solid fa-crosshairs"></i> 战斗系统</h2>
+                    </div>
+                    <!-- 地图选择 -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">选择地图:</label>
+                        <select id="combat-map-selector" class="w-full p-2 border rounded">
+                            <option value="1">新手村 (简单)</option>
+                            <option value="2">野外 (中等)</option>
+                        </select>
+                    </div>
+                    <!-- 怪物信息 -->
+                    <div class="combat-monster-info mb-4 p-4 bg-secondary/5 rounded">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="font-semibold" id="combat-monster-name">-</h4>
+                            <span class="text-sm" id="combat-monster-level">-</span>
+                            <span class="text-xs px-2 py-1 rounded bg-blue-100 text-blue-800" id="combat-monster-type">-</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-sm">
+                            <div>生命值: <span id="combat-monster-health">-</span></div>
+                            <div>攻击力: <span id="combat-monster-attack">-</span></div>
+                            <div>防御力: <span id="combat-monster-defense">-</span></div>
+                            <div>速度: <span id="combat-monster-speed">-</span></div>
+                        </div>
+                        <div class="mt-2">
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div id="combat-monster-health-bar" class="bg-red-600 h-2 rounded-full" style="width: 100%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 战斗按钮 -->
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <button id="combat-fight-once-btn" class="flex-1 btn btn-primary">
+                            <i class="fa fa-fist-raised mr-1"></i> 战斗一次
+                        </button>
+                        <button id="combat-fight-50-btn" class="flex-1 btn btn-accent">
+                            <i class="fa fa-fist-raised mr-1"></i> 战斗50次
+                        </button>
+                        <button id="combat-fight-100-btn" class="flex-1 btn btn-accent">
+                            <i class="fa fa-fist-raised mr-1"></i> 战斗100次
+                        </button>
+                    </div>
+                    <!-- 战斗日志 -->
+                    <div class="combat-log">
+                        <h4 class="font-semibold mb-2">战斗日志</h4>
+                        <div id="combat-log-container" class="combat-log-container p-2 bg-black/10 rounded text-sm max-h-60 overflow-y-auto">
+                            <p class="text-secondary italic">暂无战斗记录</p>
+                        </div>
                     </div>
                 </div>
 
