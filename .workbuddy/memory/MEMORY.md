@@ -89,3 +89,56 @@ com.xiuxian.game/
 - **通配符import**：✅ 已清零（2026-03-25）
 
 *最后更新：2026-03-27*
+
+## 前端 UI 完善（2026-03-27 下午）
+
+### 已完善模块（game.html）
+- **背包模块**：灵石余额展示、物品网格（支持分类筛选：装备/消耗品/材料）、物品类型标签
+- **商城模块**：杂货标签页（卡片样式+购买按钮）、技能商店标签页（等级/灵石检查）、灵石余额实时更新
+- **任务模块**：每日/每周/每月/主线标签页切换、任务统计（已完成/可领取/总数）、进度条+奖励展示、领取按钮
+
+### 关键文件变更
+- `game.html`：三个"开发中"占位符 → 完整 UI 模板（灵石、网格、标签页）
+- `game.js`：`loadInventory`、`loadShopItems`、`loadSkillShop`、`loadQuestTabs` 重写为真实 API 调用+美观渲染
+- `modules.js`：添加 `switchInventoryTab/switchShopTab/switchQuestTab` 辅助函数；`loadInventoryData/loadQuestsData/loadShopData` 改为调用 game.js 方法
+- `modern-style.css`：追加 150+ 行 CSS（inventory/quest/shop 共用样式+通用工具类）
+
+### 技术细节
+- 背包/商城/任务均复用 game.js 的 `loadInventory/loadShopItems/loadQuestTabs` 方法
+- 标签页切换通过 `data-*` 属性 + `classList.toggle` 实现，无需刷新页面
+- 商城购买按钮：异步 loading 状态（"购买中..." → "购买成功" → 恢复）
+- CSS 使用 `--accent-gold`、`--text-muted` 等 CSS 变量保持主题一致性
+
+### 宗门模块 UI（2026-03-27 下午）
+- 添加 `guild-module` 容器 + 侧边栏导航
+- 双标签页：宗门列表（卡片展示+申请加入）/ 我的宗门（成员列表+操作按钮）
+- 支持：创建宗门、申请加入、捐献灵石、退出宗门
+- 关键函数：`switchGuildTab`、`loadGuildList`、`renderMyGuild`、`loadMyGuildDetail`
+- API：`/guild/list`、`/guild/my`、`/guild/{id}`、`/guild/apply/{id}`、`/guild/leave`、`/guild/donate`、`/guild/create`
+
+### 拍卖行模块 UI（2026-03-27 下午）
+- 添加 `auction-module` 容器 + 侧边栏导航
+- 双标签页：浏览市场（筛选+卡片）/ 我的拍卖（取消功能）
+- 支持：按类型/价格筛选、购买物品、取消我的拍卖、剩余时间倒计时
+- 关键函数：`switchAuctionTab`、`loadAuctionItems`、`loadMyAuctionItems`、`renderAuctionCard`
+- API：`/auction/items`、`/auction/my-items`、`/auction/buy/{id}`、`/auction/cancel/{id}`
+
+### 剩余模块 UI 完善（2026-03-27 傍晚）
+
+#### 已完善的9个模块
+| 模块 | 容器ID | 关键函数 | API端点 |
+|------|--------|----------|---------|
+| 宠物系统 | `#pets-module` | `switchPetTab`、`loadMyPets`、`loadAvailablePets` | `/pets/*` |
+| 技能系统 | `#skills-module` | `switchSkillTab`、`loadMySkills`、`loadAvailableSkills` | `/skills/*` |
+| 仙界人物 | `#narrative-module` | `switchNarrativeTab`、`loadNpcList`、`loadNpcRelations` | `/npc/*` |
+| 传说图鉴 | `#lore-module` | `switchLoreTab`、`loadLoreEntries` | `/lore/*` |
+| 技能连招 | `#combos-module` | `switchComboTab`、`loadCombos` | `/skills/combos/*` |
+| 宠物进化 | `#petEvolution-module` | `loadEvolutionInfo`、`doEvolution` | `/pets/evolution/*` |
+| 世界地图 | `#map-module` | `switchMapTab`、`loadCurrentMap`、`loadMapList`、`exploreMap` | `/maps/*` |
+| 每日签到 | `#checkin-module` | `checkInSystem.loadStatus/renderCalendar`、`doCheckIn` | `/checkin/*` |
+| 成就系统 | `#achievements-module` | `switchAchievementTab`、`achievementPanel.init/loadAchievements`、`claimAchievement` | `/achievement/*` |
+
+#### 文件变更
+- `game.html`：9个模块容器全部替换为完整 UI（标签页、网格、统计栏、卡片）
+- `modules.js`：追加约 800 行 JS 函数，覆盖所有模块的数据加载和交互
+- `modern-style.css`：追加约 200 行 CSS（卡片悬停效果、签到月历、进度条、加载动画等）

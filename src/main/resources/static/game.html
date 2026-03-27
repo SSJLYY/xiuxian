@@ -77,6 +77,12 @@
                     <li class="nav-item" data-module="achievements">
                         <button class="nav-button" onclick="showModule('achievements')"><i class="fa-solid fa-trophy"></i> 成就</button>
                     </li>
+                    <li class="nav-item" data-module="guild">
+                        <button class="nav-button" onclick="showModule('guild')"><i class="fa-solid fa-chess-rook"></i> 宗门</button>
+                    </li>
+                    <li class="nav-item" data-module="auction">
+                        <button class="nav-button" onclick="showModule('auction')"><i class="fa-solid fa-gavel"></i> 拍卖行</button>
+                    </li>
                 </ul>
             </nav>
 
@@ -160,75 +166,433 @@
                 </div>
 
                 <div id="inventory-module" class="module">
-                    <div style="padding: 2rem;">
-                        <h2>背包系统</h2>
-                        <p>背包功能开发中...</p>
+                    <div class="module-header">
+                        <h2><i class="fa-solid fa-backpack"></i> 背包系统</h2>
                     </div>
+                    <div class="inventory-summary mb-4 p-4 bg-secondary/5 rounded">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="text-muted text-sm">灵石余额</span>
+                                <div class="text-2xl font-bold" style="color: var(--accent-gold);">
+                                    <i class="fa-solid fa-gem mr-1"></i> <span id="inventory-spirit-stones">0</span>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-muted text-sm">背包容量</span>
+                                <div class="text-lg"><span id="inventory-used">0</span> / <span id="inventory-total">100</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="inventory-tabs mb-4">
+                        <button class="tab-btn active" data-inv-tab="all" onclick="switchInventoryTab('all')">全部</button>
+                        <button class="tab-btn" data-inv-tab="equipment" onclick="switchInventoryTab('equipment')">装备</button>
+                        <button class="tab-btn" data-inv-tab="consumable" onclick="switchInventoryTab('consumable')">消耗品</button>
+                        <button class="tab-btn" data-inv-tab="material" onclick="switchInventoryTab('material')">材料</button>
+                    </div>
+                    <div id="inventoryGrid" class="inventory-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;"></div>
                 </div>
 
                 <div id="pets-module" class="module">
-                    <h2>宠物系统</h2>
-                    <div id="myPetsList" class="pets-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:15px;"></div>
+                    <div class="pets-panel">
+                        <div class="module-header mb-4">
+                            <h2><i class="fa-solid fa-paw"></i> 宠物系统</h2>
+                        </div>
+                        <!-- 宠物标签页 -->
+                        <div class="pets-tabs mb-4">
+                            <button class="tab-btn active" data-pet-tab="my" onclick="switchPetTab('my')">我的宠物</button>
+                            <button class="tab-btn" data-pet-tab="available" onclick="switchPetTab('available')">可捕获</button>
+                        </div>
+                        <!-- 我的宠物面板 -->
+                        <div id="pets-my-panel">
+                            <div id="active-pet-info" class="active-pet-card mb-4 p-4 rounded" style="display:none;"></div>
+                            <div id="myPetsList" class="pets-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:15px;"></div>
+                        </div>
+                        <!-- 可捕获宠物面板 -->
+                        <div id="pets-available-panel" style="display:none;">
+                            <div class="pets-available-grid" id="availablePetsList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:15px;"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="skills-module" class="module">
-                    <h2>技能系统</h2>
-                    <div id="mySkillsList" class="skills-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:15px;"></div>
+                    <div class="skills-panel">
+                        <div class="module-header mb-4">
+                            <h2><i class="fa-solid fa-wand-magic-sparkles"></i> 技能系统</h2>
+                        </div>
+                        <!-- 技能标签页 -->
+                        <div class="skills-tabs mb-4">
+                            <button class="tab-btn active" data-skill-tab="learned" onclick="switchSkillTab('learned')">已学习</button>
+                            <button class="tab-btn" data-skill-tab="available" onclick="switchSkillTab('available')">可学习</button>
+                        </div>
+                        <!-- 技能统计 -->
+                        <div class="skills-summary mb-4 p-4 bg-secondary/5 rounded flex items-center justify-between">
+                            <div class="flex items-center gap-4">
+                                <div class="text-sm text-muted">
+                                    <span id="skill-points-label">可用点数</span>
+                                    <span class="text-xl font-bold text-accent" id="skill-points-value">0</span>
+                                </div>
+                                <div class="text-sm text-muted">
+                                    已装备
+                                    <span class="text-lg font-bold text-aqua" id="equipped-skills-count">0</span>/3
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 已学习技能面板 -->
+                        <div id="skills-learned-panel">
+                            <div id="mySkillsList" class="skills-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:15px;"></div>
+                        </div>
+                        <!-- 可学习技能面板 -->
+                        <div id="skills-available-panel" style="display:none;">
+                            <div id="skillsAvailableList" class="skills-available-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:15px;"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="shop-module" class="module">
-                    <div style="background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">
-                        <h2>商城系统</h2>
-                        <p>商城功能开发中...</p>
+                    <div class="module-header">
+                        <h2><i class="fa-solid fa-store"></i> 商城系统</h2>
+                    </div>
+                    <div class="shop-tabs mb-4">
+                        <button class="tab-btn active" data-shop-tab="general" onclick="switchShopTab('general')">杂货</button>
+                        <button class="tab-btn" data-shop-tab="skill" onclick="switchShopTab('skill')">技能</button>
+                        <button class="tab-btn" data-shop-tab="pet" onclick="switchShopTab('pet')">宠物</button>
+                    </div>
+                    <!-- 杂货商城 -->
+                    <div id="shop-general-panel">
+                        <div class="shop-summary mb-4 p-4 bg-secondary/5 rounded">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <span class="text-muted text-sm">灵石余额</span>
+                                    <div class="text-xl font-bold" style="color: var(--accent-gold);">
+                                        <i class="fa-solid fa-gem mr-1"></i> <span id="shop-spirit-stones">0</span>
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm" onclick="refreshShopItems()">
+                                    <i class="fa-solid fa-rotate"></i> 刷新商城
+                                </button>
+                            </div>
+                        </div>
+                        <div id="shopList" class="shop-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:15px;"></div>
+                    </div>
+                    <!-- 技能商城 -->
+                    <div id="shop-skill-panel" style="display:none;">
+                        <div class="shop-summary mb-4 p-4 bg-secondary/5 rounded">
+                            <div class="text-muted text-sm mb-2">可学习技能列表</div>
+                            <div id="skillsList" class="skills-shop-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:15px;"></div>
+                        </div>
                     </div>
                 </div>
 
                 <div id="quests-module" class="module">
-                    <div style="background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">
-                        <h2>任务系统</h2>
-                        <p>任务功能开发中...</p>
+                    <div class="module-header">
+                        <h2><i class="fa-solid fa-clipboard-list"></i> 任务系统</h2>
                     </div>
+                    <div class="quest-tabs mb-4">
+                        <button class="tab-btn active" data-quest-tab="daily" onclick="switchQuestTab('daily')">每日任务</button>
+                        <button class="tab-btn" data-quest-tab="weekly" onclick="switchQuestTab('weekly')">每周任务</button>
+                        <button class="tab-btn" data-quest-tab="monthly" onclick="switchQuestTab('monthly')">每月任务</button>
+                        <button class="tab-btn" data-quest-tab="main" onclick="switchQuestTab('main')">主线任务</button>
+                    </div>
+                    <div class="quest-stats mb-4 p-3 bg-secondary/5 rounded">
+                        <div class="flex items-center justify-around text-center">
+                            <div>
+                                <div class="text-lg font-bold text-green-400" id="quest-completed-count">0</div>
+                                <div class="text-xs text-muted">已完成</div>
+                            </div>
+                            <div>
+                                <div class="text-lg font-bold text-yellow-400" id="quest-claimable-count">0</div>
+                                <div class="text-xs text-muted">可领取</div>
+                            </div>
+                            <div>
+                                <div class="text-lg font-bold text-blue-400" id="quest-total-count">0</div>
+                                <div class="text-xs text-muted">总任务</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="questsList" class="quest-list" style="display:flex;flex-direction:column;gap:10px;"></div>
                 </div>
 
                 <div id="narrative-module" class="module">
-                    <div id="narrativeContent" style="padding: 1rem;">
-                        <div class="loading-spinner"><div class="spinner"></div><p>加载中...</p></div>
+                    <div class="narrative-panel">
+                        <div class="module-header mb-4">
+                            <h2><i class="fa-solid fa-scroll"></i> 仙界人物</h2>
+                        </div>
+                        <!-- 仙界人物标签页 -->
+                        <div class="narrative-tabs mb-4">
+                            <button class="tab-btn active" data-narrative-tab="npc" onclick="switchNarrativeTab('npc')">NPC 人物</button>
+                            <button class="tab-btn" data-narrative-tab="relations" onclick="switchNarrativeTab('relations')">人物关系</button>
+                        </div>
+                        <!-- NPC 人物面板 -->
+                        <div id="narrative-npc-panel">
+                            <div id="npcList" class="npc-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:15px;"></div>
+                        </div>
+                        <!-- 人物关系面板 -->
+                        <div id="narrative-relations-panel" style="display:none;">
+                            <div id="npcRelationsList" class="relations-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+                        </div>
                     </div>
                 </div>
 
                 <div id="lore-module" class="module">
-                    <div id="loreContent" style="padding: 1rem;">
-                        <div class="loading-spinner"><div class="spinner"></div><p>加载中...</p></div>
+                    <div class="lore-panel">
+                        <div class="module-header mb-4">
+                            <h2><i class="fa-solid fa-book-open"></i> 传说图鉴</h2>
+                        </div>
+                        <!-- 图鉴进度 -->
+                        <div class="lore-progress mb-4 p-4 bg-secondary/5 rounded">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm text-muted">收集进度</span>
+                                <span class="text-accent font-bold" id="lore-progress-text">0/0</span>
+                            </div>
+                            <div class="lore-progress-bar">
+                                <div class="lore-progress-fill" id="lore-progress-bar" style="width:0%"></div>
+                            </div>
+                        </div>
+                        <!-- 图鉴标签页 -->
+                        <div class="lore-tabs mb-4">
+                            <button class="tab-btn active" data-lore-tab="all" onclick="switchLoreTab('all')">全部</button>
+                            <button class="tab-btn" data-lore-tab="discovered" onclick="switchLoreTab('discovered')">已发现</button>
+                            <button class="tab-btn" data-lore-tab="hidden" onclick="switchLoreTab('hidden')">未发现</button>
+                        </div>
+                        <!-- 图鉴内容 -->
+                        <div id="loreContent" class="lore-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:15px;"></div>
                     </div>
                 </div>
 
                 <div id="combos-module" class="module">
-                    <div id="comboContent" style="padding: 1rem;">
-                        <h2><i class="fa-solid fa-bolt"></i> 技能连招</h2>
-                        <div id="comboList"></div>
+                    <div class="combos-panel">
+                        <div class="module-header mb-4">
+                            <h2><i class="fa-solid fa-bolt"></i> 技能连招</h2>
+                        </div>
+                        <!-- 连招统计 -->
+                        <div class="combos-stats mb-4 p-4 bg-secondary/5 rounded">
+                            <div class="flex items-center justify-around text-center">
+                                <div>
+                                    <div class="text-lg font-bold text-accent" id="combo-total-count">0</div>
+                                    <div class="text-xs text-muted">可用连招</div>
+                                </div>
+                                <div>
+                                    <div class="text-lg font-bold text-green-400" id="combo-mastered-count">0</div>
+                                    <div class="text-xs text-muted">已掌握</div>
+                                </div>
+                                <div>
+                                    <div class="text-lg font-bold text-yellow-400" id="combo-use-rate">0%</div>
+                                    <div class="text-xs text-muted">使用率</div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 连招标签页 -->
+                        <div class="combos-tabs mb-4">
+                            <button class="tab-btn active" data-combo-tab="available" onclick="switchComboTab('available')">可用连招</button>
+                            <button class="tab-btn" data-combo-tab="all" onclick="switchComboTab('all')">全部连招</button>
+                        </div>
+                        <div id="comboContent" class="combos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:15px;"></div>
                     </div>
                 </div>
 
                 <div id="petEvolution-module" class="module">
-                    <div id="petEvolutionContent" style="padding: 1rem;">
-                        <h2><i class="fa-solid fa-dragon"></i> 宠物进化</h2>
-                        <div id="petEvolutionList"></div>
+                    <div class="pet-evolution-panel">
+                        <div class="module-header mb-4">
+                            <h2><i class="fa-solid fa-dragon"></i> 宠物进化</h2>
+                        </div>
+                        <!-- 进化说明 -->
+                        <div class="evolution-guide mb-4 p-4 bg-secondary/5 rounded">
+                            <h3 class="text-md font-bold mb-2"><i class="fa-solid fa-circle-info"></i> 进化说明</h3>
+                            <p class="text-sm text-muted">宠物可以通过进化提升品质和属性上限。进化需要满足等级和材料要求。进化成功后，宠物将获得新的外观和更强的能力。</p>
+                        </div>
+                        <!-- 选择要进化的宠物 -->
+                        <div class="mb-4">
+                            <label class="text-sm text-muted mb-2 block">选择宠物</label>
+                            <select id="evolution-pet-select" class="w-full p-3 rounded" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);color:var(--text-light);" onchange="loadEvolutionInfo()">
+                                <option value="">-- 请选择宠物 --</option>
+                            </select>
+                        </div>
+                        <!-- 进化信息 -->
+                        <div id="petEvolutionContent" class="evolution-info-panel">
+                            <div id="petEvolutionList" class="evolution-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:15px;"></div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- 地图模块 -->
                 <div id="map-module" class="module">
-                    <div class="loading-spinner"><div class="spinner"></div><p>加载地图中...</p></div>
+                    <div class="map-panel">
+                        <div class="module-header mb-4">
+                            <h2><i class="fa-solid fa-map"></i> 世界地图</h2>
+                        </div>
+                        <!-- 当前地图信息 -->
+                        <div id="current-map-info" class="current-map-card mb-4 p-4 rounded" style="display:none;"></div>
+                        <!-- 地图标签页 -->
+                        <div class="map-tabs mb-4">
+                            <button class="tab-btn active" data-map-tab="explore" onclick="switchMapTab('explore')">探索</button>
+                            <button class="tab-btn" data-map-tab="list" onclick="switchMapTab('list')">地图列表</button>
+                        </div>
+                        <!-- 探索面板 -->
+                        <div id="map-explore-panel">
+                            <div id="map-explore-area" class="map-explore-area mb-4 p-6 rounded text-center" style="min-height:200px;background:rgba(255,255,255,0.03);border:2px dashed rgba(255,255,255,0.1);">
+                                <p class="text-muted mb-4">选择地图后可以开始探索</p>
+                                <button class="btn btn-lg" id="explore-btn" onclick="exploreMap()" disabled>
+                                    <i class="fa-solid fa-compass"></i> 开始探索
+                                </button>
+                            </div>
+                        </div>
+                        <!-- 地图列表 -->
+                        <div id="map-list-panel" style="display:none;">
+                            <div id="mapList" class="map-list-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:15px;"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 每日签到模块 -->
                 <div id="checkin-module" class="module">
-                    <div class="loading-spinner"><div class="spinner"></div><p>加载签到数据...</p></div>
+                    <div class="checkin-panel">
+                        <div class="module-header mb-4">
+                            <h2><i class="fa-solid fa-calendar-check"></i> 每日签到</h2>
+                        </div>
+                        <!-- 签到月历 -->
+                        <div class="checkin-calendar mb-4 p-4 bg-secondary/5 rounded">
+                            <div class="checkin-month-header flex items-center justify-between mb-4">
+                                <button class="btn btn-sm" onclick="changeCheckinMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                                <h3 id="checkin-month-title" class="text-lg font-bold">2026年3月</h3>
+                                <button class="btn btn-sm" onclick="changeCheckinMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
+                            </div>
+                            <div class="checkin-weekdays grid grid-cols-7 gap-1 mb-2">
+                                <div class="text-center text-xs text-muted">日</div>
+                                <div class="text-center text-xs text-muted">一</div>
+                                <div class="text-center text-xs text-muted">二</div>
+                                <div class="text-center text-xs text-muted">三</div>
+                                <div class="text-center text-xs text-muted">四</div>
+                                <div class="text-center text-xs text-muted">五</div>
+                                <div class="text-center text-xs text-muted">六</div>
+                            </div>
+                            <div id="checkin-days-grid" class="checkin-days-grid grid grid-cols-7 gap-1"></div>
+                        </div>
+                        <!-- 签到按钮 -->
+                        <div class="checkin-action mb-4 text-center">
+                            <button class="btn btn-lg" id="checkin-btn" onclick="doCheckIn()">
+                                <i class="fa-solid fa-calendar-check"></i> 今日签到
+                            </button>
+                        </div>
+                        <!-- 签到统计 -->
+                        <div class="checkin-stats p-4 bg-secondary/5 rounded">
+                            <div class="flex items-center justify-around text-center">
+                                <div>
+                                    <div class="text-lg font-bold text-accent" id="checkin-consecutive-days">0</div>
+                                    <div class="text-xs text-muted">连续签到</div>
+                                </div>
+                                <div>
+                                    <div class="text-lg font-bold text-green-400" id="checkin-total-days">0</div>
+                                    <div class="text-xs text-muted">累计签到</div>
+                                </div>
+                                <div>
+                                    <div class="text-lg font-bold text-aqua" id="checkin-today-reward">0</div>
+                                    <div class="text-xs text-muted">今日奖励</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 成就模块 -->
                 <div id="achievements-module" class="module">
-                    <div class="loading-spinner"><div class="spinner"></div><p>加载成就数据...</p></div>
+                    <div class="achievements-panel">
+                        <div class="module-header mb-4">
+                            <h2><i class="fa-solid fa-trophy"></i> 成就系统</h2>
+                        </div>
+                        <!-- 成就统计 -->
+                        <div class="achievements-stats mb-4 p-4 bg-secondary/5 rounded">
+                            <div class="flex items-center justify-around text-center">
+                                <div>
+                                    <div class="text-lg font-bold text-accent" id="achievement-completed">0</div>
+                                    <div class="text-xs text-muted">已完成</div>
+                                </div>
+                                <div>
+                                    <div class="text-lg font-bold text-green-400" id="achievement-claimed">0</div>
+                                    <div class="text-xs text-muted">已领取</div>
+                                </div>
+                                <div>
+                                    <div class="text-lg font-bold text-yellow-400" id="achievement-total">0</div>
+                                    <div class="text-xs text-muted">总成就</div>
+                                </div>
+                                <div>
+                                    <div class="text-lg font-bold text-aqua" id="achievement-rate">0%</div>
+                                    <div class="text-xs text-muted">完成率</div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 成就标签页 -->
+                        <div class="achievements-tabs mb-4">
+                            <button class="tab-btn active" data-achievement-tab="all" onclick="switchAchievementTab('all')">全部</button>
+                            <button class="tab-btn" data-achievement-tab="level" onclick="switchAchievementTab('level')">等级</button>
+                            <button class="tab-btn" data-achievement-tab="combat" onclick="switchAchievementTab('combat')">战斗</button>
+                            <button class="tab-btn" data-achievement-tab="cultivation" onclick="switchAchievementTab('cultivation')">修炼</button>
+                            <button class="tab-btn" data-achievement-tab="collection" onclick="switchAchievementTab('collection')">收集</button>
+                        </div>
+                        <!-- 成就列表 -->
+                        <div id="achievementsList" class="achievements-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:15px;"></div>
+                    </div>
+                </div>
+
+                <!-- 宗门模块 -->
+                <div id="guild-module" class="module">
+                    <div class="guild-panel">
+                        <div class="guild-header mb-4">
+                            <h2><i class="fa-solid fa-chess-rook"></i> 宗门系统</h2>
+                        </div>
+                        <!-- 我的宗门信息 -->
+                        <div id="guild-my-info" class="guild-my-info mb-4 p-4 rounded" style="display:none;"></div>
+                        <!-- 宗门操作按钮 -->
+                        <div id="guild-actions" class="guild-actions mb-4 flex gap-2 flex-wrap" style="display:none;"></div>
+                        <!-- 宗门标签页 -->
+                        <div class="guild-tabs mb-4">
+                            <button class="tab-btn active" data-guild-tab="list" onclick="switchGuildTab('list')">宗门列表</button>
+                            <button class="tab-btn" data-guild-tab="my" onclick="switchGuildTab('my')" style="display:none;" id="guild-my-tab-btn">我的宗门</button>
+                        </div>
+                        <!-- 宗门列表 -->
+                        <div id="guild-list-panel"></div>
+                        <!-- 我的宗门详情 -->
+                        <div id="guild-my-panel" style="display:none;"></div>
+                    </div>
+                </div>
+
+                <!-- 拍卖行模块 -->
+                <div id="auction-module" class="module">
+                    <div class="auction-panel">
+                        <div class="auction-header mb-4">
+                            <h2><i class="fa-solid fa-gavel"></i> 拍卖行</h2>
+                        </div>
+                        <!-- 拍卖行标签页 -->
+                        <div class="auction-tabs mb-4">
+                            <button class="tab-btn active" data-auction-tab="browse" onclick="switchAuctionTab('browse')">浏览市场</button>
+                            <button class="tab-btn" data-auction-tab="mine" onclick="switchAuctionTab('mine')">我的拍卖</button>
+                        </div>
+                        <!-- 灵石余额提示 -->
+                        <div class="auction-balance mb-4 p-3 rounded flex items-center justify-between" style="background:rgba(212,175,55,0.08);border:1px solid rgba(212,175,55,0.2);">
+                            <div class="text-sm text-muted">灵石余额</div>
+                            <div class="font-bold" style="color:var(--accent-gold);"><i class="fa-solid fa-gem"></i> <span id="auction-ss-balance">0</span></div>
+                        </div>
+                        <!-- 浏览市场 -->
+                        <div id="auction-browse-panel">
+                            <div class="auction-filters mb-4 flex gap-2 flex-wrap">
+                                <select id="auction-type-filter" class="p-2 rounded" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);color:var(--text-light);">
+                                    <option value="">全部类型</option>
+                                    <option value="EQUIPMENT">装备</option>
+                                    <option value="CONSUMABLE">消耗品</option>
+                                    <option value="MATERIAL">材料</option>
+                                    <option value="SKILL">技能</option>
+                                    <option value="PET">宠物</option>
+                                </select>
+                                <input type="number" id="auction-min-price" class="p-2 rounded" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);color:var(--text-light);width:100px;" placeholder="最低价">
+                                <input type="number" id="auction-max-price" class="p-2 rounded" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);color:var(--text-light);width:100px;" placeholder="最高价">
+                                <button class="btn btn-sm" onclick="loadAuctionItems()"><i class="fa-solid fa-search"></i> 筛选</button>
+                            </div>
+                            <div id="auction-items-list" class="auction-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:15px;"></div>
+                        </div>
+                        <!-- 我的拍卖 -->
+                        <div id="auction-mine-panel" style="display:none;">
+                            <div id="auction-my-items-list" class="auction-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:15px;"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
