@@ -82,37 +82,17 @@ public class GuildBossService {
     @Transactional
     public ChallengeResult challengeBoss(Integer playerId) {
         Integer guildId = getPlayerGuildId(playerId);
-        GuildBoss boss = guildBossMapper.findAliveByGuildId(guildId);
+        GuildBoss boss = getOrCreateBoss(guildId);
 
-        if (boss == null) {
-            boss = spawnBoss(guildId);
-        }
-        if ("DEFEATED".equals(boss.getStatus())) {
-            throw new BusinessException(ErrorCode.GUILD_BOSS_ALREADY_DEFEATED);
-        }
-
-        // 检测每日挑战次数
+        // 校验挑战次数
         GuildBossChallenge record = challengeMapper.findByBossAndPlayer(boss.getId(), playerId);
-        if (record != null) {
-            int todayAttempts = getTodayAttempts(record);
-            if (todayAttempts >= MAX_DAILY_ATTEMPTS) {
-                throw new BusinessException(ErrorCode.GUILD_BOSS_DAILY_LIMIT_REACHED);
-            }
-        }
+        validateChallengeAttempts(record);
 
-        // 计算玩家对BOSS的伤害
-        PlayerProfile player = playerService.getPlayerProfileById(playerId);
-        long damage = calculateDamage(player, boss);
+        // 计算伤害 + 原子扣减BOSS血量
+        long damage = calculateDamage(playerService.getPlayerProfileById(playerId), boss);
+        applyDamageToBoss(boss, damage);
 
-        // 原子扣减BOSS血量（防止并发伤害丢失）
-        LocalDateTime now = LocalDateTime.now();
-        int rows = guildBossMapper.atomicDamage(boss.getId(), damage, now);
-        if (rows == 0) {
-            // BOSS已被击杀（并发冲突）
-            throw new BusinessException(ErrorCode.GUILD_BOSS_ALREADY_DEFEATED);
-        }
-
-        // 重新查询BOSS获取最新血量和状态
+        // 重新查询BOSS获取最新状态
         boss = guildBossMapper.selectBossById(boss.getId());
         boolean bossDefeated = "DEFEATED".equals(boss.getStatus());
 
@@ -134,6 +114,40 @@ public class GuildBossService {
                 .bossMaxHealth(boss.getMaxHealth())
                 .remainingAttempts(MAX_DAILY_ATTEMPTS - getTodayAttempts(record) - 1)
                 .build();
+    }
+
+    /**
+     * 获取或创建BOSS
+     */
+    private GuildBoss getOrCreateBoss(Integer guildId) {
+        GuildBoss boss = guildBossMapper.findAliveByGuildId(guildId);
+        if (boss == null) {
+            boss = spawnBoss(guildId);
+        }
+        if ("DEFEATED".equals(boss.getStatus())) {
+            throw new BusinessException(ErrorCode.GUILD_BOSS_ALREADY_DEFEATED);
+        }
+        return boss;
+    }
+
+    /**
+     * 校验每日挑战次数
+     */
+    private void validateChallengeAttempts(GuildBossChallenge record) {
+        if (record != null && getTodayAttempts(record) >= MAX_DAILY_ATTEMPTS) {
+            throw new BusinessException(ErrorCode.GUILD_BOSS_DAILY_LIMIT_REACHED);
+        }
+    }
+
+    /**
+     * 原子扣减BOSS血量
+     */
+    private void applyDamageToBoss(GuildBoss boss, long damage) {
+        LocalDateTime now = LocalDateTime.now();
+        int rows = guildBossMapper.atomicDamage(boss.getId(), damage, now);
+        if (rows == 0) {
+            throw new BusinessException(ErrorCode.GUILD_BOSS_ALREADY_DEFEATED);
+        }
     }
 
     /**
@@ -308,33 +322,11 @@ public class GuildBossService {
     private GuildBossVO buildBossVO(GuildBoss boss, GuildBossChallenge myRecord,
                                     List<GuildBossChallenge> all, Integer playerId) {
         long totalDamage = all.stream().mapToLong(GuildBossChallenge::getDamageDealt).sum();
-        int rank = 1;
-        long myDamage = 0;
-        if (myRecord != null) {
-            myDamage = myRecord.getDamageDealt();
-            final long myDamageFinal = myDamage;
-            rank = (int) all.stream().filter(c -> c.getDamageDealt() > myDamageFinal).count() + 1;
-        }
+        int rank = calculatePlayerRank(myRecord, all);
+        long myDamage = (myRecord != null) ? myRecord.getDamageDealt() : 0;
 
-        // 构建伤害排行榜（批量加载玩家信息，避免N+1）
-        int rankLimit = Math.min(all.size(), 10);
-        List<GuildBossChallenge> topChallenges = all.subList(0, rankLimit);
-        List<Integer> playerIds = topChallenges.stream()
-                .map(GuildBossChallenge::getPlayerId).distinct().collect(Collectors.toList());
-        Map<Integer, PlayerProfile> playerMap = playerService.getPlayerProfilesByIds(playerIds);
-
-        List<Map<String, Object>> damageRanking = new ArrayList<>();
-        for (int i = 0; i < rankLimit; i++) {
-            GuildBossChallenge c = topChallenges.get(i);
-            Map<String, Object> entry = new HashMap<>();
-            entry.put("rank", i + 1);
-            entry.put("playerId", c.getPlayerId());
-            PlayerProfile p = playerMap.get(c.getPlayerId());
-            entry.put("playerName", p != null ? p.getNickname() : "未知玩家");
-            entry.put("damage", c.getDamageDealt());
-            entry.put("ratio", totalDamage > 0 ? String.format("%.1f%%", c.getDamageDealt() * 100.0 / totalDamage) : "0%");
-            damageRanking.add(entry);
-        }
+        List<Map<String, Object>> damageRanking = buildDamageRanking(all, totalDamage);
+        int todayAttempts = getTodayAttempts(myRecord);
 
         return GuildBossVO.builder()
                 .id(boss.getId())
@@ -353,9 +345,9 @@ public class GuildBossService {
                 .myDamage(myDamage)
                 .myDamageRatio(totalDamage > 0 ? String.format("%.1f%%", myDamage * 100.0 / totalDamage) : "0%")
                 .myRank(rank)
-                .myTodayAttempts(getTodayAttempts(myRecord))
+                .myTodayAttempts(todayAttempts)
                 .maxDailyAttempts(MAX_DAILY_ATTEMPTS)
-                .remainingAttempts(MAX_DAILY_ATTEMPTS - getTodayAttempts(myRecord))
+                .remainingAttempts(MAX_DAILY_ATTEMPTS - todayAttempts)
                 .canClaimReward("DEFEATED".equals(boss.getStatus()) && myRecord != null
                         && myRecord.getDamageDealt() > 0 && !Boolean.TRUE.equals(myRecord.getRewardClaimed()))
                 .rewardClaimed(myRecord != null && Boolean.TRUE.equals(myRecord.getRewardClaimed()))
@@ -363,6 +355,40 @@ public class GuildBossService {
                 .totalDamage(totalDamage)
                 .damageRanking(damageRanking)
                 .build();
+    }
+
+    /**
+     * 计算玩家排名
+     */
+    private int calculatePlayerRank(GuildBossChallenge myRecord, List<GuildBossChallenge> all) {
+        if (myRecord == null) return 1;
+        final long myDamage = myRecord.getDamageDealt();
+        return (int) all.stream().filter(c -> c.getDamageDealt() > myDamage).count() + 1;
+    }
+
+    /**
+     * 构建伤害排行榜（批量加载玩家信息，避免N+1）
+     */
+    private List<Map<String, Object>> buildDamageRanking(List<GuildBossChallenge> all, long totalDamage) {
+        int rankLimit = Math.min(all.size(), 10);
+        List<GuildBossChallenge> topChallenges = all.subList(0, rankLimit);
+        List<Integer> playerIds = topChallenges.stream()
+                .map(GuildBossChallenge::getPlayerId).distinct().collect(Collectors.toList());
+        Map<Integer, PlayerProfile> playerMap = playerService.getPlayerProfilesByIds(playerIds);
+
+        List<Map<String, Object>> ranking = new ArrayList<>();
+        for (int i = 0; i < rankLimit; i++) {
+            GuildBossChallenge c = topChallenges.get(i);
+            Map<String, Object> entry = new HashMap<>();
+            entry.put("rank", i + 1);
+            entry.put("playerId", c.getPlayerId());
+            PlayerProfile p = playerMap.get(c.getPlayerId());
+            entry.put("playerName", p != null ? p.getNickname() : "未知玩家");
+            entry.put("damage", c.getDamageDealt());
+            entry.put("ratio", totalDamage > 0 ? String.format("%.1f%%", c.getDamageDealt() * 100.0 / totalDamage) : "0%");
+            ranking.add(entry);
+        }
+        return ranking;
     }
 
     // ==================== VO & DTO ====================

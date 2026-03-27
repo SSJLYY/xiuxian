@@ -42,53 +42,72 @@ public class GuildService {
         log.info("创建宗门: playerId={}, guildName={}", playerId, guildName);
         
         // 参数校验
+        validateGuildCreation(playerId, guildName, description);
+        
+        // 校验玩家状态 + 扣费
+        PlayerProfile profile = validatePlayerAndDeductFee(playerId);
+        
+        // 创建宗门实体
+        Guild guild = buildGuildEntity(guildName, description, playerId);
+        guildMapper.insert(guild);
+        
+        // 添加创建者为宗主
+        addGuildLeader(guild.getId(), playerId);
+        
+        log.info("宗门创建成功: guildId={}, guildName={}", guild.getId(), guildName);
+    }
+    
+    /**
+     * 校验宗门创建参数
+     */
+    private void validateGuildCreation(Integer playerId, String guildName, String description) {
         if (guildName == null || guildName.trim().isEmpty()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "宗门名称不能为空");
         }
-        
         if (guildName.length() > 20) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "宗门名称不能超过20个字符");
         }
-        
         if (description != null && description.length() > 200) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "宗门简介不能超过200个字符");
         }
         
-        // 检查玩家是否已加入宗门
         GuildMember existingMember = guildMemberMapper.selectOne(
                 new QueryWrapper<GuildMember>().eq("player_id", playerId));
         if (existingMember != null) {
             throw new BusinessException(ErrorCode.GUILD_ALREADY_JOINED);
         }
         
-        // 检查宗门名称是否已存在
         Guild existingGuild = guildMapper.selectOne(
                 new QueryWrapper<Guild>().eq("guild_name", guildName.trim()));
         if (existingGuild != null) {
             throw new BusinessException(ErrorCode.GUILD_NAME_EXISTS);
         }
-        
-        // 模块边界：通过PlayerService访问玩家数据
+    }
+    
+    /**
+     * 校验玩家状态并扣除创建费用
+     */
+    private PlayerProfile validatePlayerAndDeductFee(Integer playerId) {
         PlayerProfile profile = playerService.getPlayerProfileById(playerId);
         if (profile == null) {
             throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
         }
-        
         if (profile.getLevel() < 20) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "需要达到20级才能创建宗门");
         }
-        
-        // 模块边界：通过PlayerService访问玩家数据
         final long CREATE_COST = 10000L;
         if (profile.getSpiritStones() < CREATE_COST) {
             throw new BusinessException(ErrorCode.INSUFFICIENT_SPIRIT_STONES, "创建宗门需要" + CREATE_COST + "灵石");
         }
-        
-        // 扣除创建费用
         profile.setSpiritStones(profile.getSpiritStones() - CREATE_COST);
         playerService.savePlayerProfile(profile);
-        
-        // 创建宗门
+        return profile;
+    }
+    
+    /**
+     * 构建宗门实体
+     */
+    private Guild buildGuildEntity(String guildName, String description, Integer playerId) {
         Guild guild = new Guild();
         guild.setGuildName(guildName.trim());
         guild.setDescription(description != null ? description.trim() : "");
@@ -101,20 +120,20 @@ public class GuildService {
         guild.setGuildFunds(0L);
         guild.setCreatedAt(LocalDateTime.now());
         guild.setUpdatedAt(LocalDateTime.now());
-        
-        guildMapper.insert(guild);
-        
-        // 添加创建者为宗主
+        return guild;
+    }
+    
+    /**
+     * 添加创建者为宗主
+     */
+    private void addGuildLeader(Integer guildId, Integer playerId) {
         GuildMember member = new GuildMember();
-        member.setGuildId(guild.getId());
+        member.setGuildId(guildId);
         member.setPlayerId(playerId);
         member.setRole("LEADER");
         member.setContribution(0);
         member.setJoinedAt(LocalDateTime.now());
-        
         guildMemberMapper.insert(member);
-        
-        log.info("宗门创建成功: guildId={}, guildName={}, cost={}", guild.getId(), guildName, CREATE_COST);
     }
 
     /**

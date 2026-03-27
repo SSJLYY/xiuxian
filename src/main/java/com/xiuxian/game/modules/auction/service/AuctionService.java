@@ -61,6 +61,7 @@ import com.xiuxian.game.modules.auction.mapper.AuctionItemMapper;
 
 import com.xiuxian.game.common.exception.BusinessException;
 import com.xiuxian.game.common.exception.ErrorCode;
+import com.xiuxian.game.dto.request.ListAuctionRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -85,7 +86,16 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
     private final PlayerService playerService;
     
     /**
-     * 上架物品到拍卖行
+     * 上架物品到拍卖行（DTO 版本，推荐使用）
+     */
+    @Transactional
+    public AuctionItem listItem(Integer playerId, ListAuctionRequest request) {
+        return listItem(playerId, request.getItemType(), request.getItemId(),
+                request.getPlayerItemId(), request.getQuantity(), request.getPrice(), request.getDuration());
+    }
+    
+    /**
+     * 上架物品到拍卖行（多参数版本，兼容旧调用方）
      * @param playerId 玩家ID
      * @param itemType 物品类型 (ITEM/EQUIPMENT/PET)
      * @param itemId 物品ID
@@ -98,19 +108,38 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
     @Transactional
     public AuctionItem listItem(Integer playerId, String itemType, Integer itemId, Long playerItemId, 
                                Integer quantity, Integer price, Integer duration) {
-        // 检查参数
+        // 参数校验
         if (price <= 0 || duration <= 0) {
             throw new BusinessException("价格和持续时间必须大于0");
         }
         
-        // 扣除手续费(假设为售价的5%)
+        // 手续费校验 + 扣费
+        validateAndDeductListingFee(playerId, price);
+        
+        // 物品校验 + 从背包移除
+        consumeItemFromInventory(playerId, itemType, itemId, playerItemId, quantity);
+        
+        // 创建拍卖记录
+        return createAuctionListing(playerId, itemType, itemId, playerItemId, quantity, price, duration);
+    }
+    
+    /**
+     * 校验手续费并扣除
+     */
+    private void validateAndDeductListingFee(Integer playerId, int price) {
         long fee = Math.max(1, price / 20);
         PlayerProfile playerProfile = playerService.getPlayerProfileById(playerId);
         if (playerProfile.getSpiritStones() < fee) {
             throw new BusinessException(ErrorCode.INSUFFICIENT_SPIRIT_STONES);
         }
-        
-        // 检查物品是否存在且属于玩家
+        playerProfile.setSpiritStones(playerProfile.getSpiritStones() - fee);
+        playerService.savePlayerProfile(playerProfile);
+    }
+    
+    /**
+     * 校验物品归属并从玩家背包移除
+     */
+    private void consumeItemFromInventory(Integer playerId, String itemType, Integer itemId, Long playerItemId, Integer quantity) {
         switch (itemType.toUpperCase()) {
             case "ITEM":
                 PlayerItem playerItem = playerService.getPlayerItemById(playerItemId.intValue());
@@ -118,7 +147,6 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
                     playerItem.getItemId() != itemId || playerItem.getQuantity() < quantity) {
                     throw new BusinessException("物品不存在或不属于您");
                 }
-                // 更新玩家物品数量
                 if (playerItem.getQuantity() > quantity) {
                     playerItem.setQuantity(playerItem.getQuantity() - quantity);
                     playerService.updatePlayerItem(playerItem);
@@ -133,7 +161,6 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
                     playerEquipment.getEquipmentId() != itemId) {
                     throw new BusinessException("装备不存在或不属于您");
                 }
-                // 删除玩家装备
                 equipmentService.deletePlayerEquipment(playerItemId);
                 break;
                 
@@ -143,19 +170,19 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
                     playerPet.getPetId() != itemId) {
                     throw new BusinessException("宠物不存在或不属于您");
                 }
-                // 删除玩家宠物
                 petService.deletePlayerPet(playerItemId);
                 break;
                 
             default:
                 throw new BusinessException("不支持的物品类型");
         }
-        
-        // 扣除手续费
-        playerProfile.setSpiritStones(playerProfile.getSpiritStones() - fee);
-        playerService.savePlayerProfile(playerProfile);
-        
-        // 创建拍卖物品
+    }
+    
+    /**
+     * 创建拍卖记录
+     */
+    private AuctionItem createAuctionListing(Integer playerId, String itemType, Integer itemId, 
+                                             Long playerItemId, Integer quantity, Integer price, Integer duration) {
         AuctionItem auctionItem = new AuctionItem();
         auctionItem.setSellerId(playerId);
         auctionItem.setItemType(itemType.toUpperCase());
@@ -166,9 +193,7 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
         auctionItem.setStatus("ON_SALE");
         auctionItem.setCreatedAt(LocalDateTime.now());
         auctionItem.setExpireAt(LocalDateTime.now().plusHours(duration));
-        
         auctionItemMapper.insert(auctionItem);
-        
         return auctionItem;
     }
     
@@ -193,42 +218,50 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
             throw new BusinessException(ErrorCode.CANNOT_BUY_OWN_ITEM);
         }
         
-        // 检查买家灵石是否足够
-        PlayerProfile buyerProfile = playerService.getPlayerProfileById(buyerId);
-        if (buyerProfile.getSpiritStones() < auctionItem.getPrice()) {
-            throw new BusinessException(ErrorCode.INSUFFICIENT_SPIRIT_STONES);
-        }
-        
         // 扣除买家灵石
-        buyerProfile.setSpiritStones(buyerProfile.getSpiritStones() - auctionItem.getPrice());
-        playerService.savePlayerProfile(buyerProfile);
+        deductBuyerFunds(buyerId, auctionItem);
         
-        // 增加卖家灵石 (扣除10%平台费)
-        long sellerProceeds = (long)auctionItem.getPrice() * 90 / 100;
-        PlayerProfile sellerProfile = playerService.getPlayerProfileById(auctionItem.getSellerId());
-        sellerProfile.setSpiritStones(sellerProfile.getSpiritStones() + sellerProceeds);
-        playerService.savePlayerProfile(sellerProfile);
+        // 支付卖家（扣除10%平台费）
+        paySellerProceeds(auctionItem);
         
-        // 原子更新拍卖状态（防止TOCTOU：并发购买时只有一个能成功）
+        // 原子更新拍卖状态（防止TOCTOU）
         LocalDateTime now = LocalDateTime.now();
         int rows = auctionItemMapper.claimAuctionItem(auctionItemId, buyerId, now);
         if (rows == 0) {
-            // 并发冲突：另一个事务已抢先购买
             throw new BusinessException(ErrorCode.AUCTION_ITEM_SOLD);
         }
         
-        // 更新本地对象用于后续通知
         auctionItem.setStatus("SOLD");
         auctionItem.setBuyerId(buyerId);
         auctionItem.setSoldAt(now);
         
-        // 将物品添加到买家背包
+        // 交付物品 + 发送通知
         addItemToBuyerInventory(buyerId, auctionItem);
-        
-        // 发送邮件通知买卖双方
         sendTransactionNotification(auctionItem);
         
         return auctionItem;
+    }
+    
+    /**
+     * 扣除买家灵石
+     */
+    private void deductBuyerFunds(Integer buyerId, AuctionItem auctionItem) {
+        PlayerProfile buyerProfile = playerService.getPlayerProfileById(buyerId);
+        if (buyerProfile.getSpiritStones() < auctionItem.getPrice()) {
+            throw new BusinessException(ErrorCode.INSUFFICIENT_SPIRIT_STONES);
+        }
+        buyerProfile.setSpiritStones(buyerProfile.getSpiritStones() - auctionItem.getPrice());
+        playerService.savePlayerProfile(buyerProfile);
+    }
+    
+    /**
+     * 支付卖家收益
+     */
+    private void paySellerProceeds(AuctionItem auctionItem) {
+        long sellerProceeds = (long) auctionItem.getPrice() * 90 / 100;
+        PlayerProfile sellerProfile = playerService.getPlayerProfileById(auctionItem.getSellerId());
+        sellerProfile.setSpiritStones(sellerProfile.getSpiritStones() + sellerProceeds);
+        playerService.savePlayerProfile(sellerProfile);
     }
     
     /**

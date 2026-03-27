@@ -18,6 +18,7 @@ import com.xiuxian.game.modules.equipment.service.EquipmentService;
 import com.xiuxian.game.common.exception.BusinessException;
 import com.xiuxian.game.common.exception.ErrorCode;
 import com.xiuxian.game.common.util.PageUtil;
+import com.xiuxian.game.dto.request.SystemMailRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -45,26 +46,35 @@ public class MailService {
     private static final int MAX_MAILBOX_SIZE = 100;
 
     /**
-     * 发送系统邮件给单个玩家
+     * 发送系统邮件给单个玩家（DTO 版本，推荐使用）
+     */
+    @Transactional
+    public void sendSystemMail(SystemMailRequest request) {
+        log.info("发送系统邮件: playerId={}, title={}, itemType={}, itemId={}, quantity={}", 
+                request.getPlayerId(), request.getTitle(), request.getItemType(), request.getItemId(), request.getQuantity());
+        
+        List<MailAttachment> attachments = new ArrayList<>();
+        if (request.getItemType() != null && request.getItemId() != null && request.getQuantity() != null) {
+            MailAttachment attachment = new MailAttachment();
+            attachment.setItemType(request.getItemType());
+            attachment.setItemId(request.getItemId());
+            attachment.setQuantity(request.getQuantity());
+            attachments.add(attachment);
+        }
+        
+        sendMail(request.getPlayerId(), request.getTitle(), request.getContent(), "SYSTEM", attachments, LocalDateTime.now().plusDays(30));
+    }
+
+    /**
+     * 发送系统邮件给单个玩家（多参数版本，兼容旧调用方）
      */
     @Transactional
     public void sendSystemMail(Integer playerId, String title, String content, String itemType, 
                               Integer itemId, Integer quantity) {
-        log.info("发送系统邮件: playerId={}, title={}, itemType={}, itemId={}, quantity={}", 
-                playerId, title, itemType, itemId, quantity);
-        
-        // 创建附件
-        List<MailAttachment> attachments = new ArrayList<>();
-        if (itemType != null && itemId != null && quantity != null) {
-            MailAttachment attachment = new MailAttachment();
-            attachment.setItemType(itemType);
-            attachment.setItemId(itemId);
-            attachment.setQuantity(quantity);
-            attachments.add(attachment);
-        }
-        
-        // 发送邮件
-        sendMail(playerId, title, content, "SYSTEM", attachments, LocalDateTime.now().plusDays(30));
+        sendSystemMail(SystemMailRequest.builder()
+                .playerId(playerId).title(title).content(content)
+                .itemType(itemType).itemId(itemId).quantity(quantity)
+                .build());
     }
 
     /**

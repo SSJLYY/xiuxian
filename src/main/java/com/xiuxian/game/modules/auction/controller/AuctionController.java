@@ -2,6 +2,7 @@ package com.xiuxian.game.modules.auction.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xiuxian.game.dto.response.ApiResponse;
+import com.xiuxian.game.dto.request.ListAuctionRequest;
 import com.xiuxian.game.modules.auction.entity.AuctionItem;
 import com.xiuxian.game.modules.auction.service.AuctionService;
 import com.xiuxian.game.modules.player.service.PlayerService;
@@ -24,18 +25,10 @@ public class AuctionController {
      */
     @PostMapping("/list")
     @PreAuthorize("isAuthenticated()")
-    public ApiResponse<AuctionItem> listItem(@RequestBody ListItemRequest request) {
+    public ApiResponse<AuctionItem> listItem(@RequestBody ListAuctionRequest request) {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
-            AuctionItem auctionItem = auctionService.listItem(
-                playerId,
-                request.getItemType(),
-                request.getItemId(),
-                request.getPlayerItemId(),
-                request.getQuantity(),
-                request.getPrice(),
-                request.getDuration()
-            );
+            AuctionItem auctionItem = auctionService.listItem(playerId, request);
             return ApiResponse.success("物品上架成功", auctionItem);
         } catch (Exception e) {
             return ApiResponse.error(e.getMessage());
@@ -103,67 +96,6 @@ public class AuctionController {
             return ApiResponse.success("获取成功", auctionItems);
         } catch (Exception e) {
             return ApiResponse.error(e.getMessage());
-        }
-    }
-    
-    /**
-     * 上架物品请求DTO
-     */
-    public static class ListItemRequest {
-        private String itemType; // ITEM/EQUIPMENT/PET
-        private Integer itemId;
-        private Long playerItemId;
-        private Integer quantity;
-        private Integer price;
-        private Integer duration; // 小时
-        
-        // Getters and Setters
-        public String getItemType() {
-            return itemType;
-        }
-        
-        public void setItemType(String itemType) {
-            this.itemType = itemType;
-        }
-        
-        public Integer getItemId() {
-            return itemId;
-        }
-        
-        public void setItemId(Integer itemId) {
-            this.itemId = itemId;
-        }
-        
-        public Long getPlayerItemId() {
-            return playerItemId;
-        }
-        
-        public void setPlayerItemId(Long playerItemId) {
-            this.playerItemId = playerItemId;
-        }
-        
-        public Integer getQuantity() {
-            return quantity;
-        }
-        
-        public void setQuantity(Integer quantity) {
-            this.quantity = quantity;
-        }
-        
-        public Integer getPrice() {
-            return price;
-        }
-        
-        public void setPrice(Integer price) {
-            this.price = price;
-        }
-        
-        public Integer getDuration() {
-            return duration;
-        }
-        
-        public void setDuration(Integer duration) {
-            this.duration = duration;
         }
     }
 }

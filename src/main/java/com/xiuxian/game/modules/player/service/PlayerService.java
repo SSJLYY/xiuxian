@@ -71,38 +71,7 @@ public class PlayerService {
             log.info("用户ID: {}, 用户名: {}, 昵称: {}", user.getId(), user.getUsername(), nickname);
 
             // 1. 构建玩家档案
-            PlayerProfile playerProfile = PlayerProfile.builder()
-                    .userId(user.getId())
-                    .nickname(nickname != null ? nickname : user.getUsername())
-                    // 初始等级和经验
-                    .level(1)
-                    .exp(balance.getPlayerInitial().getExp())
-                    .expToNext(balanceUtils.calculateExpToNext(1))
-                    .realm("练气期")
-                    .cultivationSpeed(BigDecimal.ONE)
-                    // 初始资源（使用GDD优化值）
-                    .spiritStones((long) balance.getPlayerInitial().getSpiritStones())
-                    .cultivationPoints(0L)
-                    .contributionPoints(0L)
-                    .attributePoints(0)
-                    .skillPoints(0)
-                    // 初始属性（使用GDD优化值）
-                    .attack(balance.getPlayerInitial().getAttack())
-                    .defense(balance.getPlayerInitial().getDefense())
-                    .health(balance.getPlayerInitial().getHealth())
-                    .mana(balance.getPlayerInitial().getMana())
-                    .speed(balance.getPlayerInitial().getSpeed())
-                    // 修炼状态
-                    .isCultivating(false)
-                    .lastOnlineTime(LocalDateTime.now())
-                    .totalCultivationTime(0L)
-                    // 装备加成（初始为0）
-                    .equipmentAttackBonus(0)
-                    .equipmentDefenseBonus(0)
-                    .equipmentHealthBonus(0)
-                    .equipmentManaBonus(0)
-                    .equipmentSpeedBonus(0)
-                    .build();
+            PlayerProfile playerProfile = buildInitialProfile(user, nickname);
 
             // 2. 保存到数据库
             playerProfileMapper.insert(playerProfile);
@@ -112,11 +81,7 @@ public class PlayerService {
                     savedProfile.getLevel(), savedProfile.getRealm());
 
             // 3. 发放新手物品
-            log.info("发放新手物品...");
             awardStarterItems(savedProfile.getId());
-
-            // 4. 任务初始化由前端第一次查询时自动触发
-            log.info("任务系统将在首次查询时自动初始化");
 
             log.info("========== 玩家档案创建完成 ==========");
             return savedProfile;
@@ -127,6 +92,40 @@ public class PlayerService {
             log.error("创建玩家档案失败: 用户名={}", user.getUsername(), e);
             throw new BusinessException(ErrorCode.PLAYER_CREATE_FAILED);
         }
+    }
+
+    /**
+     * 构建初始玩家档案
+     */
+    private PlayerProfile buildInitialProfile(User user, String nickname) {
+        return PlayerProfile.builder()
+                .userId(user.getId())
+                .nickname(nickname != null ? nickname : user.getUsername())
+                .level(1)
+                .exp(balance.getPlayerInitial().getExp())
+                .expToNext(balanceUtils.calculateExpToNext(1))
+                .realm("练气期")
+                .cultivationSpeed(BigDecimal.ONE)
+                .spiritStones((long) balance.getPlayerInitial().getSpiritStones())
+                .cultivationPoints(0L)
+                .contributionPoints(0L)
+                .attributePoints(0)
+                .skillPoints(0)
+                .attack(balance.getPlayerInitial().getAttack())
+                .defense(balance.getPlayerInitial().getDefense())
+                .health(balance.getPlayerInitial().getHealth())
+                .mana(balance.getPlayerInitial().getMana())
+                .speed(balance.getPlayerInitial().getSpeed())
+                .isCultivating(false)
+                .lastOnlineTime(LocalDateTime.now())
+                .totalCultivationTime(0L)
+                .equipmentAttackBonus(0)
+                .equipmentDefenseBonus(0)
+                .equipmentHealthBonus(0)
+                .equipmentManaBonus(0)
+                .equipmentSpeedBonus(0)
+                .build();
+    }
     }
 
     /**

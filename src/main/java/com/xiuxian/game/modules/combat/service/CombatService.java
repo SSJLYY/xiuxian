@@ -205,262 +205,246 @@ public class CombatService {
      * 减少DB连接持有时间（原长事务可能持有数十毫秒）。</p>
      */
     public CombatResult startCombat(Integer playerId, Monster monster) {
+        // 阶段1：参数校验 + 新手保护 + 宠物准备
+        CombatContext ctx = prepareCombat(playerId, monster);
+
+        // 阶段2：执行战斗主循环
+        executeBattleLoop(ctx);
+
+        // 阶段3：处理战斗结果（奖励/升级/惩罚）
+        processBattleOutcome(ctx);
+
+        // 阶段4：持久化日志 + 构建返回
+        String result = ctx.playerWon ? "WIN" : "LOSE";
+        saveCombatLog(playerId, monster, result, ctx.rounds,
+                ctx.expGained, ctx.spiritStonesGained, ctx.droppedEquipmentId, ctx.battleLog);
+
+        return CombatResult.builder()
+                .result(result)
+                .rounds(ctx.rounds)
+                .totalBattles(1)
+                .wins(ctx.playerWon ? 1 : 0)
+                .losses(ctx.playerWon ? 0 : 1)
+                .winRate(ctx.playerWon ? 1.0 : 0.0)
+                .averageRounds(ctx.rounds)
+                .totalExpGained(ctx.expGained)
+                .totalSpiritStonesGained(ctx.spiritStonesGained)
+                .droppedEquipmentId(ctx.droppedEquipmentId)
+                .battleLog(ctx.battleLog)
+                .monsterName(monster.getName())
+                .monsterLevel(monster.getLevel())
+                .monsterType(monster.getType())
+                .playerLevel(ctx.player.getLevel())
+                .playerExp(ctx.player.getExp())
+                .playerSpiritStones(ctx.player.getSpiritStones())
+                .build();
+    }
+
+    // ==================== 战斗子方法（从 startCombat 拆分） ====================
+
+    /** 战斗上下文：保存战斗过程中的可变状态 */
+    private static class CombatContext {
+        PlayerProfile player;
+        Monster monster;
+        int playerAttack, playerDefense, playerSpeed;
+        int monsterHealth, monsterAttack, monsterDefense, monsterSpeed;
+        int currentPlayerHealth, currentMonsterHealth;
+        int rounds;
+        double speedRatio;
+        PetCombatBonus petBonus;
+        List<String> battleLog;
+        boolean playerWon;
+        long expGained, spiritStonesGained;
+        Integer droppedEquipmentId;
+    }
+
+    /** 阶段1：校验 + 新手保护 + 速度计算 + 宠物准备 */
+    private CombatContext prepareCombat(Integer playerId, Monster monster) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
 
-        // 获取玩家总属性（基础+装备加成）
-        int playerHealth = player.getHealth() + player.getEquipmentHealthBonus();
-        int playerAttack = player.getAttack() + player.getEquipmentAttackBonus();
-        int playerDefense = player.getDefense() + player.getEquipmentDefenseBonus();
-        int playerSpeed = player.getSpeed() + player.getEquipmentSpeedBonus();
+        CombatContext ctx = new CombatContext();
+        ctx.player = player;
+        ctx.monster = monster;
+        ctx.playerAttack = player.getAttack() + player.getEquipmentAttackBonus();
+        ctx.playerDefense = player.getDefense() + player.getEquipmentDefenseBonus();
+        ctx.playerSpeed = player.getSpeed() + player.getEquipmentSpeedBonus();
+        ctx.monsterHealth = monster.getHealth();
+        ctx.monsterAttack = monster.getAttack();
+        ctx.monsterDefense = monster.getDefense();
+        ctx.monsterSpeed = monster.getSpeed();
+        ctx.battleLog = new ArrayList<>();
 
-        int monsterHealth = monster.getHealth();
-        int monsterAttack = monster.getAttack();
-        int monsterDefense = monster.getDefense();
-        int monsterSpeed = monster.getSpeed();
-
-        List<String> battleLog = new ArrayList<>();
-
-        // GDD新手保护：前N场战斗，怪物属性降低，确保新玩家必能胜
-        // 统计玩家战斗次数（从combat_logs表）
+        // 新手保护
         long battleCount = combatLogMapper.countByPlayerId(playerId);
-        boolean isNewPlayer = battleCount < balance.getCombat().getNewbieBattleProtection();
-
-        if (isNewPlayer) {
+        if (battleCount < balance.getCombat().getNewbieBattleProtection()) {
             double factor = balance.getCombat().getNewbieMonsterWeakFactor();
-            monsterHealth = (int)(monsterHealth * factor);
-            monsterAttack = (int)(monsterAttack * factor);
-            monsterDefense = (int)(monsterDefense * factor);
-            battleLog.add("🌟 新手保护中！怪物属性降低" + (int)((1 - factor) * 100) + "%，助你轻松获胜！");
+            ctx.monsterHealth = (int)(ctx.monsterHealth * factor);
+            ctx.monsterAttack = (int)(ctx.monsterAttack * factor);
+            ctx.monsterDefense = (int)(ctx.monsterDefense * factor);
+            ctx.battleLog.add("🌟 新手保护中！怪物属性降低" + (int)((1 - factor) * 100) + "%，助你轻松获胜！");
         }
 
-        battleLog.add("⚔️ 战斗开始！" + player.getNickname() + " VS " + monster.getName());
+        ctx.battleLog.add("⚔️ 战斗开始！" + player.getNickname() + " VS " + monster.getName());
+        ctx.currentPlayerHealth = player.getHealth() + player.getEquipmentHealthBonus();
+        ctx.currentMonsterHealth = ctx.monsterHealth;
+        ctx.rounds = 0;
 
-        int currentPlayerHealth = playerHealth;
-        int currentMonsterHealth = monsterHealth;
-        int rounds = 0;
+        // 速度优势计算
+        int playerSpeedActions = balanceUtils.calculateSpeedAdvantageActions(ctx.playerSpeed, ctx.monsterSpeed);
+        ctx.speedRatio = (ctx.monsterSpeed > 0) ? (double) ctx.playerSpeed / ctx.monsterSpeed : 2.0;
+
+        if (playerSpeedActions > 1) {
+            ctx.battleLog.add("🚀 速度优势！你的速度是怪物的" + String.format("%.1f", ctx.speedRatio) + "倍，每回合可行动" +
+                (ctx.speedRatio >= 2.0 ? "3次" : "2次") + "！");
+        } else if (balanceUtils.calculateSpeedAdvantageActions(ctx.monsterSpeed, ctx.playerSpeed) > 1) {
+            ctx.battleLog.add("⚠️ 速度劣势！怪物速度远高于你，当心！");
+        }
+
+        // 宠物参战准备
+        ctx.petBonus = petService.calculatePetCombatBonus(petService.getActivePet(playerId));
+        if (ctx.petBonus != null && ctx.petBonus.isEligible()) {
+            ctx.battleLog.add("🐾 灵兽助战！你的" + ctx.petBonus.getPetName() + "准备参战！");
+            if (ctx.petBonus.getHunger() < 20) {
+                ctx.battleLog.add("⚠️ 警告：宠物饥饿，战斗效果降低50%！");
+            }
+        } else if (ctx.petBonus != null) {
+            ctx.battleLog.add("💙 宠物因饥饿无法参战，快去喂食吧！");
+            ctx.petBonus = null;
+        }
+
+        return ctx;
+    }
+
+    /** 阶段2：战斗主循环 */
+    private void executeBattleLoop(CombatContext ctx) {
         final int maxRounds = balance.getCombat().getMaxRounds();
+        PetCombatBonus petBonus = ctx.petBonus;
 
-        // 【2026-03-24 优化】使用GameBalanceUtils计算速度优势行动次数
-        int playerSpeedActions = balanceUtils.calculateSpeedAdvantageActions(playerSpeed, monsterSpeed);
-        int monsterSpeedActions = balanceUtils.calculateSpeedAdvantageActions(monsterSpeed, playerSpeed);
+        while (ctx.currentPlayerHealth > 0 && ctx.currentMonsterHealth > 0 && ctx.rounds < maxRounds) {
+            ctx.rounds++;
 
-        double speedRatio = (monsterSpeed > 0) ? (double) playerSpeed / monsterSpeed : 2.0;
-        boolean playerHasSpeedAdvantage = playerSpeedActions > 1;
-        boolean monsterHasSpeedAdvantage = monsterSpeedActions > 1;
+            // 计算本回合行动次数
+            int playerActions = 1, monsterActions = 1;
+            if (ctx.speedRatio >= 2.0) { playerActions = 3; monsterActions = 1; }
+            else if (ctx.speedRatio >= 1.5) { playerActions = 2; monsterActions = 1; }
+            else if (1.0 / ctx.speedRatio >= 2.0) { playerActions = 1; monsterActions = 3; }
+            else if (1.0 / ctx.speedRatio >= 1.5) { playerActions = 1; monsterActions = 2; }
 
-        if (playerHasSpeedAdvantage) {
-            battleLog.add("🚀 速度优势！你的速度是怪物的" + String.format("%.1f", speedRatio) + "倍，每回合可行动" +
-                (speedRatio >= 2.0 ? "3次" : "2次") + "！");
-        } else if (monsterHasSpeedAdvantage) {
-            battleLog.add("⚠️ 速度劣势！怪物速度远高于你，当心！");
-        }
-
-        // GDD宠物参战机制：获取出战宠物并计算战斗增益
-        PetCombatBonus petBonus = petService.calculatePetCombatBonus(
-            petService.getActivePet(playerId));
-
-        if (petBonus != null && petBonus.isEligible()) {
-            battleLog.add("🐾 灵兽助战！你的" + petBonus.getPetName() + "准备参战！");
-            if (petBonus.getHunger() < 20) {
-                battleLog.add("⚠️ 警告：宠物饥饿，战斗效果降低50%！");
-            }
-        } else if (petBonus != null) {
-            battleLog.add("💙 宠物因饥饿无法参战，快去喂食吧！");
-            petBonus = null; // 无法参战
-        }
-
-        // 战斗循环
-        while (currentPlayerHealth > 0 && currentMonsterHealth > 0 && rounds < maxRounds) {
-            rounds++;
-
-            // GDD：速度优势时，玩家可获得额外行动
-            // 速度比>=2.0: 玩家3次行动 vs 怪物1次
-            // 速度比>=1.5: 玩家2次行动 vs 怪物1次
-            // 正常: 交替进行
-
-            int playerActionsThisRound = 1;
-            int monsterActionsThisRound = 1;
-
-            if (speedRatio >= 2.0) {
-                playerActionsThisRound = 3;
-                monsterActionsThisRound = 1;
-            } else if (speedRatio >= 1.5) {
-                playerActionsThisRound = 2;
-                monsterActionsThisRound = 1;
-            } else if (1.0 / speedRatio >= 2.0) {
-                playerActionsThisRound = 1;
-                monsterActionsThisRound = 3;
-            } else if (1.0 / speedRatio >= 1.5) {
-                playerActionsThisRound = 1;
-                monsterActionsThisRound = 2;
-            }
-
-            // 根据速度决定先后手
-            boolean playerFirst = playerSpeed >= monsterSpeed;
-
+            boolean playerFirst = ctx.playerSpeed >= ctx.monsterSpeed;
             if (playerFirst) {
-                // 玩家行动
-                for (int i = 0; i < playerActionsThisRound && currentMonsterHealth > 0; i++) {
-                    int damage = calculateDamage(playerAttack, monsterDefense, player.getLevel(),
-                        monster.getLevel(), playerSpeed, monsterSpeed, true, battleLog);
-                    currentMonsterHealth -= damage;
-                    String actionMarker = playerActionsThisRound > 1 ? "【连击" + (i + 1) + "】" : "";
-                    battleLog.add("第" + rounds + "回合: " + actionMarker + player.getNickname() +
-                        "造成了" + damage + "点伤害");
-                }
-
-                // GDD宠物参战：每N回合宠物发动技能
-                if (petBonus != null && rounds % petBonus.getSkillCooldown() == 0) {
-                    if (rng().nextDouble() < petBonus.getSkillTriggerChance()) {
-                        int petDamage = petBonus.getSkillDamage();
-                        currentMonsterHealth -= petDamage;
-                        String resonanceMsg = petBonus.isResonance() ? "【共鸣迸发】" : "";
-                        battleLog.add("🐾 " + resonanceMsg + petBonus.getPetName() +
-                            "发动灵兽技能！造成了" + petDamage + "点伤害！");
-                    } else {
-                        battleLog.add("🐾 " + petBonus.getPetName() + "准备发动技能，但还未准备好...");
-                    }
-                }
-
-                if (currentMonsterHealth <= 0) break;
-
-                // 怪物行动
-                for (int i = 0; i < monsterActionsThisRound && currentPlayerHealth > 0; i++) {
-                    int monsterDamage = calculateDamage(monsterAttack, playerDefense,
-                        monster.getLevel(), player.getLevel(), monsterSpeed, playerSpeed, false, battleLog);
-                    currentPlayerHealth -= monsterDamage;
-                    String actionMarker = monsterActionsThisRound > 1 ? "【连击" + (i + 1) + "】" : "";
-                    battleLog.add("第" + rounds + "回合: " + actionMarker + monster.getName() +
-                        "造成了" + monsterDamage + "点伤害");
-                }
+                executePlayerTurn(ctx, playerActions);
+                executePetSkill(ctx, petBonus);
+                if (ctx.currentMonsterHealth <= 0) break;
+                executeMonsterTurn(ctx, monsterActions);
             } else {
-                // 怪物先行动
-                for (int i = 0; i < monsterActionsThisRound && currentPlayerHealth > 0; i++) {
-                    int monsterDamage = calculateDamage(monsterAttack, playerDefense,
-                        monster.getLevel(), player.getLevel(), monsterSpeed, playerSpeed, false, battleLog);
-                    currentPlayerHealth -= monsterDamage;
-                    String actionMarker = monsterActionsThisRound > 1 ? "【连击" + (i + 1) + "】" : "";
-                    battleLog.add("第" + rounds + "回合: " + actionMarker + monster.getName() +
-                        "造成了" + monsterDamage + "点伤害");
-                }
-
-                if (currentPlayerHealth <= 0) break;
-
-                // 玩家行动
-                for (int i = 0; i < playerActionsThisRound && currentMonsterHealth > 0; i++) {
-                    int damage = calculateDamage(playerAttack, monsterDefense, player.getLevel(),
-                        monster.getLevel(), playerSpeed, monsterSpeed, true, battleLog);
-                    currentMonsterHealth -= damage;
-                    String actionMarker = playerActionsThisRound > 1 ? "【连击" + (i + 1) + "】" : "";
-                    battleLog.add("第" + rounds + "回合: " + actionMarker + player.getNickname() +
-                        "造成了" + damage + "点伤害");
-                }
-
-                // GDD宠物参战：每N回合宠物发动技能
-                if (petBonus != null && rounds % petBonus.getSkillCooldown() == 0) {
-                    if (rng().nextDouble() < petBonus.getSkillTriggerChance()) {
-                        int petDamage = petBonus.getSkillDamage();
-                        currentMonsterHealth -= petDamage;
-                        String resonanceMsg = petBonus.isResonance() ? "【共鸣迸发】" : "";
-                        battleLog.add("🐾 " + resonanceMsg + petBonus.getPetName() +
-                            "发动灵兽技能！造成了" + petDamage + "点伤害！");
-                    } else {
-                        battleLog.add("🐾 " + petBonus.getPetName() + "准备发动技能，但还未准备好...");
-                    }
-                }
+                executeMonsterTurn(ctx, monsterActions);
+                if (ctx.currentPlayerHealth <= 0) break;
+                executePlayerTurn(ctx, playerActions);
+                executePetSkill(ctx, petBonus);
             }
         }
 
-        // GDD：战斗结束后，宠物饱食度减少（每次战斗消耗5点）
+        // 战后宠物饱食度消耗
         if (petBonus != null) {
-            petService.consumePetHungerAfterCombat(playerId);
-            PlayerPet activePet = petService.getActivePet(playerId);
+            petService.consumePetHungerAfterCombat(ctx.player.getId());
+            PlayerPet activePet = petService.getActivePet(ctx.player.getId());
             if (activePet != null && activePet.getHunger() < 20) {
-                battleLog.add("💙 战后宠物饥饿加剧，当前饱食度：" + activePet.getHunger() + "，快去喂食吧！");
+                ctx.battleLog.add("💙 战后宠物饥饿加剧，当前饱食度：" + activePet.getHunger() + "，快去喂食吧！");
             }
         }
+    }
 
-        boolean playerWon = currentMonsterHealth <= 0;
-        String result = playerWon ? "WIN" : "LOSE";
+    /** 玩家行动 */
+    private void executePlayerTurn(CombatContext ctx, int actions) {
+        for (int i = 0; i < actions && ctx.currentMonsterHealth > 0; i++) {
+            int damage = calculateDamage(ctx.playerAttack, ctx.monsterDefense, ctx.player.getLevel(),
+                    ctx.monster.getLevel(), ctx.playerSpeed, ctx.monsterSpeed, true, ctx.battleLog);
+            ctx.currentMonsterHealth -= damage;
+            String marker = actions > 1 ? "【连击" + (i + 1) + "】" : "";
+            ctx.battleLog.add("第" + ctx.rounds + "回合: " + marker + ctx.player.getNickname() + "造成了" + damage + "点伤害");
+        }
+    }
 
-        long expGained = 0;
-        long spiritStonesGained = 0;
-        Integer droppedEquipmentId = null;
+    /** 怪物行动 */
+    private void executeMonsterTurn(CombatContext ctx, int actions) {
+        for (int i = 0; i < actions && ctx.currentPlayerHealth > 0; i++) {
+            int damage = calculateDamage(ctx.monsterAttack, ctx.playerDefense,
+                    ctx.monster.getLevel(), ctx.player.getLevel(), ctx.monsterSpeed, ctx.playerSpeed, false, ctx.battleLog);
+            ctx.currentPlayerHealth -= damage;
+            String marker = actions > 1 ? "【连击" + (i + 1) + "】" : "";
+            ctx.battleLog.add("第" + ctx.rounds + "回合: " + marker + ctx.monster.getName() + "造成了" + damage + "点伤害");
+        }
+    }
 
-        if (playerWon) {
-            battleLog.add("战斗胜利！");
-            expGained = calculateExpReward(monster, player.getLevel());
-            spiritStonesGained = calculateSpiritStonesReward(monster, player.getLevel());
+    /** 宠物技能触发 */
+    private void executePetSkill(CombatContext ctx, PetCombatBonus petBonus) {
+        if (petBonus == null || ctx.rounds % petBonus.getSkillCooldown() != 0) return;
+        if (rng().nextDouble() < petBonus.getSkillTriggerChance()) {
+            int petDamage = petBonus.getSkillDamage();
+            ctx.currentMonsterHealth -= petDamage;
+            String resonanceMsg = petBonus.isResonance() ? "【共鸣迸发】" : "";
+            ctx.battleLog.add("🐾 " + resonanceMsg + petBonus.getPetName() + "发动灵兽技能！造成了" + petDamage + "点伤害！");
+        } else {
+            ctx.battleLog.add("🐾 " + petBonus.getPetName() + "准备发动技能，但还未准备好...");
+        }
+    }
 
-            // 装备掉落检查
-            if (rng().nextInt(100) < monster.getDropRate() && monster.getDropEquipmentId() != null) {
-                droppedEquipmentId = monster.getDropEquipmentId();
+    /** 阶段3：处理战斗结果（奖励/升级/惩罚） */
+    private void processBattleOutcome(CombatContext ctx) {
+        ctx.playerWon = ctx.currentMonsterHealth <= 0;
+
+        if (ctx.playerWon) {
+            ctx.battleLog.add("战斗胜利！");
+            ctx.expGained = calculateExpReward(ctx.monster, ctx.player.getLevel());
+            ctx.spiritStonesGained = calculateSpiritStonesReward(ctx.monster, ctx.player.getLevel());
+
+            // 装备掉落
+            if (rng().nextInt(100) < ctx.monster.getDropRate() && ctx.monster.getDropEquipmentId() != null) {
+                ctx.droppedEquipmentId = ctx.monster.getDropEquipmentId();
                 try {
-                    equipmentService.acquireEquipment(droppedEquipmentId, playerId);
-                    battleLog.add("获得装备掉落！");
+                    equipmentService.acquireEquipment(ctx.droppedEquipmentId, ctx.player.getId());
+                    ctx.battleLog.add("获得装备掉落！");
                 } catch (Exception e) {
                     log.warn("装备掉落失败: {}", e.getMessage());
                 }
             }
 
-            // 更新玩家经验和灵石
-            player.setExp(player.getExp() + expGained);
-            player.setSpiritStones(player.getSpiritStones() + spiritStonesGained);
-
-            // 升级检查
-            int levelUps = 0;
-            while (player.getExp() >= player.getExpToNext() && levelUps < 100) {
-                player.setExp(player.getExp() - player.getExpToNext());
-                player.setLevel(player.getLevel() + 1);
-                player.setExpToNext((long)(player.getExpToNext() * 1.5));
-                player.setHealth(player.getHealth() + 10);
-                player.setMana(player.getMana() + 5);
-                player.setAttack(player.getAttack() + 2);
-                player.setDefense(player.getDefense() + 1);
-                player.setAttributePoints(player.getAttributePoints() + 5);
-                levelUps++;
-            }
-            if (levelUps > 0) {
-                battleLog.add("恭喜升级！当前等级：" + player.getLevel());
-            }
-
-            playerService.savePlayerProfile(player);
-            battleLog.add("获得经验：" + expGained + "，灵石：" + spiritStonesGained);
+            ctx.player.setExp(ctx.player.getExp() + ctx.expGained);
+            ctx.player.setSpiritStones(ctx.player.getSpiritStones() + ctx.spiritStonesGained);
+            processLevelUp(ctx);
+            playerService.savePlayerProfile(ctx.player);
+            ctx.battleLog.add("获得经验：" + ctx.expGained + "，灵石：" + ctx.spiritStonesGained);
         } else {
-            battleLog.add("战斗失败...");
-            long lostSpiritStones = spiritStonesGained / 10;
-            if (player.getSpiritStones() >= lostSpiritStones && lostSpiritStones > 0) {
-                player.setSpiritStones(player.getSpiritStones() - lostSpiritStones);
-                playerService.savePlayerProfile(player);
-                battleLog.add("损失灵石：" + lostSpiritStones);
+            ctx.battleLog.add("战斗失败...");
+            long lostSpiritStones = ctx.spiritStonesGained / 10;
+            if (ctx.player.getSpiritStones() >= lostSpiritStones && lostSpiritStones > 0) {
+                ctx.player.setSpiritStones(ctx.player.getSpiritStones() - lostSpiritStones);
+                playerService.savePlayerProfile(ctx.player);
+                ctx.battleLog.add("损失灵石：" + lostSpiritStones);
             }
         }
+    }
 
-        // 持久化战斗日志
-        saveCombatLog(playerId, monster, result, rounds, expGained, spiritStonesGained, droppedEquipmentId, battleLog);
-
-        return CombatResult.builder()
-                .result(result)
-                .rounds(rounds)
-                .totalBattles(1)
-                .wins(playerWon ? 1 : 0)
-                .losses(playerWon ? 0 : 1)
-                .winRate(playerWon ? 1.0 : 0.0)
-                .averageRounds(rounds)
-                .totalExpGained(expGained)
-                .totalSpiritStonesGained(spiritStonesGained)
-                .droppedEquipmentId(droppedEquipmentId)
-                .battleLog(battleLog)
-                .monsterName(monster.getName())
-                .monsterLevel(monster.getLevel())
-                .monsterType(monster.getType())
-                .playerLevel(player.getLevel())
-                .playerExp(player.getExp())
-                .playerSpiritStones(player.getSpiritStones())
-                .build();
+    /** 升级循环 */
+    private void processLevelUp(CombatContext ctx) {
+        int levelUps = 0;
+        while (ctx.player.getExp() >= ctx.player.getExpToNext() && levelUps < 100) {
+            ctx.player.setExp(ctx.player.getExp() - ctx.player.getExpToNext());
+            ctx.player.setLevel(ctx.player.getLevel() + 1);
+            ctx.player.setExpToNext((long)(ctx.player.getExpToNext() * 1.5));
+            ctx.player.setHealth(ctx.player.getHealth() + 10);
+            ctx.player.setMana(ctx.player.getMana() + 5);
+            ctx.player.setAttack(ctx.player.getAttack() + 2);
+            ctx.player.setDefense(ctx.player.getDefense() + 1);
+            ctx.player.setAttributePoints(ctx.player.getAttributePoints() + 5);
+            levelUps++;
+        }
+        if (levelUps > 0) {
+            ctx.battleLog.add("恭喜升级！当前等级：" + ctx.player.getLevel());
+        }
     }
 
     /**
