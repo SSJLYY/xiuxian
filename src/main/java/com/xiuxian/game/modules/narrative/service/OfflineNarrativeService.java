@@ -15,7 +15,9 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -123,9 +125,9 @@ public class OfflineNarrativeService {
         if (event.getNpcRelationChange() != null && !event.getNpcRelationChange().isEmpty()) {
             try {
                 com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
-                java.util.Map<String, Integer> changes = om.readValue(event.getNpcRelationChange(),
-                        new java.util.HashMap<String, Integer>().getClass());
-                for (java.util.Map.Entry<String, Integer> entry : changes.entrySet()) {
+                Map<String, Integer> changes = om.readValue(event.getNpcRelationChange(),
+                        new com.fasterxml.jackson.core.type.TypeReference<Map<String, Integer>>() {});
+                for (Map.Entry<String, Integer> entry : changes.entrySet()) {
                     int npcId = Integer.parseInt(entry.getKey());
                     narrativeService.changeNpcAffinity(playerId, npcId, entry.getValue());
                     result.getRewards().add("与NPC好感度发生了变化");

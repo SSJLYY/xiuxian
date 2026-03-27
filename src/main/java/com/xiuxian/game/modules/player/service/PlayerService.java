@@ -126,7 +126,6 @@ public class PlayerService {
                 .equipmentSpeedBonus(0)
                 .build();
     }
-    }
 
     /**
      * 根据ID获取玩家档案（getPlayerProfileById 的别名）

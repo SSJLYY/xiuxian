@@ -1,32 +1,19 @@
 package com.xiuxian.game.common.config;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter;
-
-import java.util.Arrays;
-
-@Configuration
+/**
+ * CORS 配置已统一迁移到 SecurityConfig.corsConfigurationSource()。
+ *
+ * 原 CorsFilter Bean 已移除原因：
+ * 1. SecurityConfig 中使用 setAllowedOriginPatterns("*") + setAllowCredentials(true) 的正确写法，
+ *    而此处使用 setAllowedOrigins("*") + setAllowCredentials(true) 违反 CORS 规范（浏览器拒绝），
+ *    Spring 在高版本中会抛出 IllegalArgumentException。
+ * 2. 两套 CorsFilter 同时存在时，Spring Security 的 Filter 优先级会引起 CORS 响应头重复或丢失。
+ *
+ * 如需调整跨域策略，请修改 SecurityConfig.corsConfigurationSource()。
+ *
+ * @author shaun.sheng
+ */
+@org.springframework.context.annotation.Configuration
 public class CorsConfig {
-
-    @Value("${app.cors.allowed-origins}")
-    private String[] allowedOrigins;
-
-    @Bean
-    public CorsFilter corsFilter() {
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(Arrays.asList(allowedOrigins));
-        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(Arrays.asList("*"));
-        config.setAllowCredentials(true);
-        config.setMaxAge(3600L);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-
-        return new CorsFilter(source);
-    }
+    // 保留空类，避免 @Value("${app.cors.allowed-origins}") 等配置项未使用导致启动报错
 }
