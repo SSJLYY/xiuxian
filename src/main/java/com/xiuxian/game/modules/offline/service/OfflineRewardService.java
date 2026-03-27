@@ -14,6 +14,8 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import com.xiuxian.game.common.exception.BusinessException;
+import com.xiuxian.game.common.exception.ErrorCode;
 
 @Slf4j
 @Service
@@ -35,7 +37,7 @@ public class OfflineRewardService {
     public Map<String, Object> calculateOfflineReward(Integer playerId) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
 
         // 获取上次登录时间
@@ -116,20 +118,20 @@ public class OfflineRewardService {
     public Map<String, Object> claimOfflineReward(Integer playerId, Integer rewardId) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
 
         OfflineReward reward = offlineRewardMapper.selectById(rewardId);
         if (reward == null) {
-            throw new IllegalArgumentException("奖励不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "奖励不存在");
         }
 
         if (!reward.getPlayerId().equals(playerId)) {
-            throw new IllegalArgumentException("无权领取该奖励");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "无权领取该奖励");
         }
 
         if (reward.getClaimed()) {
-            throw new IllegalArgumentException("奖励已被领取");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "奖励已被领取");
         }
 
         // 发放奖励

@@ -1,15 +1,16 @@
 package com.xiuxian.game.modules.narrative.controller;
 
 import com.xiuxian.game.dto.response.ApiResponse;
+import com.xiuxian.game.modules.narrative.entity.DialogueTree;
 import com.xiuxian.game.modules.narrative.service.NarrativeService;
 import com.xiuxian.game.modules.player.service.PlayerService;
-import com.xiuxian.game.common.util.LogUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -32,8 +33,8 @@ public class DialogueController {
     @GetMapping("/available/{npcId}")
     public ResponseEntity<ApiResponse<?>> getAvailableDialogues(@PathVariable Integer npcId) {
         Integer playerId = playerService.getCurrentPlayerId();
-        LogUtils.info(log, "获取NPC可用对话", "playerId", playerId, "npcId", npcId);
-        var dialogues = narrativeService.getAvailableDialogues(playerId, npcId);
+        log.info("获取NPC可用对话: playerId={}, npcId={}", playerId, npcId);
+        List<DialogueTree> dialogues = narrativeService.getAvailableDialogues(playerId, npcId);
         return ResponseEntity.ok(ApiResponse.success(dialogues));
     }
 
@@ -48,7 +49,7 @@ public class DialogueController {
         if (dialogueKey == null || dialogueKey.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.error("dialogueKey不能为空"));
         }
-        LogUtils.info(log, "开始对话", "playerId", playerId, "dialogueKey", dialogueKey);
+        log.info("开始对话: playerId={}, dialogueKey={}", playerId, dialogueKey);
         NarrativeService.DialogueSceneData scene = narrativeService.startOrContinueDialogue(playerId, dialogueKey);
         return ResponseEntity.ok(ApiResponse.success(scene));
     }
@@ -65,7 +66,7 @@ public class DialogueController {
         if (dialogueKey == null || choiceNodeKey == null) {
             return ResponseEntity.ok(ApiResponse.error("参数不完整"));
         }
-        LogUtils.info(log, "对话选择", "playerId", playerId, "dialogueKey", dialogueKey, "choice", choiceNodeKey);
+        log.info("对话选择: playerId={}, dialogueKey={}, choice={}", playerId, dialogueKey, choiceNodeKey);
         NarrativeService.DialogueSceneData scene = narrativeService.makeChoice(playerId, dialogueKey, choiceNodeKey);
         return ResponseEntity.ok(ApiResponse.success(scene));
     }

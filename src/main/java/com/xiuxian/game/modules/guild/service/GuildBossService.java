@@ -304,7 +304,8 @@ public class GuildBossService {
         long myDamage = 0;
         if (myRecord != null) {
             myDamage = myRecord.getDamageDealt();
-            rank = (int) all.stream().filter(c -> c.getDamageDealt() > myDamage).count() + 1;
+            final long myDamageFinal = myDamage;
+            rank = (int) all.stream().filter(c -> c.getDamageDealt() > myDamageFinal).count() + 1;
         }
 
         // 构建伤害排行榜

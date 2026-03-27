@@ -50,6 +50,16 @@ public class PetEvolution {
     private Integer requiredItemQuantity;
 
     /**
+     * 需求忠诚度
+     */
+    private Integer requiredLoyalty;
+
+    /**
+     * 进化后的宠物ID
+     */
+    private Integer evolvedPetId;
+
+    /**
      * 生命加成
      */
     private Integer healthBonus;

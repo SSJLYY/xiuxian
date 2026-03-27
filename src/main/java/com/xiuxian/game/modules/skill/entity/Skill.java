@@ -1,4 +1,4 @@
-﻿package com.xiuxian.game.modules.skill.entity;
+package com.xiuxian.game.modules.skill.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;

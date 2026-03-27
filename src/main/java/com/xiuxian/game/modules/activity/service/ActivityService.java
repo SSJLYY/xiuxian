@@ -14,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import com.xiuxian.game.common.exception.BusinessException;
+import com.xiuxian.game.common.exception.ErrorCode;
 
 @Service
 @RequiredArgsConstructor
@@ -58,13 +60,13 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         // 检查活动是否存在且处于活跃状态
         Activity activity = activityMapper.selectById(activityId);
         if (activity == null) {
-            throw new IllegalArgumentException("活动不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "活动不存在");
         }
 
         if (!"ACTIVE".equals(activity.getStatus()) ||
             activity.getStartTime().isAfter(LocalDateTime.now()) ||
             activity.getEndTime().isBefore(LocalDateTime.now())) {
-            throw new IllegalArgumentException("活动不在进行中");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "活动不在进行中");
         }
 
         // 检查玩家是否已有进度记录
@@ -98,7 +100,7 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         PlayerActivityProgress progress = playerActivityProgressMapper.selectOne(queryWrapper);
 
         if (progress == null) {
-            throw new IllegalArgumentException("玩家未参与该活动");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家未参与该活动");
         }
 
         // 更新进度
@@ -120,7 +122,7 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         PlayerActivityProgress progress = playerActivityProgressMapper.selectOne(queryWrapper);
 
         if (progress == null) {
-            throw new IllegalArgumentException("玩家未参与该活动");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家未参与该活动");
         }
 
         // 更新积分（从progress JSON中提取并更新）
@@ -139,7 +141,7 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         // 获取活动信息
         Activity activity = activityMapper.selectById(activityId);
         if (activity == null) {
-            throw new IllegalArgumentException("活动不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "活动不存在");
         }
 
         // 获取所有参与该活动的玩家进度

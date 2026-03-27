@@ -39,6 +39,13 @@ public class ShopService {
         return shopItemMapper.selectByShopType(shopType);
     }
 
+    /**
+     * 获取所有商品（管理端使用，不过滤类型）
+     */
+    public List<ShopItem> listAllItems() {
+        return shopItemMapper.selectList(null);
+    }
+
     public List<SkillShopItem> listSkillShop() {
         return skillShopService.getAvailableSkillShopItems();
     }
@@ -46,7 +53,7 @@ public class ShopService {
     @Transactional
     public void buyItem(Integer shopItemId, int quantity) {
         if (quantity <= 0) {
-            throw new IllegalArgumentException("购买数量必须大于0");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "购买数量必须大于0");
         }
         ShopItem item = shopItemMapper.selectById(shopItemId);
         if (item == null || !Boolean.TRUE.equals(item.getIsAvailable())) {

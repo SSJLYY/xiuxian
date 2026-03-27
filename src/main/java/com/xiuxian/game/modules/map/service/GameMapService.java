@@ -7,6 +7,8 @@ import com.xiuxian.game.modules.map.entity.PlayerMapProgress;
 import com.xiuxian.game.modules.map.mapper.GameMapMapper;
 import com.xiuxian.game.modules.combat.service.CombatService;
 import com.xiuxian.game.modules.map.mapper.PlayerMapProgressMapper;
+import com.xiuxian.game.common.exception.BusinessException;
+import com.xiuxian.game.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -301,7 +303,7 @@ public class GameMapService {
         private Monster monster;
         private int monsterLevel;
         private double statMultiplier;
-        private boolean isElite;
+        private Boolean isElite;
     }
     
     /**

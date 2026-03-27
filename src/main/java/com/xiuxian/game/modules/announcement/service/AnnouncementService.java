@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import com.xiuxian.game.modules.admin.service.CacheService;
 
 /**
  * 公告服务类

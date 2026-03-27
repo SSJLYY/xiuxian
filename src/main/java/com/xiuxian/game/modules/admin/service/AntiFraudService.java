@@ -39,14 +39,14 @@ public class AntiFraudService {
     private static final long COUNTER_EXPIRE_MS = 2L * 60 * 60 * 1000;
     
     /** 资源异常增长阈值（单位：单次增长量） */
-    private static final Map<String, Long> RESOURCE_THRESHOLDS = Collections.unmodifiableMap(new HashMap<>() {{
+    private static final Map<String, Long> RESOURCE_THRESHOLDS = Collections.unmodifiableMap(new HashMap<String, Long>() {{
         put("SPIRIT_STONES", 100000L); // 灵石一次增长超过10万
         put("EXP", 50000L);            // 经验一次增长超过5万
         put("YUANBAO", 10000L);        // 元宝一次增长超过1万
     }});
     
     /** 操作频率阈值（单位：指定时间窗口内次数） */
-    private static final Map<String, Integer> OPERATION_FREQUENCY_THRESHOLDS = Collections.unmodifiableMap(new HashMap<>() {{
+    private static final Map<String, Integer> OPERATION_FREQUENCY_THRESHOLDS = Collections.unmodifiableMap(new HashMap<String, Integer>() {{
         put("CLAIM_MAIL", 50);  // 1小时内领取邮件超过50次
         put("SHOP_BUY", 100);   // 1小时内购买超过100次
         put("COMBAT", 200);     // 1小时内战斗超过200次
@@ -94,7 +94,7 @@ public class AntiFraudService {
     @Async
     public void detectResourceAbnormal(Integer playerId, String resourceType, long oldValue, long newValue) {
         try {
-            if (playerId == null || playerId <= 0 || resourceType == null || resourceType.isBlank()) {
+            if (playerId == null || playerId <= 0 || resourceType == null || resourceType.trim().isEmpty()) {
                 return;
             }
 
@@ -122,7 +122,7 @@ public class AntiFraudService {
     @Async
     public void detectOperationFrequencyAbnormal(Integer playerId, String operationType) {
         try {
-            if (playerId == null || playerId <= 0 || operationType == null || operationType.isBlank()) {
+            if (playerId == null || playerId <= 0 || operationType == null || operationType.trim().isEmpty()) {
                 return;
             }
 
@@ -172,7 +172,7 @@ public class AntiFraudService {
      */
     private void handleAutoBan(Integer playerId, String reason) {
         try {
-            if (playerId == null || playerId <= 0 || reason == null || reason.isBlank()) {
+            if (playerId == null || playerId <= 0 || reason == null || reason.trim().isEmpty()) {
                 log.warn("自动封禁参数无效，跳过: playerId={}, reason={}", playerId, reason);
                 return;
             }

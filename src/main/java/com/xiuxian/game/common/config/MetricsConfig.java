@@ -2,8 +2,6 @@ package com.xiuxian.game.common.config;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
-import org.springframework.boot.actuate.metrics.web.servlet.WebMvcMetricsFilter;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -120,18 +118,5 @@ public class MetricsConfig {
             registry.gauge("game.cache.hit.rate", rate);
         }
     }
-
-    /**
-     * 配置 Prometheus 过滤链
-     */
-    @Bean
-    public FilterRegistrationBean<WebMvcMetricsFilter> prometheusFilterRegistration(
-            MeterRegistry registry) {
-        FilterRegistrationBean<WebMvcMetricsFilter> registration = new FilterRegistrationBean<>();
-        registration.setFilter(new WebMvcMetricsFilter(registry));
-        registration.addUrlPatterns("/*");
-        registration.setName("prometheusMetricsFilter");
-        registration.setOrder(1);
-        return registration;
-    }
 }
+

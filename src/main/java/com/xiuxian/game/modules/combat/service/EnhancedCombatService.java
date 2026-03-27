@@ -34,6 +34,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import com.xiuxian.game.common.exception.BusinessException;
+import com.xiuxian.game.common.exception.ErrorCode;
 
 /**
  * 增强战斗服务类
@@ -64,7 +66,7 @@ public class EnhancedCombatService {
     public Map<String, Object> enhancedCombat(Integer playerId, Monster monster, Integer skillId, Integer itemId) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
 
         // 获取玩家属性（含装备加成）
@@ -175,8 +177,8 @@ public class EnhancedCombatService {
             spiritStonesGained = calculateSpiritStonesReward(monster, player.getLevel());
 
             // 检查装备掉落
-            if (rng().nextInt(100) < monster.getDropRate() && monster.getDroppedEquipmentId() != null) {
-                droppedEquipmentId = monster.getDroppedEquipmentId();
+            if (rng().nextInt(100) < monster.getDropRate() && monster.getDropEquipmentId() != null) {
+                droppedEquipmentId = monster.getDropEquipmentId();
                 try {
                     equipmentService.acquireEquipment(droppedEquipmentId, playerId);
                     battleLog.add("获得装备掉落！");
@@ -264,12 +266,12 @@ public class EnhancedCombatService {
                                    int monsterDefense, List<String> battleLog) {
         // 检查是否使用技能
         if (skillId != null && skillId > 0) {
-            PlayerSkill playerSkill = skillService.getPlayerSkillById(skillId);
+            PlayerSkill playerSkill = skillService.getPlayerSkillByPlayerAndSkill(player.getId(), skillId);
             if (playerSkill != null) {
                 Skill skill = skillService.getSkillById(skillId);
                 if (skill != null && currentMana >= skill.getManaCost()) {
                     // 计算技能伤害
-                    double skillDamage = skill.getBaseDamage() + (skill.getDamagePerLevel() * playerSkill.getSkillLevel());
+                    double skillDamage = skill.getBaseDamage() + (skill.getDamagePerLevel() * playerSkill.getLevel());
                     int damage = calculateDamage((int) skillDamage, monsterDefense, player.getLevel(), monster.getLevel());
 
                     // 检查暴击

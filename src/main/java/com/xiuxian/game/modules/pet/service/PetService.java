@@ -3,7 +3,7 @@ package com.xiuxian.game.modules.pet.service;
 import com.xiuxian.game.dto.PetEvolutionResult;
 // pet module entities
 import com.xiuxian.game.modules.pet.entity.Pet;
-import com.xiuxian.game.modules.pet.entity.PetCombatBonus;
+import com.xiuxian.game.dto.response.PetCombatBonus;
 import com.xiuxian.game.modules.pet.entity.PetEvolution;
 import com.xiuxian.game.modules.pet.entity.PetSkill;
 import com.xiuxian.game.modules.pet.entity.PetTrainingLog;
@@ -35,6 +35,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import com.xiuxian.game.common.exception.BusinessException;
+import com.xiuxian.game.common.exception.ErrorCode;
 
 /**
  * 宠物服务类
@@ -66,7 +68,14 @@ public class PetService {
      * 获取玩家可捕捉的宠物列表
      */
     public List<Pet> getAvailablePets(Integer playerId) {
-        return petMapper.selectAvailablePets();
+        // 根据玩家等级获取可解锁宠物，若无法获取等级则查询所有可用宠物
+        try {
+            PlayerProfile profile = playerService.getPlayerProfileById(playerId);
+            int playerLevel = profile != null && profile.getLevel() != null ? profile.getLevel() : 1;
+            return petMapper.selectAvailablePets(playerLevel);
+        } catch (Exception e) {
+            return petMapper.selectAvailablePets(1);
+        }
     }
 
     /**
@@ -80,7 +89,7 @@ public class PetService {
      * 获取玩家当前出战宠物
      */
     public PlayerPet getActivePet(Integer playerId) {
-        return playerPetMapper.selectActivePetByPlayerId(playerId);
+        return playerPetMapper.selectActivePet(playerId);
     }
 
     public PlayerPetMapper getPlayerPetMapper() {
@@ -102,26 +111,58 @@ public class PetService {
 
     /**
      * 计算宠物战斗加成
+     * GDD设计：宠物在战斗中提供额外伤害、忠诚度影响技能发动概率、饱食度影响参战效果
      */
     public PetCombatBonus calculatePetCombatBonus(PlayerPet activePet) {
         if (activePet == null) {
-            return PetCombatBonus.zero();
+            return PetCombatBonus.builder()
+                    .skillTriggerChance(0.0)
+                    .skillDamage(0)
+                    .skillCooldown(3)
+                    .resonance(false)
+                    .hungerFactor(0.0)
+                    .loyalty(0)
+                    .hunger(0)
+                    .build();
         }
         // 计算饱食度和忠诚度对战斗加成的影响
-        double hungerFactor = activePet.getHunger() < 30 ? 0.5 : 1.0;
-        double loyaltyFactor = activePet.getLoyalty() >= 80 ? 1.2 : (activePet.getLoyalty() >= 50 ? 1.0 : 0.7);
+        int hunger = activePet.getHunger() != null ? activePet.getHunger() : 0;
+        int loyalty = activePet.getLoyalty() != null ? activePet.getLoyalty() : 0;
+        double hungerFactor = hunger < 20 ? 0.5 : 1.0;
+        double loyaltyFactor = loyalty >= 80 ? 1.2 : (loyalty >= 50 ? 1.0 : 0.7);
         double levelFactor = 1.0 + activePet.getLevel() * 0.05;
 
         Pet pet = petMapper.selectById(activePet.getPetId());
         if (pet == null) {
-            return PetCombatBonus.zero();
+            return PetCombatBonus.builder()
+                    .skillTriggerChance(0.0)
+                    .skillDamage(0)
+                    .skillCooldown(3)
+                    .resonance(false)
+                    .hungerFactor(hungerFactor)
+                    .loyalty(loyalty)
+                    .hunger(hunger)
+                    .build();
         }
 
-        int attackBonus = (int) (pet.getBaseAttack() * levelFactor * hungerFactor * loyaltyFactor);
-        int defenseBonus = (int) (pet.getBaseDefense() * levelFactor * hungerFactor * loyaltyFactor);
-        int critChanceBonus = (int) (pet.getCritChance() * 100 * loyaltyFactor);
+        // 技能发动概率：忠诚度/100 × 基础概率
+        double skillTriggerChance = (loyalty / 100.0) * 0.3 * loyaltyFactor;
+        // 技能伤害：基于宠物攻击力和等级
+        int skillDamage = (int) (pet.getBaseAttack() * levelFactor * hungerFactor * loyaltyFactor);
+        // 共鸣：忠诚度100且低概率触发
+        boolean resonance = loyalty >= 100 && ThreadLocalRandom.current().nextDouble() < 0.05;
 
-        return new PetCombatBonus(attackBonus, defenseBonus, critChanceBonus);
+        return PetCombatBonus.builder()
+                .petId(pet.getId())
+                .petName(pet.getName())
+                .skillTriggerChance(skillTriggerChance)
+                .skillDamage(skillDamage)
+                .skillCooldown(3)
+                .resonance(resonance)
+                .hungerFactor(hungerFactor)
+                .loyalty(loyalty)
+                .hunger(hunger)
+                .build();
     }
 
     /**
@@ -149,22 +190,22 @@ public class PetService {
         Pet pet = petMapper.selectById(petId);
 
         if (player == null || pet == null) {
-            throw new RuntimeException("玩家或宠物不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家或宠物不存在");
         }
 
         // 检查是否已达宠物上限
         List<PlayerPet> existingPets = getPlayerPets(playerId);
         if (existingPets.size() >= 10) {
-            throw new RuntimeException("已达宠物数量上限（10只）");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "已达宠物数量上限（10只）");
         }
 
         // 捕捉成功率
-        double captureRate = pet.getCaptureRate();
+        double captureRate = pet.getCaptureRate() != null ? pet.getCaptureRate().doubleValue() / 100.0 : 0.5;
         boolean success = ThreadLocalRandom.current().nextDouble() < captureRate;
 
         if (!success) {
             log.info("捕捉宠物失败: playerId={}, petId={}, rate={}", playerId, petId, captureRate);
-            throw new RuntimeException("捕捉失败，宠物逃脱了");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "捕捉失败，宠物逃脱了");
         }
 
         // 创建玩家宠物记录
@@ -173,7 +214,7 @@ public class PetService {
         playerPet.setPetId(petId);
         playerPet.setNickname(pet.getName());
         playerPet.setLevel(1);
-        playerPet.setExp(0);
+        playerPet.setExp(0L);
         playerPet.setHunger(100);
         playerPet.setLoyalty(50);
         playerPet.setIsActive(false);
@@ -214,7 +255,7 @@ public class PetService {
     public void feedPet(Integer playerId, Integer playerPetId) {
         PlayerPet playerPet = playerPetMapper.selectById(playerPetId);
         if (playerPet == null || !playerPet.getPlayerId().equals(playerId)) {
-            throw new RuntimeException("宠物不存在或不属于该玩家");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "宠物不存在或不属于该玩家");
         }
 
         // 消耗食物道具（简化处理，直接增加饱食度）
@@ -233,12 +274,12 @@ public class PetService {
     public void trainPet(Integer playerId, Integer playerPetId, String trainingType) {
         PlayerPet playerPet = playerPetMapper.selectById(playerPetId);
         if (playerPet == null || !playerPet.getPlayerId().equals(playerId)) {
-            throw new RuntimeException("宠物不存在或不属于该玩家");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "宠物不存在或不属于该玩家");
         }
 
         Pet pet = petMapper.selectById(playerPet.getPetId());
         if (pet == null) {
-            throw new RuntimeException("宠物模板不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "宠物模板不存在");
         }
 
         int expGain = 0;
@@ -264,7 +305,7 @@ public class PetService {
 
         // 忠诚度不足无法训练
         if (playerPet.getLoyalty() < loyaltyCost) {
-            throw new RuntimeException("忠诚度不足，无法进行训练");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "忠诚度不足，无法进行训练");
         }
 
         playerPet.setExp(playerPet.getExp() + expGain);
@@ -307,7 +348,7 @@ public class PetService {
     public void renamePet(Integer playerId, Integer playerPetId, String newNickname) {
         PlayerPet playerPet = playerPetMapper.selectById(playerPetId);
         if (playerPet == null || !playerPet.getPlayerId().equals(playerId)) {
-            throw new RuntimeException("宠物不存在或不属于该玩家");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "宠物不存在或不属于该玩家");
         }
         playerPet.setNickname(newNickname);
         playerPet.setUpdatedAt(LocalDateTime.now());
@@ -322,10 +363,10 @@ public class PetService {
     public void releasePet(Integer playerId, Integer playerPetId) {
         PlayerPet playerPet = playerPetMapper.selectById(playerPetId);
         if (playerPet == null || !playerPet.getPlayerId().equals(playerId)) {
-            throw new RuntimeException("宠物不存在或不属于该玩家");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "宠物不存在或不属于该玩家");
         }
         if (Boolean.TRUE.equals(playerPet.getIsLocked())) {
-            throw new RuntimeException("已加锁的宠物无法放生");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "已加锁的宠物无法放生");
         }
         playerPetMapper.deleteById(playerPetId);
         log.info("放生宠物: playerId={}, petId={}", playerId, playerPetId);
@@ -337,7 +378,7 @@ public class PetService {
     public void toggleLockPet(Integer playerId, Integer playerPetId) {
         PlayerPet playerPet = playerPetMapper.selectById(playerPetId);
         if (playerPet == null || !playerPet.getPlayerId().equals(playerId)) {
-            throw new RuntimeException("宠物不存在或不属于该玩家");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "宠物不存在或不属于该玩家");
         }
         boolean newLock = !Boolean.TRUE.equals(playerPet.getIsLocked());
         playerPet.setIsLocked(newLock);
@@ -367,13 +408,14 @@ public class PetService {
             return PetEvolutionResult.fail("宠物模板不存在");
         }
 
-        PetEvolution evolution = petEvolutionMapper.selectByPetId(pet.getId());
-        if (evolution == null) {
+        List<PetEvolution> evolutions = petEvolutionMapper.selectByPetId(pet.getId());
+        if (evolutions == null || evolutions.isEmpty()) {
             return PetEvolutionResult.fail("该宠物无法进化");
         }
+        PetEvolution evolution = evolutions.get(0);
 
-        boolean levelOk = playerPet.getLevel() >= evolution.getRequiredLevel();
-        boolean loyaltyOk = playerPet.getLoyalty() >= evolution.getRequiredLoyalty();
+        boolean levelOk = playerPet.getLevel() >= (evolution.getRequiredLevel() != null ? evolution.getRequiredLevel() : 1);
+        boolean loyaltyOk = evolution.getRequiredLoyalty() == null || playerPet.getLoyalty() >= evolution.getRequiredLoyalty();
 
         if (levelOk && loyaltyOk) {
             return PetEvolutionResult.success("满足进化条件", evolution);
@@ -406,18 +448,17 @@ public class PetService {
         playerPet.setPetId(newPet.getId());
         playerPet.setNickname(newPet.getName());
         playerPet.setLevel(1);
-        playerPet.setExp(0);
+        playerPet.setExp(0L);
         playerPet.setLoyalty(Math.min(100, playerPet.getLoyalty() + 20));
         playerPet.setUpdatedAt(LocalDateTime.now());
         playerPetMapper.updateById(playerPet);
 
         // 记录进化日志
-        PlayerPetEvolution log = new PlayerPetEvolution();
-        log.setPlayerPetId(playerPetId);
-        log.setBeforePetId(evolution.getPetId());
-        log.setAfterPetId(newPet.getId());
-        log.setEvolvedAt(LocalDateTime.now());
-        playerPetEvolutionMapper.insert(log);
+        PlayerPetEvolution evolutionLog = new PlayerPetEvolution();
+        evolutionLog.setPlayerPetId(playerPetId);
+        evolutionLog.setCurrentStage(evolution.getEvolutionStage() != null ? evolution.getEvolutionStage() : 1);
+        evolutionLog.setEvolvedAt(LocalDateTime.now());
+        playerPetEvolutionMapper.insert(evolutionLog);
 
         PetService.log.info("宠物进化成功: petId={}, newPetId={}", playerPetId, newPet.getId());
         return PetEvolutionResult.success("进化成功", null);
@@ -429,24 +470,25 @@ public class PetService {
     public Map<String, Object> getPetEvolutionInfo(Integer playerPetId) {
         PlayerPet playerPet = playerPetMapper.selectById(playerPetId);
         if (playerPet == null) {
-            throw new RuntimeException("宠物不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "宠物不存在");
         }
         Pet pet = petMapper.selectById(playerPet.getPetId());
-        PetEvolution evolution = petEvolutionMapper.selectByPetId(pet.getId());
+        List<PetEvolution> evolutions = petEvolutionMapper.selectByPetId(pet.getId());
 
-        if (evolution == null) {
-            throw new RuntimeException("该宠物无法进化");
+        if (evolutions == null || evolutions.isEmpty()) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "该宠物无法进化");
         }
+        PetEvolution evolution = evolutions.get(0);
 
-        return Map.of(
-            "currentLevel", playerPet.getLevel(),
-            "requiredLevel", evolution.getRequiredLevel(),
-            "currentLoyalty", playerPet.getLoyalty(),
-            "requiredLoyalty", evolution.getRequiredLoyalty(),
-            "canEvolve", playerPet.getLevel() >= evolution.getRequiredLevel() &&
-                         playerPet.getLoyalty() >= evolution.getRequiredLoyalty(),
-            "evolvedPetId", evolution.getEvolvedPetId()
-        );
+        Map<String, Object> result = new java.util.HashMap<>();
+        result.put("currentLevel", playerPet.getLevel());
+        result.put("requiredLevel", evolution.getRequiredLevel());
+        result.put("currentLoyalty", playerPet.getLoyalty());
+        result.put("requiredLoyalty", evolution.getRequiredLoyalty());
+        result.put("canEvolve", playerPet.getLevel() >= (evolution.getRequiredLevel() != null ? evolution.getRequiredLevel() : 1)
+                && (evolution.getRequiredLoyalty() == null || playerPet.getLoyalty() >= evolution.getRequiredLoyalty()));
+        result.put("evolvedPetId", evolution.getEvolvedPetId());
+        return result;
     }
 
     /**
@@ -470,7 +512,7 @@ public class PetService {
     public PlayerPet grantPetDirectly(Integer playerId, Integer petId) {
         Pet pet = petMapper.selectById(petId);
         if (pet == null) {
-            throw new RuntimeException("宠物模板不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "宠物模板不存在");
         }
 
         PlayerPet playerPet = new PlayerPet();
@@ -478,7 +520,7 @@ public class PetService {
         playerPet.setPetId(petId);
         playerPet.setNickname(pet.getName());
         playerPet.setLevel(1);
-        playerPet.setExp(0);
+        playerPet.setExp(0L);
         playerPet.setHunger(100);
         playerPet.setLoyalty(80);
         playerPet.setIsActive(false);

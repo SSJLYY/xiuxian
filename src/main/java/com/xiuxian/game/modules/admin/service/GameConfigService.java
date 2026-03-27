@@ -199,12 +199,16 @@ public class GameConfigService {
         try {
             Integer.parseInt(value);
             return "INTEGER";
-        } catch (NumberFormatException ignored) {}
+        } catch (NumberFormatException ignored) {
+            // try-parse pattern: invalid value defaults to default
+        }
         
         try {
             Double.parseDouble(value);
             return "DOUBLE";
-        } catch (NumberFormatException ignored) {}
+        } catch (NumberFormatException ignored) {
+            // try-parse pattern: invalid value defaults to default
+        }
         
         if ("true".equalsIgnoreCase(value) || "false".equalsIgnoreCase(value) ||
             "1".equals(value) || "0".equals(value) ||

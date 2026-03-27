@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import com.xiuxian.game.common.exception.BusinessException;
+import com.xiuxian.game.common.exception.ErrorCode;
 
 @Service
 @RequiredArgsConstructor
@@ -28,7 +30,7 @@ public class EnhancedInventoryService {
     public List<PlayerItemResponse> getPlayerInventory(Integer playerId, String type, String sortBy, String order) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
 
         List<PlayerItem> playerItems = playerService.getPlayerItemsByPlayerId(playerId);
@@ -89,7 +91,7 @@ public class EnhancedInventoryService {
     public void organizeInventory(Integer playerId) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
 
         List<PlayerItem> playerItems = playerService.getPlayerItemsByPlayerId(playerId);
@@ -132,11 +134,11 @@ public class EnhancedInventoryService {
     public void toggleItemLock(Integer playerId, Integer playerItemId) {
         PlayerItem playerItem = playerService.getPlayerItemById(playerItemId);
         if (playerItem == null) {
-            throw new IllegalArgumentException("物品不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "物品不存在");
         }
         
         if (!playerItem.getPlayerId().equals(playerId)) {
-            throw new IllegalArgumentException("该物品不属于当前玩家");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "该物品不属于当前玩家");
         }
         
         // 切换锁定状态
@@ -152,7 +154,7 @@ public class EnhancedInventoryService {
     public Map<String, Object> useItems(Integer playerId, List<ItemUseRequest> useRequests) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
 
         Map<String, Object> result = new HashMap<>();
@@ -161,25 +163,25 @@ public class EnhancedInventoryService {
         for (ItemUseRequest request : useRequests) {
             PlayerItem playerItem = playerService.getPlayerItemById(request.getPlayerItemId());
             if (playerItem == null) {
-            throw new IllegalArgumentException("物品不存在: " + request.getPlayerItemId());
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "物品不存在: " + request.getPlayerItemId());
             }
 
             if (!playerItem.getPlayerId().equals(playerId)) {
-                throw new IllegalArgumentException("该物品不属于当前玩家: " + request.getPlayerItemId());
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "该物品不属于当前玩家: " + request.getPlayerItemId());
             }
 
             // 检查物品是否被锁定
             if (playerItem.getLocked()) {
-                throw new IllegalArgumentException("物品已被锁定，无法使用: " + request.getPlayerItemId());
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "物品已被锁定，无法使用: " + request.getPlayerItemId());
             }
 
             Item item = itemService.getItemById(playerItem.getItemId());
             if (item == null || !item.getUsable()) {
-                throw new IllegalArgumentException("该物品不可使用: " + request.getPlayerItemId());
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "该物品不可使用: " + request.getPlayerItemId());
             }
 
             if (playerItem.getQuantity() < request.getQuantity()) {
-                throw new IllegalArgumentException("物品数量不足: " + request.getPlayerItemId());
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "物品数量不足: " + request.getPlayerItemId());
             }
 
             // 使用指定数量的物品
@@ -212,7 +214,7 @@ public class EnhancedInventoryService {
     public Map<String, Object> sellItems(Integer playerId, List<ItemSellRequest> sellRequests) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
 
         Map<String, Object> result = new HashMap<>();
@@ -222,25 +224,25 @@ public class EnhancedInventoryService {
         for (ItemSellRequest request : sellRequests) {
             PlayerItem playerItem = playerService.getPlayerItemById(request.getPlayerItemId());
             if (playerItem == null) {
-            throw new IllegalArgumentException("物品不存在: " + request.getPlayerItemId());
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "物品不存在: " + request.getPlayerItemId());
             }
 
             if (!playerItem.getPlayerId().equals(playerId)) {
-                throw new IllegalArgumentException("该物品不属于当前玩家: " + request.getPlayerItemId());
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "该物品不属于当前玩家: " + request.getPlayerItemId());
             }
 
             // 检查物品是否被锁定
             if (playerItem.getLocked()) {
-                throw new IllegalArgumentException("物品已被锁定，无法出售: " + request.getPlayerItemId());
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "物品已被锁定，无法出售: " + request.getPlayerItemId());
             }
 
             Item item = itemService.getItemById(playerItem.getItemId());
             if (item == null || !item.getSellable()) {
-                throw new IllegalArgumentException("该物品不可出售: " + request.getPlayerItemId());
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "该物品不可出售: " + request.getPlayerItemId());
             }
 
             if (playerItem.getQuantity() < request.getQuantity()) {
-                throw new IllegalArgumentException("物品数量不足: " + request.getPlayerItemId());
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "物品数量不足: " + request.getPlayerItemId());
             }
 
         // 计算出售价格（通常是购买价格的50%）

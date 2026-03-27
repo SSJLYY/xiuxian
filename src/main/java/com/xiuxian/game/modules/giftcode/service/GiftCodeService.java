@@ -17,6 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import com.xiuxian.game.common.exception.BusinessException;
+import com.xiuxian.game.common.exception.ErrorCode;
+import com.xiuxian.game.modules.mail.service.MailService;
 
 @Service
 @RequiredArgsConstructor
@@ -44,12 +47,12 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
 
         // 检查礼包码是否存在
         if (giftCode == null) {
-            throw new IllegalArgumentException("礼包码不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "礼包码不存在");
         }
 
         // 模块边界：通过PlayerService访问玩家数据
         if (!"ACTIVE".equals(giftCode.getStatus())) {
-            throw new IllegalArgumentException("礼包码已失效");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "礼包码已失效");
         }
 
         // 模块边界：通过PlayerService访问玩家数据
@@ -57,17 +60,17 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
             // 模块边界：通过PlayerService访问玩家数据
             giftCode.setStatus("EXPIRED");
             giftCodeMapper.updateById(giftCode);
-            throw new IllegalArgumentException("礼包码已过期");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "礼包码已过期");
         }
 
         // 模块边界：通过PlayerService访问玩家数据
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
 
         if (player.getLevel() < giftCode.getMinLevel()) {
-            throw new IllegalArgumentException("玩家等级不足，需要达到" + giftCode.getMinLevel() + "级");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家等级不足，需要达到" + giftCode.getMinLevel() + "级");
         }
 
         // 模块边界：通过PlayerService访问玩家数据
@@ -76,7 +79,7 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
             usageQuery.eq("gift_code_id", giftCode.getId());
             usageQuery.eq("player_id", playerId);
             if (giftCodeUsageMapper.selectCount(usageQuery) > 0) {
-                throw new IllegalArgumentException("您已经使用过此礼包码");
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "您已经使用过此礼包码");
             }
         }
 
@@ -84,7 +87,7 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
         if (giftCode.getUsedCount() >= giftCode.getMaxUsage()) {
             giftCode.setStatus("DISABLED");
             giftCodeMapper.updateById(giftCode);
-            throw new IllegalArgumentException("礼包码已被使用完");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "礼包码已被使用完");
         }
 
         // 记录使用情况
@@ -144,8 +147,8 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
                 }
             }
         } catch (Exception e) {
-            throw new com.xiuxian.game.exception.BusinessException(
-                    com.xiuxian.game.exception.ErrorCode.SYSTEM_ERROR);
+            throw new com.xiuxian.game.common.exception.BusinessException(
+                    com.xiuxian.game.common.exception.ErrorCode.SYSTEM_ERROR);
         }
     }
 

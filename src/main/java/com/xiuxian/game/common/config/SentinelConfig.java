@@ -88,28 +88,29 @@ public class SentinelConfig {
     public static void initSystemRules() {
         List<SystemRule> rules = new ArrayList<>();
 
+        // 系统负载超过 2.5 时触发限流（CPU 负载）
+        SystemRule systemLoadRule = new SystemRule();
+        systemLoadRule.setHighestSystemLoad(2.5); // 2H4G 服务器适配
+        rules.add(systemLoadRule);
+
         // CPU 使用率超过 80% 时触发限流
         SystemRule cpuRule = new SystemRule();
-        cpuRule.setGrade(RuleConstant.SYSTEM_LOAD);
-        cpuRule.setCount(0.8);
+        cpuRule.setHighestCpuUsage(0.8);
         rules.add(cpuRule);
 
         // 平均响应时间超过 1000ms 时触发限流
         SystemRule rtRule = new SystemRule();
-        rtRule.setGrade(RuleConstant.AVG_RT);
-        rtRule.setCount(1000);
+        rtRule.setAvgRt(1000L);
         rules.add(rtRule);
 
         // 线程数超过 50 时触发限流
         SystemRule threadRule = new SystemRule();
-        threadRule.setGrade(RuleConstant.THREAD_NUM);
-        threadRule.setCount(50); // 2H4G optimized
+        threadRule.setMaxThread(50L); // 2H4G optimized
         rules.add(threadRule);
 
         // QPS 超过 150 时触发限流
         SystemRule qpsRule = new SystemRule();
-        qpsRule.setGrade(RuleConstant.QPS);
-        qpsRule.setCount(150); // 2H4G optimized
+        qpsRule.setQps(150.0); // 2H4G optimized
         rules.add(qpsRule);
 
         SystemRuleManager.loadRules(rules);

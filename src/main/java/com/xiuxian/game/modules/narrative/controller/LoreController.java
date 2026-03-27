@@ -3,7 +3,6 @@ package com.xiuxian.game.modules.narrative.controller;
 import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.modules.narrative.service.LoreService;
 import com.xiuxian.game.modules.player.service.PlayerService;
-import com.xiuxian.game.common.util.LogUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -32,7 +31,7 @@ public class LoreController {
     @GetMapping("/progress")
     public ResponseEntity<ApiResponse<LoreService.LoreProgressVo>> getLoreProgress() {
         Integer playerId = playerService.getCurrentPlayerId();
-        LogUtils.info(log, "获取传说进度", "playerId", playerId);
+        log.info("获取传说进度: playerId={}", playerId);
         LoreService.LoreProgressVo progress = loreService.getLoreProgress(playerId);
         return ResponseEntity.ok(ApiResponse.success(progress));
     }
@@ -43,7 +42,7 @@ public class LoreController {
     @GetMapping("/entries")
     public ResponseEntity<ApiResponse<List<LoreService.LoreVo>>> getAllEntries() {
         Integer playerId = playerService.getCurrentPlayerId();
-        LogUtils.info(log, "获取传说条目", "playerId", playerId);
+        log.info("获取传说条目: playerId={}", playerId);
         List<LoreService.LoreVo> entries = loreService.getAllLoreEntries(playerId);
         return ResponseEntity.ok(ApiResponse.success(entries));
     }
@@ -54,7 +53,7 @@ public class LoreController {
     @GetMapping("/discovered")
     public ResponseEntity<ApiResponse<List<LoreService.LoreVo>>> getDiscoveredLore() {
         Integer playerId = playerService.getCurrentPlayerId();
-        LogUtils.info(log, "获取已发现传说", "playerId", playerId);
+        log.info("获取已发现传说: playerId={}", playerId);
         List<LoreService.LoreVo> entries = loreService.getDiscoveredLore(playerId);
         return ResponseEntity.ok(ApiResponse.success(entries));
     }

@@ -5,7 +5,7 @@ import com.xiuxian.game.common.exception.ErrorCode;
 import com.xiuxian.game.modules.map.entity.GameMap;
 import com.xiuxian.game.modules.map.entity.PlayerMapProgress;
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
-import com.xiuxian.game.response.ApiResponse;
+import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.modules.map.service.GameMapService;
 import com.xiuxian.game.modules.player.service.PlayerService;
 import lombok.RequiredArgsConstructor;
@@ -94,7 +94,7 @@ public class GameMapController {
                 profile.getRealm()
             );
 
-            return ApiResponse.success(progress, "进入地图成功");
+            return ApiResponse.success("进入地图成功", progress);
         } catch (RuntimeException e) {
             return ApiResponse.error(400, e.getMessage());
         }
@@ -107,7 +107,7 @@ public class GameMapController {
     public ApiResponse<Void> leaveMap(Authentication authentication) {
         Integer playerId = getPlayerId(authentication);
         gameMapService.leaveMap(playerId);
-        return ApiResponse.success(null, "离开地图成功");
+        return ApiResponse.success("离开地图成功", (Void) null);
     }
 
     /**
@@ -164,7 +164,7 @@ public class GameMapController {
         );
 
         if (reward == null) {
-            return ApiResponse.success(null, "没有离线收益");
+            return ApiResponse.success("没有离线收益", (GameMapService.OfflineReward) null);
         }
 
         return ApiResponse.success(reward);

@@ -3,6 +3,7 @@ package com.xiuxian.game.common.util;
 import com.xiuxian.game.common.config.GameBalanceConfig;
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
 import lombok.RequiredArgsConstructor;
+import java.util.concurrent.ThreadLocalRandom;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 

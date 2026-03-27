@@ -3,7 +3,10 @@ package com.xiuxian.game.modules.skill.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
@@ -12,6 +15,9 @@ import java.time.LocalDateTime;
  * 追踪玩家最近的技能使用序列，用于检测连招触发
  */
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @TableName("player_skill_combo_records")
 public class PlayerSkillComboRecord {
 

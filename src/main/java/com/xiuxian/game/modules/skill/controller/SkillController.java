@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
@@ -225,7 +226,7 @@ public class SkillController {
             List<SkillCombo> combos = skillService.getAllActiveCombos();
             List<Map<String, Object>> comboInfos = combos.stream()
                     .map(skillService::getComboInfo)
-                    .toList();
+                    .collect(Collectors.toList());
             return ResponseEntity.ok(ApiResponse.success("获取成功", comboInfos));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));

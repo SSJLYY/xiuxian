@@ -1,6 +1,6 @@
 package com.xiuxian.game.modules.combat.controller;
 
-import com.xiuxian.game.response.ApiResponse;
+import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.dto.response.CombatResult;
 import com.xiuxian.game.modules.combat.entity.CombatLog;
 import com.xiuxian.game.modules.combat.entity.Monster;

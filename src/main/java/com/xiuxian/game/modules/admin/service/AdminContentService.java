@@ -17,6 +17,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import com.xiuxian.game.common.exception.BusinessException;
+import com.xiuxian.game.common.exception.ErrorCode;
 
 /**
  * Admin 内容管理服务（聚合层）
@@ -66,7 +68,7 @@ public class AdminContentService {
     public Item updateItem(Integer id, Item item) {
         Item existingItem = itemMapper.selectById(id);
         if (existingItem == null) {
-            throw new IllegalArgumentException("物品不存在，id=" + id);
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "物品不存在，id=" + id);
         }
 
         item.setId(id);
@@ -110,7 +112,7 @@ public class AdminContentService {
     public Equipment updateEquipment(Integer id, Equipment equipment) {
         Equipment existingEquipment = equipmentMapper.selectById(id);
         if (existingEquipment == null) {
-            throw new IllegalArgumentException("装备不存在，id=" + id);
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "装备不存在，id=" + id);
         }
 
         equipment.setId(id);
@@ -154,7 +156,7 @@ public class AdminContentService {
     public Skill updateSkill(Integer id, Skill skill) {
         Skill existingSkill = skillMapper.selectById(id);
         if (existingSkill == null) {
-            throw new IllegalArgumentException("技能不存在，id=" + id);
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "技能不存在，id=" + id);
         }
 
         skill.setId(id);
@@ -198,7 +200,7 @@ public class AdminContentService {
     public Pet updatePet(Integer id, Pet pet) {
         Pet existingPet = petMapper.selectById(id);
         if (existingPet == null) {
-            throw new IllegalArgumentException("宠物不存在，id=" + id);
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "宠物不存在，id=" + id);
         }
 
         pet.setId(id);
@@ -242,7 +244,7 @@ public class AdminContentService {
     public Monster updateMonster(Integer id, Monster monster) {
         Monster existingMonster = monsterMapper.selectById(id);
         if (existingMonster == null) {
-            throw new IllegalArgumentException("怪物不存在，id=" + id);
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "怪物不存在，id=" + id);
         }
 
         monster.setId(id);

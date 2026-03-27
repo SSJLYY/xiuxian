@@ -1,5 +1,7 @@
 package com.xiuxian.game.modules.player.controller;
 
+import com.xiuxian.game.common.exception.BusinessException;
+import com.xiuxian.game.common.exception.ErrorCode;
 import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
 import com.xiuxian.game.modules.player.service.PlayerService;
@@ -72,8 +74,8 @@ public class PlayerController {
                 if (points != null && points > 0) totalSpend += points;
             }
 
-            if (totalSpend <= 0) throw new IllegalArgumentException("未提供有效的加点方案");
-            if (totalSpend > availablePoints) throw new IllegalArgumentException("属性点不足");
+            if (totalSpend <= 0) throw new BusinessException(ErrorCode.PARAM_ERROR, "未提供有效的加点方案");
+            if (totalSpend > availablePoints) throw new BusinessException(ErrorCode.PARAM_ERROR, "属性点不足");
 
             profile.setAttack(profile.getAttack() + payload.getOrDefault("attack", 0));
             profile.setDefense(profile.getDefense() + payload.getOrDefault("defense", 0));

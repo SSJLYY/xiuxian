@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import com.xiuxian.game.common.exception.BusinessException;
+import com.xiuxian.game.common.exception.ErrorCode;
 
 /**
  * 技能商店服务
@@ -70,15 +72,15 @@ public class SkillShopService {
         PlayerProfile player = playerService.getCurrentPlayerProfile();
         SkillShopItem item = skillShopMapper.selectById(shopItemId);
         if (item == null || Boolean.FALSE.equals(item.getAvailable())) {
-            throw new IllegalArgumentException("商品不存在或不可用");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "商品不存在或不可用");
         }
         Skill skill = skillMapper.selectById(item.getSkillId());
-        if (skill == null) throw new IllegalArgumentException("技能不存在");
+        if (skill == null) throw new BusinessException(ErrorCode.PARAM_ERROR, "技能不存在");
         if (player.getLevel() < item.getRequiredLevel()) {
-            throw new IllegalArgumentException(GameConstants.ERROR_REQUIREMENTS_NOT_MET + ": 等级不足");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_REQUIREMENTS_NOT_MET + ": 等级不足");
         }
         if (player.getSpiritStones() < item.getPrice()) {
-            throw new IllegalArgumentException(GameConstants.ERROR_INSUFFICIENT_RESOURCES + ": 灵石不足");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INSUFFICIENT_RESOURCES + ": 灵石不足");
         }
         // 扣除灵石
         player.setSpiritStones(player.getSpiritStones() - item.getPrice());
@@ -103,10 +105,10 @@ public class SkillShopService {
         PlayerProfile player = playerService.getCurrentPlayerProfile();
         PlayerSkill ps = playerSkillMapper.selectById(playerSkillId);
         if (ps == null || !ps.getPlayerId().equals(player.getId())) {
-            throw new IllegalArgumentException(GameConstants.ERROR_INVALID_OPERATION + ": 无法出售该技能");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INVALID_OPERATION + ": 无法出售该技能");
         }
         if (Boolean.TRUE.equals(ps.getEquipped())) {
-            throw new IllegalArgumentException(GameConstants.ERROR_INVALID_OPERATION + ": 请先卸下技能");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INVALID_OPERATION + ": 请先卸下技能");
         }
         SkillShopItem item = skillShopMapper.selectList(
                 new QueryWrapper<SkillShopItem>()

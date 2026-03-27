@@ -118,7 +118,7 @@ public class MailService {
             try {
                 sendMail(playerId, title, content, mailType, attachments, expireAt);
             } catch (Exception e) {
-            log.error("发送邮件失败: playerId={}, error={}", playerId, e.getMessage());
+            log.error("发送邮件失败: playerId={}", playerId, e);
             }
         }
     }
@@ -344,7 +344,7 @@ public class MailService {
     /** Mark feedback as read (admin use) */
     public PlayerMail markFeedbackAsRead(Long feedbackId) {
         PlayerMail m = mailMapper.selectById(feedbackId);
-        if (m == null || !"FEEDBACK".equals(m.getMailType())) throw new IllegalArgumentException("Feedback not found");
+        if (m == null || !"FEEDBACK".equals(m.getMailType())) throw new BusinessException(ErrorCode.PARAM_ERROR, "Feedback not found");
         m.setIsRead(true);
         mailMapper.updateById(m);
         return m;

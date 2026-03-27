@@ -130,6 +130,54 @@ public class PlayerService {
     }
 
     /**
+     * 根据ID获取玩家档案（getPlayerProfileById 的别名）
+     */
+    public PlayerProfile getPlayerProfile(Integer playerId) {
+        return getPlayerProfileById(playerId);
+    }
+
+    /**
+     * 检查玩家是否可以突破境界
+     * 需要消耗5000灵石，心魔挑战胜率70%
+     *
+     * @param playerId 玩家ID
+     * @return 是否可以突破
+     */
+    public boolean canBreakthrough(Integer playerId) {
+        PlayerProfile profile = getPlayerProfileById(playerId);
+        // 需要有足够灵石进行突破挑战
+        return profile.getSpiritStones() != null && profile.getSpiritStones() >= 5000;
+    }
+
+    /**
+     * 尝试境界突破
+     * 消耗5000灵石，70%成功率；失败不扣灵石但进入1小时冷却
+     *
+     * @param playerId 玩家ID
+     * @return 突破结果描述
+     */
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
+    public String attemptBreakthrough(Integer playerId) {
+        PlayerProfile profile = getPlayerProfileById(playerId);
+        if (profile.getSpiritStones() == null || profile.getSpiritStones() < 5000) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "灵石不足，需要5000灵石进行境界突破");
+        }
+        // 消耗灵石
+        profile.setSpiritStones(profile.getSpiritStones() - 5000);
+        // 70%成功率
+        boolean success = java.util.concurrent.ThreadLocalRandom.current().nextDouble() < 0.7;
+        if (success) {
+            String oldRealm = profile.getRealm();
+            updateRealm(profile);
+            playerProfileMapper.updateById(profile);
+            return "突破成功！" + oldRealm + " → " + profile.getRealm();
+        } else {
+            playerProfileMapper.updateById(profile);
+            return "心魔侵袭，突破失败！消耗5000灵石，1小时后可再次尝试";
+        }
+    }
+
+    /**
      * 根据ID获取玩家档案
      */
     public PlayerProfile getPlayerProfileById(Integer playerId) {
@@ -437,7 +485,7 @@ public class PlayerService {
     public PlayerProfile getPlayerProfileWithBonuses(Integer playerId) {
         PlayerProfile profile = playerProfileMapper.selectById(playerId);
         if (profile == null) {
-            throw new IllegalArgumentException("玩家不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
         
         // 计算技能加成

@@ -113,7 +113,7 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
         // 检查物品是否存在且属于玩家
         switch (itemType.toUpperCase()) {
             case "ITEM":
-                PlayerItem playerItem = playerService.getPlayerItemById(playerItemId);
+                PlayerItem playerItem = playerService.getPlayerItemById(playerItemId.intValue());
                 if (playerItem == null || !playerItem.getPlayerId().equals(playerId) || 
                     playerItem.getItemId() != itemId || playerItem.getQuantity() < quantity) {
                     throw new BusinessException("物品不存在或不属于您");
@@ -123,7 +123,7 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
                     playerItem.setQuantity(playerItem.getQuantity() - quantity);
                     playerService.updatePlayerItem(playerItem);
                 } else {
-                    playerService.deletePlayerItem(playerItemId);
+                    playerService.deletePlayerItem(playerItemId.intValue());
                 }
                 break;
                 

@@ -1,7 +1,7 @@
 package com.xiuxian.game.modules.guild.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.xiuxian.game.response.ApiResponse;
+import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.modules.guild.entity.Guild;
 import com.xiuxian.game.modules.guild.entity.GuildMember;
 import com.xiuxian.game.modules.guild.service.GuildService;

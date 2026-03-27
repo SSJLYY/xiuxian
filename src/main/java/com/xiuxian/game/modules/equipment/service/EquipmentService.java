@@ -1,4 +1,4 @@
-﻿package com.xiuxian.game.modules.equipment.service;
+package com.xiuxian.game.modules.equipment.service;
 
 import com.xiuxian.game.dto.response.PlayerEquipmentResponse;
 import com.xiuxian.game.modules.equipment.entity.Equipment;
@@ -21,6 +21,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import com.xiuxian.game.common.exception.BusinessException;
+import com.xiuxian.game.common.exception.ErrorCode;
 
 @Service
 @ConditionalOnProperty(value = "app.features.equipment.enabled", havingValue = "true")
@@ -45,7 +47,7 @@ public class EquipmentService {
     public List<Equipment> getAvailableEquipments(Integer playerId) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
         return equipmentMapper.selectByRequiredLevel(player.getLevel());
     }
@@ -53,7 +55,7 @@ public class EquipmentService {
     public List<PlayerEquipment> getPlayerEquipments(Integer playerId) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
         return playerEquipmentMapper.selectByPlayerId(playerId);
     }
@@ -61,7 +63,7 @@ public class EquipmentService {
     public List<PlayerEquipmentResponse> getPlayerEquipmentsWithDetails(Integer playerId) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
         
         List<PlayerEquipment> playerEquipments = playerEquipmentMapper.selectByPlayerId(playerId);
@@ -110,7 +112,7 @@ public class EquipmentService {
     public List<PlayerEquipment> getEquippedItems(Integer playerId) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
         return playerEquipmentMapper.selectEquippedByPlayerId(playerId);
     }
@@ -118,7 +120,7 @@ public class EquipmentService {
     public List<PlayerEquipmentResponse> getEquippedItemsWithDetails(Integer playerId) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
         
         List<PlayerEquipment> playerEquipments = playerEquipmentMapper.selectEquippedByPlayerId(playerId);
@@ -169,17 +171,17 @@ public class EquipmentService {
         try {
             PlayerProfile player = playerService.getPlayerProfileById(playerId);
             if (player == null) {
-                throw new IllegalArgumentException("玩家不存在");
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
             }
 
             Equipment equipment = equipmentMapper.selectById(equipmentId);
             if (equipment == null) {
-                throw new IllegalArgumentException("装备不存在");
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "装备不存在");
             }
 
             // 检查等级要求
             if (player.getLevel() < equipment.getRequiredLevel()) {
-                throw new IllegalArgumentException("等级不足，无法获取此装备");
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "等级不足，无法获取此装备");
             }
 
             // 检查是否已拥有该装备
@@ -188,7 +190,7 @@ public class EquipmentService {
                     .anyMatch(pe -> pe.getEquipmentId().equals(equipmentId));
 
             if (alreadyOwned) {
-                throw new IllegalArgumentException("已经拥有该装备");
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "已经拥有该装备");
             }
 
             PlayerEquipment playerEquipment = PlayerEquipment.builder()
@@ -215,23 +217,23 @@ public class EquipmentService {
     public PlayerEquipment equipItem(Integer playerEquipmentId, String slot, Integer playerId) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
 
         PlayerEquipment playerEquipment = playerEquipmentMapper.selectById(playerEquipmentId);
         if (playerEquipment == null) {
-            throw new IllegalArgumentException("玩家装备不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家装备不存在");
         }
 
         if (!playerEquipment.getPlayerId().equals(playerId)) {
-            throw new IllegalArgumentException("无权操作该装备");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "无权操作该装备");
         }
 
         Equipment equipment = equipmentMapper.selectById(playerEquipment.getEquipmentId());
         
         // 检查等级要求
         if (player.getLevel() < equipment.getRequiredLevel()) {
-            throw new IllegalArgumentException("等级不足，无法装备此物品");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "等级不足，无法装备此物品");
         }
 
         // 如果同槽位已有装备，则卸下
@@ -266,16 +268,16 @@ public class EquipmentService {
     public PlayerEquipment unequipItem(Integer playerEquipmentId, Integer playerId) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
 
         PlayerEquipment playerEquipment = playerEquipmentMapper.selectById(playerEquipmentId);
         if (playerEquipment == null) {
-            throw new IllegalArgumentException("玩家装备不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家装备不存在");
         }
 
         if (!playerEquipment.getPlayerId().equals(playerId)) {
-            throw new IllegalArgumentException("无权操作该装备");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "无权操作该装备");
         }
 
         if (playerEquipment.getEquipped()) {
@@ -299,16 +301,16 @@ public class EquipmentService {
     public PlayerEquipment repairEquipment(Integer playerEquipmentId, Integer playerId) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
 
         PlayerEquipment playerEquipment = playerEquipmentMapper.selectById(playerEquipmentId);
         if (playerEquipment == null) {
-            throw new IllegalArgumentException("玩家装备不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家装备不存在");
         }
 
         if (!playerEquipment.getPlayerId().equals(playerId)) {
-            throw new IllegalArgumentException("无权操作该装备");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "无权操作该装备");
         }
 
         playerEquipment.setDurability(playerEquipment.getMaxDurability());
@@ -393,16 +395,16 @@ public class EquipmentService {
     public PlayerEquipment enhanceEquipment(Integer playerEquipmentId, Integer playerId) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
-            throw new IllegalArgumentException("玩家不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
 
         PlayerEquipment playerEquipment = playerEquipmentMapper.selectById(playerEquipmentId);
         if (playerEquipment == null) {
-            throw new IllegalArgumentException("玩家装备不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家装备不存在");
         }
 
         if (!playerEquipment.getPlayerId().equals(playerId)) {
-            throw new IllegalArgumentException("无权操作该装备");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "无权操作该装备");
         }
 
         Equipment equipment = equipmentMapper.selectById(playerEquipment.getEquipmentId());
@@ -410,14 +412,14 @@ public class EquipmentService {
         
         // 强化上限为20级
         if (currentLevel >= 20) {
-            throw new IllegalArgumentException("装备已达最大强化等级");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "装备已达最大强化等级");
         }
 
         // 计算强化所需灵石：基础100 + 等级*50 + 品质*100
         int enhanceCost = 100 + currentLevel * 50 + equipment.getQuality() * 100;
         
         if (player.getSpiritStones() < enhanceCost) {
-            throw new IllegalArgumentException("灵石不足，需要 " + enhanceCost + " 灵石");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "灵石不足，需要 " + enhanceCost + " 灵石");
         }
 
         // 强化成功率：100% - 强化等级*3%
@@ -453,7 +455,7 @@ public class EquipmentService {
             }
         } else {
             // 强化失败，不降级，但消耗灵石
-            throw new IllegalArgumentException("强化失败！已消耗 " + enhanceCost + " 灵石");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "强化失败！已消耗 " + enhanceCost + " 灵石");
         }
 
         return playerEquipmentMapper.selectById(playerEquipmentId);
@@ -465,7 +467,7 @@ public class EquipmentService {
     public Map<String, Object> getEnhanceInfo(Integer playerEquipmentId, Integer playerId) {
         PlayerEquipment playerEquipment = playerEquipmentMapper.selectById(playerEquipmentId);
         if (playerEquipment == null || !playerEquipment.getPlayerId().equals(playerId)) {
-            throw new IllegalArgumentException("装备不存在或无权访问");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "装备不存在或无权访问");
         }
 
         Equipment equipment = equipmentMapper.selectById(playerEquipment.getEquipmentId());

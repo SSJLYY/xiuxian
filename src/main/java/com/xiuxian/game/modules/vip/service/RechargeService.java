@@ -8,6 +8,7 @@ import com.xiuxian.game.modules.vip.entity.RechargeRecord;
 import com.xiuxian.game.common.exception.BusinessException;
 import com.xiuxian.game.common.exception.ErrorCode;
 import com.xiuxian.game.modules.player.service.PlayerService;
+import java.util.concurrent.ThreadLocalRandom;
 import com.xiuxian.game.modules.vip.mapper.RechargeRecordMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

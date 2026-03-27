@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import com.xiuxian.game.common.exception.BusinessException;
+import com.xiuxian.game.common.exception.ErrorCode;
 
 /**
  * 管理端玩家管理服务（admin 聚合层，务实例外允许直接使用玩家 Mapper）
@@ -69,7 +71,7 @@ public class AdminPlayerService {
     public PlayerProfile updatePlayerProfile(Integer playerId, PlayerProfile profile) {
         PlayerProfile existingProfile = playerProfileMapper.selectById(playerId);
         if (existingProfile == null) {
-            throw new IllegalArgumentException("玩家不存在: playerId=" + playerId);
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在: playerId=" + playerId);
         }
 
         existingProfile.setNickname(profile.getNickname());
@@ -98,7 +100,7 @@ public class AdminPlayerService {
     public User banPlayer(Integer userId, boolean ban, String reason) {
         User user = userMapper.selectById(userId);
         if (user == null) {
-            throw new IllegalArgumentException("用户不存在: userId=" + userId);
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "用户不存在: userId=" + userId);
         }
 
         user.setRole(ban ? "BANNED" : "USER");
@@ -115,7 +117,7 @@ public class AdminPlayerService {
     public boolean deletePlayer(Integer playerId) {
         PlayerProfile profile = playerProfileMapper.selectById(playerId);
         if (profile == null) {
-            throw new IllegalArgumentException("玩家不存在: playerId=" + playerId);
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在: playerId=" + playerId);
         }
 
         return playerProfileMapper.deleteById(playerId) > 0;
@@ -132,7 +134,7 @@ public class AdminPlayerService {
     public PlayerProfile grantReward(Integer playerId, Long spiritStones, Long exp) {
         PlayerProfile profile = playerProfileMapper.selectById(playerId);
         if (profile == null) {
-            throw new IllegalArgumentException("玩家不存在: playerId=" + playerId);
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在: playerId=" + playerId);
         }
 
         if (spiritStones != null && spiritStones > 0) {
@@ -167,7 +169,7 @@ public class AdminPlayerService {
     public User updateUserRole(Integer userId, String role) {
         User u = userMapper.selectById(userId);
         if (u == null) {
-            throw new IllegalArgumentException("用户不存在: userId=" + userId);
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "用户不存在: userId=" + userId);
         }
         u.setRole(role);
         userMapper.updateById(u);
@@ -185,7 +187,7 @@ public class AdminPlayerService {
                                     org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
         User u = userMapper.selectByUsername(username);
         if (u == null) {
-            throw new IllegalArgumentException("管理员不存在: username=" + username);
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "管理员不存在: username=" + username);
         }
         u.setPassword(passwordEncoder.encode(newPassword));
         u.setMustChangePassword(false);

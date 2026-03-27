@@ -5,7 +5,6 @@ import com.xiuxian.game.modules.narrative.entity.Npc;
 import com.xiuxian.game.modules.narrative.service.NarrativeService;
 import com.xiuxian.game.modules.narrative.service.NpcService;
 import com.xiuxian.game.modules.player.service.PlayerService;
-import com.xiuxian.game.common.util.LogUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -34,7 +33,7 @@ public class NpcController {
     @GetMapping("/list")
     public ResponseEntity<ApiResponse<List<Npc>>> getNpcList() {
         Integer playerId = playerService.getCurrentPlayerId();
-        LogUtils.info(log, "获取NPC列表", "playerId", playerId);
+        log.info("获取NPC列表: playerId={}", playerId);
         List<Npc> npcs = npcService.getAllNpcs(null);
         return ResponseEntity.ok(ApiResponse.success(npcs));
     }
@@ -45,7 +44,7 @@ public class NpcController {
     @GetMapping("/{npcId}")
     public ResponseEntity<ApiResponse<NpcService.NpcDetailVo>> getNpcDetail(@PathVariable Integer npcId) {
         Integer playerId = playerService.getCurrentPlayerId();
-        LogUtils.info(log, "获取NPC详情", "playerId", playerId, "npcId", npcId);
+        log.info("获取NPC详情: playerId={}, npcId={}", playerId, npcId);
         NpcService.NpcDetailVo detail = npcService.getNpcDetail(npcId, playerId);
         if (detail == null) {
             return ResponseEntity.ok(ApiResponse.error("NPC不存在"));
@@ -59,7 +58,7 @@ public class NpcController {
     @GetMapping("/relations")
     public ResponseEntity<ApiResponse<List<NpcService.NpcRelationSummary>>> getNpcRelations() {
         Integer playerId = playerService.getCurrentPlayerId();
-        LogUtils.info(log, "获取NPC关系列表", "playerId", playerId);
+        log.info("获取NPC关系列表: playerId={}", playerId);
         List<NpcService.NpcRelationSummary> relations = npcService.getNpcRelationSummaries(playerId);
         return ResponseEntity.ok(ApiResponse.success(relations));
     }

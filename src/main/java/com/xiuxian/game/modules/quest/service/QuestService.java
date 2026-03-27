@@ -20,6 +20,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
+import com.xiuxian.game.common.exception.BusinessException;
+import com.xiuxian.game.common.exception.ErrorCode;
 
 /**
  * 任务服务类
@@ -362,7 +364,7 @@ public class QuestService {
     private PlayerQuest updateQuestProgressInternal(Integer playerId, Integer questId, Integer progress) {
         PlayerQuest playerQuest = playerQuestMapper.selectByPlayerIdAndQuestId(playerId, questId);
         if (playerQuest == null) {
-            throw new IllegalArgumentException("任务不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "任务不存在");
         }
 
         Quest quest = questMapper.selectById(questId);
@@ -381,15 +383,15 @@ public class QuestService {
     public void claimQuestReward(Integer playerId, Integer questId) {
         PlayerQuest playerQuest = playerQuestMapper.selectByPlayerIdAndQuestId(playerId, questId);
         if (playerQuest == null) {
-            throw new IllegalArgumentException("任务不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "任务不存在");
         }
 
         if (!playerQuest.getCompleted()) {
-            throw new IllegalArgumentException("任务未完成");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "任务未完成");
         }
 
         if (playerQuest.getRewardClaimed()) {
-            throw new IllegalArgumentException("奖励已领取");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "奖励已领取");
         }
 
         Quest quest = questMapper.selectById(questId);
@@ -418,10 +420,10 @@ public class QuestService {
     public void claimQuestRewardByPlayerQuestId(Integer playerId, Integer playerQuestId) {
         PlayerQuest playerQuest = playerQuestMapper.selectById(playerQuestId);
         if (playerQuest == null) {
-            throw new IllegalArgumentException("任务不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "任务不存在");
         }
         if (!playerQuest.getPlayerId().equals(playerId)) {
-            throw new IllegalArgumentException("无权操作其他玩家的任务");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "无权操作其他玩家的任务");
         }
         claimQuestReward(playerId, playerQuest.getQuestId());
     }

@@ -1,6 +1,6 @@
 package com.xiuxian.game.modules.guild.controller;
 
-import com.xiuxian.game.response.ApiResponse;
+import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.modules.guild.service.GuildBossService;
 import com.xiuxian.game.modules.player.service.PlayerService;
 import lombok.RequiredArgsConstructor;

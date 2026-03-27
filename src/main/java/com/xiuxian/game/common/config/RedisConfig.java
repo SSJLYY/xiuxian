@@ -48,7 +48,8 @@ public class RedisConfig {
                 ObjectMapper.DefaultTyping.NON_FINAL);
         mapper.registerModule(new JavaTimeModule());
 
-        Jackson2JsonRedisSerializer<Object> jsonSerializer = new Jackson2JsonRedisSerializer<>(mapper, Object.class);
+        Jackson2JsonRedisSerializer<Object> jsonSerializer = new Jackson2JsonRedisSerializer<Object>(Object.class);
+        jsonSerializer.setObjectMapper(mapper);
         StringRedisSerializer stringSerializer = new StringRedisSerializer();
 
         // key 使用 String 序列化器
@@ -75,7 +76,8 @@ public class RedisConfig {
                 ObjectMapper.DefaultTyping.NON_FINAL);
         mapper.registerModule(new JavaTimeModule());
 
-        Jackson2JsonRedisSerializer<Object> jsonSerializer = new Jackson2JsonRedisSerializer<>(mapper, Object.class);
+        Jackson2JsonRedisSerializer<Object> jsonSerializer = new Jackson2JsonRedisSerializer<Object>(Object.class);
+        jsonSerializer.setObjectMapper(mapper);
 
         RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofMinutes(30))

@@ -2,7 +2,7 @@ package com.xiuxian.game.modules.mail.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xiuxian.game.common.annotation.RateLimit;
-import com.xiuxian.game.response.ApiResponse;
+import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.modules.mail.entity.MailAttachment;
 import com.xiuxian.game.modules.mail.entity.PlayerMail;
 import com.xiuxian.game.modules.mail.service.MailService;
@@ -155,7 +155,7 @@ public class MailController {
      */
     @PostMapping("/{mailId}/claim")
     @PreAuthorize("isAuthenticated()")
-    @RateLimit(keyType = RateLimit.KeyType.USER_ID, maxRequests = 100, windowSeconds = 60, message = "领取邮件过于频繁，请稍后再试")
+    @RateLimit(keyType = RateLimit.KeyType.USER, maxRequests = 100, windowSeconds = 60, message = "领取邮件过于频繁，请稍后再试")
     public ResponseEntity<ApiResponse<Void>> claimAttachment(@PathVariable Long mailId) {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
