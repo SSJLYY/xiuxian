@@ -9,10 +9,11 @@ import com.xiuxian.game.modules.player.mapper.PlayerProfileMapper;
 import com.xiuxian.game.modules.player.mapper.PlayerItemMapper;
 import com.xiuxian.game.modules.player.mapper.UserMapper;
 import com.xiuxian.game.modules.skill.service.SkillService;
+import org.springframework.context.annotation.Lazy;
+
 import com.xiuxian.game.modules.quest.service.QuestProgressService;
 import com.xiuxian.game.common.config.GameBalanceConfig;
 import com.xiuxian.game.common.util.GameBalanceUtils;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -41,7 +42,6 @@ import org.springframework.security.core.Authentication;
  * @version 1.0
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class PlayerService {
 
@@ -54,6 +54,26 @@ public class PlayerService {
     private final SkillService skillService;
     private final GameBalanceConfig balance;
     private final GameBalanceUtils balanceUtils;
+
+    public PlayerService(PlayerProfileMapper playerProfileMapper,
+                          UserMapper userMapper,
+                          PlayerItemMapper playerItemMapper,
+                          com.xiuxian.game.modules.player.mapper.PlayerLoginLogMapper playerLoginLogMapper,
+                          PasswordEncoder passwordEncoder,
+                          QuestProgressService questProgressService,
+                          @Lazy SkillService skillService,
+                          GameBalanceConfig balance,
+                          GameBalanceUtils balanceUtils) {
+        this.playerProfileMapper = playerProfileMapper;
+        this.userMapper = userMapper;
+        this.playerItemMapper = playerItemMapper;
+        this.playerLoginLogMapper = playerLoginLogMapper;
+        this.passwordEncoder = passwordEncoder;
+        this.questProgressService = questProgressService;
+        this.skillService = skillService;
+        this.balance = balance;
+        this.balanceUtils = balanceUtils;
+    }
 
     /**
      * 创建新玩家档案

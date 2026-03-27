@@ -14,8 +14,8 @@ import com.xiuxian.game.modules.skill.mapper.SkillComboMapper;
 import com.xiuxian.game.modules.skill.mapper.PlayerSkillComboRecordMapper;
 import com.xiuxian.game.common.util.GameCalculator;
 import com.xiuxian.game.common.util.GameConstants;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,15 +44,28 @@ import com.xiuxian.game.common.exception.ErrorCode;
 @Slf4j
 @Service
 @ConditionalOnProperty(value = "app.features.skills.enabled", havingValue = "true")
-@RequiredArgsConstructor
 public class SkillService {
 
     private final SkillMapper skillMapper;
     private final PlayerSkillMapper playerSkillMapper;
-    private final PlayerService playerService; // 模块边界：通过PlayerService访问玩家数据
+    private final PlayerService playerService;
     private final GameCalculator gameCalculator;
     private final SkillComboMapper skillComboMapper;
     private final PlayerSkillComboRecordMapper playerSkillComboRecordMapper;
+
+    public SkillService(SkillMapper skillMapper,
+                        PlayerSkillMapper playerSkillMapper,
+                        @Lazy PlayerService playerService,
+                        GameCalculator gameCalculator,
+                        SkillComboMapper skillComboMapper,
+                        PlayerSkillComboRecordMapper playerSkillComboRecordMapper) {
+        this.skillMapper = skillMapper;
+        this.playerSkillMapper = playerSkillMapper;
+        this.playerService = playerService;
+        this.gameCalculator = gameCalculator;
+        this.skillComboMapper = skillComboMapper;
+        this.playerSkillComboRecordMapper = playerSkillComboRecordMapper;
+    }
 
     /**
      * 连招检测时间窗口（秒）
