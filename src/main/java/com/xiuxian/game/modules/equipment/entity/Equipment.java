@@ -11,6 +11,31 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+/**
+ * 装备实体类
+ *
+ * <p>装备系统核心实体，存储装备的基础属性和配置信息。</p>
+ *
+ * <p>装备类型：</p>
+ * <ul>
+ *   <li>武器 - 提供攻击力加成</li>
+ *   <li>防具 - 提供防御力加成</li>
+ *   <li>饰品 - 提供特殊属性加成</li>
+ * </ul>
+ *
+ * <p>装备品质（1-5级）：</p>
+ * <ul>
+ *   <li>1 - 普通（白色）</li>
+ *   <li>2 - 精良（绿色）</li>
+ *   <li>3 - 稀有（蓝色）</li>
+ *   <li>4 - 史诗（紫色）</li>
+ *   <li>5 - 传说（橙色）</li>
+ * </ul>
+ *
+ * @author xiuxian-game-team
+ * @version 1.0.0
+ * @since 2024-01-01
+ */
 @TableName("equipments")
 @Data
 @Builder

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宗门系统 - 修仙挂机游戏</title>
+    <link rel="stylesheet" href="/css/core/variables.css">
+    <link rel="stylesheet" href="/css/core/reset.css">
+    <link rel="stylesheet" href="/css/core/base.css">
+    <link rel="stylesheet" href="/css/components/modal.css">
+    <link rel="stylesheet" href="/css/components/toast.css">
+    <link rel="stylesheet" href="/css/modules/game.css">
+    <link rel="stylesheet" href="/css/modules/guild.css">
+</head>
+<body>
+    <div id="app">
+        <div class="game-container">
+            <nav class="game-nav">
+                <a href="#player" class="nav-link">玩家</a>
+                <a href="#guild" class="nav-link active">宗门</a>
+                <a href="#combat" class="nav-link">战斗</a>
+                <a href="#ranking" class="nav-link">排行</a>
+                <a href="#auction" class="nav-link">拍卖</a>
+            </nav>
+
+            <main class="game-main">
+                <div class="guild-page">
+                    <h1 class="page-title">宗门系统</h1>
+                    
+                    <div class="guild-content">
+                        <div class="guild-tabs">
+                            <button class="tab-btn active" data-tab="my-guild">我的宗门</button>
+                            <button class="tab-btn" data-tab="guild-list">宗门列表</button>
+                        </div>
+
+                        <div class="guild-info" id="myGuild">
+                            <p>你还没有加入宗门</p>
+                            <button id="createGuildBtn">创建宗门</button>
+                        </div>
+
+                        <div class="guild-list-section">
+                            <h2>宗门列表</h2>
+                            <div class="guild-list" id="guildList">
+                                <div class="loading">加载宗门中...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script type="module">
+        import { App } from '/js/App.js';
+        const app = new App();
+        app.init();
+        import('/js/modules/guild/index.js').then(module => {
+            module.guildUI.init();
+        });
+    </script>
+</body>
+</html>

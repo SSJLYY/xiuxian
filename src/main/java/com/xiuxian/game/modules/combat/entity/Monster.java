@@ -13,7 +13,30 @@ import java.time.LocalDateTime;
 
 /**
  * 怪物实体
- * 对应 monsters 表，存储怪物模板数据
+ *
+ * <p>对应 monsters 表，存储怪物模板数据。</p>
+ *
+ * <p>怪物类型：</p>
+ * <ul>
+ *   <li>普通 - 普通怪物</li>
+ *   <li>精英 - 精英怪物，属性更强</li>
+ *   <li>BOSS - BOSS怪物，最强属性</li>
+ * </ul>
+ *
+ * <p>属性说明：</p>
+ * <ul>
+ *   <li>health - 生命值</li>
+ *   <li>attack - 攻击力</li>
+ *   <li>defense - 防御力</li>
+ *   <li>speed - 速度</li>
+ *   <li>expReward - 经验奖励</li>
+ *   <li>spiritStonesReward - 灵石奖励</li>
+ *   <li>dropRate - 掉落率（百分比）</li>
+ * </ul>
+ *
+ * @author xiuxian-game-team
+ * @version 1.0.0
+ * @since 2024-12-09
  */
 @TableName("monsters")
 @Data

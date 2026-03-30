@@ -8,6 +8,7 @@ import com.xiuxian.game.modules.activity.mapper.ActivityMapper;
 import com.xiuxian.game.modules.activity.mapper.PlayerActivityProgressMapper;
 import com.xiuxian.game.modules.mail.service.MailService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,23 @@ import java.util.List;
 import com.xiuxian.game.common.exception.BusinessException;
 import com.xiuxian.game.common.exception.ErrorCode;
 
+/**
+ * 活动服务类
+ *
+ * <p>提供活动相关的业务逻辑，包括：</p>
+ * <ul>
+ *   <li>活动查询</li>
+ *   <li>活动参与</li>
+ *   <li>进度更新</li>
+ *   <li>奖励发放</li>
+ *   <li>状态管理</li>
+ * </ul>
+ *
+ * @author xiuxian-game-team
+ * @version 1.0.0
+ * @since 2024-12-09
+ */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
@@ -27,45 +45,83 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
 
     /**
      * 获取所有正在进行的活动
+     *
+     * <p>返回当前时间范围内正在进行的活动列表。</p>
+     *
+     * @return 活动列表
      */
     public List<Activity> getActiveActivities() {
+        log.debug("获取正在进行的活动");
+        
         QueryWrapper<Activity> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("status", "ACTIVE");
         queryWrapper.le("start_time", LocalDateTime.now());
         queryWrapper.ge("end_time", LocalDateTime.now());
-        return activityMapper.selectList(queryWrapper);
+        List<Activity> activities = activityMapper.selectList(queryWrapper);
+        
+        log.debug("获取正在进行的活动成功: count={}", activities.size());
+        return activities;
     }
 
     /**
      * 获取所有活动（包括已结束的）
+     *
+     * <p>返回所有活动列表，包括已结束的活动。</p>
+     *
+     * @return 活动列表
      */
     public List<Activity> getAllActivities() {
-        return activityMapper.selectList(null);
+        log.debug("获取所有活动");
+        
+        List<Activity> activities = activityMapper.selectList(null);
+        
+        log.debug("获取所有活动成功: count={}", activities.size());
+        return activities;
     }
 
     /**
      * 获取玩家参与的活动进度
+     *
+     * <p>返回指定玩家参与的所有活动进度。</p>
+     *
+     * @param playerId 玩家ID
+     * @return 活动进度列表
      */
     public List<PlayerActivityProgress> getPlayerActivityProgress(Integer playerId) {
+        log.debug("获取玩家活动进度: playerId={}", playerId);
+        
         QueryWrapper<PlayerActivityProgress> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("player_id", playerId);
-        return playerActivityProgressMapper.selectList(queryWrapper);
+        List<PlayerActivityProgress> progresses = playerActivityProgressMapper.selectList(queryWrapper);
+        
+        log.debug("获取玩家活动进度成功: playerId={}, count={}", playerId, progresses.size());
+        return progresses;
     }
 
     /**
      * 参与活动
+     *
+     * <p>玩家参与指定活动，创建活动进度记录。</p>
+     *
+     * @param playerId 玩家ID
+     * @param activityId 活动ID
+     * @return 活动进度记录
      */
     @Transactional
     public PlayerActivityProgress participateInActivity(Integer playerId, Integer activityId) {
+        log.info("玩家参与活动: playerId={}, activityId={}", playerId, activityId);
+        
         // 检查活动是否存在且处于活跃状态
         Activity activity = activityMapper.selectById(activityId);
         if (activity == null) {
+            log.warn("活动不存在: activityId={}", activityId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "活动不存在");
         }
 
         if (!"ACTIVE".equals(activity.getStatus()) ||
             activity.getStartTime().isAfter(LocalDateTime.now()) ||
             activity.getEndTime().isBefore(LocalDateTime.now())) {
+            log.warn("活动不在进行中: activityId={}, status={}", activityId, activity.getStatus());
             throw new BusinessException(ErrorCode.PARAM_ERROR, "活动不在进行中");
         }
 
@@ -84,22 +140,34 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
             progress.setCompleted(false);
             progress.setRewarded(false);
             playerActivityProgressMapper.insert(progress);
+            log.info("创建活动进度记录: playerId={}, activityId={}", playerId, activityId);
         }
 
+        log.info("玩家参与活动成功: playerId={}, activityId={}", playerId, activityId);
         return progress;
     }
 
     /**
      * 更新玩家活动进度
+     *
+     * <p>更新玩家在指定活动中的进度。</p>
+     *
+     * @param playerId 玩家ID
+     * @param activityId 活动ID
+     * @param increment 进度增量
+     * @return 更新后的活动进度
      */
     @Transactional
     public PlayerActivityProgress updateActivityProgress(Integer playerId, Integer activityId, int increment) {
+        log.info("更新活动进度: playerId={}, activityId={}, increment={}", playerId, activityId, increment);
+        
         QueryWrapper<PlayerActivityProgress> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("player_id", playerId);
         queryWrapper.eq("activity_id", activityId);
         PlayerActivityProgress progress = playerActivityProgressMapper.selectOne(queryWrapper);
 
         if (progress == null) {
+            log.warn("玩家未参与活动: playerId={}, activityId={}", playerId, activityId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家未参与该活动");
         }
 
@@ -108,20 +176,31 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         progress.setUpdatedAt(LocalDateTime.now());
         playerActivityProgressMapper.updateById(progress);
 
+        log.info("更新活动进度成功: playerId={}, activityId={}", playerId, activityId);
         return progress;
     }
 
     /**
      * 更新玩家活动积分
+     *
+     * <p>更新玩家在指定活动中的积分。</p>
+     *
+     * @param playerId 玩家ID
+     * @param activityId 活动ID
+     * @param score 积分值
+     * @return 更新后的活动进度
      */
     @Transactional
     public PlayerActivityProgress updateActivityScore(Integer playerId, Integer activityId, int score) {
+        log.info("更新活动积分: playerId={}, activityId={}, score={}", playerId, activityId, score);
+        
         QueryWrapper<PlayerActivityProgress> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("player_id", playerId);
         queryWrapper.eq("activity_id", activityId);
         PlayerActivityProgress progress = playerActivityProgressMapper.selectOne(queryWrapper);
 
         if (progress == null) {
+            log.warn("玩家未参与活动: playerId={}, activityId={}", playerId, activityId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家未参与该活动");
         }
 
@@ -130,17 +209,25 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         progress.setUpdatedAt(LocalDateTime.now());
         playerActivityProgressMapper.updateById(progress);
 
+        log.info("更新活动积分成功: playerId={}, activityId={}", playerId, activityId);
         return progress;
     }
 
     /**
      * 发放活动奖励
+     *
+     * <p>向参与指定活动的所有玩家发放奖励。</p>
+     *
+     * @param activityId 活动ID
      */
     @Transactional
     public void distributeActivityRewards(Integer activityId) {
+        log.info("发放活动奖励: activityId={}", activityId);
+        
         // 获取活动信息
         Activity activity = activityMapper.selectById(activityId);
         if (activity == null) {
+            log.warn("活动不存在: activityId={}", activityId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "活动不存在");
         }
 
@@ -157,19 +244,28 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
                     activity.getName(), progress.getProgress()); // 使用progress字段代替score
 
             mailService.sendSystemMail(progress.getPlayerId(), subject, content, null, null, 0);
+            log.debug("发送活动奖励邮件: playerId={}, activityId={}", progress.getPlayerId(), activityId);
         }
+        
+        log.info("发放活动奖励完成: activityId={}, count={}", activityId, progresses.size());
     }
 
     /**
      * 自动检查和更新活动状态
-     * 事务保护：活动状态更新（DRAFT→ACTIVE、ACTIVE→ENDED）与奖励分发在同一事务中，
-     * 避免状态已变但奖励未发出的不一致问题。
-     * 幂等性：状态更新是幂等的（重复设置同一状态无副作用）；
-     * 奖励分发通过 MailService.sendSystemMail 有邮箱容量校验天然防重。
+     *
+     * <p>定时任务，每分钟检查一次活动状态。</p>
+     *
+     * <p>事务保护：活动状态更新（DRAFT→ACTIVE、ACTIVE→ENDED）与奖励分发在同一事务中，
+     * 避免状态已变但奖励未发出的不一致问题。</p>
+     *
+     * <p>幂等性：状态更新是幂等的（重复设置同一状态无副作用）；
+     * 奖励分发通过 MailService.sendSystemMail 有邮箱容量校验天然防重。</p>
      */
     @Scheduled(fixedRate = 60000) // 每分钟检查一次
     @Transactional(rollbackFor = Exception.class)
     public void checkAndUpdateActivityStatus() {
+        log.debug("检查活动状态");
+        
         LocalDateTime now = LocalDateTime.now();
 
         // 检查需要开始的活动
@@ -181,6 +277,7 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         for (Activity activity : activitiesToStart) {
             activity.setStatus("ACTIVE");
             activityMapper.updateById(activity);
+            log.info("活动开始: activityId={}, name={}", activity.getId(), activity.getName());
         }
 
         // 检查需要结束的活动
@@ -192,20 +289,34 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         for (Activity activity : activitiesToEnd) {
             activity.setStatus("ENDED");
             activityMapper.updateById(activity);
+            log.info("活动结束: activityId={}, name={}", activity.getId(), activity.getName());
 
             // 发放奖励（同一事务内，distributeActivityRewards 的 @Transactional 会加入当前事务）
             distributeActivityRewards(activity.getId());
         }
+        
+        log.debug("检查活动状态完成: started={}, ended={}", activitiesToStart.size(), activitiesToEnd.size());
     }
 
     /**
      * 获取活动排名
+     *
+     * <p>获取指定活动的玩家排名列表。</p>
+     *
+     * @param activityId 活动ID
+     * @param limit 返回数量限制
+     * @return 排名列表
      */
     public List<PlayerActivityProgress> getActivityRanking(Integer activityId, int limit) {
+        log.debug("获取活动排名: activityId={}, limit={}", activityId, limit);
+        
         QueryWrapper<PlayerActivityProgress> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("activity_id", activityId);
         queryWrapper.orderByDesc("score");
         queryWrapper.last("LIMIT " + limit);
-        return playerActivityProgressMapper.selectList(queryWrapper);
+        List<PlayerActivityProgress> ranking = playerActivityProgressMapper.selectList(queryWrapper);
+        
+        log.debug("获取活动排名成功: activityId={}, count={}", activityId, ranking.size());
+        return ranking;
     }
 }

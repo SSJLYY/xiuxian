@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>修仙挂机游戏</title>
+    <link rel="stylesheet" href="/css/core/variables.css">
+    <link rel="stylesheet" href="/css/core/reset.css">
+    <link rel="stylesheet" href="/css/core/base.css">
+    <link rel="stylesheet" href="/css/components/modal.css">
+    <link rel="stylesheet" href="/css/components/toast.css">
+    <link rel="stylesheet" href="/css/components/loading.css">
+    <link rel="stylesheet" href="/css/modules/game.css">
+</head>
+<body>
+    <div id="game-app">
+        <!-- 导航栏 -->
+        <nav class="game-nav">
+            <div class="nav-header">
+                <h1>修仙挂机</h1>
+                <div class="player-info-mini" id="playerInfoMini"></div>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#player" data-nav="player">玩家</a></li>
+                <li><a href="#combat" data-nav="combat">战斗</a></li>
+                <li><a href="#inventory" data-nav="inventory">背包</a></li>
+                <li><a href="#equipment" data-nav="equipment">装备</a></li>
+                <li><a href="#skills" data-nav="skills">技能</a></li>
+                <li><a href="#pets" data-nav="pets">宠物</a></li>
+                <li><a href="#cultivate" data-nav="cultivate">修炼</a></li>
+                <li><a href="#guild" data-nav="guild">宗门</a></li>
+                <li><a href="#auction" data-nav="auction">拍卖</a></li>
+                <li><a href="#mail" data-nav="mail">邮件</a></li>
+                <li><a href="#ranking" data-nav="ranking">排行</a></li>
+                <li><a href="#achievement" data-nav="achievement">成就</a></li>
+                <li><a href="#checkin" data-nav="checkin">签到</a></li>
+                <li><a href="#vip" data-nav="vip">VIP</a></li>
+                <li><a href="#activity" data-nav="activity">活动</a></li>
+                <li><a href="#narrative" data-nav="narrative">叙事</a></li>
+                <li><a href="#map" data-nav="map">地图</a></li>
+            </ul>
+        </nav>
+
+        <!-- 主内容区 -->
+        <main class="game-main">
+            <div id="content-container"></div>
+        </main>
+
+        <!-- 侧边栏 -->
+        <aside class="game-sidebar">
+            <div id="player-panel"></div>
+        </aside>
+    </div>
+
+    <!-- JavaScript -->
+    <script type="module" src="/js/main.js"></script>
+</body>
+</html>

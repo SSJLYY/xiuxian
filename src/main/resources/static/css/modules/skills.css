@@ -1,0 +1,101 @@
+/**
+ * 技能模块样式
+ */
+
+.skills-page {
+    padding: 20px;
+}
+
+.skills-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.tab-btn {
+    padding: 10px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 4px;
+    color: var(--color-text);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.tab-btn.active {
+    background: var(--color-gold);
+    color: var(--color-primary);
+    font-weight: bold;
+}
+
+.tab-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.skills-content {
+    background: var(--color-primary);
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.tab-pane {
+    display: none;
+}
+
+.tab-pane.active {
+    display: block;
+}
+
+.skills-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.skill-card {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 15px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.skill-card:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--color-gold);
+    transform: translateY(-2px);
+}
+
+.skill-name {
+    color: var(--color-gold);
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.skill-level {
+    color: var(--color-aqua);
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.skill-desc {
+    color: var(--color-text);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.skill-action {
+    margin-top: 10px;
+    padding: 6px 12px;
+    background: var(--color-aqua);
+    border: none;
+    border-radius: 4px;
+    color: var(--color-primary);
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.skill-action:hover {
+    opacity: 0.8;
+}

@@ -1,0 +1,106 @@
+/**
+ * 剧情模块样式
+ */
+
+.narrative-page {
+    padding: 20px;
+}
+
+.narrative-content {
+    background: var(--color-primary);
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.chapter-list {
+    display: grid;
+    gap: 15px;
+}
+
+.chapter-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.chapter-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--color-gold);
+    transform: translateY(-2px);
+}
+
+.chapter-item.completed {
+    border-color: #4ade80;
+}
+
+.chapter-item.locked {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.chapter-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.chapter-title {
+    color: var(--color-text);
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.chapter-number {
+    color: var(--color-gold);
+    font-size: 14px;
+    padding: 4px 8px;
+    background: rgba(212, 175, 55, 0.2);
+    border-radius: 4px;
+}
+
+.chapter-desc {
+    color: var(--color-text);
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+
+.chapter-rewards {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.chapter-rewards-title {
+    color: var(--color-gold);
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.chapter-progress {
+    height: 6px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+.chapter-progress-bar {
+    height: 100%;
+    background: var(--color-aqua);
+    transition: width 0.3s ease;
+}
+
+.chapter-item.completed .chapter-progress-bar {
+    background: #4ade80;
+}
+
+.chapter-status {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    margin-top: 5px;
+}

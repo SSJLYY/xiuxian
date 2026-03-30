@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>战斗系统 - 修仙挂机游戏</title>
+    <link rel="stylesheet" href="/css/core/variables.css">
+    <link rel="stylesheet" href="/css/core/reset.css">
+    <link rel="stylesheet" href="/css/core/base.css">
+    <link rel="stylesheet" href="/css/components/modal.css">
+    <link rel="stylesheet" href="/css/components/toast.css">
+    <link rel="stylesheet" href="/css/components/loading.css">
+    <link rel="stylesheet" href="/css/modules/game.css">
+    <link rel="stylesheet" href="/css/modules/combat.css">
+</head>
+<body>
+    <div id="app">
+        <div class="game-container">
+            <nav class="game-nav">
+                <a href="#player" class="nav-link">玩家</a>
+                <a href="#combat" class="nav-link active">战斗</a>
+                <a href="#inventory" class="nav-link">背包</a>
+                <a href="#equipment" class="nav-link">装备</a>
+                <a href="#skills" class="nav-link">技能</a>
+                <a href="#cultivate" class="nav-link">修炼</a>
+                <a href="#map" class="nav-link">地图</a>
+            </nav>
+
+            <main class="game-main">
+                <div class="combat-page">
+                    <h1 class="page-title">战斗系统</h1>
+                    
+                    <div class="combat-content">
+                        <div class="combat-section">
+                            <h2>选择对手</h2>
+                            <div class="monster-list" id="monsterList">
+                                <div class="loading">加载怪物列表中...</div>
+                            </div>
+                        </div>
+
+                        <div class="combat-section">
+                            <h2>战斗历史</h2>
+                            <div class="combat-history" id="combatHistory">
+                                <p class="empty">暂无战斗记录</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script type="module">
+        import { App } from '/js/App.js';
+        
+        // 初始化应用
+        const app = new App();
+        app.init();
+        
+        // 加载战斗模块
+        import('/js/modules/combat/index.js').then(module => {
+            module.combatUI.init();
+        });
+    </script>
+</body>
+</html>

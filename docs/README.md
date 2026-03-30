@@ -13,6 +13,10 @@
 |------|------|--------|
 | [快速上手指南](./guides/GETTING-STARTED.md) | 30分钟从零跑通项目 | 所有新成员 |
 | [前端开发指南](./guides/FRONTEND-GUIDE.md) | 前端模块结构与开发规范 | 前端开发 |
+| [前端重构指南](./frontend-refactoring-guide.md) | 模块化架构、分层设计、迁移方案 | 前端开发 |
+| [前端架构对比](./frontend-architecture-comparison.md) | 新旧架构详细对比 | 前端开发、架构师 |
+| [前端迁移快速指南](./frontend-migration-quickstart.md) | 5分钟学会迁移到新架构 | 前端开发 |
+| [前端文件清单](./frontend-new-files-list.md) | 新架构完整文件清单 | 前端开发 |
 | [部署检查清单](./guides/DEPLOYMENT-CHECKLIST.md) | 部署前质量检查、配置验证、问题排查 | 运维、部署人员 |
 
 ### 🏗️ 架构参考

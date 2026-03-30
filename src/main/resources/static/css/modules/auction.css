@@ -1,0 +1,104 @@
+/**
+ * 拍卖行模块样式
+ */
+
+.auction-page {
+    padding: 20px;
+}
+
+.auction-content {
+    background: var(--color-primary);
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.auction-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.tab-btn {
+    padding: 10px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 4px;
+    color: var(--color-text);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.tab-btn.active {
+    background: var(--color-gold);
+    color: var(--color-primary);
+    font-weight: bold;
+}
+
+.tab-pane {
+    display: none;
+}
+
+.tab-pane.active {
+    display: block;
+}
+
+.auction-list,
+.my-auction-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.auction-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 15px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.auction-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--color-gold);
+    transform: translateY(-2px);
+}
+
+.auction-item-name {
+    color: var(--color-text);
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.auction-item-price {
+    color: var(--color-gold);
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.auction-item-seller {
+    color: var(--color-text);
+    font-size: 13px;
+    margin-bottom: 5px;
+}
+
+.auction-item-time {
+    color: var(--color-text-secondary);
+    font-size: 12px;
+}
+
+.auction-action {
+    margin-top: 10px;
+    width: 100%;
+    padding: 8px;
+    background: var(--color-aqua);
+    border: none;
+    border-radius: 4px;
+    color: var(--color-primary);
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.auction-action:hover {
+    opacity: 0.8;
+}

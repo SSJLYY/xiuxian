@@ -10,9 +10,23 @@ import java.math.BigDecimal;
 
 /**
  * 地图怪物配置实体
- * 对应 map_monsters 表
+ *
+ * <p>对应 map_monsters 表，存储地图与怪物的关联配置。</p>
+ *
+ * <p>配置说明：</p>
+ * <ul>
+ *   <li>mapId - 地图ID</li>
+ *   <li>monsterId - 怪物ID</li>
+ *   <li>spawnRate - 出现概率（百分比）</li>
+ *   <li>minLevel - 最小等级</li>
+ *   <li>maxLevel - 最大等级</li>
+ *   <li>isElite - 是否为精英怪物</li>
+ *   <li>spawnWeight - 权重（用于随机选择）</li>
+ *   <li>encounterText - 遭遇描述文本</li>
+ * </ul>
  *
  * @author LevelDesigner
+ * @version 1.0.0
  * @since 2026-03-23
  */
 @Data

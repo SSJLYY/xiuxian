@@ -7,6 +7,7 @@ import com.xiuxian.game.dto.response.PlayerItemResponse;
 import com.xiuxian.game.modules.shop.service.ItemService;
 import com.xiuxian.game.modules.player.service.PlayerService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,24 @@ import java.util.stream.Collectors;
 import com.xiuxian.game.common.exception.BusinessException;
 import com.xiuxian.game.common.exception.ErrorCode;
 
+/**
+ * 增强版背包服务
+ *
+ * <p>提供背包管理的核心业务逻辑，包括：</p>
+ * <ul>
+ *   <li>背包物品查询（支持分类、排序）</li>
+ *   <li>物品整理与堆叠</li>
+ *   <li>物品锁定与解锁</li>
+ *   <li>批量使用与出售</li>
+ * </ul>
+ *
+ * <p>模块边界：通过PlayerService访问玩家数据，通过ItemService访问物品数据</p>
+ *
+ * @author xiuxian-game-team
+ * @version 1.0.0
+ * @since 2024-01-01
+ */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class EnhancedInventoryService {
@@ -26,8 +45,17 @@ public class EnhancedInventoryService {
 
     /**
      * 获取玩家背包物品，支持分类和排序
+     *
+     * <p>支持按类型筛选、按指定字段排序</p>
+     *
+     * @param playerId 玩家ID
+     * @param type 物品类型筛选（可选）
+     * @param sortBy 排序字段（可选）
+     * @param order 排序方向（可选）
+     * @return 背包物品列表
      */
     public List<PlayerItemResponse> getPlayerInventory(Integer playerId, String type, String sortBy, String order) {
+        log.debug("查询玩家背包物品, playerId={}, type={}, sortBy={}, order={}", playerId, type, sortBy, order);
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
@@ -63,15 +91,23 @@ public class EnhancedInventoryService {
                     .collect(Collectors.toList());
         }
 
-        return playerItems.stream()
+        List<PlayerItemResponse> result = playerItems.stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
+        log.debug("查询玩家背包物品成功, playerId={}, count={}", playerId, result.size());
+        return result;
     }
 
     /**
      * 获取所有玩家背包物品（按类型分类）
+     *
+     * <p>将背包物品按类型分类返回</p>
+     *
+     * @param playerId 玩家ID
+     * @return 分类后的背包物品
      */
     public Map<String, List<PlayerItemResponse>> getPlayerInventoryByCategory(Integer playerId) {
+        log.debug("查询玩家背包物品（按类型分类）, playerId={}", playerId);
         List<PlayerItemResponse> allItems = getPlayerInventory(playerId, null, null, null);
         
         Map<String, List<PlayerItemResponse>> categorizedItems = new HashMap<>();
@@ -81,14 +117,20 @@ public class EnhancedInventoryService {
             categorizedItems.computeIfAbsent(type, k -> new ArrayList<>()).add(item);
         }
         
+        log.debug("查询玩家背包物品（按类型分类）成功, playerId={}", playerId);
         return categorizedItems;
     }
 
     /**
      * 整理背包 - 自动堆叠相同物品并按类型和品质排序
+     *
+     * <p>自动合并可堆叠物品并按类型和品质排序</p>
+     *
+     * @param playerId 玩家ID
      */
     @Transactional
     public void organizeInventory(Integer playerId) {
+        log.info("整理背包, playerId={}", playerId);
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
@@ -125,19 +167,27 @@ public class EnhancedInventoryService {
                 }
             }
         }
+        log.info("整理背包成功, playerId={}", playerId);
     }
 
     /**
      * 锁定/解锁物品
+     *
+     * <p>切换物品的锁定状态</p>
+     *
+     * @param playerId 玩家ID
+     * @param playerItemId 玩家物品ID
      */
     @Transactional
     public void toggleItemLock(Integer playerId, Integer playerItemId) {
+        log.info("切换物品锁定状态, playerId={}, playerItemId={}", playerId, playerItemId);
         PlayerItem playerItem = playerService.getPlayerItemById(playerItemId);
         if (playerItem == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "物品不存在");
         }
         
         if (!playerItem.getPlayerId().equals(playerId)) {
+            log.warn("物品不属于当前玩家, playerId={}, playerItemId={}", playerId, playerItemId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "该物品不属于当前玩家");
         }
         
@@ -145,13 +195,21 @@ public class EnhancedInventoryService {
         playerItem.setLocked(!playerItem.getLocked());
         playerItem.setUpdatedAt(LocalDateTime.now());
         playerService.updatePlayerItem(playerItem);
+        log.info("切换物品锁定状态成功, playerId={}, playerItemId={}, locked={}", playerId, playerItemId, playerItem.getLocked());
     }
 
     /**
      * 批量使用物品
+     *
+     * <p>批量使用多个物品</p>
+     *
+     * @param playerId 玩家ID
+     * @param useRequests 使用请求列表
+     * @return 使用结果
      */
     @Transactional
     public Map<String, Object> useItems(Integer playerId, List<ItemUseRequest> useRequests) {
+        log.info("批量使用物品, playerId={}, count={}", playerId, useRequests.size());
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
@@ -204,14 +262,22 @@ public class EnhancedInventoryService {
         
         result.put("used", totalUsed);
         result.put("message", "成功使用 " + totalUsed + " 个物品");
+        log.info("批量使用物品成功, playerId={}, totalUsed={}", playerId, totalUsed);
         return result;
     }
 
     /**
      * 批量出售物品
+     *
+     * <p>批量出售多个物品</p>
+     *
+     * @param playerId 玩家ID
+     * @param sellRequests 出售请求列表
+     * @return 出售结果
      */
     @Transactional
     public Map<String, Object> sellItems(Integer playerId, List<ItemSellRequest> sellRequests) {
+        log.info("批量出售物品, playerId={}, count={}", playerId, sellRequests.size());
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
@@ -267,22 +333,40 @@ public class EnhancedInventoryService {
         result.put("sold", totalSold);
         result.put("earned", totalEarned);
         result.put("message", "成功出售 " + totalSold + " 个物品，获得 " + totalEarned + " 灵石");
+        log.info("批量出售物品成功, playerId={}, totalSold={}, totalEarned={}", playerId, totalSold, totalEarned);
         return result;
     }
 
     /**
      * 检查背包是否已满
+     *
+     * <p>检查玩家背包是否已满</p>
+     *
+     * @param playerId 玩家ID
+     * @param maxCapacity 最大容量
+     * @return 是否已满
      */
     public boolean isInventoryFull(Integer playerId, int maxCapacity) {
+        log.debug("检查背包是否已满, playerId={}, maxCapacity={}", playerId, maxCapacity);
         List<PlayerItem> playerItems = playerService.getPlayerItemsByPlayerId(playerId);
-        return playerItems.size() >= maxCapacity;
+        boolean isFull = playerItems.size() >= maxCapacity;
+        log.debug("检查背包是否已满, playerId={}, isFull={}", playerId, isFull);
+        return isFull;
     }
 
     /**
      * 获取物品详情
+     *
+     * <p>获取物品的详细信息</p>
+     *
+     * @param itemId 物品ID
+     * @return 物品详情
      */
     public Item getItemDetails(Integer itemId) {
-        return itemService.getItemById(itemId);
+        log.debug("获取物品详情, itemId={}", itemId);
+        Item item = itemService.getItemById(itemId);
+        log.debug("获取物品详情成功, itemId={}", itemId);
+        return item;
     }
 
     private void applyItemEffect(PlayerProfile player, Item item) {

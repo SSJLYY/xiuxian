@@ -1,0 +1,131 @@
+/**
+ * CSS变量定义
+ * 定义全局主题变量,方便统一管理
+ */
+
+:root {
+    /* 主色调 */
+    --color-primary: #1a1a2e;
+    --color-primary-dark: #0f0f1a;
+    --color-primary-light: #2a2a4e;
+
+    /* 金色系 */
+    --color-gold: #d4af37;
+    --color-gold-dark: #b8962e;
+    --color-gold-light: #e6c76a;
+
+    /* 淡青色 */
+    --color-aqua: #7fffd4;
+    --color-aqua-dark: #5fe0b4;
+    --color-aqua-light: #9fffe4;
+
+    /* 文字颜色 */
+    --color-text: #e8e8e8;
+    --color-text-muted: #a0a0a0;
+    --color-text-dark: #666666;
+
+    /* 功能色 */
+    --color-success: #4caf50;
+    --color-success-dark: #388e3c;
+    --color-success-light: #66bb6a;
+
+    --color-error: #f44336;
+    --color-error-dark: #d32f2f;
+    --color-error-light: #ef5350;
+
+    --color-warning: #ff9800;
+    --color-warning-dark: #f57c00;
+    --color-warning-light: #ffa726;
+
+    --color-info: #2196f3;
+    --color-info-dark: #1976d2;
+    --color-info-light: #42a5f5;
+
+    /* 背景色 */
+    --color-bg: #12121e;
+    --color-bg-secondary: #1a1a2e;
+    --color-bg-tertiary: #252540;
+
+    /* 边框颜色 */
+    --color-border: rgba(255, 255, 255, 0.1);
+    --color-border-light: rgba(255, 255, 255, 0.15);
+    --color-border-dark: rgba(255, 255, 255, 0.05);
+
+    /* 阴影 */
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.15);
+    --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.2);
+    --shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.25);
+
+    /* 圆角 */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --radius-full: 9999px;
+
+    /* 间距 */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 12px;
+    --spacing-lg: 16px;
+    --spacing-xl: 20px;
+    --spacing-2xl: 24px;
+    --spacing-3xl: 32px;
+
+    /* 字体大小 */
+    --font-size-xs: 12px;
+    --font-size-sm: 14px;
+    --font-size-md: 16px;
+    --font-size-lg: 18px;
+    --font-size-xl: 20px;
+    --font-size-2xl: 24px;
+    --font-size-3xl: 32px;
+
+    /* 字体粗细 */
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+
+    /* 过渡动画 */
+    --transition-fast: 0.15s ease;
+    --transition-base: 0.2s ease;
+    --transition-slow: 0.3s ease;
+
+    /* Z-index层级 */
+    --z-dropdown: 1000;
+    --z-sticky: 1020;
+    --z-fixed: 1030;
+    --z-modal-backdrop: 1040;
+    --z-modal: 1050;
+    --z-popover: 1060;
+    --z-tooltip: 1070;
+
+    /* 断点 */
+    --breakpoint-xs: 0;
+    --breakpoint-sm: 576px;
+    --breakpoint-md: 768px;
+    --breakpoint-lg: 992px;
+    --breakpoint-xl: 1200px;
+    --breakpoint-xxl: 1400px;
+}
+
+/* 亮色主题 */
+[data-theme="light"] {
+    --color-primary: #f5f5f5;
+    --color-primary-dark: #e0e0e0;
+    --color-primary-light: #ffffff;
+
+    --color-text: #333333;
+    --color-text-muted: #666666;
+    --color-text-dark: #999999;
+
+    --color-bg: #ffffff;
+    --color-bg-secondary: #f5f5f5;
+    --color-bg-tertiary: #e0e0e0;
+
+    --color-border: rgba(0, 0, 0, 0.1);
+    --color-border-light: rgba(0, 0, 0, 0.15);
+    --color-border-dark: rgba(0, 0, 0, 0.05);
+}

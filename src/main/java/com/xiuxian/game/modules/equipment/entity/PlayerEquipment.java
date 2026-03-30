@@ -11,6 +11,30 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+/**
+ * 玩家装备实体类
+ *
+ * <p>记录玩家拥有的装备信息，包括装备状态、耐久度、强化等级等。</p>
+ *
+ * <p>装备槽位：</p>
+ * <ul>
+ *   <li>weapon - 武器槽位</li>
+ *   <li>armor - 防具槽位</li>
+ *   <li>accessory - 饰品槽位</li>
+ * </ul>
+ *
+ * <p>装备状态：</p>
+ * <ul>
+ *   <li>equipped - 是否已装备</li>
+ *   <li>durability - 当前耐久度</li>
+ *   <li>maxDurability - 最大耐久度</li>
+ *   <li>enhanceLevel - 强化等级</li>
+ * </ul>
+ *
+ * @author xiuxian-game-team
+ * @version 1.0.0
+ * @since 2024-01-01
+ */
 @TableName("player_equipment")
 @Data
 @Builder

@@ -1,384 +1,58 @@
-// 主游戏逻辑文件
+/**
+ * 主入口文件
+ * 负责启动应用
+ */
 
-// 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', function() {
-    // 初始化模块系统
-    initializeModules();
+// 等待DOM加载完成
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('DOM已加载完成,开始启动应用...');
+
+    try {
+        // 导入应用类
+        const { app } = await import('./App.js');
+
+        // 初始化应用
+        await app.init();
+
+        // 将app挂载到全局,方便调试
+        window.app = app;
+
+        console.log('应用启动成功');
+
+    } catch (error) {
+        console.error('应用启动失败:', error);
+
+        // 显示错误提示
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #1a1a2e;
+            color: #e8e8e8;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            text-align: center;
+            z-index: 99999;
+        `;
+        errorDiv.innerHTML = `
+            <h3 style="color: #f44336; margin-top: 0;">应用启动失败</h3>
+            <p>${error.message}</p>
+            <button onclick="location.reload()" style="
+                background: #4caf50;
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+            ">重新加载</button>
+        `;
+        document.body.appendChild(errorDiv);
+    }
 });
 
-// 初始化模块系统
-function initializeModules() {
-    // 设置默认显示的模块
-    showModule('dashboard');
-    
-    // 初始化导航栏
-    initializeNavigation();
-    
-    // 初始化技能连招系统
-    if (typeof SkillComboSystem !== 'undefined') {
-        window.skillComboSystem = new SkillComboSystem();
-        console.log('技能连招系统已初始化');
-    }
-    
-    // 初始化宠物进化系统
-    if (typeof PetEvolutionSystem !== 'undefined') {
-        window.petEvolutionSystem = new PetEvolutionSystem();
-        console.log('宠物进化系统已初始化');
-    }
-}
-
-
-
-// 更新玩家状态显示
-function updatePlayerStats(profile) {
-    document.getElementById('playerName').textContent = profile.nickname;
-    document.getElementById('playerLevel').textContent = profile.level;
-    document.getElementById('playerRealm').textContent = profile.realm;
-    document.getElementById('playerExp').textContent = profile.currentExp;
-    document.getElementById('expToNext').textContent = profile.expToNextLevel;
-    document.getElementById('playerSpiritStones').textContent = profile.spiritStones;
-    document.getElementById('playerHealth').textContent = profile.health;
-    document.getElementById('playerMana').textContent = profile.mana;
-    document.getElementById('playerAttack').textContent = profile.attack;
-    document.getElementById('playerDefense').textContent = profile.defense;
-    
-    // 更新经验条
-    const expPercent = (profile.currentExp / profile.expToNextLevel) * 100;
-    document.getElementById('expProgress').style.width = expPercent + '%';
-    document.getElementById('expText').textContent = profile.currentExp + '/' + profile.expToNextLevel;
-}
-
-// 开始修炼
-function startCultivation() {
-    document.getElementById('cultivation-btn').style.display = 'none';
-    document.getElementById('stop-cultivation-btn').style.display = 'inline-block';
-    document.getElementById('cultivationStatus').textContent = '修炼中...';
-    
-    // 每隔一段时间自动获取经验
-    cultivationInterval = setInterval(async () => {
-        try {
-            const response = await api.post('/player/cultivate');
-            if (response.success) {
-                const result = response.data;
-                updatePlayerStats(result.profile);
-                
-                // 添加修炼日志
-                const logElement = document.getElementById('cultivation-log');
-                const logEntry = document.createElement('p');
-                logEntry.textContent = result.message;
-                logElement.appendChild(logEntry);
-                logElement.scrollTop = logElement.scrollHeight;
-            } else {
-                showToast('修炼失败: ' + response.message, 'error');
-            }
-        } catch (error) {
-            showToast('修炼失败: ' + error.message, 'error');
-        }
-    }, 5000); // 每5秒修炼一次
-}
-
-// 停止修炼
-function stopCultivation() {
-    clearInterval(cultivationInterval);
-    document.getElementById('cultivation-btn').style.display = 'inline-block';
-    document.getElementById('stop-cultivation-btn').style.display = 'none';
-    document.getElementById('cultivationStatus').textContent = '修炼已停止';
-}
-
-
-
-// 显示消息提示
-function showToast(message, type = 'info') {
-    // 使用现代UI的通知系统
-    if (window.simpleUI) {
-        window.simpleUI.showNotification(message, type);
-        return;
-    }
-    
-    // 创建简单的toast通知
-    const toast = document.createElement('div');
-    toast.className = `toast-notification ${type}`;
-    toast.textContent = message;
-    
-    // 样式
-    Object.assign(toast.style, {
-        position: 'fixed',
-        top: '20px',
-        right: '20px',
-        padding: '12px 20px',
-        borderRadius: '8px',
-        color: 'white',
-        fontWeight: '500',
-        zIndex: '10000',
-        opacity: '0',
-        transform: 'translateY(-20px)',
-        transition: 'all 0.3s ease'
-    });
-    
-    // 根据类型设置背景色
-    const colors = {
-        success: '#10b981',
-        error: '#ef4444',
-        warning: '#f59e0b',
-        info: '#3b82f6'
-    };
-    toast.style.backgroundColor = colors[type] || colors.info;
-    
-    document.body.appendChild(toast);
-    
-    // 显示动画
-    requestAnimationFrame(() => {
-        toast.style.opacity = '1';
-        toast.style.transform = 'translateY(0)';
-    });
-    
-    // 3秒后移除
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateY(-20px)';
-        setTimeout(() => {
-            if (toast.parentNode) {
-                toast.parentNode.removeChild(toast);
-            }
-        }, 300);
-    }, 3000);
-}
-
-// 显示加载动画
-function showLoading(show) {
-    const loading = document.getElementById('loading');
-    if (show) {
-        loading.classList.remove('hidden');
-    } else {
-        loading.classList.add('hidden');
-    }
-}
-
-// 加载公告
-async function loadAnnouncements() {
-    try {
-        const response = await api.get('/announcement/latest');
-        if (response.success && response.data) {
-            showAnnouncement(response.data);
-        }
-    } catch (error) {
-        console.error('获取公告失败:', error);
-    }
-}
-
-// 显示公告
-function showAnnouncement(announcement) {
-    const banner = document.getElementById('announcementBanner');
-    const text = document.getElementById('announcementText');
-    
-    text.textContent = announcement.content;
-    banner.style.display = 'block';
-}
-
-// 关闭公告
-function closeAnnouncement() {
-    document.getElementById('announcementBanner').style.display = 'none';
-}
-
-// 模块切换功能
-function showModule(moduleName) {
-    // 隐藏所有模块
-    const modules = document.querySelectorAll('.module');
-    modules.forEach(module => {
-        module.style.display = 'none';
-    });
-    
-    // 显示选中的模块
-    const activeModule = document.getElementById(`${moduleName}-module`);
-    if (activeModule) {
-        activeModule.style.display = 'grid';
-    }
-    
-    // 更新导航标签状态
-    const navTabs = document.querySelectorAll('.nav-tab');
-    navTabs.forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    const activeTab = document.querySelector(`.nav-tab[data-module="${moduleName}"]`);
-    if (activeTab) {
-        activeTab.classList.add('active');
-    }
-    
-    // 根据模块加载相应数据
-    switch(moduleName) {
-        case 'dashboard':
-            // 仪表盘数据已经在主循环中更新
-            break;
-        case 'combat':
-            if (typeof loadCombatData === 'function') {
-                loadCombatData();
-            }
-            break;
-        case 'inventory':
-            if (typeof loadInventoryData === 'function') {
-                loadInventoryData();
-            }
-            break;
-        case 'quests':
-            if (typeof loadQuestsData === 'function') {
-                loadQuestsData();
-            }
-            break;
-        case 'skills':
-            if (typeof loadSkillsData === 'function') {
-                loadSkillsData();
-            }
-            break;
-        case 'shop':
-            if (typeof loadShopData === 'function') {
-                loadShopData();
-            }
-            break;
-        case 'guild':
-            if (typeof loadGuildData === 'function') {
-                loadGuildData();
-            }
-            break;
-        case 'ranking':
-            if (typeof loadRankingData === 'function') {
-                loadRankingData();
-            }
-            break;
-        case 'achievements':
-            if (typeof loadAchievementsData === 'function') {
-                loadAchievementsData();
-            }
-            break;
-        case 'mail':
-            window.location.href = 'mail.html';
-            break;
-        case 'pets':
-            window.location.href = 'pets.html';
-            break;
-    }
-}
-
-// 添加拍卖行、VIP、活动和增强战斗入口到导航栏
-function initializeNavigation() {
-    // 在现有的导航栏中添加拍卖行链接
-    const navTabs = document.querySelector('.nav-tabs');
-    if (navTabs) {
-        // 检查是否已经添加了拍卖行标签，避免重复添加
-        const existingAuctionTab = document.querySelector('.nav-tab[data-module="auction"]');
-        if (!existingAuctionTab) {
-            const auctionTab = document.createElement('li');
-            auctionTab.className = 'nav-tab';
-            auctionTab.dataset.module = 'auction';
-            auctionTab.innerHTML = `
-                <button onclick="navigateToAuction()">
-                    <i class="fas fa-gavel"></i> 拍卖行
-                </button>
-            `;
-            navTabs.appendChild(auctionTab);
-        }
-        
-        // 检查是否已经添加了VIP标签，避免重复添加
-        const existingVipTab = document.querySelector('.nav-tab[data-module="vip"]');
-        if (!existingVipTab) {
-            const vipTab = document.createElement('li');
-            vipTab.className = 'nav-tab';
-            vipTab.dataset.module = 'vip';
-            vipTab.innerHTML = `
-                <button onclick="navigateToVip()">
-                    <i class="fas fa-crown"></i> VIP
-                </button>
-            `;
-            navTabs.appendChild(vipTab);
-        }
-        
-        // 检查是否已经添加了活动标签，避免重复添加
-        const existingActivityTab = document.querySelector('.nav-tab[data-module="activity"]');
-        if (!existingActivityTab) {
-            const activityTab = document.createElement('li');
-            activityTab.className = 'nav-tab';
-            activityTab.dataset.module = 'activity';
-            activityTab.innerHTML = `
-                <button onclick="navigateToActivity()">
-                    <i class="fas fa-calendar"></i> 活动
-                </button>
-            `;
-            navTabs.appendChild(activityTab);
-        }
-        
-        // 检查是否已经添加了增强战斗标签，避免重复添加
-        const existingEnhancedCombatTab = document.querySelector('.nav-tab[data-module="enhanced-combat"]');
-        if (!existingEnhancedCombatTab) {
-            const combatTab = document.createElement('li');
-            combatTab.className = 'nav-tab';
-            combatTab.dataset.module = 'enhanced-combat';
-            combatTab.innerHTML = `
-                <button onclick="navigateToEnhancedCombat()">
-                    <i class="fas fa-fist-raised"></i> 增强战斗
-                </button>
-            `;
-            navTabs.appendChild(combatTab);
-        }
-    }
-}
-
-// 导航到拍卖行
-function navigateToAuction() {
-    window.location.href = 'auction.html';
-}
-
-// 导航到VIP页面
-function navigateToVip() {
-    window.location.href = 'vip.html';
-}
-
-// 导航到活动页面
-function navigateToActivity() {
-    window.location.href = 'activity.html';
-}
-
-// 导航到增强战斗页面
-function navigateToEnhancedCombat() {
-    window.location.href = 'enhanced_combat.html';
-}
-
-// 显示礼包码兑换模态框
-function showRedeemGiftCodeModal() {
-    document.getElementById('giftCodeModal').style.display = 'block';
-}
-
-// 关闭礼包码兑换模态框
-function closeGiftCodeModal() {
-    document.getElementById('giftCodeModal').style.display = 'none';
-    document.getElementById('giftCodeInput').value = '';
-}
-
-// 兑换礼包码
-async function redeemGiftCode() {
-    const giftCode = document.getElementById('giftCodeInput').value.trim();
-    
-    if (!giftCode) {
-        showToast('请输入礼包码', 'error');
-        return;
-    }
-    
-    showLoading(true);
-    
-    try {
-        const response = await api.post('/giftcode/redeem?code=' + encodeURIComponent(giftCode));
-        if (response.success) {
-            showToast('礼包码兑换成功！奖励已发放到您的邮箱。', 'success');
-            closeGiftCodeModal();
-            // 如果在邮件模块，刷新邮件
-            if (currentModule === 'mail') {
-                loadMails(1);
-            }
-        } else {
-            showToast('兑换失败: ' + response.message, 'error');
-        }
-    } catch (error) {
-        showToast('兑换失败: ' + error.message, 'error');
-    } finally {
-        showLoading(false);
-    }
-}
+// 导出主模块
+export { app };

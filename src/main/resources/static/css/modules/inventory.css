@@ -1,0 +1,87 @@
+/**
+ * 背包模块样式
+ */
+
+.inventory-page {
+    padding: 20px;
+}
+
+.inventory-content {
+    display: grid;
+    gap: 20px;
+}
+
+.inventory-info {
+    background: var(--color-primary);
+    padding: 15px;
+    border-radius: 8px;
+    color: var(--color-text);
+}
+
+.inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 10px;
+}
+
+.item-slot {
+    aspect-ratio: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.item-slot:hover {
+    border-color: var(--color-gold);
+    transform: scale(1.05);
+}
+
+.item-slot.empty {
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+}
+
+.item-slot.has-item {
+    border-color: var(--color-aqua);
+}
+
+.item-detail {
+    background: var(--color-primary);
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+.item-detail h3 {
+    color: var(--color-gold);
+    margin-bottom: 10px;
+}
+
+.item-detail p {
+    color: var(--color-text);
+    margin-bottom: 10px;
+}
+
+.item-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.item-actions button {
+    padding: 8px 16px;
+    background: var(--color-gold);
+    border: none;
+    border-radius: 4px;
+    color: var(--color-primary);
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.item-actions button:hover {
+    opacity: 0.8;
+}

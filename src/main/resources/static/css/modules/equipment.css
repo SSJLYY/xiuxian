@@ -1,0 +1,102 @@
+/**
+ * 装备模块样式
+ */
+
+.equipment-page {
+    padding: 20px;
+}
+
+.equipment-content {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 20px;
+}
+
+@media (max-width: 768px) {
+    .equipment-content {
+        grid-template-columns: 1fr;
+    }
+}
+
+.character-equip {
+    background: var(--color-primary);
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.character-equip h2 {
+    color: var(--color-gold);
+    margin-bottom: 15px;
+}
+
+.equip-slots {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.equip-slot {
+    aspect-ratio: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-secondary);
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.equip-slot:hover {
+    border-color: var(--color-gold);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.equip-slot.has-equip {
+    border-color: var(--color-aqua);
+    color: var(--color-text);
+    font-weight: bold;
+}
+
+.equipment-list {
+    background: var(--color-primary);
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.equipment-list h2 {
+    color: var(--color-gold);
+    margin-bottom: 15px;
+}
+
+.equip-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+}
+
+.equip-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.equip-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+.equip-name {
+    color: var(--color-text);
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.equip-quality {
+    color: var(--color-aqua);
+    font-size: 12px;
+    margin-top: 5px;
+}

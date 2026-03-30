@@ -1,0 +1,339 @@
+<!-- 玩家信息面板组件 -->
+<div class="player-panel" id="playerPanel">
+    <div class="panel-header">
+        <div class="player-avatar">
+            <div class="avatar-image">👤</div>
+            <div class="avatar-level" id="playerLevelBadge">1</div>
+        </div>
+        
+        <div class="player-info">
+            <h3 class="player-name" id="playerName">加载中...</h3>
+            <p class="player-realm" id="playerRealm">练气期1层</p>
+            <div class="player-vip" id="playerVip">VIP 0</div>
+        </div>
+        
+        <div class="panel-actions">
+            <button class="panel-btn" id="refreshBtn" title="刷新">🔄</button>
+            <button class="panel-btn" id="closeBtn" title="关闭">✕</button>
+        </div>
+    </div>
+    
+    <div class="panel-body">
+        <!-- 属性展示 -->
+        <div class="stats-section">
+            <h4 class="section-title">属性</h4>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-label">攻击力</span>
+                    <span class="stat-value" id="statAttack">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">防御力</span>
+                    <span class="stat-value" id="statDefense">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">生命值</span>
+                    <span class="stat-value" id="statHp">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">速度</span>
+                    <span class="stat-value" id="statSpeed">0</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 经验条 -->
+        <div class="exp-section">
+            <div class="exp-header">
+                <span class="exp-label">经验值</span>
+                <span class="exp-value" id="expValue">0/100</span>
+            </div>
+            <div class="exp-bar">
+                <div class="exp-fill" id="expFill" style="width: 0%"></div>
+            </div>
+        </div>
+        
+        <!-- 灵气条 -->
+        <div class="qi-section">
+            <div class="qi-header">
+                <span class="qi-label">灵气值</span>
+                <span class="qi-value" id="qiValue">0/100</span>
+            </div>
+            <div class="qi-bar">
+                <div class="qi-fill" id="qiFill" style="width: 0%"></div>
+            </div>
+        </div>
+        
+        <!-- 资源 -->
+        <div class="resources-section">
+            <h4 class="section-title">资源</h4>
+            <div class="resource-list">
+                <div class="resource-item">
+                    <span class="resource-icon">💎</span>
+                    <span class="resource-name">灵石</span>
+                    <span class="resource-value" id="resourceCoins">0</span>
+                </div>
+                <div class="resource-item">
+                    <span class="resource-icon">🌟</span>
+                    <span class="resource-name">仙晶</span>
+                    <span class="resource-value" id="resourceCrystal">0</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 快速操作 -->
+        <div class="actions-section">
+            <button class="action-btn" id="quickCultivateBtn">开始修炼</button>
+            <button class="action-btn" id="quickBattleBtn">快速战斗</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.player-panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px;
+    max-height: 80vh;
+    background: var(--color-primary);
+    border-radius: 12px;
+    border: 2px solid var(--color-gold);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.player-avatar {
+    position: relative;
+    margin-right: 15px;
+}
+
+.avatar-image {
+    width: 60px;
+    height: 60px;
+    background: rgba(212, 175, 55, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    border: 2px solid var(--color-gold);
+}
+
+.avatar-level {
+    position: absolute;
+    bottom: -5px;
+    right: -5px;
+    width: 24px;
+    height: 24px;
+    background: var(--color-gold);
+    border-radius: 50%;
+    color: var(--color-primary);
+    font-size: 12px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.player-info {
+    flex: 1;
+}
+
+.player-name {
+    color: var(--color-text);
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0 0 5px 0;
+}
+
+.player-realm {
+    color: var(--color-aqua);
+    font-size: 14px;
+    margin: 0 0 5px 0;
+}
+
+.player-vip {
+    display: inline-block;
+    padding: 2px 8px;
+    background: rgba(212, 175, 55, 0.2);
+    border-radius: 4px;
+    color: var(--color-gold);
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.panel-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.panel-btn {
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    color: var(--color-text);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.panel-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.panel-body {
+    padding: 20px;
+}
+
+.section-title {
+    color: var(--color-gold);
+    font-size: 14px;
+    font-weight: bold;
+    margin: 0 0 15px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.stat-item {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 10px;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.stat-label {
+    display: block;
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    margin-bottom: 5px;
+}
+
+.stat-value {
+    display: block;
+    color: var(--color-text);
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.exp-section,
+.qi-section {
+    margin-bottom: 20px;
+}
+
+.exp-header,
+.qi-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.exp-label,
+.qi-label {
+    color: var(--color-text);
+    font-size: 13px;
+}
+
+.exp-value,
+.qi-value {
+    color: var(--color-aqua);
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.exp-bar,
+.qi-bar {
+    height: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.exp-fill,
+.qi-fill {
+    height: 100%;
+    background: var(--color-gold);
+    transition: width 0.3s ease;
+}
+
+.qi-fill {
+    background: var(--color-aqua);
+}
+
+.resource-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.resource-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 4px;
+}
+
+.resource-icon {
+    font-size: 20px;
+    margin-right: 10px;
+}
+
+.resource-name {
+    flex: 1;
+    color: var(--color-text);
+    font-size: 14px;
+}
+
+.resource-value {
+    color: var(--color-gold);
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.actions-section {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.action-btn {
+    padding: 12px;
+    background: var(--color-gold);
+    border: none;
+    border-radius: 4px;
+    color: var(--color-primary);
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.action-btn:hover {
+    opacity: 0.8;
+    transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+    .player-panel {
+        width: 90%;
+        max-width: 400px;
+    }
+}
+</style>

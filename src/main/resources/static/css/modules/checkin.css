@@ -1,0 +1,97 @@
+/**
+ * 签到模块样式
+ */
+
+.checkin-page {
+    padding: 20px;
+}
+
+.checkin-content {
+    background: var(--color-primary);
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.checkin-status {
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.checkin-status p {
+    color: var(--color-text);
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.checkin-calendar h2 {
+    color: var(--color-gold);
+    margin-bottom: 15px;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.calendar-day {
+    aspect-ratio: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text);
+    font-size: 12px;
+    transition: all 0.3s ease;
+}
+
+.calendar-day:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--color-gold);
+}
+
+.calendar-day.checked {
+    background: rgba(74, 222, 128, 0.2);
+    border-color: #4ade80;
+    color: #4ade80;
+}
+
+.calendar-day.today {
+    background: var(--color-gold);
+    border-color: var(--color-gold);
+    color: var(--color-primary);
+    font-weight: bold;
+}
+
+.calendar-day.today.checked {
+    background: #4ade80;
+    border-color: #4ade80;
+}
+
+.btn-primary {
+    padding: 12px 24px;
+    background: var(--color-gold);
+    border: none;
+    border-radius: 4px;
+    color: var(--color-primary);
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    opacity: 0.8;
+    transform: translateY(-2px);
+}
+
+.btn-primary:disabled {
+    background: rgba(255, 255, 255, 0.1);
+    cursor: not-allowed;
+    transform: none;
+}

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台 - 修仙挂机游戏</title>
+    <link rel="stylesheet" href="/css/core/variables.css">
+    <link rel="stylesheet" href="/css/core/reset.css">
+    <link rel="stylesheet" href="/css/core/base.css">
+    <link rel="stylesheet" href="/css/components/modal.css">
+    <link rel="stylesheet" href="/css/components/toast.css">
+    <link rel="stylesheet" href="/css/modules/game.css">
+    <link rel="stylesheet" href="/css/modules/admin.css">
+</head>
+<body>
+    <div id="app">
+        <div class="admin-container">
+            <nav class="admin-nav">
+                <h1 class="admin-title">管理后台</h1>
+                <a href="#admin/dashboard" class="nav-link active">首页</a>
+                <a href="#admin/players" class="nav-link">玩家管理</a>
+                <a href="#admin/items" class="nav-link">物品管理</a>
+                <a href="#admin/skills" class="nav-link">技能管理</a>
+                <a href="#admin/monsters" class="nav-link">怪物管理</a>
+                <a href="#admin/announcements" class="nav-link">公告管理</a>
+                <a href="#admin/activities" class="nav-link">活动管理</a>
+                <a href="#admin/giftcodes" class="nav-link">兑换码</a>
+                <a href="#admin/emails" class="nav-link">系统邮件</a>
+                <a href="#admin/logs" class="nav-link">操作日志</a>
+                <a href="#admin/stats" class="nav-link">数据统计</a>
+            </nav>
+
+            <main class="admin-main">
+                <div class="admin-dashboard">
+                    <h1 class="page-title">系统概览</h1>
+                    
+                    <div class="dashboard-stats">
+                        <div class="stat-card">
+                            <h3>总玩家数</h3>
+                            <p class="stat-value" id="totalPlayers">--</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>在线人数</h3>
+                            <p class="stat-value" id="onlinePlayers">--</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>今日注册</h3>
+                            <p class="stat-value" id="todayRegister">--</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>系统状态</h3>
+                            <p class="stat-value status-online">正常</p>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-sections">
+                        <div class="dashboard-section">
+                            <h2>最新注册玩家</h2>
+                            <div class="data-table" id="recentPlayers">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>玩家名称</th>
+                                            <th>等级</th>
+                                            <th>境界</th>
+                                            <th>注册时间</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td colspan="5" class="loading">加载中...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-section">
+                            <h2>系统公告</h2>
+                            <div class="announcement-list" id="announcementList">
+                                <div class="loading">加载中...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script type="module">
+        import { AdminApi } from '/js/core/api/AdminApi.js';
+        import { toast } from '/js/components/Toast.js';
+        
+        const adminApi = new AdminApi();
+        
+        // 加载仪表板数据
+        async function loadDashboard() {
+            try {
+                const stats = await adminApi.getSystemStats();
+                document.getElementById('totalPlayers').textContent = stats.totalPlayers;
+                document.getElementById('onlinePlayers').textContent = stats.onlinePlayers;
+                document.getElementById('todayRegister').textContent = stats.todayRegister;
+                
+                // 加载最新玩家
+                const players = await adminApi.getRecentPlayers(10);
+                // 渲染玩家列表...
+                
+            } catch (error) {
+                toast.error('加载失败: ' + error.message);
+            }
+        }
+        
+        loadDashboard();
+    </script>
+</body>
+</html>

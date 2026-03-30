@@ -1,0 +1,150 @@
+/**
+ * 邮件模块样式
+ */
+
+.mail-page {
+    padding: 20px;
+}
+
+.mail-content {
+    background: var(--color-primary);
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.mail-list {
+    display: grid;
+    gap: 10px;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.mail-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 15px;
+    border-radius: 4px;
+    border-left: 3px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.mail-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-left-color: var(--color-gold);
+    transform: translateX(5px);
+}
+
+.mail-item.unread {
+    background: rgba(212, 175, 55, 0.1);
+    border-left-color: var(--color-gold);
+}
+
+.mail-item.read {
+    opacity: 0.7;
+}
+
+.mail-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.mail-title {
+    color: var(--color-text);
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.mail-time {
+    color: var(--color-text-secondary);
+    font-size: 12px;
+}
+
+.mail-sender {
+    color: var(--color-aqua);
+    font-size: 13px;
+    margin-bottom: 5px;
+}
+
+.mail-item.unread .mail-title::before {
+    content: "●";
+    color: var(--color-gold);
+    margin-right: 5px;
+}
+
+.mail-detail {
+    background: var(--color-primary);
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 20px;
+    border: 1px solid var(--color-gold);
+}
+
+.mail-detail h2 {
+    color: var(--color-gold);
+    margin-bottom: 15px;
+}
+
+#mailSender,
+#mailTime {
+    color: var(--color-text-secondary);
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+
+#mailContent {
+    color: var(--color-text);
+    line-height: 1.8;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 4px;
+}
+
+.mail-attachments {
+    padding: 15px;
+    background: rgba(212, 175, 55, 0.1);
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.mail-attachments h3 {
+    color: var(--color-gold);
+    margin-bottom: 10px;
+}
+
+.attachment-item {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    margin-right: 10px;
+    margin-bottom: 10px;
+    color: var(--color-text);
+    font-size: 13px;
+}
+
+#collectAttachmentsBtn {
+    width: 100%;
+    padding: 12px;
+    background: var(--color-gold);
+    border: none;
+    border-radius: 4px;
+    color: var(--color-primary);
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#collectAttachmentsBtn:hover {
+    opacity: 0.8;
+    transform: translateY(-2px);
+}
+
+#collectAttachmentsBtn:disabled {
+    background: rgba(255, 255, 255, 0.1);
+    cursor: not-allowed;
+    transform: none;
+}

@@ -9,7 +9,13 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * 签到记录 Mapper
+ * 签到记录数据访问层
+ *
+ * <p>提供签到记录的CRUD操作，继承MyBatis-Plus的BaseMapper。</p>
+ *
+ * @author xiuxian-game-team
+ * @version 1.0.0
+ * @since 2024-12-09
  */
 @Mapper
 public interface PlayerCheckInMapper extends BaseMapper<PlayerCheckIn> {

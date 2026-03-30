@@ -1,0 +1,63 @@
+<section id="player-section" class="module-section">
+    <div class="player-module">
+        <!-- 玩家基本信息 -->
+        <div class="player-info-card">
+            <div class="player-avatar">
+                <img src="/images/players/default.png" alt="玩家头像">
+            </div>
+            <div class="player-basic">
+                <h3 id="playerName">玩家名称</h3>
+                <div class="player-level">Lv.<span id="playerLevel">1</span></div>
+                <div class="player-realm">境界: <span id="playerRealm">练气</span></div>
+            </div>
+        </div>
+
+        <!-- 属性面板 -->
+        <div class="player-stats">
+            <h4>属性</h4>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-label">生命值</span>
+                    <span class="stat-value" id="playerHealth">100/100</span>
+                    <div class="stat-bar">
+                        <div class="stat-fill" id="healthBar" style="width: 100%"></div>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">攻击力</span>
+                    <span class="stat-value" id="playerAttack">10</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">防御力</span>
+                    <span class="stat-value" id="playerDefense">5</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">速度</span>
+                    <span class="stat-value" id="playerSpeed">10</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 资源面板 -->
+        <div class="player-resources">
+            <h4>资源</h4>
+            <div class="resource-item">
+                <span class="resource-icon">💰</span>
+                <span class="resource-name">灵石</span>
+                <span class="resource-value" id="spiritStones">0</span>
+            </div>
+            <div class="resource-item">
+                <span class="resource-icon">⚔️</span>
+                <span class="resource-name">经验</span>
+                <span class="resource-value" id="experience">0</span>
+            </div>
+        </div>
+
+        <!-- 设置 -->
+        <div class="player-settings">
+            <h4>设置</h4>
+            <button class="btn btn-primary" id="updatePlayerBtn">更新信息</button>
+            <button class="btn btn-secondary" id="logoutBtn">退出登录</button>
+        </div>
+    </div>
+</section>

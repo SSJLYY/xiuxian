@@ -1,0 +1,260 @@
+/**
+ * CSS样式重置
+ * 统一浏览器默认样式
+ */
+
+/* 盒模型 */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+/* 移除默认margin和padding */
+* {
+    margin: 0;
+    padding: 0;
+}
+
+/* HTML和Body */
+html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+        'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    color: var(--color-text);
+    background-color: var(--color-bg);
+    font-feature-settings: 'tnum';
+    font-variant: tabular-nums;
+}
+
+/* 标题 */
+h1, h2, h3, h4, h5, h6 {
+    margin: 0;
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.2;
+    color: inherit;
+}
+
+h1 { font-size: var(--font-size-3xl); }
+h2 { font-size: var(--font-size-2xl); }
+h3 { font-size: var(--font-size-xl); }
+h4 { font-size: var(--font-size-lg); }
+h5 { font-size: var(--font-size-md); }
+h6 { font-size: var(--font-size-sm); }
+
+/* 段落 */
+p {
+    margin: 0;
+}
+
+/* 链接 */
+a {
+    color: var(--color-info);
+    text-decoration: none;
+    background-color: transparent;
+    cursor: pointer;
+    transition: color var(--transition-base);
+}
+
+a:hover {
+    color: var(--color-info-light);
+}
+
+a:active {
+    color: var(--color-info-dark);
+}
+
+/* 列表 */
+ul, ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* 图片 */
+img {
+    max-width: 100%;
+    height: auto;
+    border-style: none;
+    vertical-align: middle;
+}
+
+/* 表格 */
+table {
+    border-collapse: collapse;
+    border-spacing: 0;
+    text-indent: 0;
+}
+
+/* 按钮 */
+button {
+    margin: 0;
+    padding: 0;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    outline: none;
+    transition: all var(--transition-base);
+}
+
+/* 输入框 */
+input, textarea, select {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+    background-color: transparent;
+    border: 1px solid var(--color-border);
+    outline: none;
+}
+
+input:focus, textarea:focus, select:focus {
+    border-color: var(--color-info);
+}
+
+input::placeholder, textarea::placeholder {
+    color: var(--color-text-muted);
+}
+
+/* 表单元素 */
+fieldset {
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+legend {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+    margin-bottom: 0.5rem;
+    font-size: 1.5rem;
+    line-height: inherit;
+    color: inherit;
+    white-space: normal;
+}
+
+/* 标签 */
+label {
+    display: inline-block;
+    margin-bottom: 0.5rem;
+    font-weight: var(--font-weight-medium);
+}
+
+/* 代码 */
+code, kbd, pre, samp {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 1em;
+}
+
+code {
+    padding: 0.2em 0.4em;
+    margin: 0;
+    font-size: 85%;
+    background-color: rgba(27, 31, 35, 0.05);
+    border-radius: 3px;
+}
+
+pre {
+    display: block;
+    padding: 1em;
+    margin: 0 0 1em;
+    font-size: 0.875em;
+    color: var(--color-text);
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: auto;
+}
+
+/* 引用 */
+blockquote {
+    margin: 0 0 1rem;
+    padding: 0.5em 1em;
+    border-left: 4px solid var(--color-border);
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text-muted);
+}
+
+/* 分隔线 */
+hr {
+    margin: var(--spacing-lg) 0;
+    border: 0;
+    border-top: 1px solid var(--color-border);
+}
+
+/* 滚动条 */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--color-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--color-border-light);
+    border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-muted);
+}
+
+/* 选择文本 */
+::selection {
+    background: var(--color-info);
+    color: #fff;
+}
+
+::-moz-selection {
+    background: var(--color-info);
+    color: #fff;
+}
+
+/* 移除移动端点击高亮 */
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* 禁用文本选择 */
+.no-select {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+/* 清除浮动 */
+.clearfix::after {
+    content: '';
+    display: table;
+    clear: both;
+}
+
+/* 隐藏元素 */
+.hidden {
+    display: none !important;
+}
+
+/* 可见元素 */
+.visible {
+    visibility: visible !important;
+}
+
+/* 不可见元素 */
+.invisible {
+    visibility: hidden !important;
+}

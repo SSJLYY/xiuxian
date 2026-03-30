@@ -23,6 +23,23 @@ import java.util.List;
 
 /**
  * 宗门服务类
+ *
+ * <p>提供宗门管理功能，包括宗门创建、加入、退出、捐献等</p>
+ *
+ * <p>主要功能：</p>
+ * <ul>
+ *   <li>创建宗门 - 玩家创建新的宗门，成为宗门门主</li>
+ *   <li>申请加入 - 玩家申请加入宗门</li>
+ *   <li>处理申请 - 宗门管理员审批加入申请</li>
+ *   <li>退出宗门 - 玩家退出当前宗门</li>
+ *   <li>宗门捐献 - 玩家向宗门捐献灵石</li>
+ *   <li>获取宗门列表 - 分页获取所有宗门</li>
+ *   <li>获取宗门详情 - 获取指定宗门的详细信息</li>
+ * </ul>
+ *
+ * @author xiuxian-game-team
+ * @version 1.0.0
+ * @since 2024-01-01
  */
 @Service
 @RequiredArgsConstructor
@@ -36,6 +53,21 @@ public class GuildService {
 
     /**
      * 创建宗门
+     *
+     * <p>玩家创建新的宗门，成为宗门门主</p>
+     *
+     * <p>创建流程：</p>
+     * <ol>
+     *   <li>校验宗门创建参数</li>
+     *   <li>校验玩家状态并扣除创建费用</li>
+     *   <li>创建宗门实体</li>
+     *   <li>添加创建者为宗主</li>
+     * </ol>
+     *
+     * @param playerId 玩家ID
+     * @param guildName 宗门名称
+     * @param description 宗门描述
+     * @throws BusinessException 当参数错误、玩家状态异常或费用不足时抛出
      */
     @Transactional(rollbackFor = Exception.class)
     public void createGuild(Integer playerId, String guildName, String description) {
@@ -59,6 +91,13 @@ public class GuildService {
     
     /**
      * 校验宗门创建参数
+     *
+     * <p>校验宗门名称、描述等参数是否合法</p>
+     *
+     * @param playerId 玩家ID
+     * @param guildName 宗门名称
+     * @param description 宗门描述
+     * @throws BusinessException 当参数不合法时抛出
      */
     private void validateGuildCreation(Integer playerId, String guildName, String description) {
         if (guildName == null || guildName.trim().isEmpty()) {
@@ -86,6 +125,12 @@ public class GuildService {
     
     /**
      * 校验玩家状态并扣除创建费用
+     *
+     * <p>校验玩家等级是否满足要求，并扣除创建宗门所需的灵石</p>
+     *
+     * @param playerId 玩家ID
+     * @return 玩家档案
+     * @throws BusinessException 当玩家不存在、等级不足或灵石不足时抛出
      */
     private PlayerProfile validatePlayerAndDeductFee(Integer playerId) {
         PlayerProfile profile = playerService.getPlayerProfileById(playerId);
@@ -106,6 +151,13 @@ public class GuildService {
     
     /**
      * 构建宗门实体
+     *
+     * <p>根据传入的参数构建宗门实体对象</p>
+     *
+     * @param guildName 宗门名称
+     * @param description 宗门描述
+     * @param playerId 创建者ID
+     * @return 宗门实体
      */
     private Guild buildGuildEntity(String guildName, String description, Integer playerId) {
         Guild guild = new Guild();
@@ -125,6 +177,11 @@ public class GuildService {
     
     /**
      * 添加创建者为宗主
+     *
+     * <p>将创建者添加为宗门的宗主</p>
+     *
+     * @param guildId 宗门ID
+     * @param playerId 创建者ID
      */
     private void addGuildLeader(Integer guildId, Integer playerId) {
         GuildMember member = new GuildMember();
@@ -138,8 +195,12 @@ public class GuildService {
 
     /**
      * 申请加入宗门
+     *
+     * <p>玩家申请加入指定宗门，需要宗门管理员审批</p>
+     *
      * @param playerId 玩家ID
      * @param guildId 宗门ID
+     * @throws BusinessException 当玩家已申请、等级不足或宗门不存在时抛出
      */
     @Transactional(rollbackFor = Exception.class)
     public void applyToGuild(Integer playerId, Long guildId) {
@@ -180,10 +241,26 @@ public class GuildService {
 
     /**
      * 处理宗门申请
+     *
+     * <p>宗门管理员审批玩家的加入申请</p>
+     *
+     * <p>处理流程：</p>
+     * <ol>
+     *   <li>校验申请是否存在</li>
+     *   <li>校验申请状态</li>
+     *   <li>校验处理者权限</li>
+     *   <li>如果批准，添加成员并增加成员计数</li>
+     *   <li>如果拒绝，更新申请状态</li>
+     * </ol>
+     *
+     * @param applicationId 申请ID
+     * @param handlerId 处理者ID
+     * @param approved 是否批准
+     * @throws BusinessException 当申请不存在、已处理或权限不足时抛出
      */
     @Transactional(rollbackFor = Exception.class)
     public void handleApplication(Long applicationId, Integer handlerId, boolean approved) {
-        log.info("处理宗门申请: applicationId={}, handlerId={}, approved={}", 
+        log.info("处理宗门申请: applicationId={}, handlerId={}, approved={}",
                 applicationId, handlerId, approved);
         
         GuildApplication application = guildApplicationMapper.selectById(applicationId);
@@ -244,6 +321,19 @@ public class GuildService {
 
     /**
      * 退出宗门
+     *
+     * <p>玩家退出当前所在的宗门</p>
+     *
+     * <p>退出流程：</p>
+     * <ol>
+     *   <li>校验玩家是否为宗门成员</li>
+     *   <li>校验玩家是否为宗主（宗主不能退出）</li>
+     *   <li>删除成员记录</li>
+     *   <li>减少宗门成员计数</li>
+     * </ol>
+     *
+     * @param playerId 玩家ID
+     * @throws BusinessException 当玩家不是宗门成员或为宗主时抛出
      */
     @Transactional(rollbackFor = Exception.class)
     public void leaveGuild(Integer playerId) {
@@ -271,6 +361,20 @@ public class GuildService {
 
     /**
      * 宗门捐献
+     *
+     * <p>玩家向宗门捐献灵石，增加宗门资金和玩家贡献</p>
+     *
+     * <p>捐献流程：</p>
+     * <ol>
+     *   <li>校验玩家是否为宗门成员</li>
+     *   <li>扣除玩家灵石</li>
+     *   <li>增加宗门资金</li>
+     *   <li>增加玩家贡献</li>
+     * </ol>
+     *
+     * @param playerId 玩家ID
+     * @param amount 捐献金额
+     * @throws BusinessException 当玩家不是宗门成员或灵石不足时抛出
      */
     @Transactional(rollbackFor = Exception.class)
     public void donate(Integer playerId, Integer amount) {
@@ -304,6 +408,12 @@ public class GuildService {
 
     /**
      * 获取宗门列表
+     *
+     * <p>分页获取所有宗门列表，按等级和经验降序排列</p>
+     *
+     * @param page 页码
+     * @param size 每页数量
+     * @return 宗门分页列表
      */
     public IPage<Guild> getGuildList(int page, int size) {
         IPage<Guild> pageObj = PageUtil.createPage(page, size);
@@ -315,6 +425,12 @@ public class GuildService {
 
     /**
      * 获取宗门详情
+     *
+     * <p>获取指定宗门的详细信息</p>
+     *
+     * @param guildId 宗门ID
+     * @return 宗门信息
+     * @throws BusinessException 当宗门不存在时抛出
      */
     public Guild getGuildById(Long guildId) {
         Guild guild = guildMapper.selectById(guildId);
@@ -326,6 +442,11 @@ public class GuildService {
 
     /**
      * 获取宗门成员列表
+     *
+     * <p>获取指定宗门的所有成员列表，按贡献降序排列</p>
+     *
+     * @param guildId 宗门ID
+     * @return 成员列表
      */
     public List<GuildMember> getGuildMembers(Long guildId) {
         return guildMemberMapper.selectList(
@@ -336,6 +457,11 @@ public class GuildService {
 
     /**
      * 获取玩家的宗门信息
+     *
+     * <p>获取当前玩家所在的宗门信息</p>
+     *
+     * @param playerId 玩家ID
+     * @return 宗门信息，如果玩家不在任何宗门则返回null
      */
     public Guild getPlayerGuild(Integer playerId) {
         GuildMember member = guildMemberMapper.selectOne(

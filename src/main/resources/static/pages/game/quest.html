@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任务系统 - 修仙挂机游戏</title>
+    <link rel="stylesheet" href="/css/core/variables.css">
+    <link rel="stylesheet" href="/css/core/reset.css">
+    <link rel="stylesheet" href="/css/core/base.css">
+    <link rel="stylesheet" href="/css/components/toast.css">
+    <link rel="stylesheet" href="/css/modules/game.css">
+    <link rel="stylesheet" href="/css/modules/quest.css">
+</head>
+<body>
+    <div id="app">
+        <div class="game-container">
+            <nav class="game-nav">
+                <a href="#player" class="nav-link">玩家</a>
+                <a href="#quest" class="nav-link active">任务</a>
+                <a href="#cultivate" class="nav-link">修炼</a>
+                <a href="#combat" class="nav-link">战斗</a>
+            </nav>
+
+            <main class="game-main">
+                <div class="quest-page">
+                    <h1 class="page-title">任务系统</h1>
+                    
+                    <div class="quest-content">
+                        <div class="quest-tabs">
+                            <button class="tab-btn active" data-tab="active-quests">进行中</button>
+                            <button class="tab-btn" data-tab="available-quests">可接取</button>
+                            <button class="tab-btn" data-tab="completed-quests">已完成</button>
+                        </div>
+
+                        <div class="quest-list" id="questList">
+                            <div class="loading">加载任务中...</div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script type="module">
+        import { App } from '/js/App.js';
+        const app = new App();
+        app.init();
+        import('/js/modules/quest/index.js').then(module => {
+            module.questUI.init();
+        });
+    </script>
+</body>
+</html>

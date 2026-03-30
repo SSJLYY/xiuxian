@@ -1,0 +1,101 @@
+/**
+ * VIP模块样式
+ */
+
+.vip-page {
+    padding: 20px;
+}
+
+.vip-content {
+    background: var(--color-primary);
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.vip-status {
+    padding: 20px;
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(212, 175, 55, 0.05));
+    border: 2px solid var(--color-gold);
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.vip-status h2 {
+    color: var(--color-gold);
+    margin-bottom: 15px;
+}
+
+.vip-status p {
+    color: var(--color-text);
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+#currentLevel {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+#totalRecharge {
+    color: var(--color-aqua);
+    font-weight: bold;
+}
+
+.vip-levels {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.vip-level-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.vip-level-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--color-gold);
+    transform: translateY(-2px);
+}
+
+.vip-level-item.active {
+    border-color: var(--color-gold);
+    background: rgba(212, 175, 55, 0.1);
+}
+
+.vip-level-item h3 {
+    color: var(--color-gold);
+    font-size: 20px;
+    margin-bottom: 10px;
+}
+
+.vip-level-item p {
+    color: var(--color-text);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.vip-privilege {
+    display: flex;
+    align-items: center;
+    margin-top: 5px;
+    padding: 5px 0;
+    color: var(--color-text);
+    font-size: 12px;
+}
+
+.vip-privilege::before {
+    content: "✓";
+    color: var(--color-aqua);
+    margin-right: 8px;
+    font-weight: bold;
+}
+
+.vip-privilege.locked::before {
+    content: "✗";
+    color: #ef4444;
+}

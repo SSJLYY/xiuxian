@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VIP系统 - 修仙挂机游戏</title>
+    <link rel="stylesheet" href="/css/core/variables.css">
+    <link rel="stylesheet" href="/css/core/reset.css">
+    <link rel="stylesheet" href="/css/core/base.css">
+    <link rel="stylesheet" href="/css/components/toast.css">
+    <link rel="stylesheet" href="/css/modules/game.css">
+    <link rel="stylesheet" href="/css/modules/vip.css">
+</head>
+<body>
+    <div id="app">
+        <div class="game-container">
+            <nav class="game-nav">
+                <a href="#player" class="nav-link">玩家</a>
+                <a href="#vip" class="nav-link active">VIP</a>
+                <a href="#cultivate" class="nav-link">修炼</a>
+            </nav>
+
+            <main class="game-main">
+                <div class="vip-page">
+                    <h1 class="page-title">VIP特权</h1>
+                    
+                    <div class="vip-content">
+                        <div class="vip-status">
+                            <h2>当前等级: <span id="currentLevel">VIP 0</span></h2>
+                            <p>累计充值: <span id="totalRecharge">0</span> 灵石</p>
+                        </div>
+
+                        <div class="vip-levels" id="vipLevels">
+                            <div class="vip-level-item" data-level="1">
+                                <h3>VIP 1</h3>
+                                <p>特权内容...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script type="module">
+        import { App } from '/js/App.js';
+        const app = new App();
+        app.init();
+        import('/js/modules/vip/index.js').then(module => {
+            module.vipUI.init();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+/**
+ * 兑换码模块样式
+ */
+
+.giftcode-page {
+    padding: 20px;
+}
+
+.giftcode-content {
+    background: var(--color-primary);
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.giftcode-input {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+#giftcodeInput {
+    flex: 1;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    color: var(--color-text);
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+#giftcodeInput:focus {
+    outline: none;
+    border-color: var(--color-gold);
+}
+
+#giftcodeInput::placeholder {
+    color: var(--color-text-secondary);
+}
+
+#redeemBtn {
+    padding: 12px 24px;
+    background: var(--color-gold);
+    border: none;
+    border-radius: 4px;
+    color: var(--color-primary);
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#redeemBtn:hover {
+    opacity: 0.8;
+    transform: translateY(-2px);
+}
+
+#redeemBtn:disabled {
+    background: rgba(255, 255, 255, 0.1);
+    cursor: not-allowed;
+    transform: none;
+}
+
+.giftcode-history {
+    margin-top: 30px;
+}
+
+.giftcode-history h2 {
+    color: var(--color-gold);
+    margin-bottom: 15px;
+}
+
+#giftcodeHistory p {
+    color: var(--color-text);
+    text-align: center;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 4px;
+}
+
+.giftcode-record {
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.giftcode-record-code {
+    color: var(--color-text);
+    font-weight: bold;
+    margin-right: 15px;
+}
+
+.giftcode-record-status {
+    color: var(--color-text-secondary);
+    font-size: 13px;
+}
+
+.giftcode-record-status.success {
+    color: #4ade80;
+}
+
+.giftcode-record-status.expired {
+    color: #ef4444;
+}
+
+.giftcode-record-time {
+    color: var(--color-text-secondary);
+    font-size: 12px;
+}

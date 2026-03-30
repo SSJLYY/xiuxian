@@ -1,0 +1,129 @@
+/**
+ * 地图模块样式
+ */
+
+.map-page {
+    padding: 20px;
+}
+
+.map-content {
+    background: var(--color-primary);
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.map-regions {
+    display: grid;
+    gap: 15px;
+}
+
+.map-region {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.map-region:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--color-gold);
+    transform: translateY(-2px);
+}
+
+.map-region.locked {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.map-region-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+.region-name {
+    color: var(--color-text);
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.region-level {
+    color: var(--color-aqua);
+    font-size: 14px;
+    padding: 4px 8px;
+    background: rgba(127, 255, 212, 0.2);
+    border-radius: 4px;
+}
+
+.region-desc {
+    color: var(--color-text);
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+
+.region-monsters {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.region-monsters-title {
+    color: var(--color-gold);
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.monster-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.monster-tag {
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    color: var(--color-text);
+    font-size: 13px;
+}
+
+.map-nodes {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+    justify-content: center;
+}
+
+.map-node {
+    width: 80px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.map-node:hover {
+    border-color: var(--color-gold);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.map-node.current {
+    border-color: var(--color-aqua);
+    background: rgba(127, 255, 212, 0.2);
+}
+
+.map-node.locked {
+    opacity: 0.3;
+    cursor: not-allowed;
+}

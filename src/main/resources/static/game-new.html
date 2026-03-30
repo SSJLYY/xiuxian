@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>xiuxian挂机游戏 - 新架构</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- CSS - 按顺序引入 -->
+    <link rel="stylesheet" href="css/core/variables.css">
+    <link rel="stylesheet" href="css/core/reset.css">
+    <link rel="stylesheet" href="css/core/base.css">
+    <link rel="stylesheet" href="css/components/modal.css">
+    <link rel="stylesheet" href="css/components/toast.css">
+    <link rel="stylesheet" href="css/components/loading.css">
+    <link rel="stylesheet" href="css/modern-style.css">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+
+    <style>
+        /* 新架构特定样式 */
+        .game-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .game-sidebar {
+            width: 250px;
+            background: var(--color-primary);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .game-main {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--color-text);
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-item.active {
+            background: var(--color-gold);
+            color: var(--color-primary);
+        }
+
+        .player-info-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .player-info-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .player-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--color-gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .player-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--color-gold);
+        }
+
+        .player-level {
+            font-size: 14px;
+            color: var(--color-text);
+        }
+
+        .player-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .game-container {
+                flex-direction: column;
+            }
+
+            .game-sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Toast容器 -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- 游戏主容器 -->
+    <div class="game-container">
+        <!-- 侧边栏 -->
+        <nav class="game-sidebar">
+            <div class="player-info-card">
+                <div class="player-info-header">
+                    <div class="player-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div>
+                        <div class="player-name" id="playerName">加载中...</div>
+                        <div class="player-level">等级: <span id="playerLevel">-</span></div>
+                    </div>
+                </div>
+                <div class="player-stats">
+                    <div class="stat-item">
+                        <div class="stat-label">境界</div>
+                        <div class="stat-value" id="playerRealm">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">灵石</div>
+                        <div class="stat-value" id="playerSpiritStones">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="nav-list">
+                <div class="nav-item active" data-module="dashboard">
+                    <i class="fas fa-spa"></i> 修炼
+                </div>
+                <div class="nav-item" data-module="combat">
+                    <i class="fas fa-crosshairs"></i> 战斗
+                </div>
+                <div class="nav-item" data-module="inventory">
+                    <i class="fas fa-backpack"></i> 背包
+                </div>
+                <div class="nav-item" data-module="equipment">
+                    <i class="fas fa-shield-alt"></i> 装备
+                </div>
+                <div class="nav-item" data-module="skills">
+                    <i class="fas fa-magic"></i> 技能
+                </div>
+                <div class="nav-item" data-module="pets">
+                    <i class="fas fa-paw"></i> 宠物
+                </div>
+                <div class="nav-item" data-module="quests">
+                    <i class="fas fa-tasks"></i> 任务
+                </div>
+                <div class="nav-item" data-module="shop">
+                    <i class="fas fa-store"></i> 商城
+                </div>
+                <div class="nav-item" data-module="guild">
+                    <i class="fas fa-users"></i> 宗门
+                </div>
+            </div>
+        </nav>
+
+        <!-- 主内容区 -->
+        <main class="game-main">
+            <!-- 仪表盘模块 -->
+            <div id="dashboard-module" class="module active">
+                <h2>修炼面板</h2>
+                <div class="cultivation-panel">
+                    <div class="cultivation-status">
+                        <p>当前境界: <span id="cultivationRealm">练气期</span></p>
+                        <p>修炼时间: <span id="cultivationTime">0秒</span></p>
+                        <p>获得经验: <span id="cultivationExp">0</span></p>
+                    </div>
+                    <button id="cultivation-btn" class="btn btn-success">
+                        <i class="fas fa-play"></i> 开始修炼
+                    </button>
+                </div>
+            </div>
+
+            <!-- 战斗模块 -->
+            <div id="combat-module" class="module" style="display: none;">
+                <h2>战斗系统</h2>
+                <p>战斗功能开发中...</p>
+            </div>
+
+            <!-- 背包模块 -->
+            <div id="inventory-module" class="module" style="display: none;">
+                <h2>背包系统</h2>
+                <p>背包功能开发中...</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- JavaScript - 使用ES6模块 -->
+    <script type="module">
+        // 导入核心模块
+        import { app } from './js/App.js';
+        import { toast } from './js/components/Toast.js';
+        import { Modal } from './js/components/Modal.js';
+        import { loading } from './js/components/Loading.js';
+        import { playerService } from './js/modules/player/index.js';
+
+        // 应用初始化
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('=== 新架构游戏页面初始化 ===');
+
+            try {
+                // 初始化应用
+                await app.init();
+
+                // 加载玩家信息
+                await loadPlayerInfo();
+
+                // 绑定事件
+                bindEvents();
+
+                // 显示欢迎消息
+                toast.success('欢迎回来,开始你的修仙之旅吧!');
+
+            } catch (error) {
+                console.error('页面初始化失败:', error);
+                toast.error('页面初始化失败,请刷新页面重试');
+            }
+        });
+
+        // 加载玩家信息
+        async function loadPlayerInfo() {
+            try {
+                loading.showPage('加载中...');
+
+                const player = await playerService.getCurrentPlayer();
+                const displayData = playerService.formatPlayerInfo(player);
+
+                // 更新UI
+                document.getElementById('playerName').textContent = displayData.name;
+                document.getElementById('playerLevel').textContent = displayData.level;
+                document.getElementById('playerRealm').textContent = displayData.realm;
+                document.getElementById('playerSpiritStones').textContent = displayData.spiritStones;
+
+            } catch (error) {
+                console.error('加载玩家信息失败:', error);
+                toast.error('加载玩家信息失败');
+            } finally {
+                loading.hidePage();
+            }
+        }
+
+        // 绑定事件
+        function bindEvents() {
+            // 导航切换
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    // 更新导航状态
+                    navItems.forEach(nav => nav.classList.remove('active'));
+                    item.classList.add('active');
+
+                    // 切换模块
+                    const moduleName = item.dataset.module;
+                    switchModule(moduleName);
+                });
+            });
+
+            // 修炼按钮
+            const cultivationBtn = document.getElementById('cultivation-btn');
+            cultivationBtn?.addEventListener('click', toggleCultivation);
+        }
+
+        // 切换模块
+        function switchModule(moduleName) {
+            // 隐藏所有模块
+            document.querySelectorAll('.module').forEach(module => {
+                module.style.display = 'none';
+                module.classList.remove('active');
+            });
+
+            // 显示目标模块
+            const targetModule = document.getElementById(`${moduleName}-module`);
+            if (targetModule) {
+                targetModule.style.display = 'block';
+                targetModule.classList.add('active');
+            }
+        }
+
+        // 修炼功能
+        let isCultivating = false;
+        let cultivationTimer = null;
+        let cultivationSeconds = 0;
+
+        async function toggleCultivation() {
+            const btn = document.getElementById('cultivation-btn');
+
+            if (isCultivating) {
+                // 停止修炼
+                isCultivating = false;
+                clearInterval(cultivationTimer);
+                btn.innerHTML = '<i class="fas fa-play"></i> 开始修炼';
+                btn.className = 'btn btn-success';
+                toast.info('修炼已停止');
+            } else {
+                // 开始修炼
+                isCultivating = true;
+                cultivationSeconds = 0;
+                btn.innerHTML = '<i class="fas fa-pause"></i> 停止修炼';
+                btn.className = 'btn btn-danger';
+
+                // 启动计时器
+                cultivationTimer = setInterval(() => {
+                    cultivationSeconds++;
+                    updateCultivationDisplay();
+                }, 1000);
+
+                toast.success('修炼开始');
+            }
+        }
+
+        // 更新修炼显示
+        function updateCultivationDisplay() {
+            const hours = Math.floor(cultivationSeconds / 3600);
+            const minutes = Math.floor((cultivationSeconds % 3600) / 60);
+            const seconds = cultivationSeconds % 60;
+
+            document.getElementById('cultivationTime').textContent =
+                `${hours}小时${minutes}分钟${seconds}秒`;
+
+            // 模拟获得经验
+            const exp = Math.floor(cultivationSeconds * 1.5);
+            document.getElementById('cultivationExp').textContent = exp;
+        }
+
+        // 导出到全局(便于调试)
+        window.gameApp = {
+            loadPlayerInfo,
+            switchModule,
+            toggleCultivation
+        };
+
+        console.log('=== 新架构游戏页面加载完成 ===');
+    </script>
+</body>
+</html>

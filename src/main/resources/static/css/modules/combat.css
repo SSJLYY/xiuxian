@@ -1,0 +1,75 @@
+/**
+ * 战斗模块样式
+ */
+
+.combat-page {
+    padding: 20px;
+}
+
+.combat-content {
+    display: grid;
+    gap: 20px;
+}
+
+.combat-section {
+    background: var(--color-primary);
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.combat-section h2 {
+    color: var(--color-gold);
+    margin-bottom: 15px;
+}
+
+.monster-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.monster-card {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.monster-card:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+.monster-name {
+    color: var(--color-text);
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.monster-level {
+    color: var(--color-aqua);
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.combat-history {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.combat-record {
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.combat-record.win {
+    border-left: 3px solid #4ade80;
+}
+
+.combat-record.lose {
+    border-left: 3px solid #ef4444;
+}

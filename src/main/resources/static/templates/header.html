@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>修仙挂机游戏</title>
+    
+    <!-- 核心CSS -->
+    <link rel="stylesheet" href="/css/core/variables.css">
+    <link rel="stylesheet" href="/css/core/reset.css">
+    <link rel="stylesheet" href="/css/core/base.css">
+    
+    <!-- 组件CSS -->
+    <link rel="stylesheet" href="/css/components/modal.css">
+    <link rel="stylesheet" href="/css/components/toast.css">
+    <link rel="stylesheet" href="/css/components/loading.css">
+    
+    <!-- 游戏主CSS -->
+    <link rel="stylesheet" href="/css/modules/game.css">
+    
+    <!-- 页面特定CSS (由页面动态加载) -->
+    <link rel="stylesheet" id="pageStylesheet" href="">
+</head>
+<body>
+    <div id="app">
+        <!-- 顶部导航栏 -->
+        <header class="game-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1 class="game-title">修仙挂机</h1>
+                </div>
+                
+                <div class="header-right">
+                    <!-- 玩家信息 -->
+                    <div class="player-info">
+                        <span class="player-name" id="headerPlayerName">加载中...</span>
+                        <span class="player-level" id="headerPlayerLevel">Lv.1</span>
+                    </div>
+                    
+                    <!-- 资源信息 -->
+                    <div class="resources">
+                        <div class="resource-item">
+                            <span class="resource-icon">💎</span>
+                            <span class="resource-value" id="headerCoins">0</span>
+                        </div>
+                        <div class="resource-item">
+                            <span class="resource-icon">🌟</span>
+                            <span class="resource-value" id="headerExp">0</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 操作按钮 -->
+                    <div class="header-actions">
+                        <button class="header-btn" id="logoutBtn" title="退出登录">
+                            🚪
+                        </button>
+                        <button class="header-btn" id="settingsBtn" title="设置">
+                            ⚙️
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主要内容区域 -->
+        <div class="main-container">
+            <!-- 左侧导航栏 -->
+            <nav class="side-nav">
+                <a href="#player" class="nav-item active" data-page="player">
+                    <span class="nav-icon">👤</span>
+                    <span class="nav-text">玩家</span>
+                </a>
+                <a href="#cultivate" class="nav-item" data-page="cultivate">
+                    <span class="nav-icon">🧘</span>
+                    <span class="nav-text">修炼</span>
+                </a>
+                <a href="#combat" class="nav-item" data-page="combat">
+                    <span class="nav-icon">⚔️</span>
+                    <span class="nav-text">战斗</span>
+                </a>
+                <a href="#inventory" class="nav-item" data-page="inventory">
+                    <span class="nav-icon">🎒</span>
+                    <span class="nav-text">背包</span>
+                </a>
+                <a href="#equipment" class="nav-item" data-page="equipment">
+                    <span class="nav-icon">🛡️</span>
+                    <span class="nav-text">装备</span>
+                </a>
+                <a href="#skills" class="nav-item" data-page="skills">
+                    <span class="nav-icon">✨</span>
+                    <span class="nav-text">技能</span>
+                </a>
+                <a href="#pets" class="nav-item" data-page="pets">
+                    <span class="nav-icon">🐾</span>
+                    <span class="nav-text">宠物</span>
+                </a>
+                <a href="#map" class="nav-item" data-page="map">
+                    <span class="nav-icon">🗺️</span>
+                    <span class="nav-text">地图</span>
+                </a>
+                <div class="nav-divider"></div>
+                <a href="#quest" class="nav-item" data-page="quest">
+                    <span class="nav-icon">📜</span>
+                    <span class="nav-text">任务</span>
+                </a>
+                <a href="#guild" class="nav-item" data-page="guild">
+                    <span class="nav-icon">🏛️</span>
+                    <span class="nav-text">宗门</span>
+                </a>
+                <a href="#auction" class="nav-item" data-page="auction">
+                    <span class="nav-icon">🏪</span>
+                    <span class="nav-text">拍卖</span>
+                </a>
+                <a href="#shop" class="nav-item" data-page="shop">
+                    <span class="nav-icon">🛒</span>
+                    <span class="nav-text">商城</span>
+                </a>
+                <div class="nav-divider"></div>
+                <a href="#ranking" class="nav-item" data-page="ranking">
+                    <span class="nav-icon">🏆</span>
+                    <span class="nav-text">排行</span>
+                </a>
+                <a href="#achievement" class="nav-item" data-page="achievement">
+                    <span class="nav-icon">🎖️</span>
+                    <span class="nav-text">成就</span>
+                </a>
+                <a href="#activity" class="nav-item" data-page="activity">
+                    <span class="nav-icon">🎉</span>
+                    <span class="nav-text">活动</span>
+                </a>
+                <a href="#checkin" class="nav-item" data-page="checkin">
+                    <span class="nav-icon">📅</span>
+                    <span class="nav-text">签到</span>
+                </a>
+                <a href="#mail" class="nav-item" data-page="mail">
+                    <span class="nav-icon">📧</span>
+                    <span class="nav-text">邮件</span>
+                </a>
+                <a href="#giftcode" class="nav-item" data-page="giftcode">
+                    <span class="nav-icon">🎁</span>
+                    <span class="nav-text">兑换码</span>
+                </a>
+                <a href="#vip" class="nav-item" data-page="vip">
+                    <span class="nav-icon">👑</span>
+                    <span class="nav-text">VIP</span>
+                </a>
+            </nav>
+
+            <!-- 主内容区域 -->
+            <main class="main-content" id="mainContent">
+                <!-- 页面内容由路由动态加载 -->
+            </main>
+        </div>
+
+        <!-- 修炼状态栏 -->
+        <div class="cultivation-bar" id="cultivationBar">
+            <div class="cultivation-info">
+                <span class="cultivation-label">修炼中</span>
+                <span class="cultivation-realm" id="cultivationRealm">练气期1层</span>
+            </div>
+            <div class="cultivation-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="cultivationProgress" style="width: 0%"></div>
+                </div>
+                <span class="progress-text" id="cultivationText">0/100</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 全局组件容器 -->
+    <div id="toast-container"></div>
+    <div id="modal-container"></div>
+    <div id="loading-container"></div>
+
+    <!-- 脚本入口 -->
+    <script type="module" src="/js/main.js"></script>
+</body>
+</html>

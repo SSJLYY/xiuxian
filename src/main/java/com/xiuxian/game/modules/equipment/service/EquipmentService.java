@@ -25,6 +25,23 @@ import java.util.stream.Collectors;
 import com.xiuxian.game.common.exception.BusinessException;
 import com.xiuxian.game.common.exception.ErrorCode;
 
+/**
+ * 装备服务
+ *
+ * <p>提供装备管理的核心业务逻辑，包括：</p>
+ * <ul>
+ *   <li>装备查询（所有装备、可用装备、玩家装备）</li>
+ *   <li>装备穿戴与卸下</li>
+ *   <li>装备获取与强化</li>
+ *   <li>装备耐久度管理</li>
+ * </ul>
+ *
+ * <p>模块边界：通过PlayerService访问玩家数据，不直接操作玩家模块</p>
+ *
+ * @author xiuxian-game-team
+ * @version 1.0.0
+ * @since 2024-01-01
+ */
 @Service
 @ConditionalOnProperty(value = "app.features.equipment.enabled", havingValue = "true")
 @RequiredArgsConstructor
@@ -41,34 +58,77 @@ public class EquipmentService {
         return ThreadLocalRandom.current();
     }
 
+    /**
+     * 获取所有装备
+     *
+     * @return 所有装备列表
+     */
     public List<Equipment> getAllEquipments() {
-        return equipmentMapper.selectList(null);
+        log.debug("查询所有装备");
+        List<Equipment> equipments = equipmentMapper.selectList(null);
+        log.debug("查询到 {} 件装备", equipments.size());
+        return equipments;
     }
 
+    /**
+     * 获取玩家可用的装备
+     *
+     * <p>根据玩家等级筛选可穿戴的装备</p>
+     *
+     * @param playerId 玩家ID
+     * @return 可用装备列表
+     */
     public List<Equipment> getAvailableEquipments(Integer playerId) {
+        log.debug("查询玩家可用装备, playerId={}", playerId);
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
+            log.warn("玩家不存在, playerId={}", playerId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
-        return equipmentMapper.selectByRequiredLevel(player.getLevel());
+        List<Equipment> equipments = equipmentMapper.selectByRequiredLevel(player.getLevel());
+        log.debug("玩家 {} 可用装备数量: {}", playerId, equipments.size());
+        return equipments;
     }
 
+    /**
+     * 获取玩家拥有的所有装备
+     *
+     * @param playerId 玩家ID
+     * @return 玩家装备列表
+     */
     public List<PlayerEquipment> getPlayerEquipments(Integer playerId) {
+        log.debug("查询玩家装备, playerId={}", playerId);
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
+            log.warn("玩家不存在, playerId={}", playerId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
-        return playerEquipmentMapper.selectByPlayerId(playerId);
+        List<PlayerEquipment> playerEquipments = playerEquipmentMapper.selectByPlayerId(playerId);
+        log.debug("玩家 {} 拥有 {} 件装备", playerId, playerEquipments.size());
+        return playerEquipments;
     }
 
+    /**
+     * 获取玩家装备详情
+     *
+     * <p>返回包含装备模板信息的完整装备数据</p>
+     *
+     * @param playerId 玩家ID
+     * @return 玩家装备详情列表
+     */
     public List<PlayerEquipmentResponse> getPlayerEquipmentsWithDetails(Integer playerId) {
+        log.debug("查询玩家装备详情, playerId={}", playerId);
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
+            log.warn("玩家不存在, playerId={}", playerId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
         
         List<PlayerEquipment> playerEquipments = playerEquipmentMapper.selectByPlayerId(playerId);
-        if (playerEquipments.isEmpty()) return new ArrayList<>();
+        if (playerEquipments.isEmpty()) {
+            log.debug("玩家 {} 没有装备", playerId);
+            return new ArrayList<>();
+        }
 
         // 批量加载装备信息（避免N+1查询）
         List<Integer> equipmentIds = playerEquipments.stream()
@@ -88,22 +148,45 @@ public class EquipmentService {
         return responses;
     }
 
+    /**
+     * 获取玩家已穿戴的装备
+     *
+     * @param playerId 玩家ID
+     * @return 已穿戴装备列表
+     */
     public List<PlayerEquipment> getEquippedItems(Integer playerId) {
+        log.debug("查询玩家已穿戴装备, playerId={}", playerId);
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
+            log.warn("玩家不存在, playerId={}", playerId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
-        return playerEquipmentMapper.selectEquippedByPlayerId(playerId);
+        List<PlayerEquipment> equippedItems = playerEquipmentMapper.selectEquippedByPlayerId(playerId);
+        log.debug("玩家 {} 已穿戴 {} 件装备", playerId, equippedItems.size());
+        return equippedItems;
     }
 
+    /**
+     * 获取玩家已穿戴装备详情
+     *
+     * <p>返回包含装备模板信息的完整已穿戴装备数据</p>
+     *
+     * @param playerId 玩家ID
+     * @return 已穿戴装备详情列表
+     */
     public List<PlayerEquipmentResponse> getEquippedItemsWithDetails(Integer playerId) {
+        log.debug("查询玩家已穿戴装备详情, playerId={}", playerId);
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
+            log.warn("玩家不存在, playerId={}", playerId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
         
         List<PlayerEquipment> playerEquipments = playerEquipmentMapper.selectEquippedByPlayerId(playerId);
-        if (playerEquipments.isEmpty()) return new ArrayList<>();
+        if (playerEquipments.isEmpty()) {
+            log.debug("玩家 {} 没有穿戴装备", playerId);
+            return new ArrayList<>();
+        }
 
         // 批量加载装备信息（避免N+1查询）
         List<Integer> equipmentIds = playerEquipments.stream()
@@ -156,16 +239,28 @@ public class EquipmentService {
                 .build();
     }
 
+    /**
+     * 获取装备
+     *
+     * <p>玩家获取新装备，需要满足等级要求且未拥有该装备</p>
+     *
+     * @param equipmentId 装备ID
+     * @param playerId 玩家ID
+     * @return 获取的玩家装备
+     */
     @Transactional
     public PlayerEquipment acquireEquipment(Integer equipmentId, Integer playerId) {
+        log.info("玩家获取装备, playerId={}, equipmentId={}", playerId, equipmentId);
         try {
             PlayerProfile player = playerService.getPlayerProfileById(playerId);
             if (player == null) {
+                log.warn("玩家不存在, playerId={}", playerId);
                 throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
             }
 
             Equipment equipment = equipmentMapper.selectById(equipmentId);
             if (equipment == null) {
+                log.warn("装备不存在, equipmentId={}", equipmentId);
                 throw new BusinessException(ErrorCode.PARAM_ERROR, "装备不存在");
             }
 
@@ -203,10 +298,22 @@ public class EquipmentService {
         }
     }
 
+    /**
+     * 穿戴装备
+     *
+     * <p>将装备穿戴到指定槽位，如果槽位已有装备则自动卸下</p>
+     *
+     * @param playerEquipmentId 玩家装备ID
+     * @param slot 装备槽位
+     * @param playerId 玩家ID
+     * @return 更新后的玩家装备
+     */
     @Transactional
     public PlayerEquipment equipItem(Integer playerEquipmentId, String slot, Integer playerId) {
+        log.info("玩家穿戴装备, playerId={}, playerEquipmentId={}, slot={}", playerId, playerEquipmentId, slot);
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
+            log.warn("玩家不存在, playerId={}", playerId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
 
@@ -254,10 +361,19 @@ public class EquipmentService {
         return playerEquipmentMapper.selectById(playerEquipmentId);
     }
 
+    /**
+     * 卸下装备
+     *
+     * @param playerEquipmentId 玩家装备ID
+     * @param playerId 玩家ID
+     * @return 更新后的玩家装备
+     */
     @Transactional
     public PlayerEquipment unequipItem(Integer playerEquipmentId, Integer playerId) {
+        log.info("玩家卸下装备, playerId={}, playerEquipmentId={}", playerId, playerEquipmentId);
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
+            log.warn("玩家不存在, playerId={}", playerId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
 
@@ -287,10 +403,21 @@ public class EquipmentService {
         return playerEquipmentMapper.selectById(playerEquipmentId);
     }
 
+    /**
+     * 修复装备
+     *
+     * <p>将装备耐久度恢复到最大值</p>
+     *
+     * @param playerEquipmentId 玩家装备ID
+     * @param playerId 玩家ID
+     * @return 更新后的玩家装备
+     */
     @Transactional
     public PlayerEquipment repairEquipment(Integer playerEquipmentId, Integer playerId) {
+        log.info("玩家修复装备, playerId={}, playerEquipmentId={}", playerId, playerEquipmentId);
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
+            log.warn("玩家不存在, playerId={}", playerId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
 
@@ -334,10 +461,17 @@ public class EquipmentService {
     /**
      * 初始化默认装备
      */
+    /**
+     * 初始化默认装备
+     *
+     * <p>系统启动时创建基础装备数据</p>
+     */
     @Transactional
     public void initializeDefaultEquipments() {
+        log.info("初始化默认装备");
         long count = equipmentMapper.selectList(null).size();
         if (count == 0) {
+            log.info("创建默认装备数据");
             // 创建基础装备
             Equipment woodenSword = Equipment.builder()
                     .name("木剑")
@@ -381,10 +515,21 @@ public class EquipmentService {
     /**
      * 强化装备
      */
+    /**
+     * 强化装备
+     *
+     * <p>消耗灵石强化装备，提升装备属性</p>
+     *
+     * @param playerEquipmentId 玩家装备ID
+     * @param playerId 玩家ID
+     * @return 更新后的玩家装备
+     */
     @Transactional
     public PlayerEquipment enhanceEquipment(Integer playerEquipmentId, Integer playerId) {
+        log.info("玩家强化装备, playerId={}, playerEquipmentId={}", playerId, playerEquipmentId);
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
+            log.warn("玩家不存在, playerId={}", playerId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
 
@@ -454,9 +599,20 @@ public class EquipmentService {
     /**
      * 获取强化所需成本和成功率
      */
+    /**
+     * 获取强化信息
+     *
+     * <p>返回装备强化所需的成本和成功率</p>
+     *
+     * @param playerEquipmentId 玩家装备ID
+     * @param playerId 玩家ID
+     * @return 强化信息
+     */
     public Map<String, Object> getEnhanceInfo(Integer playerEquipmentId, Integer playerId) {
+        log.debug("查询强化信息, playerId={}, playerEquipmentId={}", playerId, playerEquipmentId);
         PlayerEquipment playerEquipment = playerEquipmentMapper.selectById(playerEquipmentId);
         if (playerEquipment == null || !playerEquipment.getPlayerId().equals(playerId)) {
+            log.warn("装备不存在或无权访问, playerEquipmentId={}, playerId={}", playerEquipmentId, playerId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "装备不存在或无权访问");
         }
 
@@ -480,14 +636,26 @@ public class EquipmentService {
      * 直接发放装备给玩家（不做等级和重复校验，供邮件/活动奖励使用）
      * 模块边界：mail模块通过此接口为玩家发放装备，不直接操作PlayerEquipmentMapper
      */
+    /**
+     * 直接发放装备给玩家
+     *
+     * <p>不做等级和重复校验，供邮件/活动奖励使用</p>
+     * <p>模块边界：mail模块通过此接口为玩家发放装备，不直接操作PlayerEquipmentMapper</p>
+     *
+     * @param playerId 玩家ID
+     * @param equipmentId 装备ID
+     * @return 创建的玩家装备
+     */
     @Transactional
     public PlayerEquipment grantEquipmentDirectly(Integer playerId, Integer equipmentId) {
+        log.info("直接发放装备, playerId={}, equipmentId={}", playerId, equipmentId);
         PlayerEquipment pe = new PlayerEquipment();
         pe.setPlayerId(playerId);
         pe.setEquipmentId(equipmentId);
         pe.setEquipped(false);
         pe.setCreatedAt(java.time.LocalDateTime.now());
         playerEquipmentMapper.insert(pe);
+        log.info("装备发放成功, playerEquipmentId={}", pe.getId());
         return pe;
     }
 
@@ -496,7 +664,16 @@ public class EquipmentService {
     /**
      * 根据装备模板ID获取装备信息（供 AuctionService 使用）
      */
+    /**
+     * 根据装备模板ID获取装备信息
+     *
+     * <p>供AuctionService使用</p>
+     *
+     * @param equipmentId 装备ID
+     * @return 装备信息
+     */
     public Equipment getEquipmentById(Integer equipmentId) {
+        log.debug("查询装备信息, equipmentId={}", equipmentId);
         return equipmentMapper.selectById(equipmentId);
     }
 

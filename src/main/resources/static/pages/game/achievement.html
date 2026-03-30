@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>成就系统 - 修仙挂机游戏</title>
+    <link rel="stylesheet" href="/css/core/variables.css">
+    <link rel="stylesheet" href="/css/core/reset.css">
+    <link rel="stylesheet" href="/css/core/base.css">
+    <link rel="stylesheet" href="/css/components/toast.css">
+    <link rel="stylesheet" href="/css/modules/game.css">
+    <link rel="stylesheet" href="/css/modules/achievement.css">
+</head>
+<body>
+    <div id="app">
+        <div class="game-container">
+            <nav class="game-nav">
+                <a href="#player" class="nav-link">玩家</a>
+                <a href="#achievement" class="nav-link active">成就</a>
+                <a href="#cultivate" class="nav-link">修炼</a>
+                <a href="#quest" class="nav-link">任务</a>
+            </nav>
+
+            <main class="game-main">
+                <div class="achievement-page">
+                    <h1 class="page-title">成就系统</h1>
+                    
+                    <div class="achievement-content">
+                        <div class="achievement-stats">
+                            <p>完成成就: <span id="completedCount">0</span> / <span id="totalCount">0</span></p>
+                        </div>
+
+                        <div class="achievement-list" id="achievementList">
+                            <div class="loading">加载成就中...</div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script type="module">
+        import { App } from '/js/App.js';
+        const app = new App();
+        app.init();
+        import('/js/modules/achievement/index.js').then(module => {
+            module.achievementUI.init();
+        });
+    </script>
+</body>
+</html>

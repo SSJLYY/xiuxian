@@ -1,0 +1,98 @@
+/**
+ * 宠物模块样式
+ */
+
+.pets-page {
+    padding: 20px;
+}
+
+.pets-content {
+    display: grid;
+    gap: 20px;
+}
+
+.pets-list-section,
+.pet-capture-section {
+    background: var(--color-primary);
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.pets-list-section h2,
+.pet-capture-section h2 {
+    color: var(--color-gold);
+    margin-bottom: 15px;
+}
+
+.pets-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.pet-card {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 15px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.pet-card:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--color-gold);
+    transform: translateY(-2px);
+}
+
+.pet-name {
+    color: var(--color-text);
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.pet-level {
+    color: var(--color-aqua);
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.pet-hunger {
+    color: var(--color-text);
+    font-size: 13px;
+    margin-bottom: 5px;
+}
+
+.hunger-bar {
+    height: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 5px;
+}
+
+.hunger-progress {
+    height: 100%;
+    background: var(--color-gold);
+    transition: width 0.3s ease;
+}
+
+.wild-pets {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.wild-pet-card {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 15px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.wild-pet-card:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--color-aqua);
+}

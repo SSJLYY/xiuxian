@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>活动系统 - 修仙挂机游戏</title>
+    <link rel="stylesheet" href="/css/core/variables.css">
+    <link rel="stylesheet" href="/css/core/reset.css">
+    <link rel="stylesheet" href="/css/core/base.css">
+    <link rel="stylesheet" href="/css/components/toast.css">
+    <link rel="stylesheet" href="/css/modules/game.css">
+    <link rel="stylesheet" href="/css/modules/activity.css">
+</head>
+<body>
+    <div id="app">
+        <div class="game-container">
+            <nav class="game-nav">
+                <a href="#player" class="nav-link">玩家</a>
+                <a href="#activity" class="nav-link active">活动</a>
+                <a href="#cultivate" class="nav-link">修炼</a>
+            </nav>
+
+            <main class="game-main">
+                <div class="activity-page">
+                    <h1 class="page-title">活动中心</h1>
+                    
+                    <div class="activity-content">
+                        <div class="activity-list" id="activityList">
+                            <div class="loading">加载活动中...</div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script type="module">
+        import { App } from '/js/App.js';
+        const app = new App();
+        app.init();
+        import('/js/modules/activity/index.js').then(module => {
+            module.activityUI.init();
+        });
+    </script>
+</body>
+</html>

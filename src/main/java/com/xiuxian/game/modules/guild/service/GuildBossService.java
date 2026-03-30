@@ -33,7 +33,20 @@ import java.util.stream.Collectors;
 
 /**
  * 仙盟BOSS战斗管理类
- * 提供仙盟BOSS的生成、挑战、奖励领取等核心功能
+ *
+ * <p>提供仙盟BOSS的生成、挑战、奖励领取等核心功能</p>
+ *
+ * <p>主要功能：</p>
+ * <ul>
+ *   <li>获取仙盟BOSS信息 - 获取当前仙盟的BOSS状态</li>
+ *   <li>挑战仙盟BOSS - 玩家挑战BOSS造成伤害</li>
+ *   <li>领取BOSS击杀奖励 - BOSS被击败后领取奖励</li>
+ *   <li>BOSS生成 - 根据仙盟平均等级生成匹配的BOSS</li>
+ * </ul>
+ *
+ * @author xiuxian-game-team
+ * @version 1.0.0
+ * @since 2024-01-01
  */
 @Slf4j
 @Service
@@ -61,6 +74,12 @@ public class GuildBossService {
 
     /**
      * 获取仙盟BOSS信息
+     *
+     * <p>获取当前玩家所在仙盟的BOSS信息，包括BOSS状态、血量、伤害排名等</p>
+     *
+     * @param playerId 玩家ID
+     * @return BOSS信息VO
+     * @throws BusinessException 当玩家不是仙盟成员时抛出
      */
     public GuildBossVO getCurrentBoss(Integer playerId) {
         Integer guildId = getPlayerGuildId(playerId);
@@ -78,6 +97,21 @@ public class GuildBossService {
 
     /**
      * 挑战仙盟BOSS
+     *
+     * <p>玩家挑战仙盟BOSS，造成伤害并可能击败BOSS</p>
+     *
+     * <p>挑战流程：</p>
+     * <ol>
+     *   <li>校验玩家是否为仙盟成员</li>
+     *   <li>校验每日挑战次数</li>
+     *   <li>计算伤害并扣减BOSS血量</li>
+     *   <li>更新挑战记录</li>
+     *   <li>如果BOSS被击败，分发奖励</li>
+     * </ol>
+     *
+     * @param playerId 玩家ID
+     * @return 挑战结果
+     * @throws BusinessException 当玩家不是仙盟成员或挑战次数已满时抛出
      */
     @Transactional
     public ChallengeResult challengeBoss(Integer playerId) {
@@ -118,6 +152,12 @@ public class GuildBossService {
 
     /**
      * 获取或创建BOSS
+     *
+     * <p>获取当前仙盟的BOSS，如果不存在则创建新的BOSS</p>
+     *
+     * @param guildId 仙盟ID
+     * @return BOSS实体
+     * @throws BusinessException 当BOSS已被击败时抛出
      */
     private GuildBoss getOrCreateBoss(Integer guildId) {
         GuildBoss boss = guildBossMapper.findAliveByGuildId(guildId);
@@ -132,6 +172,11 @@ public class GuildBossService {
 
     /**
      * 校验每日挑战次数
+     *
+     * <p>校验玩家今日挑战次数是否已达到上限</p>
+     *
+     * @param record 挑战记录
+     * @throws BusinessException 当挑战次数已满时抛出
      */
     private void validateChallengeAttempts(GuildBossChallenge record) {
         if (record != null && getTodayAttempts(record) >= MAX_DAILY_ATTEMPTS) {
@@ -141,6 +186,12 @@ public class GuildBossService {
 
     /**
      * 原子扣减BOSS血量
+     *
+     * <p>使用原子操作扣减BOSS血量，防止并发问题</p>
+     *
+     * @param boss BOSS实体
+     * @param damage 伤害值
+     * @throws BusinessException 当BOSS已被击败时抛出
      */
     private void applyDamageToBoss(GuildBoss boss, long damage) {
         LocalDateTime now = LocalDateTime.now();
@@ -152,6 +203,21 @@ public class GuildBossService {
 
     /**
      * 领取BOSS击杀奖励
+     *
+     * <p>当仙盟BOSS被击败后，玩家领取击杀奖励</p>
+     *
+     * <p>领取流程：</p>
+     * <ol>
+     *   <li>校验BOSS是否已被击败</li>
+     *   <li>校验玩家是否有贡献</li>
+     *   <li>校验奖励是否已领取</li>
+     *   <li>发放个人奖励（灵石和经验）</li>
+     *   <li>更新领取状态</li>
+     * </ol>
+     *
+     * @param playerId 玩家ID
+     * @return 奖励内容
+     * @throws BusinessException 当BOSS未被击败、无贡献或奖励已领取时抛出
      */
     @Transactional
     public Map<String, Object> claimReward(Integer playerId) {
@@ -198,6 +264,14 @@ public class GuildBossService {
 
     // ==================== 内部辅助方法 ====================
 
+    /**
+     * 生成BOSS
+     *
+     * <p>根据仙盟平均等级生成匹配的BOSS</p>
+     *
+     * @param guildId 仙盟ID
+     * @return 生成的BOSS实体
+     */
     private GuildBoss spawnBoss(Integer guildId) {
         // 根据仙盟平均等级生成匹配的BOSS
         double avgLevel = getGuildAvgLevel(guildId);
@@ -222,6 +296,15 @@ public class GuildBossService {
         return boss;
     }
 
+    /**
+     * 计算伤害
+     *
+     * <p>根据玩家属性和BOSS属性计算伤害值</p>
+     *
+     * @param player 玩家档案
+     * @param boss BOSS实体
+     * @return 伤害值
+     */
     private long calculateDamage(PlayerProfile player, GuildBoss boss) {
         int attack = player.getAttack() != null ? player.getAttack() : 100;
         int defense = boss.getDefense() != null ? boss.getDefense() : 50;
@@ -233,6 +316,16 @@ public class GuildBossService {
         return Math.round(base * random * (crit ? 2.0 : 1.0));
     }
 
+    /**
+     * 更新挑战记录
+     *
+     * <p>更新或创建玩家的挑战记录</p>
+     *
+     * @param bossId BOSS ID
+     * @param playerId 玩家ID
+     * @param damage 伤害值
+     * @param existing 现有记录
+     */
     private void updateChallengeRecord(Integer bossId, Integer playerId, long damage, GuildBossChallenge existing) {
         if (existing == null) {
             existing = new GuildBossChallenge();
@@ -251,6 +344,13 @@ public class GuildBossService {
         }
     }
 
+    /**
+     * 分发奖励
+     *
+     * <p>当BOSS被击败后，根据伤害比例分发奖励给所有参与者</p>
+     *
+     * @param boss BOSS实体
+     */
     private void distributeRewards(GuildBoss boss) {
         List<GuildBossChallenge> all = challengeMapper.findByBossIdOrderByDamage(boss.getId());
         long totalDamage = all.stream().mapToLong(GuildBossChallenge::getDamageDealt).sum();
@@ -266,6 +366,15 @@ public class GuildBossService {
         challengeMapper.batchUpdateRewardStones(all);
     }
 
+    /**
+     * 获取伤害比例
+     *
+     * <p>计算玩家伤害占总伤害的比例</p>
+     *
+     * @param bossId BOSS ID
+     * @param playerId 玩家ID
+     * @return 伤害比例
+     */
     private double getDamageRatio(Integer bossId, Integer playerId) {
         List<GuildBossChallenge> all = challengeMapper.findByBossIdOrderByDamage(bossId);
         long total = all.stream().mapToLong(GuildBossChallenge::getDamageDealt).sum();
@@ -274,6 +383,14 @@ public class GuildBossService {
         return total > 0 ? (double) mine / total : 0;
     }
 
+    /**
+     * 获取今日挑战次数
+     *
+     * <p>获取玩家今日的挑战次数，如果跨天则重置为0</p>
+     *
+     * @param record 挑战记录
+     * @return 今日挑战次数
+     */
     private int getTodayAttempts(GuildBossChallenge record) {
         if (record == null) return 0;
         if (record.getLastChallengeAt() == null) return 0;
@@ -284,6 +401,15 @@ public class GuildBossService {
         return 0;
     }
 
+    /**
+     * 获取玩家仙盟ID
+     *
+     * <p>获取玩家所在的仙盟ID</p>
+     *
+     * @param playerId 玩家ID
+     * @return 仙盟ID
+     * @throws BusinessException 当玩家不是仙盟成员时抛出
+     */
     private Integer getPlayerGuildId(Integer playerId) {
         LambdaQueryWrapper<GuildMember> query = new LambdaQueryWrapper<GuildMember>()
                 .eq(GuildMember::getPlayerId, playerId);
@@ -292,6 +418,14 @@ public class GuildBossService {
         return member.getGuildId();
     }
 
+    /**
+     * 获取仙盟平均等级
+     *
+     * <p>获取仙盟所有成员的平均等级</p>
+     *
+     * @param guildId 仙盟ID
+     * @return 平均等级
+     */
     private double getGuildAvgLevel(Integer guildId) {
         LambdaQueryWrapper<GuildMember> query = new LambdaQueryWrapper<GuildMember>()
                 .eq(GuildMember::getGuildId, guildId);
@@ -310,6 +444,14 @@ public class GuildBossService {
                 .average().orElse(5);
     }
 
+    /**
+     * 选择BOSS模板
+     *
+     * <p>根据平均等级选择合适的BOSS模板</p>
+     *
+     * @param avgLevel 平均等级
+     * @return BOSS模板
+     */
     private BossTemplate selectBossTemplate(double avgLevel) {
         for (int i = BOSS_TEMPLATES.size() - 1; i >= 0; i--) {
             if (avgLevel >= BOSS_TEMPLATES.get(i).level - 3) {
@@ -319,6 +461,17 @@ public class GuildBossService {
         return BOSS_TEMPLATES.get(0);
     }
 
+    /**
+     * 构建BOSS VO
+     *
+     * <p>构建BOSS信息VO对象</p>
+     *
+     * @param boss BOSS实体
+     * @param myRecord 玩家挑战记录
+     * @param all 所有挑战记录
+     * @param playerId 玩家ID
+     * @return BOSS信息VO
+     */
     private GuildBossVO buildBossVO(GuildBoss boss, GuildBossChallenge myRecord,
                                     List<GuildBossChallenge> all, Integer playerId) {
         long totalDamage = all.stream().mapToLong(GuildBossChallenge::getDamageDealt).sum();
@@ -359,6 +512,12 @@ public class GuildBossService {
 
     /**
      * 计算玩家排名
+     *
+     * <p>根据伤害值计算玩家在仙盟中的排名</p>
+     *
+     * @param myRecord 玩家挑战记录
+     * @param all 所有挑战记录
+     * @return 排名
      */
     private int calculatePlayerRank(GuildBossChallenge myRecord, List<GuildBossChallenge> all) {
         if (myRecord == null) return 1;
@@ -367,7 +526,13 @@ public class GuildBossService {
     }
 
     /**
-     * 构建伤害排行榜（批量加载玩家信息，避免N+1）
+     * 构建伤害排行榜
+     *
+     * <p>构建伤害排行榜，批量加载玩家信息避免N+1查询</p>
+     *
+     * @param all 所有挑战记录
+     * @param totalDamage 总伤害
+     * @return 排行榜列表
      */
     private List<Map<String, Object>> buildDamageRanking(List<GuildBossChallenge> all, long totalDamage) {
         int rankLimit = Math.min(all.size(), 10);

@@ -1,0 +1,185 @@
+<!-- 侧边导航组件 -->
+<nav class="side-nav">
+    <div class="nav-header">
+        <h2 class="nav-title">功能导航</h2>
+    </div>
+    
+    <div class="nav-section">
+        <h3 class="nav-section-title">基础功能</h3>
+        <a href="#player" class="nav-item active" data-page="player">
+            <span class="nav-icon">👤</span>
+            <span class="nav-text">玩家</span>
+        </a>
+        <a href="#cultivate" class="nav-item" data-page="cultivate">
+            <span class="nav-icon">🧘</span>
+            <span class="nav-text">修炼</span>
+        </a>
+        <a href="#combat" class="nav-item" data-page="combat">
+            <span class="nav-icon">⚔️</span>
+            <span class="nav-text">战斗</span>
+        </a>
+    </div>
+    
+    <div class="nav-section">
+        <h3 class="nav-section-title">装备系统</h3>
+        <a href="#inventory" class="nav-item" data-page="inventory">
+            <span class="nav-icon">🎒</span>
+            <span class="nav-text">背包</span>
+        </a>
+        <a href="#equipment" class="nav-item" data-page="equipment">
+            <span class="nav-icon">🛡️</span>
+            <span class="nav-text">装备</span>
+        </a>
+        <a href="#skills" class="nav-item" data-page="skills">
+            <span class="nav-icon">✨</span>
+            <span class="nav-text">技能</span>
+        </a>
+        <a href="#pets" class="nav-item" data-page="pets">
+            <span class="nav-icon">🐾</span>
+            <span class="nav-text">宠物</span>
+        </a>
+    </div>
+    
+    <div class="nav-section">
+        <h3 class="nav-section-title">社交系统</h3>
+        <a href="#map" class="nav-item" data-page="map">
+            <span class="nav-icon">🗺️</span>
+            <span class="nav-text">地图</span>
+        </a>
+        <a href="#quest" class="nav-item" data-page="quest">
+            <span class="nav-icon">📜</span>
+            <span class="nav-text">任务</span>
+        </a>
+        <a href="#guild" class="nav-item" data-page="guild">
+            <span class="nav-icon">🏛️</span>
+            <span class="nav-text">宗门</span>
+        </a>
+        <a href="#mail" class="nav-item" data-page="mail">
+            <span class="nav-icon">📧</span>
+            <span class="nav-text">邮件</span>
+        </a>
+    </div>
+    
+    <div class="nav-section">
+        <h3 class="nav-section-title">交易系统</h3>
+        <a href="#auction" class="nav-item" data-page="auction">
+            <span class="nav-icon">🏪</span>
+            <span class="nav-text">拍卖</span>
+        </a>
+        <a href="#shop" class="nav-item" data-page="shop">
+            <span class="nav-icon">🛒</span>
+            <span class="nav-text">商城</span>
+        </a>
+    </div>
+    
+    <div class="nav-section">
+        <h3 class="nav-section-title">其他功能</h3>
+        <a href="#ranking" class="nav-item" data-page="ranking">
+            <span class="nav-icon">🏆</span>
+            <span class="nav-text">排行</span>
+        </a>
+        <a href="#achievement" class="nav-item" data-page="achievement">
+            <span class="nav-icon">🎖️</span>
+            <span class="nav-text">成就</span>
+        </a>
+        <a href="#activity" class="nav-item" data-page="activity">
+            <span class="nav-icon">🎉</span>
+            <span class="nav-text">活动</span>
+        </a>
+        <a href="#checkin" class="nav-item" data-page="checkin">
+            <span class="nav-icon">📅</span>
+            <span class="nav-text">签到</span>
+        </a>
+        <a href="#giftcode" class="nav-item" data-page="giftcode">
+            <span class="nav-icon">🎁</span>
+            <span class="nav-text">兑换码</span>
+        </a>
+        <a href="#vip" class="nav-item" data-page="vip">
+            <span class="nav-icon">👑</span>
+            <span class="nav-text">VIP</span>
+        </a>
+    </div>
+</nav>
+
+<style>
+.side-nav {
+    width: 260px;
+    background: var(--color-primary);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    overflow-y: auto;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.nav-header {
+    padding: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nav-title {
+    color: var(--color-gold);
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0;
+}
+
+.nav-section {
+    padding: 15px 0;
+}
+
+.nav-section-title {
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+    padding: 0 20px;
+    margin-bottom: 10px;
+    letter-spacing: 1px;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    color: var(--color-text);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
+}
+
+.nav-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.nav-item.active {
+    background: rgba(212, 175, 55, 0.1);
+    border-left-color: var(--color-gold);
+    color: var(--color-gold);
+}
+
+.nav-icon {
+    font-size: 20px;
+    margin-right: 12px;
+    width: 24px;
+    text-align: center;
+}
+
+.nav-text {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .side-nav {
+        width: 100%;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .nav-section {
+        padding: 10px 0;
+    }
+}
+</style>

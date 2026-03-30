@@ -1,0 +1,109 @@
+/**
+ * 活动模块样式
+ */
+
+.activity-page {
+    padding: 20px;
+}
+
+.activity-content {
+    background: var(--color-primary);
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.activity-list {
+    display: grid;
+    gap: 15px;
+}
+
+.activity-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.activity-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--color-gold);
+    transform: translateY(-2px);
+}
+
+.activity-item.active {
+    border-color: var(--color-aqua);
+    background: rgba(127, 255, 212, 0.1);
+}
+
+.activity-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.activity-title {
+    color: var(--color-text);
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.activity-badge {
+    padding: 4px 8px;
+    background: var(--color-gold);
+    color: var(--color-primary);
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.activity-badge.hot {
+    background: #ef4444;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.activity-desc {
+    color: var(--color-text);
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+
+.activity-time {
+    color: var(--color-text-secondary);
+    font-size: 13px;
+}
+
+.activity-time::before {
+    content: "📅 ";
+}
+
+.activity-rewards {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.activity-rewards-title {
+    color: var(--color-gold);
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.reward-item {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 10px;
+    background: rgba(212, 175, 55, 0.1);
+    border-radius: 4px;
+    margin-right: 10px;
+    color: var(--color-text);
+    font-size: 13px;
+}
