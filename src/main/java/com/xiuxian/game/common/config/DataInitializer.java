@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.Statement;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
@@ -23,6 +24,15 @@ public class DataInitializer implements CommandLineRunner {
     private final DataSource dataSource;
     private final com.xiuxian.game.modules.player.mapper.UserMapper userMapper;
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
+    @Value("${admin.default.username:admin}")
+    private String defaultAdminUsername;
+
+    @Value("${admin.default.password:admin123}")
+    private String defaultAdminPassword;
+
+    @Value("${admin.default.email:admin@xiuxian.com}")
+    private String defaultAdminEmail;
 
     @Override
     public void run(String... args) {
@@ -285,12 +295,15 @@ public class DataInitializer implements CommandLineRunner {
 
     private void ensureAdminUser() {
         try {
-            com.xiuxian.game.modules.player.entity.User admin = userMapper.selectByUsername("admin");
+            com.xiuxian.game.modules.player.entity.User admin = userMapper.selectByUsername(defaultAdminUsername);
             if (admin == null) {
+                if ("admin123".equals(defaultAdminPassword)) {
+                    logger.warn("使用默认管理员密码！请在生产环境中通过ADMIN_DEFAULT_PASSWORD环境变量配置强密码");
+                }
                 com.xiuxian.game.modules.player.entity.User u = com.xiuxian.game.modules.player.entity.User.builder()
-                        .username("admin")
-                        .password(passwordEncoder.encode("admin123"))
-                        .email("admin@xiuxian.com")
+                        .username(defaultAdminUsername)
+                        .password(passwordEncoder.encode(defaultAdminPassword))
+                        .email(defaultAdminEmail)
                         .role("ADMIN")
                         .mustChangePassword(false)
                         .build();

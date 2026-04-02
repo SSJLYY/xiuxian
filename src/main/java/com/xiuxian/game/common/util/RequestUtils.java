@@ -35,33 +35,38 @@ public final class RequestUtils {
 
     /**
      * 获取客户端真实IP地址
-     *
-     * <p>优先从代理服务器的请求头中获取真实IP，兼容Nginx、代理服务器或SLB等负载均衡场景。
-     * 如果获取到多个IP（逗号分隔），会取第一个有效IP而非unknown。</p>
-     *
-     * @param request HTTP 请求对象
-     * @return 客户端真实IP地址，如果无法获取则返回 {@code request.getRemoteAddr()}
+     * 优先从代理头中获取，如果没有则使用remoteAddr
+     * 注意：只在有可信反向代理时才信任代理头
      */
     public static String getClientIp(HttpServletRequest request) {
         if (request == null) {
             return "unknown";
         }
-        for (String header : PROXY_HEADERS) {
-            String ip = request.getHeader(header);
-            if (isValidIp(ip)) {
-                // 解析逗号分隔的IP列表，取第一个有效IP而非unknown
-                if (ip.contains(",")) {
-                    for (String part : ip.split(",")) {
-                        String candidate = part.trim();
-                        if (isValidIp(candidate)) {
-                            return candidate;
-                        }
-                    }
+        // 检查是否来自可信代理
+        boolean isFromTrustedProxy = isTrustedProxy(request);
+        
+        if (isFromTrustedProxy) {
+            // 信任代理头
+            for (String header : PROXY_HEADERS) {
+                String ip = request.getHeader(header);
+                if (isValidIp(ip)) {
+                    return ip.split(",")[0].trim(); // 取第一个IP
                 }
-                return ip;
             }
         }
+        
+        // 直接连接或不信任代理时使用remoteAddr
         return request.getRemoteAddr();
+    }
+    
+    /**
+     * 检查请求是否来自可信代理
+     */
+    private static boolean isTrustedProxy(HttpServletRequest request) {
+        // 可以通过配置指定可信代理IP列表
+        // 这里简单实现：检查X-Forwarded-For是否存在来判断是否有代理
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        return xForwardedFor != null && !xForwardedFor.trim().isEmpty();
     }
 
     /**

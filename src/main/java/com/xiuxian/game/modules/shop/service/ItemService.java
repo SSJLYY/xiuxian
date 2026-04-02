@@ -1,10 +1,12 @@
 package com.xiuxian.game.modules.shop.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xiuxian.game.modules.shop.entity.Item;
 import com.xiuxian.game.modules.shop.mapper.ItemMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -25,6 +27,18 @@ public class ItemService {
      */
     public Item getItemById(Integer itemId) {
         return itemMapper.selectById(itemId);
+    }
+
+    /**
+     * 批量获取物品模板（根据ID列表）
+     */
+    public List<Item> getItemsByIds(List<Integer> itemIds) {
+        if (itemIds == null || itemIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        QueryWrapper<Item> wrapper = new QueryWrapper<>();
+        wrapper.in("id", itemIds);
+        return itemMapper.selectList(wrapper);
     }
 
     /**

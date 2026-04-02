@@ -31,6 +31,14 @@ public class SecurityFilter extends OncePerRequestFilter {
 
         String requestURI = request.getRequestURI();
 
+        // 添加安全响应头
+        response.setHeader("X-Content-Type-Options", "nosniff");
+        response.setHeader("X-Frame-Options", "DENY");
+        response.setHeader("X-XSS-Protection", "1; mode=block");
+        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response.setHeader("Pragma", "no-cache");
+        response.setHeader("Expires", "0");
+
         // 放行：无需过滤的静态资源和公开接口
         if (shouldSkipFilter(requestURI)) {
             filterChain.doFilter(request, response);

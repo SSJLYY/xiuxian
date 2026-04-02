@@ -64,11 +64,25 @@ public class InventoryService {
 
         List<PlayerItem> playerItems = playerService.getPlayerItemsByPlayerId(playerId);
 
-        // 过滤逻辑
+        // 过滤与搜索逻辑优化：批量获取所有涉及的物品模板，避免N+1查询
+        List<Integer> itemIds = playerItems.stream()
+                .map(PlayerItem::getItemId)
+                .distinct()
+                .collect(Collectors.toList());
+        
+        Map<Integer, Item> itemMap = new HashMap<>();
+        if (!itemIds.isEmpty()) {
+            List<Item> items = itemService.getItemsByIds(itemIds);
+            itemMap = items.stream()
+                    .collect(Collectors.toMap(Item::getId, item -> item));
+        }
+        final Map<Integer, Item> finalItemMap = itemMap;
+        
+        // 按类型过滤
         if (type != null && !type.isEmpty()) {
             playerItems = playerItems.stream()
                     .filter(pi -> {
-                        Item item = itemService.getItemById(pi.getItemId());
+                        Item item = finalItemMap.get(pi.getItemId());
                         return item != null && item.getType().equals(type);
                     })
                     .collect(Collectors.toList());
@@ -79,7 +93,7 @@ public class InventoryService {
             String searchLower = search.toLowerCase();
             playerItems = playerItems.stream()
                     .filter(pi -> {
-                        Item item = itemService.getItemById(pi.getItemId());
+                        Item item = finalItemMap.get(pi.getItemId());
                         return item != null && (item.getName().toLowerCase().contains(searchLower) ||
                                 item.getDescription().toLowerCase().contains(searchLower));
                     })

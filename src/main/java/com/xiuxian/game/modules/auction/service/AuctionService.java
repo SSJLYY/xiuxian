@@ -127,7 +127,7 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
      * 校验手续费并扣除
      */
     private void validateAndDeductListingFee(Integer playerId, int price) {
-        long fee = Math.max(1, price / 20);
+        long fee = Math.max(1, Math.round(price * 0.05));
         PlayerProfile playerProfile = playerService.getPlayerProfileById(playerId);
         if (playerProfile.getSpiritStones() < fee) {
             throw new BusinessException(ErrorCode.INSUFFICIENT_SPIRIT_STONES);
@@ -218,26 +218,33 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
             throw new BusinessException(ErrorCode.CANNOT_BUY_OWN_ITEM);
         }
         
-        // 扣除买家灵石
-        deductBuyerFunds(buyerId, auctionItem);
-        
-        // 支付卖家（扣除10%平台费）
-        paySellerProceeds(auctionItem);
-        
-        // 原子更新拍卖状态（防止TOCTOU）
+        // 先原子更新拍卖状态（防止TOCTOU竞态条件）
         LocalDateTime now = LocalDateTime.now();
         int rows = auctionItemMapper.claimAuctionItem(auctionItemId, buyerId, now);
         if (rows == 0) {
             throw new BusinessException(ErrorCode.AUCTION_ITEM_SOLD);
         }
         
-        auctionItem.setStatus("SOLD");
-        auctionItem.setBuyerId(buyerId);
-        auctionItem.setSoldAt(now);
-        
-        // 交付物品 + 发送通知
-        addItemToBuyerInventory(buyerId, auctionItem);
-        sendTransactionNotification(auctionItem);
+        // 状态更新成功后，再执行资金操作（失败会回滚）
+        try {
+            // 扣除买家灵石
+            deductBuyerFunds(buyerId, auctionItem);
+            
+            // 支付卖家（扣除10%平台费）
+            paySellerProceeds(auctionItem);
+            
+            auctionItem.setStatus("SOLD");
+            auctionItem.setBuyerId(buyerId);
+            auctionItem.setSoldAt(now);
+            
+            // 交付物品 + 发送通知
+            addItemToBuyerInventory(buyerId, auctionItem);
+            sendTransactionNotification(auctionItem);
+        } catch (Exception e) {
+            // 如果后续操作失败，回滚状态更新
+            auctionItemMapper.expireAuctionItem(auctionItemId);
+            throw e;
+        }
         
         return auctionItem;
     }
@@ -258,9 +265,10 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
      * 支付卖家收益
      */
     private void paySellerProceeds(AuctionItem auctionItem) {
-        long sellerProceeds = (long) auctionItem.getPrice() * 90 / 100;
         PlayerProfile sellerProfile = playerService.getPlayerProfileById(auctionItem.getSellerId());
-        sellerProfile.setSpiritStones(sellerProfile.getSpiritStones() + sellerProceeds);
+        // 使用long避免精度丢失
+        long sellerProceeds = Math.round(auctionItem.getPrice() * 0.9);
+        sellerProfile.setSpiritStones(sellerProfile.getSpiritStones() + (int) Math.min(sellerProceeds, Integer.MAX_VALUE));
         playerService.savePlayerProfile(sellerProfile);
     }
     
@@ -428,12 +436,23 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
     private void addItemToSellerInventory(Integer playerId, AuctionItem auctionItem) {
         switch (auctionItem.getItemType().toUpperCase()) {
             case "ITEM":
-                // 添加物品到卖家背包
-                PlayerItem newItem = new PlayerItem();
-                newItem.setPlayerId(playerId);
-                newItem.setItemId(auctionItem.getItemId());
-                newItem.setQuantity(auctionItem.getQuantity());
-                playerService.savePlayerItem(newItem);
+                // 检查是否已有相同物品，有则合并数量，避免重复记录
+                List<PlayerItem> existingItems = playerService.getPlayerItemsByPlayerId(playerId);
+                PlayerItem existingItem = existingItems.stream()
+                        .filter(pi -> pi.getItemId().equals(auctionItem.getItemId()))
+                        .findFirst()
+                        .orElse(null);
+                
+                if (existingItem != null) {
+                    existingItem.setQuantity(existingItem.getQuantity() + auctionItem.getQuantity());
+                    playerService.savePlayerItem(existingItem);
+                } else {
+                    PlayerItem newItem = new PlayerItem();
+                    newItem.setPlayerId(playerId);
+                    newItem.setItemId(auctionItem.getItemId());
+                    newItem.setQuantity(auctionItem.getQuantity());
+                    playerService.savePlayerItem(newItem);
+                }
                 break;
                 
             case "EQUIPMENT":

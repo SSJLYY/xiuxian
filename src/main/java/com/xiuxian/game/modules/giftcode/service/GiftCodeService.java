@@ -181,6 +181,13 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
     private void distributeRewards(Integer playerId, String rewards) {
         log.info("开始发放礼包码奖励, playerId={}", playerId);
         try {
+            // 检查玩家是否存在
+            PlayerProfile player = playerService.getPlayerProfileById(playerId);
+            if (player == null) {
+                log.error("玩家不存在，无法发放奖励, playerId={}", playerId);
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
+            }
+
             List<Map<String, Object>> rewardList = objectMapper.readValue(rewards, new TypeReference<List<Map<String, Object>>>() {});
             log.debug("解析奖励列表, rewardCount={}", rewardList.size());
             
@@ -194,7 +201,6 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
                 switch (type) {
                     case "SPIRIT_STONES":
                         // 发放灵石
-                        PlayerProfile player = playerService.getPlayerProfileById(playerId);
                         player.setSpiritStones(player.getSpiritStones() + quantity);
                         playerService.savePlayerProfile(player);
                         log.info("发放灵石奖励, playerId={}, quantity={}", playerId, quantity);

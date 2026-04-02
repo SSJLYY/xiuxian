@@ -18,11 +18,18 @@ import java.util.Date;
 @Component
 public class JwtTokenProvider {
 
-    @Value("${jwt.secret}")
-    private String jwtSecret;
+    private final String jwtSecret;
+    private final long jwtExpiration;
 
-    @Value("${jwt.expiration}")
-    private long jwtExpiration;
+    public JwtTokenProvider(
+            @Value("${jwt.secret:xiuxian-game-secret-key-2024-very-long-and-secure}") String jwtSecret,
+            @Value("${jwt.expiration:7200000}") long jwtExpiration) {
+        this.jwtSecret = jwtSecret;
+        this.jwtExpiration = jwtExpiration;
+        if (jwtSecret.equals("xiuxian-game-secret-key-2024-very-long-and-secure")) {
+            log.warn("使用默认JWT密钥！请在生产环境中通过环境变量配置密钥");
+        }
+    }
 
     private SecretKey getSigningKey() {
         byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);

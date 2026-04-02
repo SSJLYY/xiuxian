@@ -79,8 +79,8 @@ public class CheckInService {
         int stones = reward[0];
         int exp = reward[1];
 
-        // 里程碑标记
-        boolean isMilestone = (consecutiveDays == 7 || consecutiveDays == 14 || consecutiveDays == 30);
+        // 检查是否里程碑（每7天）
+        boolean isMilestone = (consecutiveDays % 7 == 0);
 
         // 写入签到记录
         PlayerCheckIn record = new PlayerCheckIn();
@@ -166,7 +166,9 @@ public class CheckInService {
     private int calculateConsecutiveDays(Integer playerId, LocalDate targetDate) {
         int streak = 0;
         LocalDate checking = targetDate;
-        while (true) {
+        int maxDays = 365; // 防止异常数据导致无限循环
+        
+        while (streak < maxDays) {
             PlayerCheckIn rec = checkInMapper.findByPlayerAndDate(playerId, checking);
             if (rec == null) break;
             streak++;

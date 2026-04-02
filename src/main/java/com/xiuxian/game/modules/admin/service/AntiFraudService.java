@@ -248,16 +248,16 @@ public class AntiFraudService {
     }
     
     /**
-     * 清理过期的行为计数器
+     * 清理过期的计数器（定时任务）
      */
-    @Async
+    @Scheduled(fixedRate = 3600000) // 每小时执行一次
     public void cleanupExpiredCounters() {
         try {
             behaviorCounters.entrySet().removeIf(entry -> {
                 AbnormalBehaviorCounter counter = entry.getValue();
                 return counter.isExpired();
             });
-            log.debug("清理过期的异常行为计数器");
+            log.debug("清理过期的行为计数器");
         } catch (Exception e) {
             log.error("清理异常行为计数器失败", e);
         }

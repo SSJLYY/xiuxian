@@ -193,5 +193,18 @@ public class AuthService {
 
         return builder.build();
     }
+
+    /**
+     * 验证密码强度
+     */
+    private boolean isValidPassword(String password) {
+        if (password == null || password.length() < 8) {
+            return false;
+        }
+        // 至少包含一个字母和一个数字
+        boolean hasLetter = password.matches(".*[a-zA-Z].*");
+        boolean hasDigit = password.matches(".*\\d.*");
+        return hasLetter && hasDigit;
+    }
 }
 

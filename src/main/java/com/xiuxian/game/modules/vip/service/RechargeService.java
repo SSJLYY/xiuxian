@@ -32,6 +32,14 @@ public class RechargeService extends ServiceImpl<RechargeRecordMapper, RechargeR
      * @return 充值记录
      */
     public RechargeRecord createRechargeOrder(Integer playerId, Integer amount) {
+        // 校验充值金额
+        if (amount == null || amount <= 0) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "充值金额必须大于0");
+        }
+        if (amount > 100000) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "单笔充值金额不能超过100000元");
+        }
+        
         RechargeRecord record = new RechargeRecord();
         record.setPlayerId(playerId);
         record.setAmount(amount);
@@ -61,33 +69,27 @@ public class RechargeService extends ServiceImpl<RechargeRecordMapper, RechargeR
             throw new BusinessException(ErrorCode.RECHARGE_ORDER_STATUS_INVALID);
         }
         
-        // 模块边界：通过PlayerService访问玩家数据
-        record.setStatus("SUCCESS");
-        record.setCompletedAt(LocalDateTime.now());
-        
-        // 模块边界：通过PlayerService访问玩家数据
+        // 更新VIP信息（元宝已在VipService.updateVipInfo中发放到PlayerVip.yuanbao）
         PlayerVip playerVip = vipService.updateVipInfo(record.getPlayerId(), record.getAmount());
         
-        // 模块边界：通过PlayerService访问玩家数据
+        // 检查是否为首充（仅用于记录）
         Integer previousTotalRecharge = playerVip.getTotalRecharge() - record.getAmount();
-        Integer previousYuanbao = previousTotalRecharge * 10;
-        
-        // 检查是否为首充
         boolean isFirstRecharge = previousTotalRecharge == 0;
-        long yuanbaoToAdd = record.getAmount() * 10;
+        
+        // 计算充值获得的元宝数量（仅用于记录，实际发放已在VipService中完成）
+        long yuanbaoToAdd = record.getAmount() * 10L;
         if (isFirstRecharge) {
-            // 首充额外奖励50%元宝
-            yuanbaoToAdd = yuanbaoToAdd * 3 / 2;
+            yuanbaoToAdd = yuanbaoToAdd * 3 / 2; // 首充额外赠送50%
         }
+        record.setYuanbao((int) Math.min(yuanbaoToAdd, Integer.MAX_VALUE));
         
-        record.setYuanbao((int) yuanbaoToAdd);
-        
-        // 更新玩家元宝数量
-        PlayerProfile playerProfile = playerService.getPlayerProfileById(record.getPlayerId());
-        playerProfile.setSpiritStones(playerProfile.getSpiritStones() + yuanbaoToAdd);
-        playerService.savePlayerProfile(playerProfile);
-        
+        // 更新充值记录状态
+        record.setStatus("SUCCESS");
+        record.setCompletedAt(LocalDateTime.now());
         rechargeRecordMapper.updateById(record);
+        
+        log.info("充值处理成功: playerId={}, amount={}, yuanbao={}, isFirstRecharge={}", 
+                record.getPlayerId(), record.getAmount(), yuanbaoToAdd, isFirstRecharge);
         return record;
     }
     

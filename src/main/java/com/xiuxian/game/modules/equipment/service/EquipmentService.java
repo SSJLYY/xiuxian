@@ -459,6 +459,29 @@ public class EquipmentService {
     }
 
     /**
+     * 直接发放装备给玩家（不检查背包空间，用于邮件/拍卖行退还等场景）
+     * @param playerId 玩家ID
+     * @param equipmentId 装备ID
+     */
+    public void grantEquipmentDirectly(Integer playerId, Integer equipmentId) {
+        Equipment equipment = equipmentMapper.selectById(equipmentId);
+        if (equipment == null) {
+            log.warn("装备不存在: equipmentId={}", equipmentId);
+            return;
+        }
+        
+        PlayerEquipment playerEquipment = new PlayerEquipment();
+        playerEquipment.setPlayerId(playerId);
+        playerEquipment.setEquipmentId(equipmentId);
+        playerEquipment.setLevel(1);
+        playerEquipment.setIsEquipped(false);
+        playerEquipment.setCreatedAt(LocalDateTime.now());
+        
+        playerEquipmentMapper.insert(playerEquipment);
+        log.info("直接发放装备给玩家: playerId={}, equipmentId={}", playerId, equipmentId);
+    }
+
+    /**
      * 初始化默认装备
      */
     /**

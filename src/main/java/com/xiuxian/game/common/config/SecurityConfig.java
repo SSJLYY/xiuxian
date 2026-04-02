@@ -4,6 +4,7 @@ import com.xiuxian.game.common.security.AdminSecurityFilter;
 import com.xiuxian.game.common.security.JwtAuthenticationFilter;
 import com.xiuxian.game.common.security.SecurityFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -19,6 +20,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -30,6 +32,9 @@ public class SecurityConfig {
     private final SecurityFilter securityFilter;
     private final AdminSecurityFilter adminSecurityFilter;
 
+    @Value("${cors.allowed-origins:*}")
+    private String allowedOrigins;
+
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
@@ -38,10 +43,20 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+        
+        // 根据配置设置允许的源
+        if ("*".equals(allowedOrigins)) {
+            configuration.setAllowedOriginPatterns(List.of("*"));
+            configuration.setAllowCredentials(false); // 通配符时不允许凭证
+        } else {
+            String[] origins = allowedOrigins.split(",");
+            configuration.setAllowedOriginPatterns(Arrays.asList(origins));
+            configuration.setAllowCredentials(true); // 指定源时允许凭证
+        }
+        
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
-        configuration.setAllowCredentials(true);
+        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

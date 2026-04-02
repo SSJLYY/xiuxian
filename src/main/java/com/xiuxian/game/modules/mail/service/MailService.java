@@ -207,6 +207,9 @@ public class MailService {
         
         // 发放附件奖励
         PlayerProfile profile = playerService.getPlayerProfileById(playerId);
+        if (profile == null) {
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
+        }
         for (MailAttachment attachment : attachments) {
             grantAttachment(profile, attachment);
         }
