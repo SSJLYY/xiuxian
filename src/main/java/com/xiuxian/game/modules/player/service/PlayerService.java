@@ -310,7 +310,9 @@ public class PlayerService {
             
             // 检查灵石上限，超出部分转为修炼点数
             long spiritStonesLimit = balanceUtils.calculateSpiritStonesLimit(profile.getRealm());
-            long spiritStonesToAdd = Math.min(spiritStonesGained, spiritStonesLimit - profile.getSpiritStones());
+            long currentSpiritStones = profile.getSpiritStones();
+            long remainingCapacity = Math.max(0, spiritStonesLimit - currentSpiritStones);
+            long spiritStonesToAdd = Math.min(spiritStonesGained, remainingCapacity);
             long overflowSpiritStones = spiritStonesGained - spiritStonesToAdd;
             
             if (overflowSpiritStones > 0) {

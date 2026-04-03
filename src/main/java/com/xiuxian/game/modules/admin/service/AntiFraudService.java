@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 反作弊服务
@@ -62,6 +63,9 @@ public class AntiFraudService {
     
     // 异常行为计数器
     private final ConcurrentHashMap<Integer, AbnormalBehaviorCounter> behaviorCounters = new ConcurrentHashMap<>();
+    
+    // 已封禁玩家缓存，防止重复封禁
+    private final ConcurrentHashMap<Integer, AtomicBoolean> bannedPlayers = new ConcurrentHashMap<>();
     
     /**
      * 检测登录异常
@@ -177,6 +181,13 @@ public class AntiFraudService {
                 return;
             }
 
+            // 幂等性检查：防止重复封禁
+            AtomicBoolean alreadyBanned = bannedPlayers.computeIfAbsent(playerId, k -> new AtomicBoolean(false));
+            if (!alreadyBanned.compareAndSet(false, true)) {
+                log.debug("玩家已被封禁，跳过重复操作: playerId={}", playerId);
+                return;
+            }
+
             // 更新用户状态为封禁
             playerService.banUser(playerId, "BANNED");
             User user = playerService.getUserById(playerId);
@@ -190,6 +201,10 @@ public class AntiFraudService {
             }
             
         } catch (Exception e) {
+            AtomicBoolean marker = bannedPlayers.get(playerId);
+            if (marker != null) {
+                marker.set(false);
+            }
             log.error("自动封禁处理失败: playerId={}", playerId, e);
         }
     }

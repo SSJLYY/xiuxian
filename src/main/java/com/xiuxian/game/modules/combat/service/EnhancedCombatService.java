@@ -56,7 +56,7 @@ public class EnhancedCombatService {
     /**
      * 增强战斗 - 支持技能、道具、宠物参战
      */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> enhancedCombat(Integer playerId, Monster monster, Integer skillId, Integer itemId) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) {
@@ -112,7 +112,7 @@ public class EnhancedCombatService {
                         monster, currentMonsterHealth, monsterDefense, battleLog);
 
                 // 更新玩家法力消耗
-                if (playerAction.startsWith("使用技能")) {
+                if (playerAction.startsWith("技能")) {
                     Skill skill = skillService.getSkillById(skillId);
                     if (skill != null) {
                         currentPlayerMana = Math.max(0, currentPlayerMana - skill.getManaCost());
@@ -122,6 +122,9 @@ public class EnhancedCombatService {
                 // 解析造成的伤害
                 int playerDamage = parseDamageFromLog(playerAction);
                 currentMonsterHealth -= playerDamage;
+                if (playerAction.startsWith("恢复生命")) {
+                    currentPlayerHealth = Math.min(playerHealth, currentPlayerHealth + parseHealFromLog(playerAction));
+                }
 
                 if (currentMonsterHealth <= 0) break;
 
@@ -142,7 +145,7 @@ public class EnhancedCombatService {
                         monster, currentMonsterHealth, monsterDefense, battleLog);
 
                 // 更新法力消耗
-                if (playerAction.startsWith("使用技能")) {
+                if (playerAction.startsWith("技能")) {
                     Skill skill = skillService.getSkillById(skillId);
                     if (skill != null) {
                         currentPlayerMana = Math.max(0, currentPlayerMana - skill.getManaCost());
@@ -152,6 +155,9 @@ public class EnhancedCombatService {
                 // 解析造成的伤害
                 int playerDamage = parseDamageFromLog(playerAction);
                 currentMonsterHealth -= playerDamage;
+                if (playerAction.startsWith("恢复生命")) {
+                    currentPlayerHealth = Math.min(playerHealth, currentPlayerHealth + parseHealFromLog(playerAction));
+                }
             }
         }
 
@@ -189,7 +195,9 @@ public class EnhancedCombatService {
             player.setSpiritStones(player.getSpiritStones() + spiritStonesGained);
 
             // 检查升级
-            while (player.getExp() >= player.getExpToNext()) {
+            int levelUps = 0;
+            int maxLevel = 1000;
+            while (player.getExp() >= player.getExpToNext() && player.getLevel() < maxLevel && levelUps < 100) {
                 player.setExp(player.getExp() - player.getExpToNext());
                 player.setLevel(player.getLevel() + 1);
                 player.setExpToNext((long)(player.getExpToNext() * 1.5));
@@ -199,42 +207,25 @@ public class EnhancedCombatService {
                 player.setDefense(player.getDefense() + 1);
                 player.setAttributePoints(player.getAttributePoints() + 5);
                 battleLog.add("升级！当前等级" + player.getLevel());
+                levelUps++;
+            }
+            if (player.getLevel() >= maxLevel) {
+                battleLog.add("已达到最高等级" + maxLevel);
             }
 
             battleLog.add("获得经验" + expGained + "，灵石" + spiritStonesGained);
         } else {
             battleLog.add("战斗失败...");
-            // 失败惩罚（可选）
-            int lostSpiritStones = spiritStonesGained / 10;
-            if (player.getSpiritStones() >= lostSpiritStones) {
-                player.setSpiritStones(player.getSpiritStones() - lostSpiritStones);
+            int currentSpiritStones = player.getSpiritStones();
+            int lostSpiritStones = Math.max(1, currentSpiritStones / 100);
+            if (currentSpiritStones >= lostSpiritStones) {
+                player.setSpiritStones(currentSpiritStones - lostSpiritStones);
                 battleLog.add("损失灵石" + lostSpiritStones);
             }
         }
-        // 统一保存
-        playerService.savePlayerProfile(player);
-
-        // 保存战斗记录
-        String battleDetailsJson = "";
-        try {
-            battleDetailsJson = objectMapper.writeValueAsString(battleLog);
-        } catch (JsonProcessingException e) {
-            log.error("战斗日志序列化失败", e);
-        }
-
-        CombatLog combatRecord = CombatLog.builder()
-                .playerId(playerId)
-                .monsterId(monster.getId())
-                .result(result)
-                .rounds(rounds)
-                .expGained(expGained)
-                .spiritStonesGained(spiritStonesGained)
-                .equipmentDropped(droppedEquipmentId)
-                .battleDetails(battleDetailsJson)
-                .createdAt(LocalDateTime.now())
-                .build();
-
-        combatLogMapper.insert(combatRecord);
+        // 统一保存 - 使用独立事务方法
+        saveCombatResult(player, playerId, monster.getId(), result, rounds, expGained, 
+                spiritStonesGained, droppedEquipmentId, battleLog);
 
         // 返回战斗结果
         Map<String, Object> resultMap = new HashMap<>();
@@ -253,6 +244,33 @@ public class EnhancedCombatService {
         resultMap.put("monsterMaxHealth", monsterHealth);
 
         return resultMap;
+    }
+
+    private void saveCombatResult(PlayerProfile player, Integer playerId, Integer monsterId,
+                                     String result, int rounds, int expGained, int spiritStonesGained,
+                                     Integer droppedEquipmentId, List<String> battleLog) {
+        playerService.savePlayerProfile(player);
+
+        String battleDetailsJson = "";
+        try {
+            battleDetailsJson = objectMapper.writeValueAsString(battleLog);
+        } catch (JsonProcessingException e) {
+            log.error("战斗日志序列化失败", e);
+        }
+
+        CombatLog combatRecord = CombatLog.builder()
+                .playerId(playerId)
+                .monsterId(monsterId)
+                .result(result)
+                .rounds(rounds)
+                .expGained(expGained)
+                .spiritStonesGained(spiritStonesGained)
+                .equipmentDropped(droppedEquipmentId)
+                .battleDetails(battleDetailsJson)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        combatLogMapper.insert(combatRecord);
     }
 
     /**
@@ -276,7 +294,7 @@ public class EnhancedCombatService {
                     if (isCritical) {
                         damage = (int) (damage * 1.5);
                         battleLog.add(player.getNickname() + "施放技能【" + skill.getName() + "】造成" + damage + "点暴击伤害");
-                        return "暴击伤害" + damage;
+                        return "技能暴击伤害" + damage;
                     } else {
                         battleLog.add(player.getNickname() + "施放技能【" + skill.getName() + "】造成" + damage + "点伤害");
                         return "技能伤害" + damage;
@@ -312,7 +330,7 @@ public class EnhancedCombatService {
         if (isCritical) {
             damage = (int) (damage * 1.5);
             battleLog.add(player.getNickname() + "造成" + damage + "点暴击伤害");
-            return "暴击伤害" + damage;
+            return "普攻暴击伤害" + damage;
         } else {
             battleLog.add(player.getNickname() + "攻击造成" + damage + "点伤害");
             return "造成" + damage + "伤害";
@@ -342,13 +360,40 @@ public class EnhancedCombatService {
      */
     private int parseDamageFromLog(String logEntry) {
         try {
+            if (logEntry == null || logEntry.startsWith("恢复生命")) {
+                return 0;
+            }
             String[] parts = logEntry.split("造成");
             if (parts.length > 1) {
                 String damagePart = parts[1].split("点")[0];
                 return Integer.parseInt(damagePart.trim());
             }
+
+            if (logEntry.startsWith("技能暴击伤害")) {
+                return Integer.parseInt(logEntry.substring("技能暴击伤害".length()).trim());
+            }
+            if (logEntry.startsWith("技能伤害")) {
+                return Integer.parseInt(logEntry.substring("技能伤害".length()).trim());
+            }
+            if (logEntry.startsWith("普攻暴击伤害")) {
+                return Integer.parseInt(logEntry.substring("普攻暴击伤害".length()).trim());
+            }
+            if (logEntry.startsWith("暴击伤害")) {
+                return Integer.parseInt(logEntry.substring("暴击伤害".length()).trim());
+            }
         } catch (Exception e) {
             // 解析失败，返回0
+        }
+        return 0;
+    }
+
+    private int parseHealFromLog(String logEntry) {
+        try {
+            if (logEntry != null && logEntry.startsWith("恢复生命")) {
+                return Integer.parseInt(logEntry.substring("恢复生命".length()).trim());
+            }
+        } catch (Exception e) {
+            // ignore parse error
         }
         return 0;
     }

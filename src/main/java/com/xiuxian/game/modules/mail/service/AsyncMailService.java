@@ -39,9 +39,14 @@ public class AsyncMailService {
                     mailService.sendMail(playerId, title, content, mailType, attachments, expireAt);
                     successCount++;
 
-                    // 每发送100封邮件休息一下，避免过度占用资源
                     if (successCount % 100 == 0) {
-                        Thread.sleep(100);
+                        try {
+                            Thread.sleep(100);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            log.warn("批量发送邮件被中断");
+                            break;
+                        }
                         log.debug("已发送 {} 封邮件", successCount);
                     }
 
@@ -55,9 +60,7 @@ public class AsyncMailService {
 
         } catch (Exception e) {
             log.error("批量发送邮件异常", e);
-            // 异步方法中通过 CompletableFuture 传递异常；此处 re-wrap 确保调用方能感知到失败
-            throw new com.xiuxian.game.common.exception.BusinessException(
-                    com.xiuxian.game.common.exception.ErrorCode.MAIL_BOX_FULL);
+            return CompletableFuture.failedFuture(e);
         }
 
         return CompletableFuture.completedFuture(null);
@@ -104,8 +107,7 @@ public class AsyncMailService {
 
         } catch (Exception e) {
             log.error("发送系统通知邮件异常", e);
-            throw new com.xiuxian.game.common.exception.BusinessException(
-                    com.xiuxian.game.common.exception.ErrorCode.SYSTEM_ERROR);
+            return CompletableFuture.failedFuture(e);
         }
 
         return CompletableFuture.completedFuture(null);
@@ -120,9 +122,9 @@ public class AsyncMailService {
         try {
             log.info("开始发送活动奖励邮件: 目标玩家数={}, 标题={}", playerIds.size(), title);
 
-            LocalDateTime expireAt = LocalDateTime.now().plusDays(30); // 30天后过期
+            LocalDateTime expireAt = LocalDateTime.now().plusDays(30);
 
-            int batchSize = 50; // 每批处理50个玩家
+            int batchSize = 50;
             for (int i = 0; i < playerIds.size(); i += batchSize) {
                 int endIndex = Math.min(i + batchSize, playerIds.size());
                 List<Integer> batchPlayerIds = playerIds.subList(i, endIndex);
@@ -135,9 +137,14 @@ public class AsyncMailService {
                     }
                 }
 
-                // 每批之间休息一下
                 if (endIndex < playerIds.size()) {
-                    Thread.sleep(200);
+                    try {
+                        Thread.sleep(200);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        log.warn("发送活动奖励邮件被中断");
+                        break;
+                    }
                 }
 
                 log.debug("活动奖励邮件批次完成: {}/{}", endIndex, playerIds.size());
@@ -147,8 +154,7 @@ public class AsyncMailService {
 
         } catch (Exception e) {
             log.error("发送活动奖励邮件异常", e);
-            throw new com.xiuxian.game.common.exception.BusinessException(
-                    com.xiuxian.game.common.exception.ErrorCode.SYSTEM_ERROR);
+            return CompletableFuture.failedFuture(e);
         }
 
         return CompletableFuture.completedFuture(null);

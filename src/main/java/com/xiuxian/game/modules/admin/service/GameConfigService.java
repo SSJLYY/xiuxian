@@ -46,11 +46,14 @@ public class GameConfigService {
      */
     public void refreshCache() {
         List<GameConfig> configs = gameConfigMapper.selectList(null);
-        configCache.clear();
-
+        
+        Map<String, String> newCache = new ConcurrentHashMap<>();
         for (GameConfig config : configs) {
-            configCache.put(config.getConfigKey(), config.getConfigValue());
+            newCache.put(config.getConfigKey(), config.getConfigValue());
         }
+        
+        configCache.clear();
+        configCache.putAll(newCache);
 
         log.info("游戏配置缓存已刷新，共加载 {} 条", configs.size());
     }

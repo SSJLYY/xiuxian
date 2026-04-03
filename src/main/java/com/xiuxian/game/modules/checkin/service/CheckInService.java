@@ -165,8 +165,8 @@ public class CheckInService {
 
     private int calculateConsecutiveDays(Integer playerId, LocalDate targetDate) {
         int streak = 0;
-        LocalDate checking = targetDate;
-        int maxDays = 365; // 防止异常数据导致无限循环
+        LocalDate checking = targetDate.minusDays(1);
+        int maxDays = 365;
         
         while (streak < maxDays) {
             PlayerCheckIn rec = checkInMapper.findByPlayerAndDate(playerId, checking);
@@ -174,7 +174,7 @@ public class CheckInService {
             streak++;
             checking = checking.minusDays(1);
         }
-        return streak + 1; // +1 = 今天这次
+        return streak + 1;
     }
 
     private int[] getRewardForDay(int consecutiveDays) {

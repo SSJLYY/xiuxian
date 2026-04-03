@@ -371,9 +371,8 @@ public class EnhancedInventoryService {
 
     private void applyItemEffect(PlayerProfile player, Item item) {
         // 简化的物品效果应用
-        // 简化的物品效果应用
         // 实际应该根据item.effect来处理
-        playerService.savePlayerProfile(player);
+        // 注意: 不在这里保存,由调用方统一保存
     }
 
     private Comparator<PlayerItem> getSortComparator(String sortBy) {

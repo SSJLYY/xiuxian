@@ -115,6 +115,10 @@ public enum ErrorCode {
     MAP_ALREADY_CURRENT(3103, "玩家已在该地图"),
     OFFLINE_HANGING_NOT_ALLOWED(3104, "当前地图不允许离线挂机"),
     PET_HUNGER_TOO_LOW(3105, "宠物饥饿度过低，请先喂食宠物再进行离线挂机"),
+    PET_NOT_FOUND(3106, "宠物不存在"),
+    PET_CAPTURE_FAILED(3107, "宠物捕获失败"),
+    PET_ALREADY_MAX(3108, "宠物数量已达上限"),
+    PET_LEVEL_LOCKED(3109, "宠物等级不足"),
 
     // 公会BOSS相关错误码 3200-3299
     GUILD_BOSS_NOT_FOUND(3200, "公会BOSS不存在"),

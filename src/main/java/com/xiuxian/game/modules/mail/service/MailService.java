@@ -105,12 +105,12 @@ public class MailService {
         
         mailMapper.insert(mail);
         
-        // 保存附件
+        // 保存附件 - 批量设置mailId后一次性插入
         if (attachments != null && !attachments.isEmpty()) {
             for (MailAttachment attachment : attachments) {
                 attachment.setMailId(mail.getId());
-                attachmentMapper.insert(attachment);
             }
+            attachmentMapper.insertBatchSomeColumn(attachments);
         }
         
         log.info("邮件发送成功: mailId={}", mail.getId());

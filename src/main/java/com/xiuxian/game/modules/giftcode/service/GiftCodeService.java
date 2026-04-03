@@ -96,9 +96,8 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "礼包码已失效");
         }
 
-        // 模块边界：通过PlayerService访问玩家数据
-        if (giftCode.getExpireAt() != null && giftCode.getExpireAt().isBefore(LocalDateTime.now())) {
-            // 模块边界：通过PlayerService访问玩家数据
+        // 检查过期时间 - 使用isAfter确保包含过期当天
+        if (giftCode.getExpireAt() != null && !giftCode.getExpireAt().isAfter(LocalDateTime.now())) {
             giftCode.setStatus("EXPIRED");
             giftCodeMapper.updateById(giftCode);
             log.warn("礼包码已过期, code={}, expireAt={}", code, giftCode.getExpireAt());

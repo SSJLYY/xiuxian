@@ -184,15 +184,14 @@ public class PerformanceMonitor {
 
         double usedPercent = (double) usedMemory / maxMemory * 100;
 
-        PERFORMANCE_LOGGER.info("内存使用情况 - 已使用: {}MB, 总内存: {}MB, 最大内存: {}MB, 使用率: %.2f%%",
+        PERFORMANCE_LOGGER.info("内存使用情况 - 已使用: {}MB, 总内存: {}MB, 最大内存: {}MB, 使用率: {}%",
                 usedMemory / 1024 / 1024,
                 totalMemory / 1024 / 1024,
                 maxMemory / 1024 / 1024,
-                usedPercent);
+                String.format("%.2f", usedPercent));
 
-        // 内存使用率超过80%时发出预警
         if (usedPercent > 80) {
-            PERFORMANCE_LOGGER.warn("内存使用率过高: %.2f%%，建议检查内存泄漏", usedPercent);
+            PERFORMANCE_LOGGER.warn("内存使用率过高: {}%，建议检查内存泄漏", String.format("%.2f", usedPercent));
         }
     }
 
@@ -208,12 +207,11 @@ public class PerformanceMonitor {
                                                 int totalConnections, int maxConnections) {
         double usagePercent = (double) totalConnections / maxConnections * 100;
 
-        PERFORMANCE_LOGGER.info("数据库连接池状态 - 活跃: {}, 空闲: {}, 总计: {}, 最大: {}, 使用率: %.2f%%",
-                activeConnections, idleConnections, totalConnections, maxConnections, usagePercent);
+        PERFORMANCE_LOGGER.info("数据库连接池状态 - 活跃: {}, 空闲: {}, 总计: {}, 最大: {}, 使用率: {}%",
+                activeConnections, idleConnections, totalConnections, maxConnections, String.format("%.2f", usagePercent));
 
-        // 连接池使用率超过90%时发出预警
         if (usagePercent > 90) {
-            PERFORMANCE_LOGGER.warn("数据库连接池使用率过高: %.2f%%，可能存在连接泄漏", usagePercent);
+            PERFORMANCE_LOGGER.warn("数据库连接池使用率过高: {}%，可能存在连接泄漏", String.format("%.2f", usagePercent));
         }
     }
 }

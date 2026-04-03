@@ -195,14 +195,17 @@ public class PetService {
         PlayerProfile player = playerService.getPlayerProfile(playerId);
         Pet pet = petMapper.selectById(petId);
 
-        if (player == null || pet == null) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家或宠物不存在");
+        if (player == null) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND, "玩家不存在");
+        }
+        if (pet == null) {
+            throw new BusinessException(ErrorCode.PET_NOT_FOUND, "宠物不存在");
         }
 
         // 检查是否已达宠物上限
         List<PlayerPet> existingPets = getPlayerPets(playerId);
         if (existingPets.size() >= 10) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "已达宠物数量上限（10只）");
+            throw new BusinessException(ErrorCode.PET_ALREADY_MAX, "已达宠物数量上限（10只）");
         }
 
         // 捕捉成功率
@@ -211,7 +214,7 @@ public class PetService {
 
         if (!success) {
             log.info("捕捉宠物失败: playerId={}, petId={}, rate={}", playerId, petId, captureRate);
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "捕捉失败，宠物逃脱了");
+            throw new BusinessException(ErrorCode.PET_CAPTURE_FAILED, "捕捉失败，宠物逃脱了");
         }
 
         // 创建玩家宠物记录

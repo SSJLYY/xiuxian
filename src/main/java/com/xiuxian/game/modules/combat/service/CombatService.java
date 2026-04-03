@@ -425,9 +425,10 @@ public class CombatService {
             ctx.battleLog.add("获得经验：" + ctx.expGained + "，灵石：" + ctx.spiritStonesGained);
         } else {
             ctx.battleLog.add("战斗失败...");
-            long lostSpiritStones = ctx.spiritStonesGained / 10;
-            if (ctx.player.getSpiritStones() >= lostSpiritStones && lostSpiritStones > 0) {
-                ctx.player.setSpiritStones(ctx.player.getSpiritStones() - lostSpiritStones);
+            long currentSpiritStones = ctx.player.getSpiritStones();
+            long lostSpiritStones = Math.max(1, currentSpiritStones / 100);
+            if (currentSpiritStones >= lostSpiritStones && lostSpiritStones > 0) {
+                ctx.player.setSpiritStones(currentSpiritStones - lostSpiritStones);
                 ctx.battleLog.add("损失灵石：" + lostSpiritStones);
             }
         }
@@ -637,7 +638,6 @@ public class CombatService {
     public CombatResult batchCombat(Integer playerId, Integer playerLevel, Integer mapId, int times) {
         log.info("批量战斗开始: playerId={}, times={}, mapId={}", playerId, times, mapId);
 
-        // 上限保护
         int actualTimes = Math.min(times, 100);
 
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
@@ -645,11 +645,9 @@ public class CombatService {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
 
-        // 生成怪物
         Monster monster = generateMonster(playerLevel, mapId);
         log.debug("生成怪物: {}(Lv.{} {})", monster.getName(), monster.getLevel(), monster.getType());
 
-        // --- 在不写库的情况下模拟一次战斗，得到基础结果 ---
         SingleCombatOutcome outcome = simulateSingleCombat(player, monster);
 
         int wins = 0;
@@ -658,9 +656,7 @@ public class CombatService {
         List<String> battleLog = outcome.battleLog;
 
         if (outcome.playerWon) {
-            // 累加 totalBattles（倍数）
             player.setTotalBattles(player.getTotalBattles() + actualTimes);
-            // 胜利：倍数放大奖励，一次性写库
             wins = actualTimes;
             totalExpGained = (long) outcome.expGained * actualTimes;
             totalSpiritStonesGained = (long) outcome.spiritStonesGained * actualTimes;
@@ -668,7 +664,6 @@ public class CombatService {
             player.setExp(player.getExp() + totalExpGained);
             player.setSpiritStones(player.getSpiritStones() + totalSpiritStonesGained);
 
-            // 升级检查
             int levelUps = 0;
             while (player.getExp() >= player.getExpToNext() && levelUps < 200) {
                 player.setExp(player.getExp() - player.getExpToNext());
@@ -684,22 +679,20 @@ public class CombatService {
             if (levelUps > 0) {
                 log.debug("玩家升级 {} 次，当前等级: {}", levelUps, player.getLevel());
             }
-
-            // 一次写库（原子性保证）
-            playerService.savePlayerProfile(player);
         }
-        // 失败：仍需累加 totalBattles
+        
         if (!outcome.playerWon) {
             player.setTotalBattles(player.getTotalBattles() + actualTimes);
-            playerService.savePlayerProfile(player);
+            long currentSpiritStones = player.getSpiritStones();
+            long lostSpiritStones = Math.max(1, currentSpiritStones / 100) * actualTimes;
+            if (currentSpiritStones >= lostSpiritStones && lostSpiritStones > 0) {
+                player.setSpiritStones(currentSpiritStones - lostSpiritStones);
+                battleLog.add("批量战斗失败，损失灵石：" + lostSpiritStones);
+            }
         }
 
-        // 持久化一条代表性战斗日志
-        saveCombatLog(playerId, monster,
-                outcome.playerWon ? "WIN" : "LOSE",
-                outcome.rounds,
-                totalExpGained, totalSpiritStonesGained,
-                null, battleLog);
+        saveBatchCombatResult(player, playerId, monster, outcome.playerWon ? "WIN" : "LOSE",
+                outcome.rounds, totalExpGained, totalSpiritStonesGained, battleLog);
 
         log.info("批量战斗完成: wins={}/{}, exp={}, stones={}", wins, actualTimes, totalExpGained, totalSpiritStonesGained);
 
@@ -719,6 +712,14 @@ public class CombatService {
                 .playerExp(player.getExp())
                 .playerSpiritStones(player.getSpiritStones())
                 .build();
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    protected void saveBatchCombatResult(PlayerProfile player, Integer playerId, Monster monster,
+                                          String result, int rounds, long totalExpGained, 
+                                          long totalSpiritStonesGained, List<String> battleLog) {
+        playerService.savePlayerProfile(player);
+        saveCombatLog(playerId, monster, result, rounds, totalExpGained, totalSpiritStonesGained, null, battleLog);
     }
 
     // =====================================================================

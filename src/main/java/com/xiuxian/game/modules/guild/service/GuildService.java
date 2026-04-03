@@ -402,8 +402,8 @@ public class GuildService {
         // 原子增加成员贡献（防止并发捐献导致贡献不一致）
         guildMemberMapper.addContribution(member.getId(), amount);
         
-        log.info("宗门捐献成功: playerId={}, amount={}, contribution={}", 
-                playerId, amount, member.getContribution());
+        log.info("宗门捐献成功: playerId={}, amount={}, guildId={}", 
+                playerId, amount, member.getGuildId());
     }
 
     /**

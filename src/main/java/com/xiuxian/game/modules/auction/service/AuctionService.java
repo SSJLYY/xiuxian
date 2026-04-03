@@ -266,9 +266,9 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
      */
     private void paySellerProceeds(AuctionItem auctionItem) {
         PlayerProfile sellerProfile = playerService.getPlayerProfileById(auctionItem.getSellerId());
-        // 使用long避免精度丢失
-        long sellerProceeds = Math.round(auctionItem.getPrice() * 0.9);
-        sellerProfile.setSpiritStones(sellerProfile.getSpiritStones() + (int) Math.min(sellerProceeds, Integer.MAX_VALUE));
+        long price = auctionItem.getPrice().longValue();
+        long sellerProceeds = price * 9 / 10;
+        sellerProfile.setSpiritStones(sellerProfile.getSpiritStones() + sellerProceeds);
         playerService.savePlayerProfile(sellerProfile);
     }
     
@@ -401,12 +401,22 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
     private void addItemToBuyerInventory(Integer buyerId, AuctionItem auctionItem) {
         switch (auctionItem.getItemType().toUpperCase()) {
             case "ITEM":
-                // 添加物品到买家背包
-                PlayerItem newItem = new PlayerItem();
-                newItem.setPlayerId(buyerId);
-                newItem.setItemId(auctionItem.getItemId());
-                newItem.setQuantity(auctionItem.getQuantity());
-                playerService.savePlayerItem(newItem);
+                List<PlayerItem> existingItems = playerService.getPlayerItemsByPlayerId(buyerId);
+                PlayerItem existingItem = existingItems.stream()
+                        .filter(pi -> pi.getItemId().equals(auctionItem.getItemId()))
+                        .findFirst()
+                        .orElse(null);
+                
+                if (existingItem != null) {
+                    existingItem.setQuantity(existingItem.getQuantity() + auctionItem.getQuantity());
+                    playerService.savePlayerItem(existingItem);
+                } else {
+                    PlayerItem newItem = new PlayerItem();
+                    newItem.setPlayerId(buyerId);
+                    newItem.setItemId(auctionItem.getItemId());
+                    newItem.setQuantity(auctionItem.getQuantity());
+                    playerService.savePlayerItem(newItem);
+                }
                 break;
                 
             case "EQUIPMENT":
