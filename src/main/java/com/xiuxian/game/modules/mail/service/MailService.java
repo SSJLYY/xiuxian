@@ -107,10 +107,16 @@ public class MailService {
         
         // 保存附件 - 批量设置mailId后一次性插入
         if (attachments != null && !attachments.isEmpty()) {
+            List<MailAttachment> attachmentsToInsert = new ArrayList<>(attachments.size());
             for (MailAttachment attachment : attachments) {
-                attachment.setMailId(mail.getId());
+                MailAttachment copy = new MailAttachment();
+                copy.setMailId(mail.getId());
+                copy.setItemType(attachment.getItemType());
+                copy.setItemId(attachment.getItemId());
+                copy.setQuantity(attachment.getQuantity());
+                attachmentsToInsert.add(copy);
             }
-            attachmentMapper.insertBatchSomeColumn(attachments);
+            attachmentMapper.insertBatchSomeColumn(attachmentsToInsert);
         }
         
         log.info("邮件发送成功: mailId={}", mail.getId());

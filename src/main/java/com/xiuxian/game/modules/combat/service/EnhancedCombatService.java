@@ -28,6 +28,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import com.xiuxian.game.common.exception.BusinessException;
 import com.xiuxian.game.common.exception.ErrorCode;
 
@@ -49,6 +51,8 @@ public class EnhancedCombatService {
     private final PetService petService;
     private final ObjectMapper objectMapper;
 
+    private static final Pattern NUMBER_PATTERN = Pattern.compile("(\\d+)");
+
     private static ThreadLocalRandom rng() {
         return ThreadLocalRandom.current();
     }
@@ -68,7 +72,7 @@ public class EnhancedCombatService {
         int playerAttack = player.getAttack() + player.getEquipmentAttackBonus();
         int playerDefense = player.getDefense() + player.getEquipmentDefenseBonus();
         int playerSpeed = player.getSpeed() + player.getEquipmentSpeedBonus();
-        int playerMana = player.getMana();
+        int playerMana = player.getMana() == null ? 0 : player.getMana();
 
         // 获取宠物加成
         PlayerPet activePet = petService.getActivePet(playerId);
@@ -216,8 +220,8 @@ public class EnhancedCombatService {
             battleLog.add("获得经验" + expGained + "，灵石" + spiritStonesGained);
         } else {
             battleLog.add("战斗失败...");
-            int currentSpiritStones = player.getSpiritStones();
-            int lostSpiritStones = Math.max(1, currentSpiritStones / 100);
+            long currentSpiritStones = player.getSpiritStones();
+            long lostSpiritStones = Math.max(1L, currentSpiritStones / 100);
             if (currentSpiritStones >= lostSpiritStones) {
                 player.setSpiritStones(currentSpiritStones - lostSpiritStones);
                 battleLog.add("损失灵石" + lostSpiritStones);
@@ -380,6 +384,11 @@ public class EnhancedCombatService {
             }
             if (logEntry.startsWith("暴击伤害")) {
                 return Integer.parseInt(logEntry.substring("暴击伤害".length()).trim());
+            }
+
+            Matcher matcher = NUMBER_PATTERN.matcher(logEntry);
+            if (matcher.find()) {
+                return Integer.parseInt(matcher.group(1));
             }
         } catch (Exception e) {
             // 解析失败，返回0

@@ -427,9 +427,10 @@ public class CombatService {
             ctx.battleLog.add("战斗失败...");
             long currentSpiritStones = ctx.player.getSpiritStones();
             long lostSpiritStones = Math.max(1, currentSpiritStones / 100);
-            if (currentSpiritStones >= lostSpiritStones && lostSpiritStones > 0) {
-                ctx.player.setSpiritStones(currentSpiritStones - lostSpiritStones);
-                ctx.battleLog.add("损失灵石：" + lostSpiritStones);
+            long actualLoss = Math.min(currentSpiritStones, Math.max(0, lostSpiritStones));
+            if (actualLoss > 0) {
+                ctx.player.setSpiritStones(currentSpiritStones - actualLoss);
+                ctx.battleLog.add("损失灵石：" + actualLoss);
             }
         }
         // 统一保存：累加了 totalBattles，并持久化 if/else 中修改的属性
@@ -638,6 +639,10 @@ public class CombatService {
     public CombatResult batchCombat(Integer playerId, Integer playerLevel, Integer mapId, int times) {
         log.info("批量战斗开始: playerId={}, times={}, mapId={}", playerId, times, mapId);
 
+        if (times <= 0) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "战斗次数必须大于0");
+        }
+
         int actualTimes = Math.min(times, 100);
 
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
@@ -685,9 +690,10 @@ public class CombatService {
             player.setTotalBattles(player.getTotalBattles() + actualTimes);
             long currentSpiritStones = player.getSpiritStones();
             long lostSpiritStones = Math.max(1, currentSpiritStones / 100) * actualTimes;
-            if (currentSpiritStones >= lostSpiritStones && lostSpiritStones > 0) {
-                player.setSpiritStones(currentSpiritStones - lostSpiritStones);
-                battleLog.add("批量战斗失败，损失灵石：" + lostSpiritStones);
+            long actualLoss = Math.min(currentSpiritStones, Math.max(0, lostSpiritStones));
+            if (actualLoss > 0) {
+                player.setSpiritStones(currentSpiritStones - actualLoss);
+                battleLog.add("批量战斗失败，损失灵石：" + actualLoss);
             }
         }
 

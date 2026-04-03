@@ -22,6 +22,10 @@ public class QuestProgressService {
 
     public void updateQuestProgressByType(Integer playerId, Quest.QuestType questType, int progressIncrement) {
         try {
+            if (progressIncrement <= 0) {
+                return;
+            }
+
             List<com.xiuxian.game.modules.quest.entity.PlayerQuest> playerQuests = playerQuestMapper.selectByPlayerId(playerId);
 
             if (playerQuests == null || playerQuests.isEmpty()) {
@@ -34,6 +38,9 @@ public class QuestProgressService {
                     .collect(Collectors.toList());
             
             List<Quest> quests = questMapper.selectBatchIds(questIds);
+            if (quests == null || quests.isEmpty()) {
+                return;
+            }
             Map<Integer, Quest> questMap = quests.stream()
                     .collect(Collectors.toMap(Quest::getId, q -> q));
 

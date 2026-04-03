@@ -225,26 +225,19 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
             throw new BusinessException(ErrorCode.AUCTION_ITEM_SOLD);
         }
         
-        // 状态更新成功后，再执行资金操作（失败会回滚）
-        try {
-            // 扣除买家灵石
-            deductBuyerFunds(buyerId, auctionItem);
-            
-            // 支付卖家（扣除10%平台费）
-            paySellerProceeds(auctionItem);
-            
-            auctionItem.setStatus("SOLD");
-            auctionItem.setBuyerId(buyerId);
-            auctionItem.setSoldAt(now);
-            
-            // 交付物品 + 发送通知
-            addItemToBuyerInventory(buyerId, auctionItem);
-            sendTransactionNotification(auctionItem);
-        } catch (Exception e) {
-            // 如果后续操作失败，回滚状态更新
-            auctionItemMapper.expireAuctionItem(auctionItemId);
-            throw e;
-        }
+        // 状态更新成功后，再执行资金操作；任一步失败都由事务统一回滚
+        deductBuyerFunds(buyerId, auctionItem);
+
+        // 支付卖家（扣除10%平台费）
+        paySellerProceeds(auctionItem);
+
+        auctionItem.setStatus("SOLD");
+        auctionItem.setBuyerId(buyerId);
+        auctionItem.setSoldAt(now);
+
+        // 交付物品 + 发送通知
+        addItemToBuyerInventory(buyerId, auctionItem);
+        sendTransactionNotification(auctionItem);
         
         return auctionItem;
     }

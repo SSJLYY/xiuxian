@@ -60,7 +60,7 @@ public class AsyncMailService {
 
         } catch (Exception e) {
             log.error("批量发送邮件异常", e);
-            return CompletableFuture.failedFuture(e);
+            return failedFuture(e);
         }
 
         return CompletableFuture.completedFuture(null);
@@ -107,7 +107,7 @@ public class AsyncMailService {
 
         } catch (Exception e) {
             log.error("发送系统通知邮件异常", e);
-            return CompletableFuture.failedFuture(e);
+            return failedFuture(e);
         }
 
         return CompletableFuture.completedFuture(null);
@@ -154,9 +154,15 @@ public class AsyncMailService {
 
         } catch (Exception e) {
             log.error("发送活动奖励邮件异常", e);
-            return CompletableFuture.failedFuture(e);
+            return failedFuture(e);
         }
 
         return CompletableFuture.completedFuture(null);
+    }
+
+    private CompletableFuture<Void> failedFuture(Throwable throwable) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        future.completeExceptionally(throwable);
+        return future;
     }
 }
