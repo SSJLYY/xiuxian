@@ -4,61 +4,20 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-// auction entities via Service
-
-
-
-
-
-
-
-
-
 import com.xiuxian.game.modules.auction.entity.AuctionItem;
-
-
-
-
-
-
-
-
-
-
-
-import com.xiuxian.game.modules.player.entity.PlayerProfile;
-import com.xiuxian.game.modules.player.entity.PlayerItem;
+import com.xiuxian.game.modules.auction.mapper.AuctionItemMapper;
 import com.xiuxian.game.modules.equipment.entity.Equipment;
 import com.xiuxian.game.modules.equipment.entity.PlayerEquipment;
+import com.xiuxian.game.modules.equipment.service.EquipmentService;
+import com.xiuxian.game.modules.mail.service.MailService;
 import com.xiuxian.game.modules.pet.entity.Pet;
 import com.xiuxian.game.modules.pet.entity.PlayerPet;
-import com.xiuxian.game.modules.shop.entity.Item;
-import com.xiuxian.game.modules.player.service.PlayerService;
-import com.xiuxian.game.modules.equipment.service.EquipmentService;
 import com.xiuxian.game.modules.pet.service.PetService;
+import com.xiuxian.game.modules.player.entity.PlayerItem;
+import com.xiuxian.game.modules.player.entity.PlayerProfile;
+import com.xiuxian.game.modules.player.service.PlayerService;
+import com.xiuxian.game.modules.shop.entity.Item;
 import com.xiuxian.game.modules.shop.service.ItemService;
-import com.xiuxian.game.modules.mail.service.MailService;
-
-
-
-
-
-
-
-
-
-import com.xiuxian.game.modules.auction.mapper.AuctionItemMapper;
-
-
-
-
-
-
-
-
-
-
-
 import com.xiuxian.game.common.exception.BusinessException;
 import com.xiuxian.game.common.exception.ErrorCode;
 import com.xiuxian.game.dto.request.ListAuctionRequest;
@@ -73,18 +32,14 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> {
-    
+
     private final AuctionItemMapper auctionItemMapper;
-
-
     private final EquipmentService equipmentService;
     private final PetService petService;
     private final ItemService itemService;
-
-
     private final MailService mailService;
     private final PlayerService playerService;
-    
+
     /**
      * 上架物品到拍卖行（DTO 版本，推荐使用）
      */
@@ -107,8 +62,17 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
      */
     @Transactional
     public AuctionItem listItem(Integer playerId, String itemType, Integer itemId, Long playerItemId, 
-                               Integer quantity, Integer price, Integer duration) {
+                                Integer quantity, Integer price, Integer duration) {
         // 参数校验
+        if (itemType == null || itemType.trim().isEmpty()) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "物品类型不能为空");
+        }
+        if (itemId == null || playerItemId == null || quantity == null || price == null || duration == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "参数不完整");
+        }
+        if (quantity <= 0) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "数量必须大于0");
+        }
         if (price <= 0 || duration <= 0) {
             throw new BusinessException("价格和持续时间必须大于0");
         }
@@ -247,6 +211,9 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
      */
     private void deductBuyerFunds(Integer buyerId, AuctionItem auctionItem) {
         PlayerProfile buyerProfile = playerService.getPlayerProfileById(buyerId);
+        if (buyerProfile == null) {
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
+        }
         if (buyerProfile.getSpiritStones() < auctionItem.getPrice()) {
             throw new BusinessException(ErrorCode.INSUFFICIENT_SPIRIT_STONES);
         }
@@ -259,6 +226,9 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
      */
     private void paySellerProceeds(AuctionItem auctionItem) {
         PlayerProfile sellerProfile = playerService.getPlayerProfileById(auctionItem.getSellerId());
+        if (sellerProfile == null) {
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
+        }
         long price = auctionItem.getPrice().longValue();
         long sellerProceeds = price * 9 / 10;
         sellerProfile.setSpiritStones(sellerProfile.getSpiritStones() + sellerProceeds);

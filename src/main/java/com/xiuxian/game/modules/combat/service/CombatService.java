@@ -204,6 +204,7 @@ public class CombatService {
      * <p>【性能优化】战斗计算（纯CPU操作）不持有DB事务，仅在最终写库阶段开启事务，
      * 减少DB连接持有时间（原长事务可能持有数十毫秒）。</p>
      */
+    @Transactional(rollbackFor = Exception.class)
     public CombatResult startCombat(Integer playerId, Monster monster) {
         // 阶段1：参数校验 + 新手保护 + 宠物准备
         CombatContext ctx = prepareCombat(playerId, monster);
@@ -574,9 +575,7 @@ public class CombatService {
 
     /**
      * 持久化战斗日志（抽取复用）
-     * 独立 @Transactional，确保战斗结果写库原子性，同时不污染整个战斗计算过程。
      */
-    @Transactional(rollbackFor = Exception.class)
     void saveCombatLog(Integer playerId, Monster monster, String result, int rounds,
                                 long expGained, long spiritStonesGained,
                                 Integer droppedEquipmentId, List<String> battleLog) {
@@ -720,8 +719,7 @@ public class CombatService {
                 .build();
     }
 
-    @Transactional(rollbackFor = Exception.class)
-    protected void saveBatchCombatResult(PlayerProfile player, Integer playerId, Monster monster,
+    private void saveBatchCombatResult(PlayerProfile player, Integer playerId, Monster monster,
                                           String result, int rounds, long totalExpGained, 
                                           long totalSpiritStonesGained, List<String> battleLog) {
         playerService.savePlayerProfile(player);

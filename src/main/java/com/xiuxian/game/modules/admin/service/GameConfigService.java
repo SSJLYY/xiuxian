@@ -118,6 +118,7 @@ public class GameConfigService {
     }
     
     /**
+     * 获取布尔配置
      */
     public boolean getBoolean(String key, boolean defaultValue) {
         String value = configCache.get(key);
@@ -128,6 +129,7 @@ public class GameConfigService {
     }
     
     /**
+     * 新增或更新配置项
      */
     public void setConfig(String key, String value, String description, String category) {
         GameConfig config = getConfigByKey(key);
@@ -171,12 +173,14 @@ public class GameConfigService {
     }
     
     /**
+     * 获取全部配置
      */
     public List<GameConfig> getAllConfigs() {
         return gameConfigMapper.selectList(null);
     }
     
     /**
+     * 按分类获取配置
      */
     public List<GameConfig> getConfigsByCategory(String category) {
         QueryWrapper<GameConfig> queryWrapper = new QueryWrapper<>();
@@ -185,6 +189,7 @@ public class GameConfigService {
     }
     
     /**
+     * 按key查询配置
      */
     private GameConfig getConfigByKey(String key) {
         QueryWrapper<GameConfig> queryWrapper = new QueryWrapper<>();
@@ -193,6 +198,7 @@ public class GameConfigService {
     }
     
     /**
+     * 推断配置值类型
      */
     private String determineConfigType(String value) {
         if (value == null) {
@@ -223,6 +229,7 @@ public class GameConfigService {
     }
     
     /**
+     * 内置配置键常量
      */
     public static class ConfigKeys {
         public static final String EXP_MULTIPLIER = "exp.multiplier";

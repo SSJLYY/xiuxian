@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -38,5 +39,10 @@ public interface PlayerMailMapper extends BaseMapper<PlayerMail> {
             "</foreach>" +
             "</script>")
     void deleteBatchByIds(@Param("ids") List<Long> ids);
+
+    @Update("UPDATE player_mails " +
+            "SET is_claimed = 1 " +
+            "WHERE id = #{mailId} AND player_id = #{playerId} AND has_attachment = 1 AND is_claimed = 0")
+    int claimAttachmentIfUnclaimed(@Param("mailId") Long mailId, @Param("playerId") Integer playerId);
 }
 

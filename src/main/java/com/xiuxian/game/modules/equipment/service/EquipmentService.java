@@ -630,10 +630,6 @@ public class EquipmentService {
     }
 
     /**
-     * 直接发放装备给玩家（不做等级和重复校验，供邮件/活动奖励使用）
-     * 模块边界：mail模块通过此接口为玩家发放装备，不直接操作PlayerEquipmentMapper
-     */
-    /**
      * 直接发放装备给玩家
      *
      * <p>不做等级和重复校验，供邮件/活动奖励使用</p>
@@ -658,9 +654,6 @@ public class EquipmentService {
 
     // ===================== 供 AuctionService 使用的接口（模块边界规范） =====================
 
-    /**
-     * 根据装备模板ID获取装备信息（供 AuctionService 使用）
-     */
     /**
      * 根据装备模板ID获取装备信息
      *

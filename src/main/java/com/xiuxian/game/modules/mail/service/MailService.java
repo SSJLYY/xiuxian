@@ -21,6 +21,7 @@ import com.xiuxian.game.common.util.PageUtil;
 import com.xiuxian.game.dto.request.SystemMailRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,6 +43,8 @@ public class MailService {
     // module boundary: access player/equipment data via Service, not direct Mapper injection
     private final PlayerService playerService;
     private final EquipmentService equipmentService;
+    @Lazy
+    private final MailService self;
 
     private static final int MAX_MAILBOX_SIZE = 100;
 
@@ -125,16 +128,15 @@ public class MailService {
     /**
      * 批量发送邮件
      */
-    @Transactional
     public void sendBatchMail(List<Integer> playerIds, String title, String content, 
-                             String mailType, List<MailAttachment> attachments, LocalDateTime expireAt) {
+                              String mailType, List<MailAttachment> attachments, LocalDateTime expireAt) {
         log.info("批量发送邮件: playerCount={}, title={}", playerIds.size(), title);
         
         for (Integer playerId : playerIds) {
             try {
-                sendMail(playerId, title, content, mailType, attachments, expireAt);
+                self.sendMail(playerId, title, content, mailType, attachments, expireAt);
             } catch (Exception e) {
-            log.error("发送邮件失败: playerId={}", playerId, e);
+                log.error("发送邮件失败: playerId={}", playerId, e);
             }
         }
     }
@@ -211,6 +213,11 @@ public class MailService {
             throw new BusinessException(ErrorCode.MAIL_NO_ATTACHMENT);
         }
         
+        int claimedRows = mailMapper.claimAttachmentIfUnclaimed(mailId, playerId);
+        if (claimedRows == 0) {
+            throw new BusinessException(ErrorCode.MAIL_ALREADY_CLAIMED);
+        }
+
         // 发放附件奖励
         PlayerProfile profile = playerService.getPlayerProfileById(playerId);
         if (profile == null) {
@@ -219,11 +226,7 @@ public class MailService {
         for (MailAttachment attachment : attachments) {
             grantAttachment(profile, attachment);
         }
-        
-        // 标记为已领取
-        mail.setIsClaimed(true);
-        mailMapper.updateById(mail);
-        
+
         log.info("附件领取成功: mailId={}, attachmentCount={}", mailId, attachments.size());
     }
 
