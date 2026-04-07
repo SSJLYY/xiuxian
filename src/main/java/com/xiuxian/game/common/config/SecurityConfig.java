@@ -46,7 +46,7 @@ public class SecurityConfig {
         
         // 根据配置设置允许的源
         if ("*".equals(allowedOrigins)) {
-            configuration.setAllowedOriginPatterns(List.of("*"));
+            configuration.setAllowedOriginPatterns(Arrays.asList("*"));
             configuration.setAllowCredentials(false); // 通配符时不允许凭证
         } else {
             String[] origins = allowedOrigins.split(",");
@@ -74,7 +74,7 @@ public class SecurityConfig {
                         // 静态资源和错误页面放行
                         .antMatchers(
                                 "/",
-                                "/**/*.html",
+                                "/*.html",
                                 "/index.html",
                                 "/login.html",
                                 "/adminLogin.html",
@@ -84,7 +84,7 @@ public class SecurityConfig {
                                 "/admin.html",
                                 "/test.html",
                                 "/xiuxian-game/",
-                                "/xiuxian-game/**/*.html",
+                                "/xiuxian-game/*.html",
                                 "/xiuxian-game/index.html",
                                 "/xiuxian-game/login.html",
                                 "/xiuxian-game/adminLogin.html",
@@ -102,11 +102,10 @@ public class SecurityConfig {
                                 "/error/**"
                         ).permitAll()
 
-                        // 玩家认证API放行
+                        // 玩家认证API放行（validate 需要有效 Token，不在公开白名单）
                         .antMatchers(
                                 "/api/auth/login",
-                                "/api/auth/register",
-                                "/api/auth/validate"
+                                "/api/auth/register"
                         ).permitAll()
 
                         // 管理员认证API放行

@@ -63,7 +63,6 @@ public class SecurityFilter extends OncePerRequestFilter {
                requestURI.startsWith("/fonts/") ||
                requestURI.startsWith("/assets/") ||
                requestURI.startsWith("/static/") ||
-               requestURI.startsWith("/api/auth/") ||
                requestURI.startsWith("/api/public/") ||
                requestURI.equals("/") ||
                requestURI.endsWith(".html") ||

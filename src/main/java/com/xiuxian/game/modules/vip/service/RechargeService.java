@@ -11,12 +11,14 @@ import com.xiuxian.game.modules.player.service.PlayerService;
 import java.util.concurrent.ThreadLocalRandom;
 import com.xiuxian.game.modules.vip.mapper.RechargeRecordMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RechargeService extends ServiceImpl<RechargeRecordMapper, RechargeRecord> {

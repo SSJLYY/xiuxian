@@ -49,7 +49,7 @@ public class GuildBossController {
             Integer playerId = playerService.getCurrentPlayerId();
             log.info("获取宗门BOSS信息, playerId={}", playerId);
             GuildBossService.GuildBossVO vo = guildBossService.getCurrentBoss(playerId);
-            log.info("获取宗门BOSS信息成功, playerId={}, bossId={}", playerId, vo.getBossId());
+            log.info("获取宗门BOSS信息成功, playerId={}, bossId={}", playerId, vo.getId());
             return ApiResponse.success("获取成功", vo);
         } catch (Exception e) {
             log.error("获取宗门BOSS失败, playerId={}, error={}",

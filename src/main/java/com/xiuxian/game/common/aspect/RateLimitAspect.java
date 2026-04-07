@@ -37,6 +37,7 @@ public class RateLimitAspect {
         Method method = signature.getMethod();
 
         RateLimit rateLimit = method.getAnnotation(RateLimit.class);
+        // 切点保证注解存在；防御性兜底：无注解时直接放行
         if (rateLimit == null) {
             return point.proceed();
         }

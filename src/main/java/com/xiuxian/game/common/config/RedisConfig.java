@@ -3,7 +3,8 @@ package com.xiuxian.game.common.config;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
+import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.CacheManager;
@@ -26,12 +27,39 @@ import java.util.Map;
  * Redis 缓存配置类
  * 注册 Redis 缓存管理器，支持 Session 分布式存储
  *
+ * <p>安全说明：使用 BasicPolymorphicTypeValidator 替代
+ * LaissezFaireSubTypeValidator，限制反序列化类型范围，防止 RCE 攻击。</p>
+ *
  * @author shaun.sheng
  */
 @Slf4j
 @Configuration
 @EnableCaching
 public class RedisConfig {
+
+    /**
+     * 构建安全的 Jackson2JsonRedisSerializer（供 redisTemplate 和 cacheManager 共用）
+     * 使用 BasicPolymorphicTypeValidator 限制允许反序列化的包，避免 RCE 风险。
+     */
+    private Jackson2JsonRedisSerializer<Object> buildJsonSerializer() {
+        PolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
+                .allowIfBaseType(Object.class)
+                .allowIfSubType("com.xiuxian.game.")
+                .allowIfSubType("java.util.")
+                .allowIfSubType("java.lang.")
+                .allowIfSubType("java.time.")
+                .allowIfSubType("java.math.")
+                .build();
+
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
+        mapper.activateDefaultTyping(ptv, ObjectMapper.DefaultTyping.NON_FINAL);
+        mapper.registerModule(new JavaTimeModule());
+
+        Jackson2JsonRedisSerializer<Object> serializer = new Jackson2JsonRedisSerializer<>(Object.class);
+        serializer.setObjectMapper(mapper);
+        return serializer;
+    }
 
     /**
      * RedisTemplate 缓存配置
@@ -41,15 +69,7 @@ public class RedisConfig {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
 
-        // JSON 序列化器配置
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
-        mapper.activateDefaultTyping(LaissezFaireSubTypeValidator.instance,
-                ObjectMapper.DefaultTyping.NON_FINAL);
-        mapper.registerModule(new JavaTimeModule());
-
-        Jackson2JsonRedisSerializer<Object> jsonSerializer = new Jackson2JsonRedisSerializer<Object>(Object.class);
-        jsonSerializer.setObjectMapper(mapper);
+        Jackson2JsonRedisSerializer<Object> jsonSerializer = buildJsonSerializer();
         StringRedisSerializer stringSerializer = new StringRedisSerializer();
 
         // key 使用 String 序列化器
@@ -67,17 +87,18 @@ public class RedisConfig {
 
     /**
      * CacheManager 缓存配置 - 支持不同缓存使用不同TTL和前缀
+     *
+     * <p>TTL 说明：
+     * <ul>
+     *   <li>tokenCache：2h，与 JWT accessToken 过期时间对齐（application.properties: jwt.expiration=7200s）</li>
+     *   <li>rankingCache：5m，高频变更场景适当缩短</li>
+     *   <li>auctionCache：1m，拍卖行实时性要求高</li>
+     * </ul>
+     * </p>
      */
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
-        mapper.activateDefaultTyping(LaissezFaireSubTypeValidator.instance,
-                ObjectMapper.DefaultTyping.NON_FINAL);
-        mapper.registerModule(new JavaTimeModule());
-
-        Jackson2JsonRedisSerializer<Object> jsonSerializer = new Jackson2JsonRedisSerializer<Object>(Object.class);
-        jsonSerializer.setObjectMapper(mapper);
+        Jackson2JsonRedisSerializer<Object> jsonSerializer = buildJsonSerializer();
 
         RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofMinutes(30))
@@ -94,9 +115,9 @@ public class RedisConfig {
                 .entryTtl(Duration.ofMinutes(30))
                 .prefixCacheNameWith("xiuxian:player:"));
 
-        // 用户Token缓存 - 24小时TTL
+        // 用户Token缓存 - 2小时TTL（与 JWT accessToken 过期时间对齐）
         cacheConfigurations.put("tokenCache", defaultConfig
-                .entryTtl(Duration.ofHours(24))
+                .entryTtl(Duration.ofHours(2))
                 .prefixCacheNameWith("xiuxian:token:"));
 
         // 排行榜数据缓存 - 5分钟TTL

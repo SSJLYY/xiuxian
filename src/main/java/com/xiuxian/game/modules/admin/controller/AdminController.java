@@ -124,7 +124,7 @@ public class AdminController {
     @PostMapping("/shop/items")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<ShopItem>> upsertShopItem(@RequestBody ShopItem item) {
-        log.info("管理员保存商店商品: itemId={}, name={}", item.getId(), item.getName());
+        log.info("管理员保存商店商品: itemId={}, shopType={}", item.getId(), item.getShopType());
         shopService.upsertShopItem(item);
         log.info("管理员保存商店商品成功: itemId={}", item.getId());
         return ResponseEntity.ok(ApiResponse.success("商品保存成功", item));

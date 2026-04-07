@@ -32,43 +32,43 @@ public class DataSourceAspect {
         MethodSignature signature = (MethodSignature) point.getSignature();
         Method method = signature.getMethod();
 
-        // 获取方法上的DataSource注解，类上没有则查找方法上的
+        // 优先取方法级注解，其次取类级注解
         DataSource annotation = method.getAnnotation(DataSource.class);
         if (annotation == null) {
             annotation = method.getDeclaringClass().getAnnotation(DataSource.class);
         }
 
+        // 切点保证至少有一处注解存在；防御性兜底：无注解时切换到从库
+        if (annotation == null) {
+            RoutingDataSource.useSlave();
+            return point.proceed();
+        }
+
         String originalDataSource = RoutingDataSource.getDataSource();
 
         try {
-            if (annotation != null) {
-                switch (annotation.value()) {
-                    case MASTER:
+            switch (annotation.value()) {
+                case MASTER:
+                    RoutingDataSource.useMaster();
+                    log.debug("切换到主库 {}.{}",
+                            method.getDeclaringClass().getSimpleName(),
+                            method.getName());
+                    break;
+                case SLAVE:
+                    RoutingDataSource.useSlave();
+                    log.debug("切换到从库 {}.{}",
+                            method.getDeclaringClass().getSimpleName(),
+                            method.getName());
+                    break;
+                case AUTO:
+                default:
+                    // 自动判断：写方法切主库，读方法切从库
+                    if (isWriteMethod(method.getName())) {
                         RoutingDataSource.useMaster();
-                        log.debug("切换到主库 {}.{}",
-                                method.getDeclaringClass().getSimpleName(),
-                                method.getName());
-                        break;
-                    case SLAVE:
+                    } else {
                         RoutingDataSource.useSlave();
-                        log.debug("切换到从库 {}.{}",
-                                method.getDeclaringClass().getSimpleName(),
-                                method.getName());
-                        break;
-                    case AUTO:
-                    default:
-                        // 自动判断：写方法切主库，读方法切从库
-                        String methodName = method.getName();
-                        if (isWriteMethod(methodName)) {
-                            RoutingDataSource.useMaster();
-                        } else {
-                            RoutingDataSource.useSlave();
-                        }
-                        break;
-                }
-            } else {
-                // 没有注解，默认切换到从库
-                RoutingDataSource.useSlave();
+                    }
+                    break;
             }
 
             return point.proceed();

@@ -22,14 +22,17 @@ import com.xiuxian.game.common.exception.BusinessException;
 import com.xiuxian.game.common.exception.ErrorCode;
 import com.xiuxian.game.dto.request.ListAuctionRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> {
 
@@ -107,8 +110,8 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
         switch (itemType.toUpperCase()) {
             case "ITEM":
                 PlayerItem playerItem = playerService.getPlayerItemById(playerItemId.intValue());
-                if (playerItem == null || !playerItem.getPlayerId().equals(playerId) || 
-                    playerItem.getItemId() != itemId || playerItem.getQuantity() < quantity) {
+                if (playerItem == null || !playerItem.getPlayerId().equals(playerId) ||
+                    !Objects.equals(playerItem.getItemId(), itemId) || playerItem.getQuantity() < quantity) {
                     throw new BusinessException("物品不存在或不属于您");
                 }
                 if (playerItem.getQuantity() > quantity) {
@@ -121,8 +124,8 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
                 
             case "EQUIPMENT":
                 PlayerEquipment playerEquipment = equipmentService.getPlayerEquipmentById(playerItemId);
-                if (playerEquipment == null || !playerEquipment.getPlayerId().equals(playerId) || 
-                    playerEquipment.getEquipmentId() != itemId) {
+                if (playerEquipment == null || !playerEquipment.getPlayerId().equals(playerId) ||
+                    !Objects.equals(playerEquipment.getEquipmentId(), itemId)) {
                     throw new BusinessException("装备不存在或不属于您");
                 }
                 equipmentService.deletePlayerEquipment(playerItemId);
@@ -130,8 +133,8 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
                 
             case "PET":
                 PlayerPet playerPet = petService.getPlayerPetById(playerItemId);
-                if (playerPet == null || !playerPet.getPlayerId().equals(playerId) || 
-                    playerPet.getPetId() != itemId) {
+                if (playerPet == null || !playerPet.getPlayerId().equals(playerId) ||
+                    !Objects.equals(playerPet.getPetId(), itemId)) {
                     throw new BusinessException("宠物不存在或不属于您");
                 }
                 petService.deletePlayerPet(playerItemId);
@@ -256,8 +259,8 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
             throw new BusinessException(ErrorCode.AUCTION_ITEM_SOLD);
         }
         
-        // 扣除取消手续费(假设为原手续费的一半)
-        long originalFee = Math.max(1, (long)auctionItem.getPrice() / 20);
+        // 扣除取消手续费(上架手续费 price*0.05 的一半)
+        long originalFee = Math.max(1, Math.round(auctionItem.getPrice() * 0.05));
         long cancelFee = originalFee / 2;
         
         PlayerProfile playerProfile = playerService.getPlayerProfileById(playerId);
@@ -265,16 +268,16 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
             throw new BusinessException(ErrorCode.INSUFFICIENT_SPIRIT_STONES);
         }
         
-        // 扣除取消手续费
-        playerProfile.setSpiritStones(playerProfile.getSpiritStones() - cancelFee);
-        playerService.savePlayerProfile(playerProfile);
-        
-        // 原子更新拍卖状态（防止TOCTOU）
+        // 先原子更新拍卖状态（防止 TOCTOU）
         int rows = auctionItemMapper.cancelAuctionItem(auctionItemId, playerId);
         if (rows == 0) {
             // 并发冲突：物品已被购买或过期
             throw new BusinessException(ErrorCode.AUCTION_ITEM_SOLD);
         }
+        
+        // 状态更新成功后再扣除取消手续费，任一后续步骤失败均由事务统一回滚
+        playerProfile.setSpiritStones(playerProfile.getSpiritStones() - cancelFee);
+        playerService.savePlayerProfile(playerProfile);
         
         auctionItem.setStatus("CANCELLED");
         
@@ -333,7 +336,6 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
      * 处理过期的拍卖物品
      */
     @Scheduled(fixedRate = 300000) // 5分钟检查一次
-    @Transactional
     public void processExpiredAuctions() {
         // 查找已过期但仍在拍卖中的物品
         QueryWrapper<AuctionItem> queryWrapper = new QueryWrapper<>();
@@ -343,17 +345,29 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
         List<AuctionItem> expiredItems = auctionItemMapper.selectList(queryWrapper);
         
         for (AuctionItem item : expiredItems) {
-            // 原子更新过期状态（防止与buyItem并发冲突）
-            int rows = auctionItemMapper.expireAuctionItem(item.getId());
-            if (rows == 0) {
-                // 并发冲突：物品在检查期间已被购买或取消
-                continue;
+            try {
+                processOneExpiredAuction(item);
+            } catch (Exception e) {
+                log.error("处理过期拍卖物品失败，跳过该条记录: auctionItemId={}", item.getId(), e);
             }
-            
-            item.setStatus("EXPIRED");
-            // 将物品退还给卖家邮箱
-            returnItemToSellerViaMail(item);
         }
+    }
+    
+    /**
+     * 处理单条过期拍卖物品（独立事务：expireAuctionItem + returnItemToSellerViaMail 原子提交）
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void processOneExpiredAuction(AuctionItem item) {
+        // 原子更新过期状态（防止与buyItem并发冲突）
+        int rows = auctionItemMapper.expireAuctionItem(item.getId());
+        if (rows == 0) {
+            // 并发冲突：物品在检查期间已被购买或取消
+            return;
+        }
+        
+        item.setStatus("EXPIRED");
+        // 将物品退还给卖家邮箱
+        returnItemToSellerViaMail(item);
     }
     
     /**
@@ -383,20 +397,13 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
                 break;
                 
             case "EQUIPMENT":
-                // 添加装备到买家背包
-                PlayerEquipment newEquipment = new PlayerEquipment();
-                newEquipment.setPlayerId(buyerId);
-                newEquipment.setEquipmentId(auctionItem.getItemId());
-                equipmentService.grantEquipmentDirectly(newEquipment.getPlayerId(), newEquipment.getEquipmentId());
+                // 直接授予装备到买家背包
+                equipmentService.grantEquipmentDirectly(buyerId, auctionItem.getItemId());
                 break;
                 
             case "PET":
-                // 添加宠物到买家
-                PlayerPet newPet = new PlayerPet();
-                newPet.setPlayerId(buyerId);
-                newPet.setPetId(auctionItem.getItemId());
-                newPet.setLevel(1);
-                petService.grantPetDirectly(newPet.getPlayerId(), newPet.getPetId());
+                // 直接授予宠物到买家
+                petService.grantPetDirectly(buyerId, auctionItem.getItemId());
                 break;
         }
     }
@@ -429,20 +436,13 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
                 break;
                 
             case "EQUIPMENT":
-                // 添加装备到卖家背包
-                PlayerEquipment newEquipment = new PlayerEquipment();
-                newEquipment.setPlayerId(playerId);
-                newEquipment.setEquipmentId(auctionItem.getItemId());
-                equipmentService.grantEquipmentDirectly(newEquipment.getPlayerId(), newEquipment.getEquipmentId());
+                // 直接退还装备到卖家背包
+                equipmentService.grantEquipmentDirectly(playerId, auctionItem.getItemId());
                 break;
                 
             case "PET":
-                // 添加宠物到卖家
-                PlayerPet newPet = new PlayerPet();
-                newPet.setPlayerId(playerId);
-                newPet.setPetId(auctionItem.getItemId());
-                newPet.setLevel(1);
-                petService.grantPetDirectly(newPet.getPlayerId(), newPet.getPetId());
+                // 直接退还宠物到卖家
+                petService.grantPetDirectly(playerId, auctionItem.getItemId());
                 break;
         }
     }

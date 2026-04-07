@@ -45,6 +45,42 @@ import org.springframework.security.core.Authentication;
 @Slf4j
 public class PlayerService {
 
+    // ===================== 游戏数值常量 =====================
+
+    /** 境界突破所需灵石 */
+    private static final long BREAKTHROUGH_COST = 5000L;
+
+    /** 境界突破基础成功率（70%） */
+    private static final double BREAKTHROUGH_SUCCESS_RATE = 0.70;
+
+    /** 单次升级允许最大连续升级次数（防止无限循环） */
+    private static final int MAX_LEVEL_UPS_PER_CHECK = 100;
+
+    /** 游戏最大等级上限 */
+    private static final int MAX_LEVEL = 1000;
+
+    /** 每次升级攻击力增量 */
+    private static final int LEVEL_UP_ATTACK_BONUS = 5;
+
+    /** 每次升级防御力增量 */
+    private static final int LEVEL_UP_DEFENSE_BONUS = 3;
+
+    /** 每次升级生命值增量 */
+    private static final int LEVEL_UP_HEALTH_BONUS = 20;
+
+    /** 每次升级法力值增量 */
+    private static final int LEVEL_UP_MANA_BONUS = 10;
+
+    /** 每次升级速度增量 */
+    private static final int LEVEL_UP_SPEED_BONUS = 1;
+
+    /** 境界突破奖励属性点 */
+    private static final int REALM_BREAK_ATTRIBUTE_POINTS = 5;
+
+    /** 境界突破奖励技能点 */
+    private static final int REALM_BREAK_SKILL_POINTS = 1;
+
+    // ===================== 依赖注入 =====================
     private final PlayerProfileMapper playerProfileMapper;
     private final UserMapper userMapper;
     private final PlayerItemMapper playerItemMapper;
@@ -156,7 +192,7 @@ public class PlayerService {
 
     /**
      * 检查玩家是否可以突破境界
-     * 需要消耗5000灵石，心魔挑战胜率70%
+     * 需要消耗 {@value #BREAKTHROUGH_COST} 灵石，心魔挑战胜率 {@value #BREAKTHROUGH_SUCCESS_RATE}
      *
      * @param playerId 玩家ID
      * @return 是否可以突破
@@ -164,12 +200,13 @@ public class PlayerService {
     public boolean canBreakthrough(Integer playerId) {
         PlayerProfile profile = getPlayerProfileById(playerId);
         // 需要有足够灵石进行突破挑战
-        return profile.getSpiritStones() != null && profile.getSpiritStones() >= 5000;
+        return profile.getSpiritStones() != null && profile.getSpiritStones() >= BREAKTHROUGH_COST;
     }
 
     /**
      * 尝试境界突破
-     * 消耗5000灵石，70%成功率；失败不扣灵石但进入1小时冷却
+     * 消耗 {@value #BREAKTHROUGH_COST} 灵石，{@value #BREAKTHROUGH_SUCCESS_RATE} 成功率；
+     * 失败不扣灵石但进入1小时冷却
      *
      * @param playerId 玩家ID
      * @return 突破结果描述
@@ -177,13 +214,14 @@ public class PlayerService {
     @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public String attemptBreakthrough(Integer playerId) {
         PlayerProfile profile = getPlayerProfileById(playerId);
-        if (profile.getSpiritStones() == null || profile.getSpiritStones() < 5000) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "灵石不足，需要5000灵石进行境界突破");
+        if (profile.getSpiritStones() == null || profile.getSpiritStones() < BREAKTHROUGH_COST) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR,
+                    "灵石不足，需要" + BREAKTHROUGH_COST + "灵石进行境界突破");
         }
         // 消耗灵石
-        profile.setSpiritStones(profile.getSpiritStones() - 5000);
-        // 70%成功率
-        boolean success = java.util.concurrent.ThreadLocalRandom.current().nextDouble() < 0.7;
+        profile.setSpiritStones(profile.getSpiritStones() - BREAKTHROUGH_COST);
+        // 成功率判断
+        boolean success = java.util.concurrent.ThreadLocalRandom.current().nextDouble() < BREAKTHROUGH_SUCCESS_RATE;
         if (success) {
             String oldRealm = profile.getRealm();
             updateRealm(profile);
@@ -191,7 +229,7 @@ public class PlayerService {
             return "突破成功！" + oldRealm + " → " + profile.getRealm();
         } else {
             playerProfileMapper.updateById(profile);
-            return "心魔侵袭，突破失败！消耗5000灵石，1小时后可再次尝试";
+            return "心魔侵袭，突破失败！消耗" + BREAKTHROUGH_COST + "灵石，1小时后可再次尝试";
         }
     }
 
@@ -367,14 +405,15 @@ public class PlayerService {
      * @param profile 玩家档案
      */
     private void checkLevelUp(PlayerProfile profile) {
-        // 防止无限循环，最多升级100次
-        int maxLevelUps = 100;
+        // 防止无限循环，最多升级 MAX_LEVEL_UPS_PER_CHECK 次
         int levelUps = 0;
         
         log.debug("开始检查升级: 当前等级={}, 当前经验={}, 升级所需={}", 
                 profile.getLevel(), profile.getExp(), profile.getExpToNext());
         
-        while (profile.getExp() >= profile.getExpToNext() && levelUps < maxLevelUps) {
+        while (profile.getExp() >= profile.getExpToNext()
+                && levelUps < MAX_LEVEL_UPS_PER_CHECK
+                && profile.getLevel() < MAX_LEVEL) {
             String oldRealm = profile.getRealm();
             int oldLevel = profile.getLevel();
             
@@ -384,14 +423,16 @@ public class PlayerService {
             profile.setExpToNext(profile.getExpToNext() * 2); // 下一级所需经验翻倍
             
             // 2. 升级属性提升
-            profile.setAttack(profile.getAttack() + 5);
-            profile.setDefense(profile.getDefense() + 3);
-            profile.setHealth(profile.getHealth() + 20);
-            profile.setMana(profile.getMana() + 10);
-            profile.setSpeed(profile.getSpeed() + 1);
+            profile.setAttack(profile.getAttack() + LEVEL_UP_ATTACK_BONUS);
+            profile.setDefense(profile.getDefense() + LEVEL_UP_DEFENSE_BONUS);
+            profile.setHealth(profile.getHealth() + LEVEL_UP_HEALTH_BONUS);
+            profile.setMana(profile.getMana() + LEVEL_UP_MANA_BONUS);
+            profile.setSpeed(profile.getSpeed() + LEVEL_UP_SPEED_BONUS);
             
-            log.info("玩家升级: {}级 -> {}级, 属性提升: 攻击+5, 防御+3, 生命+20, 法力+10, 速度+1", 
-                    oldLevel, profile.getLevel());
+            log.info("玩家升级: {}级 -> {}级, 属性提升: 攻击+{}, 防御+{}, 生命+{}, 法力+{}, 速度+{}",
+                    oldLevel, profile.getLevel(),
+                    LEVEL_UP_ATTACK_BONUS, LEVEL_UP_DEFENSE_BONUS,
+                    LEVEL_UP_HEALTH_BONUS, LEVEL_UP_MANA_BONUS, LEVEL_UP_SPEED_BONUS);
             
             // 3. 更新境界
             updateRealm(profile);
@@ -401,11 +442,12 @@ public class PlayerService {
                 int oldAttributePoints = profile.getAttributePoints() == null ? 0 : profile.getAttributePoints();
                 int oldSkillPoints = profile.getSkillPoints() == null ? 0 : profile.getSkillPoints();
                 
-                profile.setAttributePoints(oldAttributePoints + 5);
-                profile.setSkillPoints(oldSkillPoints + 1);
+                profile.setAttributePoints(oldAttributePoints + REALM_BREAK_ATTRIBUTE_POINTS);
+                profile.setSkillPoints(oldSkillPoints + REALM_BREAK_SKILL_POINTS);
                 
-                log.info("境界突破: {} -> {}, 奖励: 属性点+5, 技能点+1", 
-                        oldRealm, profile.getRealm());
+                log.info("境界突破: {} -> {}, 奖励: 属性点+{}, 技能点+{}", 
+                        oldRealm, profile.getRealm(),
+                        REALM_BREAK_ATTRIBUTE_POINTS, REALM_BREAK_SKILL_POINTS);
             }
             
             levelUps++;
@@ -416,9 +458,9 @@ public class PlayerService {
                     levelUps, profile.getLevel(), profile.getExp(), profile.getExpToNext());
         }
         
-        if (levelUps >= maxLevelUps) {
+        if (levelUps >= MAX_LEVEL_UPS_PER_CHECK) {
             log.warn("玩家升级次数达到上限({}次)，可能存在问题: ID={}, 当前经验={}", 
-                    maxLevelUps, profile.getId(), profile.getExp());
+                    MAX_LEVEL_UPS_PER_CHECK, profile.getId(), profile.getExp());
         }
     }
     

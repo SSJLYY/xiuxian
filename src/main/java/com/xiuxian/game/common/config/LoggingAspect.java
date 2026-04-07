@@ -27,12 +27,12 @@ import java.util.Arrays;
  *
  * <p>拦截以下包路径下的方法调用：</p>
  * <ul>
- *   <li>com.xiuxian.game.controller.*</li>
- *   <li>com.xiuxian.game.service.*</li>
+ *   <li>com.xiuxian.game.modules.*.controller.*</li>
+ *   <li>com.xiuxian.game.modules.*.service.*</li>
  * </ul>
  *
- * @author xiuxian-game-team
- * @version 1.0.0
+ * @author shaun.sheng
+ * @version 1.1.0
  * @since 2024-11-28
  */
 @Slf4j
@@ -41,17 +41,17 @@ import java.util.Arrays;
 public class LoggingAspect {
 
     /**
-     * Controller切入点
+     * Controller切入点（匹配所有模块的controller包）
      */
-    @Pointcut("execution(* com.xiuxian.game.controller..*(..))")
+    @Pointcut("execution(* com.xiuxian.game.modules.*.controller..*(..))")
     public void controllerPointcut() {
         // 空方法，仅作为切入点标记
     }
 
     /**
-     * Service切入点
+     * Service切入点（匹配所有模块的service包）
      */
-    @Pointcut("execution(* com.xiuxian.game.service..*(..))")
+    @Pointcut("execution(* com.xiuxian.game.modules.*.service..*(..))")
     public void servicePointcut() {
         // 空方法，仅作为切入点标记
     }
@@ -132,12 +132,7 @@ public class LoggingAspect {
             // 计算执行时长
             long duration = System.currentTimeMillis() - startTime;
 
-            // 记录异常日志
-            log.error("HTTP请求异常，执行时间: {}ms", duration);
-            log.error("目标方法: {}", e.getMessage(), e);
-            log.error("========== HTTP请求异常结束 ==========");
-
-            // 记录错误日志
+            // 统一由 LogUtils 记录异常（含方法名、消息、堆栈）
             LogUtils.logError(fullMethodName, e.getMessage(), e);
 
             // 记录API调用日志
@@ -187,12 +182,8 @@ public class LoggingAspect {
             return result;
 
         } catch (Exception e) {
-            log.error("Service方法执行异常: {}", fullMethodName);
-            log.error("异常信息: {}", e.getMessage(), e);
-
-            // 记录错误日志
+            // 统一由 LogUtils 记录异常（含方法名、消息、堆栈）
             LogUtils.logError(fullMethodName, e.getMessage(), e);
-
             throw e;
 
         } finally {
