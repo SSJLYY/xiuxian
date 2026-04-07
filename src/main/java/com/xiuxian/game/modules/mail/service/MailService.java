@@ -242,13 +242,13 @@ public class MailService {
             case "SPIRIT_STONES":
                 profile.setSpiritStones(profile.getSpiritStones() + quantity);
                 playerService.savePlayerProfile(profile);
-                log.info("发放灵石: playerId={}, quantity={}", profile.getId(), quantity);
+                log.debug("发放灵石: playerId={}, quantity={}", profile.getId(), quantity);
                 break;
                 
             case "EXP":
                 profile.setExp(profile.getExp() + quantity);
                 playerService.savePlayerProfile(profile);
-                log.info("发放经验: playerId={}, quantity={}", profile.getId(), quantity);
+                log.debug("发放经验: playerId={}, quantity={}", profile.getId(), quantity);
                 break;
                 
             case "ITEM":
@@ -266,12 +266,12 @@ public class MailService {
                     newItem.setUpdatedAt(LocalDateTime.now());
                     playerService.savePlayerItem(newItem);
                 }
-                log.info("发放物品: playerId={}, itemId={}, quantity={}", profile.getId(), itemId, quantity);
+                log.debug("发放物品: playerId={}, itemId={}, quantity={}", profile.getId(), itemId, quantity);
                 break;
                 
             case "EQUIPMENT":
                 equipmentService.grantEquipmentDirectly(profile.getId(), itemId);
-                log.info("发放装备: playerId={}, equipmentId={}", profile.getId(), itemId);
+                log.debug("发放装备: playerId={}, equipmentId={}", profile.getId(), itemId);
                 break;
                 
             default:

@@ -58,7 +58,7 @@ public class QuestProgressService {
                     if (newProgress >= quest.getRequiredAmount() && !playerQuest.getCompleted()) {
                         playerQuest.setCompleted(true);
                         playerQuest.setCompletedAt(LocalDateTime.now());
-                        log.info("玩家 {} 完成任务 {}", playerId, playerQuest.getQuestId());
+                        log.debug("玩家 {} 完成任务 {}", playerId, playerQuest.getQuestId());
                     }
 
                     playerQuestMapper.updateById(playerQuest);

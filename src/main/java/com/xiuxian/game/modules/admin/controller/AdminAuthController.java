@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
 
 /**
  * 后台管理认证控制器
@@ -45,7 +46,7 @@ public class AdminAuthController {
      * @return 登录响应
      */
     @PostMapping("/login")
-    public ResponseEntity<AdminLoginResponse> login(@RequestBody AdminLoginRequest request) {
+    public ResponseEntity<AdminLoginResponse> login(@Valid @RequestBody AdminLoginRequest request) {
         log.info("管理员登录: username={}", request.getUsername());
         AdminLoginResponse response = adminAuthService.login(request);
         log.info("管理员登录成功: username={}", request.getUsername());

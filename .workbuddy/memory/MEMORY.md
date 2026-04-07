@@ -82,10 +82,9 @@ com.xiuxian.game/
 - **Bug修复**：QuestService重复类定义、AuctionService死代码、预存编译错误×4
 
 ## 待处理（下一轮审计）
-- ⚠️ JavaDoc：部分Service方法缺少注释
-- ⚠️ 循环内日志：待扫描 info 级别日志
-- ⚠️ Controller @Valid/@Validated：参数校验注解覆盖情况待扫描
-- ⚠️ JWT Secret：application-optimized.properties 中硬编码，建议迁移到环境变量
+- ⚠️ JavaDoc：部分关键 Service 方法缺少注释（53 Service / 200+ 方法，建议持续迭代补充）
+- ⚠️ Entity 直接作 @RequestBody：无校验注解，建议重构为专用 Request DTO
+- ⚠️ JWT Secret：application-optimized.properties 中硬编码，已迁移到 ${JWT_SECRET:...}
 
 ## 前端架构（2026-03-27 完成，100%）
 - 平铺40个JS → 分层架构：core(api/storage/utils) + components + modules(20个) + pages

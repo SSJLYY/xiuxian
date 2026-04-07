@@ -1,6 +1,7 @@
 package com.xiuxian.game.modules.player.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -29,6 +30,7 @@ public class User {
     private String username;
 
     @TableField(value = "password")
+    @JsonIgnore
     private String password;
 
     @TableField(value = "email")

@@ -277,7 +277,7 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         for (Activity activity : activitiesToStart) {
             activity.setStatus("ACTIVE");
             activityMapper.updateById(activity);
-            log.info("活动开始: activityId={}, name={}", activity.getId(), activity.getName());
+            log.debug("活动开始: activityId={}, name={}", activity.getId(), activity.getName());
         }
 
         // 检查需要结束的活动
@@ -289,7 +289,7 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         for (Activity activity : activitiesToEnd) {
             activity.setStatus("ENDED");
             activityMapper.updateById(activity);
-            log.info("活动结束: activityId={}, name={}", activity.getId(), activity.getName());
+            log.debug("活动结束: activityId={}, name={}", activity.getId(), activity.getName());
 
             // 发放奖励（同一事务内，distributeActivityRewards 的 @Transactional 会加入当前事务）
             distributeActivityRewards(activity.getId());
