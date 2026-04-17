@@ -21,15 +21,20 @@ export class InventoryService {
      */
     async loadInventoryItems() {
         try {
-            const response = await gameAPI.inventory.getCategorized();
+            const response = await gameAPI.getInventoryCategorized();
             if (response.success) {
                 this.categorizedItems = response.data;
                 this.applyFilter();
                 return response.data;
             } else {
-                toast.error('获取背包物品失败: ' + response.message);
+                toast.error('获取背包物品失败：' + response.message);
                 throw new Error(response.message);
             }
+        } catch (error) {
+            toast.error('获取背包物品失败：' + error.message);
+            throw error;
+        }
+    }
         } catch (error) {
             toast.error('获取背包物品失败: ' + error.message);
             throw error;
@@ -92,15 +97,92 @@ export class InventoryService {
      */
     async useItem(itemId) {
         try {
-            const response = await gameAPI.inventory.useItem(itemId);
+            const response = await gameAPI.useItem(itemId);
             if (response.success) {
                 toast.success('使用物品成功');
                 await this.loadInventoryItems();
                 return response.data;
             } else {
-                toast.error('使用物品失败: ' + response.message);
+                toast.error('使用物品失败：' + response.message);
                 throw new Error(response.message);
             }
+        } catch (error) {
+            toast.error('使用物品失败：' + error.message);
+            throw error;
+        }
+    }
+
+    async equipItem(itemId) {
+        try {
+            const response = await gameAPI.equipItem(itemId);
+            if (response.success) {
+                toast.success('装备成功');
+                await this.loadInventoryItems();
+                return response.data;
+            } else {
+                toast.error('装备失败：' + response.message);
+                throw new Error(response.message);
+            }
+        } catch (error) {
+            toast.error('装备失败：' + error.message);
+            throw error;
+        }
+    }
+
+    async unequipItem(itemId) {
+        try {
+            const response = await gameAPI.unequipItem(itemId);
+            if (response.success) {
+                toast.success('卸下成功');
+                await this.loadInventoryItems();
+                return response.data;
+            } else {
+                toast.error('卸下失败：' + response.message);
+                throw new Error(response.message);
+            }
+        } catch (error) {
+            toast.error('卸下失败：' + error.message);
+            throw error;
+        }
+    }
+
+    async sellItem(itemId, quantity = 1) {
+        try {
+            const response = await gameAPI.sellItem(itemId, quantity);
+            if (response.success) {
+                toast.success(`出售成功，获得 ${response.data.spiritStones} 灵石`);
+                await this.loadInventoryItems();
+                return response.data;
+            } else {
+                toast.error('出售失败：' + response.message);
+                throw new Error(response.message);
+            }
+        } catch (error) {
+            toast.error('出售失败：' + error.message);
+            throw error;
+        }
+    }
+
+    async discardItem(itemId, quantity = 1) {
+        if (!confirm('确定要丢弃这个物品吗？此操作不可恢复!')) {
+            return;
+        }
+
+        try {
+            const response = await gameAPI.discardItem(itemId, quantity);
+            if (response.success) {
+                toast.success('丢弃成功');
+                await this.loadInventoryItems();
+                return response.data;
+            } else {
+                toast.error('丢弃失败：' + response.message);
+                throw new Error(response.message);
+            }
+        } catch (error) {
+            toast.error('丢弃失败：' + error.message);
+            throw error;
+        }
+    }
         } catch (error) {
             toast.error('使用物品失败: ' + error.message);
             throw error;

@@ -53,14 +53,20 @@ export class PetsService {
         }
     }
 
-    async feedPet(petId, foodId) {
+    async feedPet(petId) {
         try {
-            const response = await gameAPI.feedPet(petId, foodId);
+            const response = await gameAPI.feedPet(petId);
             if (response.success) {
                 toast.success('喂养成功');
                 await this.loadMyPets();
                 return response.data;
             }
+            throw new Error(response.message);
+        } catch (error) {
+            toast.error('喂养失败：' + error.message);
+            throw error;
+        }
+    }
             throw new Error(response.message);
         } catch (error) {
             toast.error('喂养失败: ' + error.message);

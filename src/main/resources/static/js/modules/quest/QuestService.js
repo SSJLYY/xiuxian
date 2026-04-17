@@ -90,6 +90,8 @@ export class QuestService {
             toast.error('领取奖励失败：' + error.message);
             throw error;
         }
+    }
+
     getQuestById(questId) {
         return this.quests.find(q => q.id === questId) || null;
     }

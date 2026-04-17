@@ -40,11 +40,17 @@ export class ShopService {
 
     async getMyOrders() {
         try {
-            const response = await gameAPI.shop.getOrders();
+            const response = await gameAPI.getShopItems();
             if (response.success) {
                 this.myOrders = response.data;
                 return response.data;
             }
+            throw new Error(response.message);
+        } catch (error) {
+            toast.error('加载订单失败：' + error.message);
+            throw error;
+        }
+    }
             throw new Error(response.message);
         } catch (error) {
             toast.error('加载订单失败: ' + error.message);

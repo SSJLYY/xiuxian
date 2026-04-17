@@ -56,13 +56,19 @@ export class ActivityService {
 
     async claimReward(activityId) {
         try {
-            const response = await gameAPI.submitActivityScore(activityId);
+            const response = await gameAPI.submitActivityScore(activityId, 100);
             if (response.success) {
                 toast.success('领取奖励成功!');
                 await this.getActivities();
                 await this.getMyActivities();
                 return response.data;
             }
+            throw new Error(response.message);
+        } catch (error) {
+            toast.error('领取奖励失败：' + error.message);
+            throw error;
+        }
+    }
             throw new Error(response.message);
         } catch (error) {
             toast.error('领取奖励失败: ' + error.message);

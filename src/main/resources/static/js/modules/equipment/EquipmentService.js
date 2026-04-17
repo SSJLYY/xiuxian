@@ -24,14 +24,35 @@ export class EquipmentService {
         }
     }
 
-    async equipItem(itemId, slot) {
+    async equipItem(itemId) {
         try {
-            const response = await gameAPI.equipItem(itemId, slot);
+            const response = await gameAPI.equipItem(itemId);
             if (response.success) {
                 toast.success('装备成功');
                 await this.loadEquipment();
                 return response.data;
             }
+            throw new Error(response.message);
+        } catch (error) {
+            toast.error('装备失败：' + error.message);
+            throw error;
+        }
+    }
+
+    async unequipItem(slot) {
+        try {
+            const response = await gameAPI.unequipItem(slot);
+            if (response.success) {
+                toast.success('卸下成功');
+                await this.loadEquipment();
+                return response.data;
+            }
+            throw new Error(response.message);
+        } catch (error) {
+            toast.error('卸下失败：' + error.message);
+            throw error;
+        }
+    }
             throw new Error(response.message);
         } catch (error) {
             toast.error('装备失败: ' + error.message);

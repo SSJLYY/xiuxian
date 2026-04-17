@@ -70,12 +70,18 @@ export class MapService {
 
     async exploreMap(mapId) {
         try {
-            const response = await gameAPI.exploreMap()mapId);
+            const response = await gameAPI.exploreMap();
             if (response.success) {
                 toast.success('探索成功!');
                 await this.getExploredMaps();
                 return response.data;
             }
+            throw new Error(response.message);
+        } catch (error) {
+            toast.error('探索失败：' + error.message);
+            throw error;
+        }
+    }
             throw new Error(response.message);
         } catch (error) {
             toast.error('探索失败: ' + error.message);

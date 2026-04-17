@@ -15,11 +15,17 @@ export class AuctionService {
 
     async listItem(itemId, startingPrice, buyoutPrice) {
         try {
-            const response = await gameAPI.listAuctionItem(itemId, startingPrice, buyoutPrice);
+            const response = await gameAPI.listAuctionItem(itemId, startingPrice);
             if (response.success) {
                 toast.success('上架成功');
                 return response.data;
             }
+            throw new Error(response.message);
+        } catch (error) {
+            toast.error('上架失败：' + error.message);
+            throw error;
+        }
+    }
             throw new Error(response.message);
         } catch (error) {
             toast.error('上架失败: ' + error.message);
