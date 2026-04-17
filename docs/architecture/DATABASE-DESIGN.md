@@ -3,7 +3,7 @@
 > 本文档覆盖数据库的完整表结构、核心字段说明和表间关系。  
 > 初始化脚本：`src/main/resources/init-database.sql`
 
-**作者**: shaun.sheng &nbsp;|&nbsp; **最后更新**: 2026-03-27
+**作者**: shaun.sheng &nbsp;|&nbsp; **最后更新**: 2026-04-17（文档内容质量优化）
 
 ---
 
@@ -314,3 +314,252 @@ realm_bonus:
 2. 已有表的字段修改需要提供迁移 SQL（在 PR 描述中注明）
 3. 新增表同时更新本文档的"表分类总览"
 4. 不允许直接 DROP 列——改为软删除（添加 `is_deleted` 或标记字段）
+
+---
+
+## ER 关系图
+
+```mermaid
+erDiagram
+    users ||--|| player_profiles : "1:1"
+    player_profiles ||--o{ cultivation_logs : "1:N"
+    player_profiles ||--o{ player_pets : "1:N"
+    player_profiles ||--o{ player_skills : "1:N"
+    player_profiles ||--o{ player_equipment : "1:N"
+    player_profiles ||--o{ player_items : "1:N"
+    player_profiles ||--o{ player_quests : "1:N"
+    player_profiles ||--o{ player_mails : "1:N"
+    player_profiles ||--o{ combat_logs : "1:N"
+    pets ||--o{ player_pets : "1:N"
+    pets ||--o{ pet_evolutions : "1:N"
+    skills ||--o{ player_skills : "1:N"
+    skills ||--o{ skill_combos : "1:N"
+    equipments ||--o{ player_equipment : "1:N"
+    items ||--o{ shop_items : "1:N"
+    items ||--o{ player_items : "1:N"
+    quests ||--o{ player_quests : "1:N"
+    monsters ||--o{ combat_logs : "1:N"
+    guilds ||--o{ guild_members : "1:N"
+    guilds ||--o{ guild_boss : "1:1"
+    guilds ||--o{ guild_applications : "1:N"
+```
+
+---
+
+## 索引优化建议
+
+### 现有索引
+
+| 表 | 字段 | 类型 | 原因 |
+|----|------|------|------|
+| player_profiles | user_id | UNIQUE | 通过用户查档案，100% 查询都带此条件 |
+| player_pets | player_id | INDEX | 查玩家的宠物列表，高频查询 |
+| player_skills | player_id | INDEX | 查玩家的技能列表 |
+| player_equipment | player_id | INDEX | 查玩家的装备 |
+| player_mails | (player_id, is_read) | COMPOSITE | 查未读邮件+分页 |
+| rankings | (rank_type, rank_value) | COMPOSITE | 排行榜按类型排序 |
+| player_login_logs | (player_id, created_at) | COMPOSITE | 按时间倒序查询 |
+| guild_members | (guild_id, player_id) | COMPOSITE | 查宗门成员、查玩家所属宗门 |
+
+### 建议新增索引
+
+| 表 | 建议字段 | 类型 | 使用场景 | 优先级 |
+|----|---------|------|---------|--------|
+| player_profiles | realm | INDEX | 排行榜查询"某境界玩家" | 中 |
+| combat_logs | (player_id, combat_type, created_at) | COMPOSITE | 查询玩家战斗历史 | 中 |
+| auction_items | (status, price) | COMPOSITE | 拍卖列表排序 | 高 |
+| player_quests | (player_id, status) | COMPOSITE | 查询进行中任务 | 高 |
+| player_check_ins | (player_id, check_in_date) | COMPOSITE | 签到查询+去重 | 高 |
+| guild_boss_challenges | (guild_id, boss_id, challenge_date) | COMPOSITE | 查询每日挑战次数 | 中 |
+
+### 索引设计原则
+
+1. **最左匹配原则**：复合索引的前缀列必须是查询条件中的高频字段
+2. **区分度原则**：优先在区分度高的字段建索引（如 status 字段只有 0/1 不适合单独建索引）
+3. **覆盖索引原则**：尽量让索引包含 SELECT 的所有字段，减少回表
+4. **避免冗余索引**：已有复合索引 `(a,b)` 就不需要单独给 `a` 建索引
+
+---
+
+## 性能优化建议
+
+### SQL 优化
+
+**避免 N+1 查询**：
+```sql
+-- ❌ 错误示例：循环查询每个玩家
+SELECT * FROM player_profiles WHERE id = ?; -- 执行 N 次
+
+-- ✅ 正确示例：批量查询
+SELECT * FROM player_profiles WHERE id IN (?, ?, ?, ...); -- 执行 1 次
+```
+
+**使用覆盖索引**：
+```sql
+-- ❌ 回表查询
+SELECT * FROM player_profiles WHERE realm = '筑基期';
+
+-- ✅ 覆盖索引
+SELECT id FROM player_profiles WHERE realm = '筑基期'; -- realm 已有索引
+```
+
+**避免全表扫描**：
+```sql
+-- ❌ 对索引列使用函数
+SELECT * FROM player_profiles WHERE DATE(created_at) = '2026-04-17';
+
+-- ✅ 范围查询
+SELECT * FROM player_profiles WHERE created_at >= '2026-04-17 00:00:00' 
+  AND created_at <= '2026-04-17 23:59:59';
+```
+
+### 锁优化
+
+**乐观锁**：
+```java
+// 使用 version 字段实现乐观锁
+UPDATE player_profiles 
+SET spirit_stones = spirit_stones - 100, version = version + 1 
+WHERE id = ? AND version = ?
+```
+
+**行级锁**：
+```sql
+-- 使用 FOR UPDATE 锁定特定行（慎用）
+SELECT * FROM player_items 
+WHERE player_id = ? AND item_id = ? 
+FOR UPDATE;
+```
+
+### 事务隔离级别
+
+- 默认：`READ COMMITTED`（MySQL 默认级别）
+- 需要幻读防护：使用可重复读`REPEATABLE READ`（MySQL 默认已支持 MVCC）
+- 并发性能优先：使用`READ UNCOMMITTED`（允许脏读，仅用于统计查询）
+
+---
+
+## 分库分表规划
+
+### 当前状态
+
+**当前方案**：单库 50+ 表，MySQL 部署在 16C32G 服务器  
+**数据量**：日活 1000，单表最大数据量 ~100 万行（combat_logs）  
+**性能**：查询响应时间 < 50ms，写入 TPS ~200
+
+### 未来规划（日活>5000 时考虑）
+
+**第一阶段**：读写分离
+- 主库负责写操作
+- 从库负责查询（排行榜、修炼状态等）
+- 延迟容忍度：1-3 秒
+
+**第二阶段**：分库分表
+- 按玩家 ID 分片：`player_id % 10`
+- 分片键：player_id、user_id
+- 中间件：ShardingSphere（MyCat 备选）
+
+**第三阶段**：冷热数据分离
+- 热数据：最近 30 天活跃玩家（Redis 缓存）
+- 温数据：最近 90 天活跃玩家（MySQL SSD）
+- 冷数据：不活跃玩家（MySQL HDD 归档）
+
+---
+
+## 常见问题排查
+
+### 慢查询排查步骤
+
+1. **启用慢查询日志**：
+   ```sql
+   SET GLOBAL slow_query_log = 'ON';
+   SET GLOBAL long_query_time = 1; -- 超过 1 秒的查询
+   SET GLOBAL log_queries_not_using_indexes = 'ON';
+   ```
+
+2. **分析慢查询**：
+   ```bash
+   mysqldumpslow /var/log/mysql/slow.log
+   ```
+
+3. **使用 EXPLAIN 分析**：
+   ```sql
+   EXPLAIN SELECT * FROM player_profiles WHERE user_id = ?;
+   ```
+   关注字段：
+   - `type`：ALL（全表扫描）→ 需要优化
+   - `key`：NULL（未用索引）→ 需要优化
+   - `rows`：扫描行数，越少越好
+   - `Extra`：Using filesort（文件排序）→ 需要优化
+
+### 死锁排查
+
+**常见死锁场景**：
+1. 两个事务同时更新两行，交叉等待
+2. 批量更新时顺序不一致
+3. 外键约束导致的隐式锁等待
+
+**排查方法**：
+```sql
+-- 查看当前锁等待
+SELECT * FROM information_schema.innodb_lock_waits;
+
+-- 查看锁信息
+SELECT * FROM performance_schema.data_locks;
+
+-- 查看事务信息
+SELECT * FROM information_schema.innodb_trx;
+```
+
+---
+
+## 表设计原则
+
+### 命名规范
+
+1. **表名**：小写字母 + 下划线，复数形式
+   - ✅ `player_profiles`, `combat_logs`
+   - ❌ `PlayerProfile`, `playerProfiles`
+
+2. **字段名**：小写字母 + 下划线
+   - ✅ `player_id`, `created_at`
+   - ❌ `playerId`, `createdAt`
+
+3. **主键**：统一使用 `id`（BIGINT AUTO_INCREMENT）
+
+4. **外键**：`{关联表}_id`（如 `user_id`, `player_id`）
+
+### 字段类型选择
+
+| 场景 | 推荐类型 | 原因 |
+|------|---------|------|
+| 金额（精确） | DECIMAL(10,2) | 避免浮点精度问题 |
+| 金额（整数） | BIGINT | 单位"分"，避免精度问题 |
+| 时间 | DATETIME | 易读，时区转换简单 |
+| 时间戳 | BIGINT | 计算方便，存储紧凑 |
+| 状态枚举 | TINYINT | 1 字节，注释说明枚举值 |
+| 大文本 | TEXT | 独立存储，避免主表膨胀 |
+| JSON | JSON | MySQL 5.7+ 支持，结构化存储 |
+
+### 软删除设计
+
+```sql
+CREATE TABLE example_table (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  -- 其他字段...
+  is_deleted TINYINT DEFAULT 0 COMMENT '0:正常 1:删除',
+  deleted_at DATETIME NULL COMMENT '删除时间',
+  INDEX idx_status (is_deleted, created_at) -- 软删除后也要支持查询
+);
+```
+
+---
+
+## 参考文档
+
+- [后端架构总览](./BACKEND-ARCHITECTURE.md) - 包结构、分层设计
+- [性能优化指南](../standards/PERFORMANCE-GUIDE.md) - 索引优化、N+1 查询优化
+- [API 总览](../api/API-OVERVIEW.md) - 接口规范
+- [游戏设计文档](../design/GDD-修仙挂机游戏设计文档.md) - 数值公式、系统机制
+
+*文档最后更新：2026-04-17*

@@ -3,7 +3,7 @@
 > 完成本指南后，你将拥有一个在本地完整运行的修仙挂机游戏实例，包括游戏前端和管理后台。  
 > **预计时间**：30 分钟（网络良好情况下）
 
-**作者**: shaun.sheng &nbsp;|&nbsp; **最后更新**: 2026-03-27
+**作者**: shaun.sheng &nbsp;|&nbsp; **最后更新**: 2026-04-17（文档内容质量优化）
 
 ---
 
@@ -258,3 +258,237 @@ mvn test
 - [后端编码规范](../standards/BACKEND-CODING-STANDARDS.md) — 开始写代码前必读
 - **[代码审查标准](../standards/CODE-REVIEW-STANDARDS.md)** — 提交PR前必读
 - [API 总览](../api/API-OVERVIEW.md) — 接口文档入口
+- [API 总览](../api/API-OVERVIEW.md) — 接口文档入口
+
+---
+
+## 附录 A：开发环境配置建议
+
+### 推荐 IDE 配置
+
+**IntelliJ IDEA**：
+```
+1. File → Settings → Build, Execution, Deployment → Compiler
+   - Override compiler parameters per-user: -Xmx2048m
+   
+2. File → Settings → Editor → Code Style → Java
+   - 导入项目的 code style 配置（项目根目录 .idea/codeStyles/）
+   
+3. File → Settings → Plugins
+   - 安装推荐插件：
+     • Lombok（必装）
+     • MyBatisX（数据库开发）
+     • Rainbow Brackets（括号高亮）
+     • String Manipulation（字符串工具）
+```
+
+**VS Code**（前端开发）：
+```
+推荐扩展：
+- Live Server（本地 Web 服务器）
+- Prettier（代码格式化）
+- ES7+ React/Redux/React-Native snippets
+```
+
+### Maven 配置优化
+
+**国内镜像**（加速依赖下载）：
+```xml
+<!-- ~/.m2/settings.xml -->
+<mirrors>
+  <mirror>
+    <id>aliyun-maven</id>
+    <mirrorOf>central</mirrorOf>
+    <name>阿里云公共仓库</name>
+    <url>https://maven.aliyun.com/repository/public</url>
+  </mirror>
+</mirrors>
+```
+
+**Maven 多版本管理**：
+```bash
+# macOS (使用 asdf)
+asdf install java 8.0.322
+asdf local java 8.0.322
+
+# Windows (使用 jEnv)
+jenv install 1.8.0_322
+jenv local 1.8.0_322
+```
+
+---
+
+## 附录 B：常用命令速查
+
+### 开发常用命令
+
+```bash
+# 1. 编译 + 跳过测试
+mvn clean package -DskipTests
+
+# 2. 运行单测
+mvn test -Dtest=PlayerServiceTest
+
+# 3. 运行单个 Controller
+java -jar target/xiuxian-game*.jar
+
+# 4. 查看日志
+tail -f logs/xiuxian-game.log
+
+# 5. 查看端口占用
+netstat -tlnp | grep 8082    # Linux/Mac
+netstat -ano | findstr 8082  # Windows
+```
+
+### 数据库常用命令
+
+```bash
+# 1. 备份数据库
+mysqldump -u root -p xiuxian_game > backup.sql
+
+# 2. 恢复数据库
+mysql -u root -p xiuxian_game < backup.sql
+
+# 3. 导出表结构
+mysqldump -u root -p --no-data xiuxian_game > schema.sql
+
+# 4. 导出测试数据
+mysqldump -u root -p --no-create-info xiuxian_game > data.sql
+```
+
+### Docker 常用命令
+
+```bash
+# 1. 启动所有服务
+docker-compose up -d
+
+# 2. 查看日志
+docker-compose logs -f
+
+# 3. 重启单个服务
+docker-compose restart mysql
+
+# 4. 停止所有服务
+docker-compose down
+
+# 5. 清理数据卷
+docker-compose down -v
+```
+
+---
+
+## 附录 C：技术栈依赖版本对应关系
+
+| 依赖 | 版本 | 依赖关系 |
+|------|------|---------|
+| Java | 1.8 | 最低要求 |
+| Spring Boot | 2.7.18 | 内嵌 Tomcat 9.0.x |
+| Spring Security | 5.7.x | 与 Spring Boot 配套 |
+| MyBatis-Plus | 3.5.3.1 | 支持 Spring Boot 2.7.x |
+| MySQL Driver | 8.0.x | 与 MySQL 8.0 兼容 |
+| Redis (Lettuce) | 6.0+ | Spring Boot 内嵌 |
+| Jackson | 2.13.x | Spring Boot 内嵌 |
+| Lombok | 1.18.x | 编译时注解处理 |
+
+**Java 8 兼容性说明**：
+- 项目使用 `Java8Compatibility` 工具类模拟 Java 9+ 方法
+- `Java8Compatibility.mapOf()` 替代 `Map.of()`
+- `Java8Compatibility.listOf()` 替代 `List.of()`
+- `Java8Compatibility.isEmpty()` 替代 `List.isEmpty()`
+
+---
+
+## 附录 D：常见问题排查流程图
+
+### 启动失败排查流程
+
+```mermaid
+graph TD
+    A[启动失败] --> B{查看错误日志};
+    B --> C[端口被占用];
+    B --> D[数据库连接失败];
+    B --> E[Redis 连接失败];
+    B --> F[依赖下载失败];
+    
+    C --> C1[停止占用进程或改端口];
+    D --> D1[检查 MySQL 服务状态];
+    D1 --> D2[检查数据库密码配置];
+    D2 --> D3[检查 init-database.sql 是否执行];
+    
+    E --> E1[检查 Redis 服务状态];
+    E1 --> E2[检查 Redis 连接配置];
+    E2 --> E3[可跳过 Redis 自动降级];
+    
+    F --> F1[检查 Maven 配置];
+    F1 --> F2[检查网络代理];
+    F2 --> F3[使用阿里云镜像];
+```
+
+### 接口调用失败排查流程
+
+```mermaid
+graph TD
+    A[接口调用失败] --> B{查看 HTTP 状态码};
+    B --> C[401 未认证];
+    B --> D[403 无权限];
+    B --> E[500 服务器错误];
+    B --> F[200 业务失败];
+    
+    C --> C1[检查 Token 是否携带];
+    C1 --> C2[检查 Token 是否过期];
+    C2 --> C3[重新登录获取 Token];
+    
+    D --> D1[检查用户角色];
+    D1 --> D2[检查接口权限配置];
+    
+    E --> E1[查看后端日志错误堆栈];
+    E1 --> E2[定位空指针/数据库异常];
+    
+    F --> F1[查看业务错误 code];
+    F1 --> F2[对照 ErrorCode 手册];
+```
+
+---
+
+## 附录 E：学习资源推荐
+
+### 技术栈入门
+
+**Spring Boot**：
+- [Spring Boot 官方文档](https://spring.io/projects/spring-boot)
+- [Spring Boot 实战（书籍）](https://item.jd.com/12736798.html)
+- [Spring Boot 教程（廖雪峰）](https://www.liaoxuefeng.com/wiki/1270186841660032)
+
+**MyBatis-Plus**：
+- [MyBatis-Plus 官方文档](https://baomidou.com/)
+- [MyBatis-Plus 代码生成器](https://baomidou.com/pages/223848/)
+
+**Redis**：
+- [Redis 官方文档](https://redis.io/documentation)
+- [Redis 设计与实现（书籍）](https://redisbook.com/)
+
+### 架构设计
+
+**DDD（领域驱动设计）**：
+- [领域驱动设计术语](https://dddcrew.com/glossary/)（当前项目 v2 阶段）
+
+**微服务架构**：
+- [Spring Cloud 官方文档](https://spring.io/projects/spring-cloud)（当前项目 v3 阶段）
+
+### 游戏开发
+
+**游戏架构**：
+- [游戏编程架构（书籍）](https://book.douban.com/subject/30345537/)
+- [游戏服务器端设计与实现](https://github.com/liuianxin/awesome-game-development)
+
+**数值策划**：
+- [游戏数值策划文档](./design/GDD-修仙挂机游戏设计文档.md)（项目内部文档）
+
+---
+
+**文档维护说明**：
+- 本指南随项目更新而更新，如发现文档与代码不一致请提 Issue
+- 示例命令适用于 Linux/macOS，Windows 用户使用 PowerShell 命令
+- 推荐优先使用 Docker Compose 方式，避免环境配置问题
+
+*文档最后更新：2026-04-17*

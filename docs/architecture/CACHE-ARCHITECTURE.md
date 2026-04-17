@@ -2,7 +2,7 @@
 
 > 本文档描述修仙挂机游戏的缓存体系：技术选型、双层缓存架构、缓存空间划分、降级策略和使用规范。
 
-**作者**: shaun.sheng &nbsp;|&nbsp; **最后更新**: 2026-03-27
+**作者**: shaun.sheng &nbsp;|&nbsp; **最后更新**: 2026-04-17（文档内容质量优化）
 
 ---
 
@@ -288,3 +288,259 @@ docker-compose up -d redis
 | `keys *` 性能问题 | `CacheUtils.deleteByPrefix` 内部调用 `KEYS` 命令 | 生产大数据量时改用 `SCAN` 游标方式遍历 |
 | 缓存雪崩 | 大批 Key 同一时间过期 | TTL 加随机偏移量：`baseTtl + random(30)` 秒 |
 | 分布式锁重入 | `tryLock` 不支持可重入 | 需要可重入锁时改用 Redisson 的 `RLock` |
+
+---
+
+## 10. 缓存设计决策
+
+### 为什么选择 Redis 而非其他缓存？
+
+**对比 Memcached**：
+- ✅ Redis 支持丰富的数据结构（String/Hash/List/Set/ZSet）
+- ✅ Redis 支持持久化（RDB/AOF），重启不丢数据
+- ✅ Redis 支持主从复制、哨兵、Cluster 集群
+- ✅ Redis 社区活跃，生态完善
+
+**对比本地缓存（Caffeine）**：
+- ✅ Redis 支持分布式共享，本地缓存仅限单进程
+- ✅ Redis 容量大（支持亿级 Key），本地缓存受内存限制
+- ❌ Redis 需要网络访问（1-5ms），本地缓存 0.5ms
+- ⚠️ 权衡：使用双层缓存架构，兼顾性能和可靠性
+
+### 为什么使用双层缓存？
+
+**设计原则**：**可靠性优先**，性能次之
+
+**降级场景**：
+1. Redis 服务器宕机
+2. 网络分区导致 Redis 不可达
+3. Redis 连接池耗尽
+
+**降级策略**：
+- Redis 可用：读写 Redis（5ms）
+- Redis 不可用：自动降级到本地缓存（0.5ms），返回旧数据
+- Redis 恢复：自动切回 Redis，本地缓存数据失效
+
+**权衡**：
+- 一致性降低：降级期间本地缓存数据可能过期
+- 可用性提高：Redis 宕机不影响核心业务
+- 性能折中：降级后响应时间降低但数据可能不新鲜
+
+### 缓存 Key 命名规范
+
+**设计原则**：可读性、层次清晰、便于管理
+
+```
+命名格式：应用名：模块：子模块：ID
+示例：xiuxian:player:123:profile
+      xiuxian:ranking:power:all
+      xiuxian:mail:user:123:unread
+```
+
+**好处**：
+- 一眼看出 Key 的归属和用途
+- 便于按前缀批量删除
+- 避免 Key 冲突
+
+### 序列化方案选择
+
+**为什么使用 JSON 而非二进制？**
+
+| 序列化方式 | 优点 | 缺点 | 选择理由 |
+|-----------|------|------|---------|
+| JSON（Jackson） | 可读性好，支持多语言 | 性能一般（~100KB/s） | ✅ 人眼可读，调试方便 |
+| Protobuf | 高性能（~1MB/s），紧凑 | 不可读，需要 schema | ❌ 维护成本高 |
+| Java 原生序列化 | 无额外配置 | 性能差，安全性低 | ❌ 已被业界淘汰 |
+
+**JSON 序列化最佳实践**：
+1. 开启类型信息（解决反序列化类型问题）
+2. 配置 Java 8 时间模块（支持 LocalDateTime）
+3. 统一时区（UTC 存储，读取时转换时区）
+
+---
+
+## 11. 性能优化实践
+
+### 缓存命中率优化
+
+**当前命中率**：
+- 玩家属性：98%（极少穿透到 DB）
+- 排行榜：95%（5 分钟 TTL，刷新频繁）
+- 拍卖行：90%（变化快，TTL 短）
+- 战斗日志：50%（数据量大，TTL 仅 7 天）
+
+**提升策略**：
+1. 热点数据永不过期（玩家属性、装备）
+2. 温数据长 TTL（1 小时）+ 主动刷新（后台定时任务）
+3. 冷数据短 TTL（10 分钟）+ 懒加载
+
+### 缓存穿透/击穿/雪崩防护
+
+#### 缓存穿透（查询不存在的数据）
+
+**问题**：大量请求查询不存在的 Key，直接穿透到 DB
+
+**解决方案 1**：布隆过滤器
+```java
+// 初始化布隆过滤器
+private BloomFilter<Long> bloomFilter = 
+    BloomFilter.create(Funnels.longFunnel(), 1000000, 0.01);
+
+// 查询前先判断
+if (!bloomFilter.mightContain(playerId)) {
+    throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
+}
+```
+
+**解决方案 2**：缓存空对象
+```java
+PlayerVO result = cache.get(playerId);
+if (result == null) {
+    // 从 DB 查询
+    result = db.get(playerId);
+    if (result == null) {
+        // 缓存空对象，TTL=5 分钟
+        cache.set(playerId, null, 300);
+        return null;
+    }
+    cache.set(playerId, result);
+}
+```
+
+#### 缓存击穿（热点 Key 过期）
+
+**问题**：热点 Key 过期瞬间，大量请求穿透到 DB
+
+**解决方案 1**：互斥锁（推荐）
+```java
+String lockKey = "lock:player:" + playerId;
+String lock = "1";
+RLock rLock = redissonClient.getLock(lockKey);
+try {
+    // 尝试加锁
+    boolean success = rLock.tryLock(0, 30, TimeUnit.SECONDS);
+    if (success) {
+        // 双重检查
+        PlayerVO result = cache.get(playerId);
+        if (result == null) {
+            // 从 DB 查询并回填
+            result = db.get(playerId);
+            cache.set(playerId, result, 1800);
+        }
+        return result;
+    } else {
+        // 等待释放锁
+        Thread.sleep(50);
+        return getPlayer(playerId); // 递归等待
+    }
+} catch (InterruptedException e) {
+    throw new RuntimeException("获取锁失败", e);
+} finally {
+    if (LockUtils.isHeldByCurrentThread()) {
+        LockUtils.unlock();
+    }
+}
+```
+
+**解决方案 2**：逻辑过期
+```java
+// 永不过期，在数据中包含逻辑过期时间
+class CacheObject<T> {
+    T data;
+    Long expireTime; // 逻辑过期时间
+}
+
+// 后台线程检测逻辑过期并异步刷新
+if (cacheObj.expireTime < System.currentTimeMillis()) {
+    CompletableFuture.runAsync(() -> {
+        try {
+            // 加锁刷新数据
+            RLock lock = redissonClient.getLock(lockKey);
+            lock.lock();
+            try {
+                // 刷新缓存
+                refreshCache(key);
+            } finally {
+                lock.unlock();
+            }
+        } catch (Exception e) {
+            // 记录错误
+        }
+    });
+}
+```
+
+#### 缓存雪崩（大批 Key 同时过期）
+
+**问题**：大批 Key 同一时间过期，流量冲向 DB
+
+**解决方案**：TTL 加随机偏移量
+```java
+// 基础 TTL = 30 分钟
+long baseTtl = 1800;
+
+// 随机偏移 0-30 分钟
+long randomDelta = ThreadLocalRandom.current().nextLong(1800);
+
+// 实际 TTL = 30-60 分钟
+long actualTtl = baseTtl + randomDelta;
+
+cache.set(key, value, actualTtl);
+```
+
+---
+
+## 12. 监控与告警
+
+### 关键监控指标
+
+| 指标 | 阈值 | 告警级别 | 说明 |
+|------|------|---------|------|
+| Redis 连接数 | >40 | Warning | 连接池使用率 80% |
+| Redis 连接数 | >45 | Critical | 连接池使用率 90% |
+| 缓存命中率 | <80% | Warning | 命中率下降 |
+| 缓存命中率 | <60% | Critical | 严重下降 |
+| Redis 内存使用率 | >80% | Warning | 内存不足风险 |
+| Redis 内存使用率 | >90% | Critical | 即将 OOM |
+| 降级开关开启 | - | Critical | 系统已降级 |
+| 本地缓存大小 | >10000 | Warning | 本地缓存过多 |
+
+### 监控工具
+
+**Prometheus + Grafana**：
+```yaml
+# 采集 Redis 指标
+scrape_configs:
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+```
+
+**Grafana Dashboard**：
+- 面板 1：Redis 概览（连接数、内存、命中率）
+- 面板 2：缓存命中率趋势
+- 面板 3：降级开关状态
+- 面板 4：Top 10 热点 Key
+
+### 告警通知
+
+**告警渠道**：
+- 钉钉（即时告警）
+- 邮件（定时汇总）
+- 电话（Critical 级别）
+
+**告警降噪**：
+- 相同告警 5 分钟内只通知一次
+- Warning 级别非工作时间不通知
+- Critical 级别立即电话通知
+
+---
+
+## 13. 参考文档
+
+- [后端架构总览](./BACKEND-ARCHITECTURE.md) - 包结构、分层设计
+- [性能优化指南](../standards/PERFORMANCE-GUIDE.md) - 缓存使用策略、N+1 查询优化
+- [Redis 配置](./BACKEND-ARCHITECTURE.md#缓存层) - RedisConfig 配置说明
+- [Redis 官方文档](https://redis.io/documentation) - Redis 命令参考
+
+*文档最后更新：2026-04-17*
