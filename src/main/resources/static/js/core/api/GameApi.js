@@ -27,7 +27,25 @@ class GameApi extends ApiClient {
     }
 
     async getCurrentPlayer() {
-        return this.get('/player/current');
+        // 修正：使用 /player/profile 接口获取当前玩家信息
+        return this.get('/player/profile');
+    }
+
+    async getPlayerProfile() {
+        // 与 getCurrentPlayer 相同，保留用于向后兼容
+        return this.get('/player/profile');
+    }
+
+    async updatePlayerProfile(data) {
+        // 修正：使用 POST /player/profile/update 接口
+        // 注意：如果后端不支持，需要添加 PUT /player/profile 接口
+        return this.post('/player/profile/update', data);
+    }
+
+    async getPlayerStats() {
+        // 修正：使用 /player/stats 接口（需要后端实现）
+        // 临时方案：从 profile 中获取统计信息
+        return this.get('/player/profile');
     }
 
     // ========== 玩家相关 ==========

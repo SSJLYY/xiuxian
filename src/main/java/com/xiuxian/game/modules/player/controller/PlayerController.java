@@ -35,6 +35,29 @@ public class PlayerController {
         }
     }
 
+    @PostMapping("/profile/update")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<PlayerProfile>> updateProfile(@RequestBody Map<String, Object> data) {
+        try {
+            PlayerProfile profile = playerService.getCurrentPlayerProfile();
+            
+            // 更新允许的字段
+            if (data.containsKey("nickname")) {
+                profile.setNickname((String) data.get("nickname"));
+            }
+            if (data.containsKey("avatar")) {
+                profile.setAvatar((String) data.get("avatar"));
+            }
+            
+            playerService.savePlayerProfile(profile);
+            LogUtils.logUserAction(null, profile.getId(), "UPDATE_PROFILE", "更新玩家档案：" + data.keySet());
+            
+            return ResponseEntity.ok(ApiResponse.success("更新成功", profile));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
     @GetMapping("/cultivate/info")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PlayerProfile>> getCultivateInfo() {
