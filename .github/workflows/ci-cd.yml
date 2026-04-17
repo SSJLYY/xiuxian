@@ -1,0 +1,278 @@
+# Spring Boot 应用主要 CI/CD 流程
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop, feature/*]
+  pull_request:
+    branches: [main]
+
+env:
+  MAVEN_OPTS: -Xmx2g -Xms512m
+
+jobs:
+  # ==================== 构建和测试 ====================
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root123
+          MYSQL_DATABASE: xiuxian_game_test
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up JDK 8
+        uses: actions/setup-java@v3
+        with:
+          java-version: '8'
+          distribution: 'adopt'
+          cache: 'maven'
+      
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      
+      - name: Build with Maven
+        run: mvn clean package -DskipTests -B
+      
+      - name: Run Unit Tests
+        run: mvn test -B
+        env:
+          SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3306/xiuxian_game_test?useSSL=false&serverTimezone=UTC
+          SPRING_DATASOURCE_USERNAME: root
+          SPRING_DATASOURCE_PASSWORD: root123
+          SPRING_REDIS_HOST: localhost
+          SPRING_REDIS_PORT: 6379
+      
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: target/surefire-reports/
+      
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: target/site/jacoco/jacoco.xml
+          flags: unittests
+          fail_ci_if_error: false
+
+  # ==================== 代码质量检查 ====================
+  code-quality:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up JDK 8
+        uses: actions/setup-java@v3
+        with:
+          java-version: '8'
+          distribution: 'adopt'
+          cache: 'maven'
+      
+      - name: Checkstyle
+        run: mvn checkstyle:check -B
+        continue-on-error: true
+      
+      - name: SpotBugs
+        run: mvn spotbugs:check -B
+        continue-on-error: true
+      
+      - name: Verify code formatting
+        run: mvn spotless:check -B
+        continue-on-error: true
+
+  # ==================== 安全扫描 ====================
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up JDK 8
+        uses: actions/setup-java@v3
+        with:
+          java-version: '8'
+          distribution: 'adopt'
+      
+      - name: OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'xiuxian-game'
+          path: '.'
+          format: 'HTML'
+          failonerror: false
+      
+      - name: Upload Security Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-report
+          path: dependency-check-report.html
+
+  # ==================== 集成测试 ====================
+  integration-test:
+    name: Integration Test
+    runs-on: ubuntu-latest
+    needs: [build-and-test]
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root123
+          MYSQL_DATABASE: xiuxian_game_integration
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up JDK 8
+        uses: actions/setup-java@v3
+        with:
+          java-version: '8'
+          distribution: 'adopt'
+          cache: 'maven'
+      
+      - name: Run Integration Tests
+        run: mvn verify -Dtest=*IntegrationTest -B
+        env:
+          SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3306/xiuxian_game_integration?useSSL=false&serverTimezone=UTC
+          SPRING_DATASOURCE_USERNAME: root
+          SPRING_DATASOURCE_PASSWORD: root123
+          SPRING_REDIS_HOST: localhost
+          SPRING_REDIS_PORT: 6379
+
+  # ==================== 构建 Docker 镜像 ====================
+  docker-build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [build-and-test, code-quality]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/xiuxian-game:latest
+            ${{ secrets.DOCKER_USERNAME }}/xiuxian-game:${{ github.sha }}
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/xiuxian-game:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/xiuxian-game:buildcache,mode=max
+      
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ secrets.DOCKER_USERNAME }}/xiuxian-game:${{ github.sha }}
+          format: spdx-json
+          output-file: xiuxian-game-sbom.spdx.json
+      
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v3
+        with:
+          name: sbom
+          path: xiuxian-game-sbom.spdx.json
+
+  # ==================== 部署到生产环境 ====================
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [docker-build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Deploy to server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USERNAME }}
+          key: ${{ secrets.PROD_SERVER_SSH_KEY }}
+          script: |
+            cd /opt/xiuxian-game
+            docker-compose pull
+            docker-compose up -d
+            echo "Deployment completed at $(date)"
+      
+      - name: Health check
+        run: |
+          curl -f ${{ secrets.PROD_SERVER_URL }}/actuator/health || exit 1
+      
+      - name: Notify deployment success
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          payload: |
+            {
+              "text": "✅ Deployed xiuxian-game to production\nCommit: ${{ github.sha }}\nAuthor: ${{ github.actor }}\nTime: $(date)"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+        if: success()
+      
+      - name: Notify deployment failure
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          payload: |
+            {
+              "text": "❌ Deployment failed for xiuxian-game\nCommit: ${{ github.sha }}\nAuthor: ${{ github.actor }}\nError: ${{ job.status }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+        if: failure()

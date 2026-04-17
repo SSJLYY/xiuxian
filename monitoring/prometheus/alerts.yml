@@ -1,0 +1,150 @@
+groups:
+  - name: xiuxian_alerts
+    rules:
+      # ==================== 应用告警 ====================
+      
+      - alert: HighErrorRate
+        expr: rate(http_server_requests_seconds_count{status=~"5..",service="xiuxian-game"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "错误率过高 ({{ $value | humanizePercentage }})"
+          description: "过去 5 分钟内，错误率超过 5%。当前值：{{ $value | humanizePercentage }}"
+      
+      - alert: SlowResponse
+        expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{service="xiuxian-game"}[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "响应时间过慢 (P95: {{ $value }}s)"
+          description: "P95 响应时间超过 500ms。当前值：{{ $value }}s"
+      
+      - alert: HighMemoryUsage
+        expr: jvm_memory_used_bytes{area="heap",service="xiuxian-game"} / jvm_memory_max_bytes{area="heap",service="xiuxian-game"} > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "JVM 堆内存使用率过高 ({{ $value | humanizePercentage }})"
+          description: "JVM 堆内存使用率超过 85%"
+      
+      - alert: OutOfMemoryRisk
+        expr: jvm_memory_used_bytes{area="heap",service="xiuxian-game"} / jvm_memory_max_bytes{area="heap",service="xiuxian-game"} > 0.95
+        for: 2m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "OOM 风险 ({{ $value | humanizePercentage }})"
+          description: "JVM 堆内存使用率超过 95%，即将发生 OOM"
+      
+      - alert: GCTooFrequent
+        expr: rate(jvm_gc_collection_seconds_count{service="xiuxian-game"}[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "GC 过于频繁 ({{ $value }} 次/秒)"
+          description: "每秒 GC 次数超过 0.5 次，可能存在内存压力"
+      
+      - alert: ThreadPoolExhausted
+        expr: tomcat_threads_busy_threads{service="xiuxian-game"} / tomcat_threads_config_max{service="xiuxian-game"} > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "线程池使用率过高 ({{ $value | humanizePercentage }})"
+          description: "Tomcat 线程池使用率超过 80%"
+      
+      # ==================== 缓存告警 ====================
+      
+      - alert: RedisConnectionFailed
+        expr: redis_connected_clients == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Redis 连接失败"
+          description: "无法连接到 Redis 服务，请检查 Redis 状态"
+      
+      - alert: RedisHighMemory
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Redis 内存使用率过高 ({{ $value | humanizePercentage }})"
+          description: "Redis 内存使用率超过 80%"
+      
+      - alert: RedisKeyEviction
+        expr: rate(redis_evicted_keys_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Redis Key 驱逐过多 ({{ $value }} 个/秒)"
+          description: "Redis 正在大量驱逐 key，可能内存不足"
+      
+      # ==================== 数据库告警 ====================
+      
+      - alert: MySQLConnectionHigh
+        expr: mysql_global_status_threads_connected / mysql_global_variables_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "MySQL 连接数过高 ({{ $value | humanizePercentage }})"
+          description: "MySQL 连接池使用率超过 80%"
+      
+      - alert: MySQLSlowQueries
+        expr: rate(mysql_global_status_slow_queries[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "MySQL 慢查询过多 ({{ $value }} 个/秒)"
+          description: "每秒慢查询超过 0.1 个"
+      
+      - alert: MySQLReplicationLag
+        expr: mysql_slave_status_seconds_behind_master > 30
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "MySQL 主从复制延迟 ({{ $value }}秒)"
+          description: "MySQL 主从复制延迟超过 30 秒"
+      
+      # ==================== 业务告警 ====================
+      
+      - alert: HighLoginFailureRate
+        expr: rate(login_failures_total[5m]) / rate(login_attempts_total[5m]) > 0.2
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "登录失败率过高 ({{ $value | humanizePercentage }})"
+          description: "登录失败率超过 20%，可能存在攻击或系统问题"
+      
+      - alert: ZeroActivePlayers
+        expr: sum(active_players) == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "活跃玩家数为 0"
+          description: "系统已 2 分钟没有活跃玩家，可能存在严重故障"
