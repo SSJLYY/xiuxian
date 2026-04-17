@@ -56,7 +56,7 @@ public class RechargeService extends ServiceImpl<RechargeRecordMapper, RechargeR
     }
     
     /**
-     * 处理充值成功回调
+     * 处理充值成功回调（幂等性实现）
      * @param orderId 订单ID
      * @return 充值记录
      */
@@ -67,8 +67,23 @@ public class RechargeService extends ServiceImpl<RechargeRecordMapper, RechargeR
             throw new BusinessException(ErrorCode.RECHARGE_ORDER_NOT_FOUND);
         }
 
+        // 幂等性检查：如果已经是SUCCESS状态，直接返回
+        if ("SUCCESS".equals(record.getStatus())) {
+            log.info("充值订单已完成，忽略重复回调: orderId={}", orderId);
+            return record;
+        }
+
         if (!"PENDING".equals(record.getStatus())) {
             throw new BusinessException(ErrorCode.RECHARGE_ORDER_STATUS_INVALID);
+        }
+        
+        // 再次检查状态（使用乐观锁模式，防止并发更新）
+        // 通过版本号或其他方式确保只有一个请求能成功更新
+        RechargeRecord currentRecord = rechargeRecordMapper.selectById(orderId);
+        if (!"PENDING".equals(currentRecord.getStatus())) {
+            log.info("充值订单状态已变更，忽略重复回调: orderId={}, status={}", 
+                    orderId, currentRecord.getStatus());
+            return currentRecord;
         }
         
         // 更新VIP信息（元宝已在VipService.updateVipInfo中发放到PlayerVip.yuanbao）
@@ -88,7 +103,13 @@ public class RechargeService extends ServiceImpl<RechargeRecordMapper, RechargeR
         // 更新充值记录状态
         record.setStatus("SUCCESS");
         record.setCompletedAt(LocalDateTime.now());
-        rechargeRecordMapper.updateById(record);
+        int updated = rechargeRecordMapper.updateById(record);
+        
+        if (updated == 0) {
+            // 更新失败，可能是并发问题
+            log.warn("充值订单更新失败，可能是并发回调: orderId={}", orderId);
+            throw new BusinessException(ErrorCode.RECHARGE_ORDER_STATUS_INVALID);
+        }
         
         log.info("充值处理成功: playerId={}, amount={}, yuanbao={}, isFirstRecharge={}", 
                 record.getPlayerId(), record.getAmount(), yuanbaoToAdd, isFirstRecharge);

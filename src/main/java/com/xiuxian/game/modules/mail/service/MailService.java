@@ -238,7 +238,18 @@ public class MailService {
         Integer itemId = attachment.getItemId();
         Integer quantity = attachment.getQuantity();
         
-        switch (itemType) {
+        // 参数校验
+        if (itemType == null || itemType.trim().isEmpty()) {
+            log.error("附件类型为空: mailId={}, playerId={}", attachment.getMailId(), profile.getId());
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "附件类型不能为空");
+        }
+        
+        if (quantity == null || quantity <= 0) {
+            log.error("附件数量无效: quantity={}, playerId={}", quantity, profile.getId());
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "附件数量必须大于0");
+        }
+        
+        switch (itemType.toUpperCase()) {
             case "SPIRIT_STONES":
                 profile.setSpiritStones(profile.getSpiritStones() + quantity);
                 playerService.savePlayerProfile(profile);
@@ -252,6 +263,10 @@ public class MailService {
                 break;
                 
             case "ITEM":
+                if (itemId == null) {
+                    log.error("物品ID为空: playerId={}", profile.getId());
+                    throw new BusinessException(ErrorCode.PARAM_ERROR, "物品ID不能为空");
+                }
                 PlayerItem existingItem = playerService.getPlayerItemByPlayerAndItem(profile.getId(), itemId);
                 
                 if (existingItem != null) {
@@ -270,12 +285,17 @@ public class MailService {
                 break;
                 
             case "EQUIPMENT":
+                if (itemId == null) {
+                    log.error("装备ID为空: playerId={}", profile.getId());
+                    throw new BusinessException(ErrorCode.PARAM_ERROR, "装备ID不能为空");
+                }
                 equipmentService.grantEquipmentDirectly(profile.getId(), itemId);
                 log.debug("发放装备: playerId={}, equipmentId={}", profile.getId(), itemId);
                 break;
                 
             default:
-            log.warn("未知的附件类型: {}", itemType);
+                log.error("未知的附件类型: itemType={}, playerId={}, mailId={}", itemType, profile.getId(), attachment.getMailId());
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "未知的附件类型: " + itemType);
         }
     }
 

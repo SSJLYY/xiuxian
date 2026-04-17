@@ -4,6 +4,7 @@
 import { equipmentService } from './EquipmentService.js';
 import { toast } from '../../components/Toast.js';
 import { loading } from '../../components/Loading.js';
+import { escapeHtml } from '../../core/utils/Security.js';
 
 export class EquipmentUI {
     constructor() {
@@ -72,8 +73,8 @@ export class EquipmentUI {
     renderEquippedItem(item) {
         return `
             <div class="equipped-item ${item.itemQuality}">
-                <img src="${item.itemIcon}" alt="${item.itemName}">
-                <div class="item-tooltip">${item.itemName}</div>
+                <img src="${item.itemIcon}" alt="${escapeHtml(item.itemName)}">
+                <div class="item-tooltip">${escapeHtml(item.itemName)}</div>
             </div>
         `;
     }
@@ -87,9 +88,11 @@ export class EquipmentUI {
                 this.renderEquipment();
             }
         } else {
-            // 打开背包选择装备
+            // 打开背包选择装备 - 跳转到背包页面
             toast.info('请从背包选择装备');
-            // TODO: 打开背包选择界面
+            if (confirm('是否打开背包页面选择装备？')) {
+                window.location.href = 'inventory.html';
+            }
         }
     }
 }

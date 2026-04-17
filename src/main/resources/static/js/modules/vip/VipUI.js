@@ -5,6 +5,7 @@ import { vipService } from './VipService.js';
 import { toast } from '../../components/Toast.js';
 import { loading } from '../../components/Loading.js';
 import { modal } from '../../components/Modal.js';
+import { escapeHtml } from '../../core/utils/Security.js';
 
 export class VipUI {
     init() {
@@ -119,10 +120,10 @@ export class VipUI {
 
                     return `
                         <div class="vip-level-card ${levelClass}">
-                            <div class="level-number">VIP ${level.level}</div>
-                            <div class="level-exp">所需经验: ${level.requiredExp}</div>
+                            <div class="level-number">VIP ${escapeHtml(level.level)}</div>
+                            <div class="level-exp">所需经验: ${escapeHtml(level.requiredExp)}</div>
                             <div class="level-benefits">
-                                ${level.benefits.map(benefit => `<span>${benefit}</span>`).join('')}
+                                ${level.benefits.map(benefit => `<span>${escapeHtml(benefit)}</span>`).join('')}
                             </div>
                             ${isCurrent ? '<div class="current-badge">当前等级</div>' : ''}
                         </div>
@@ -147,9 +148,9 @@ export class VipUI {
             <div class="benefits-grid">
                 ${benefits.map(benefit => `
                     <div class="benefit-item">
-                        <div class="benefit-icon">${benefit.icon || '⭐'}</div>
-                        <div class="benefit-name">${benefit.name}</div>
-                        <div class="benefit-desc">${benefit.description}</div>
+                        <div class="benefit-icon">*</div>
+                        <div class="benefit-name">${escapeHtml(benefit.name)}</div>
+                        <div class="benefit-desc">${escapeHtml(benefit.description)}</div>
                     </div>
                 `).join('')}
             </div>

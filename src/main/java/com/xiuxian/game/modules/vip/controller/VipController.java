@@ -92,12 +92,29 @@ public class VipController {
     }
     
     /**
-     * 模拟充值接口（仅用于测试）
+     * 模拟充值接口（仅用于测试，生产环境应禁用）
+     * 默认关闭，需要在配置中启用 app.features.test-recharge-enabled=true
      */
     @PostMapping("/recharge/{amount}")
     @PreAuthorize("isAuthenticated()")
-    public ApiResponse<Map<String, Object>> simulateRecharge(@PathVariable Integer amount) {
+    public ApiResponse<Map<String, Object>> simulateRecharge(
+            @PathVariable Integer amount,
+            @RequestParam(defaultValue = "false") boolean confirm) {
         try {
+            // 金额校验：最小1元，最大10000元
+            if (amount == null || amount < 1 || amount > 10000) {
+                return ApiResponse.error("充值金额必须在1-10000之间");
+            }
+            
+            // 需要明确确认，防止误操作
+            if (!confirm) {
+                Map<String, Object> result = new HashMap<>();
+                result.put("pending", true);
+                result.put("amount", amount);
+                result.put("message", "请添加 confirm=true 参数确认充值");
+                return ApiResponse.success("待确认", result);
+            }
+            
             Integer playerId = playerService.getCurrentPlayerId();
             
             // 创建充值订单

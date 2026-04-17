@@ -85,7 +85,7 @@ public class AchievementController {
             // 获取玩家成就进度
             List<PlayerAchievement> playerAchievements = achievementService.getPlayerAchievements(playerId);
             Map<Integer, PlayerAchievement> progressMap = playerAchievements.stream()
-                    .collect(Collectors.toMap(PlayerAchievement::getAchievementId, pa -> pa));
+                    .collect(Collectors.toMap(PlayerAchievement::getAchievementId, pa -> pa, (a, b) -> a));
 
             // 组合结果
             List<AchievementWithProgress> result = achievements.stream()
@@ -317,7 +317,7 @@ public class AchievementController {
 
             Map<String, Long> typeCompletedStats = new HashMap<>();
             Map<Integer, PlayerAchievement> progressMap = playerAchievements.stream()
-                    .collect(Collectors.toMap(PlayerAchievement::getAchievementId, pa -> pa));
+                    .collect(Collectors.toMap(PlayerAchievement::getAchievementId, pa -> pa, (a, b) -> a));
 
             for (Achievement achievement : allAchievements) {
                 PlayerAchievement pa = progressMap.get(achievement.getId());

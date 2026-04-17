@@ -31,7 +31,7 @@ import javax.validation.Valid;
 @Slf4j
 @RestController
 @RequestMapping("/api/admin/auth")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "${admin.cors.allowed-origins:localhost,127.0.0.1}")
 public class AdminAuthController {
 
     @Autowired

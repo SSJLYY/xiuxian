@@ -5,6 +5,7 @@ import { checkinService } from './CheckinService.js';
 import { toast } from '../../components/Toast.js';
 import { loading } from '../../components/Loading.js';
 import { formatUtils } from '../../core/utils/FormatUtils.js';
+import { escapeHtml } from '../../core/utils/Security.js';
 
 export class CheckinUI {
     constructor() {
@@ -140,8 +141,8 @@ export class CheckinUI {
             calendarHtml += `
                 <div class="${dayClass}" data-day="${day}">
                     <span class="day-number">${day}</span>
-                    ${hasReward ? `<span class="reward-icon">🎁</span>` : ''}
-                    ${reward ? `<span class="reward-info">${reward.description}</span>` : ''}
+                    ${hasReward ? `<span class="reward-icon">*</span>` : ''}
+                    ${reward ? `<span class="reward-info">${escapeHtml(reward.description)}</span>` : ''}
                 </div>
             `;
         }
@@ -165,8 +166,8 @@ export class CheckinUI {
             <div class="rewards-list">
                 ${rewards.map(reward => `
                     <div class="reward-item ${reward.claimed ? 'claimed' : ''}">
-                        <div class="reward-day">第${reward.day}天</div>
-                        <div class="reward-desc">${reward.description}</div>
+                        <div class="reward-day">第${escapeHtml(reward.day)}天</div>
+                        <div class="reward-desc">${escapeHtml(reward.description)}</div>
                         <div class="reward-status">${reward.claimed ? '已领取' : '待领取'}</div>
                     </div>
                 `).join('')}

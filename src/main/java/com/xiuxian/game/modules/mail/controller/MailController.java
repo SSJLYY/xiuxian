@@ -227,26 +227,42 @@ public class MailController {
      */
     @DeleteMapping("/batch")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Void>> batchDeleteMails(@RequestBody List<Long> mailIds) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> batchDeleteMails(@RequestBody List<Long> mailIds) {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
 
             log.info("批量删除邮件: playerId={}, count={}", playerId, mailIds.size());
 
+            int successCount = 0;
+            int failCount = 0;
+            List<Long> failedMailIds = new java.util.ArrayList<>();
+
             for (Long mailId : mailIds) {
                 try {
                     mailService.deleteMail(playerId, mailId);
+                    successCount++;
                 } catch (Exception e) {
                     log.warn("删除邮件失败: mailId={}, error={}", mailId, e.getMessage());
+                    failCount++;
+                    failedMailIds.add(mailId);
                 }
             }
 
             LogUtils.logUserAction(null, playerId, "BATCH_DELETE_MAIL",
-                    "批量删除邮件: count=" + mailIds.size());
+                    "批量删除邮件: success=" + successCount + ", fail=" + failCount);
 
-            log.info("批量删除邮件成功: playerId={}, count={}", playerId, mailIds.size());
+            log.info("批量删除邮件完成: playerId={}, success={}, fail={}", playerId, successCount, failCount);
 
-            return ResponseEntity.ok(ApiResponse.success("删除成功", null));
+            Map<String, Object> result = new HashMap<>();
+            result.put("successCount", successCount);
+            result.put("failCount", failCount);
+            result.put("failedMailIds", failedMailIds);
+
+            if (failCount == 0) {
+                return ResponseEntity.ok(ApiResponse.success("全部删除成功", result));
+            } else {
+                return ResponseEntity.ok(ApiResponse.success("部分删除成功，成功" + successCount + "个，失败" + failCount + "个", result));
+            }
 
         } catch (Exception e) {
             log.error("批量删除邮件失败: {}", e.getMessage(), e);
@@ -271,7 +287,7 @@ public class MailController {
 
             log.debug("标记邮件已读: playerId={}, mailId={}", playerId, mailId);
 
-            // 通过获取详情来标记已读
+            // 通过获取详情来标记已读，如果失败会抛出异常
             mailService.getMailDetail(playerId, mailId);
 
             LogUtils.logUserAction(null, playerId, "MARK_MAIL_READ",

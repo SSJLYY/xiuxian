@@ -1,6 +1,7 @@
 import { auctionService } from './AuctionService.js';
 import { toast } from '../../components/Toast.js';
 import { loading } from '../../components/Loading.js';
+import { escapeHtml } from '../../core/utils/Security.js';
 
 export class AuctionUI {
     init() {
@@ -31,9 +32,9 @@ export class AuctionUI {
         container.innerHTML = items.map(item => `
             <div class="auction-card">
                 <div class="item-info">
-                    <h4>${item.itemName}</h4>
-                    <p>起拍价: ${item.startingPrice} 灵石</p>
-                    <p>一口价: ${item.buyoutPrice} 灵石</p>
+                    <h4>${escapeHtml(item.itemName)}</h4>
+                    <p>起拍价: ${escapeHtml(item.startingPrice)} 灵石</p>
+                    <p>一口价: ${escapeHtml(item.buyoutPrice)} 灵石</p>
                 </div>
                 <button class="btn btn-primary" data-action="buy" data-auction-id="${item.id}">购买</button>
             </div>

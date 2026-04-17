@@ -42,7 +42,7 @@ public class QuestProgressService {
                 return;
             }
             Map<Integer, Quest> questMap = quests.stream()
-                    .collect(Collectors.toMap(Quest::getId, q -> q));
+                    .collect(Collectors.toMap(Quest::getId, q -> q, (a, b) -> a));
 
             for (com.xiuxian.game.modules.quest.entity.PlayerQuest playerQuest : playerQuests) {
                 try {

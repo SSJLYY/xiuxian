@@ -128,8 +128,9 @@ public class SkillController {
     @PostMapping("/{playerSkillId}/use")
     public ResponseEntity<ApiResponse<String>> useSkill(@PathVariable Integer playerSkillId) {
         try {
-            // 使用技能后增加经验
-            skillService.addSkillExperience(playerSkillId, 10);
+            PlayerProfile player = getCurrentPlayerProfile();
+            // 使用技能后增加经验（带权限校验）
+            skillService.addSkillExperience(playerSkillId, player.getId(), 10);
             return ResponseEntity.ok(ApiResponse.success("技能使用成功", null));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));

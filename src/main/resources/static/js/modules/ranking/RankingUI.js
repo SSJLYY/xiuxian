@@ -1,5 +1,6 @@
 import { rankingService } from './RankingService.js';
 import { loading } from '../../components/Loading.js';
+import { escapeHtml } from '../../core/utils/Security.js';
 
 export class RankingUI {
     init() {
@@ -25,8 +26,8 @@ export class RankingUI {
         container.innerHTML = data.map((player, index) => `
             <div class="ranking-item rank-${index < 3 ? index + 1 : 'other'}">
                 <div class="rank">${index + 1}</div>
-                <div class="player-name">${player.playerName}</div>
-                <div class="player-level">Lv.${player.level}</div>
+                <div class="player-name">${escapeHtml(player.playerName)}</div>
+                <div class="player-level">Lv.${escapeHtml(player.level)}</div>
             </div>
         `).join('');
     }

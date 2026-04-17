@@ -749,6 +749,6 @@ public class PlayerService {
         }
         List<PlayerProfile> profiles = playerProfileMapper.selectBatchIds(playerIds);
         return profiles.stream()
-                .collect(java.util.stream.Collectors.toMap(PlayerProfile::getId, p -> p));
+                .collect(java.util.stream.Collectors.toMap(PlayerProfile::getId, p -> p, (a, b) -> a));
     }
 }

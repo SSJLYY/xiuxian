@@ -4,6 +4,7 @@
 import { petsService } from './PetsService.js';
 import { toast } from '../../components/Toast.js';
 import { loading } from '../../components/Loading.js';
+import { escapeHtml } from '../../core/utils/Security.js';
 
 export class PetsUI {
     init() {
@@ -68,12 +69,12 @@ export class PetsUI {
         container.innerHTML = petsService.myPets.map(pet => `
             <div class="pet-card">
                 <div class="pet-image">
-                    <img src="${pet.image}" alt="${pet.name}">
+                    <img src="${pet.image}" alt="${escapeHtml(pet.name)}">
                 </div>
                 <div class="pet-info">
-                    <h4>${pet.name}</h4>
-                    <p>等级: ${pet.level}</p>
-                    <p>饱食度: ${pet.hunger}%</p>
+                    <h4>${escapeHtml(pet.name)}</h4>
+                    <p>等级: ${escapeHtml(pet.level)}</p>
+                    <p>饱食度: ${escapeHtml(pet.hunger)}%</p>
                 </div>
             </div>
         `).join('');
@@ -86,11 +87,11 @@ export class PetsUI {
         container.innerHTML = petsService.availablePets.map(pet => `
             <div class="pet-card">
                 <div class="pet-image">
-                    <img src="${pet.image}" alt="${pet.name}">
+                    <img src="${pet.image}" alt="${escapeHtml(pet.name)}">
                 </div>
                 <div class="pet-info">
-                    <h4>${pet.name}</h4>
-                    <p>${pet.description}</p>
+                    <h4>${escapeHtml(pet.name)}</h4>
+                    <p>${escapeHtml(pet.description)}</p>
                 </div>
             </div>
         `).join('');

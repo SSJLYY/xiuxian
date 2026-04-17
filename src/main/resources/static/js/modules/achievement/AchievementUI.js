@@ -1,5 +1,6 @@
 import { achievementService } from './AchievementService.js';
 import { loading } from '../../components/Loading.js';
+import { escapeHtml } from '../../core/utils/Security.js';
 
 export class AchievementUI {
     init() {
@@ -24,8 +25,8 @@ export class AchievementUI {
 
         container.innerHTML = achievements.map(achievement => `
             <div class="achievement-card ${achievement.completed ? 'completed' : ''}">
-                <h4>${achievement.name}</h4>
-                <p>${achievement.description}</p>
+                <h4>${escapeHtml(achievement.name)}</h4>
+                <p>${escapeHtml(achievement.description)}</p>
                 <div class="progress">
                     <div class="progress-bar" style="width: ${achievement.progress}%"></div>
                 </div>

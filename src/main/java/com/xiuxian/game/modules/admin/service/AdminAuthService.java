@@ -28,6 +28,12 @@ public class AdminAuthService {
     @Value("${spring.security.user.password}")
     private String adminPassword; // BCrypt 哈希值，如 $2a$10$xxxx
 
+    @Value("${spring.security.admin.email:admin@xiuxian.local}")
+    private String adminEmail;
+
+    @Value("${spring.security.admin.fixed-id:1}")
+    private Long adminFixedId;
+
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
@@ -70,9 +76,9 @@ public class AdminAuthService {
 
             // 构建返回数据
             AdminLoginResponse.AdminUser adminUser = new AdminLoginResponse.AdminUser(
-                1L, // 管理员固定 ID
+                adminFixedId,
                 adminUsername,
-                "admin@xiuxian.com", // 管理员默认邮箱
+                adminEmail,
                 "ADMIN"
             );
 
@@ -117,9 +123,9 @@ public class AdminAuthService {
 
             // 构建返回数据
             AdminLoginResponse.AdminUser adminUser = new AdminLoginResponse.AdminUser(
-                1L, // 管理员固定 ID
+                adminFixedId,
                 adminUsername,
-                "admin@xiuxian.com", // 管理员默认邮箱
+                adminEmail,
                 "ADMIN"
             );
 

@@ -5,6 +5,7 @@ import { activityService } from './ActivityService.js';
 import { toast } from '../../components/Toast.js';
 import { loading } from '../../components/Loading.js';
 import { formatUtils } from '../../core/utils/FormatUtils.js';
+import { escapeHtml } from '../../core/utils/Security.js';
 
 export class ActivityUI {
     init() {
@@ -106,18 +107,18 @@ export class ActivityUI {
         return `
             <div class="activity-card ${statusClass}">
                 <div class="activity-header">
-                    <h4>${activity.name}</h4>
-                    <span class="activity-status ${statusClass}">${statusText}</span>
+                    <h4>${escapeHtml(activity.name)}</h4>
+                    <span class="activity-status ${statusClass}">${escapeHtml(statusText)}</span>
                 </div>
                 <div class="activity-body">
-                    <p class="activity-desc">${activity.description}</p>
+                    <p class="activity-desc">${escapeHtml(activity.description)}</p>
                     <div class="activity-time">
                         <span>开始: ${formatUtils.formatDateTime(startTime)}</span>
                         <span>结束: ${formatUtils.formatDateTime(endTime)}</span>
                     </div>
                     <div class="activity-progress">
                         <div class="progress-info">
-                            <span>进度: ${activity.progress}/${activity.target}</span>
+                            <span>进度: ${escapeHtml(activity.progress)}/${escapeHtml(activity.target)}</span>
                         </div>
                         <div class="progress-bar">
                             <div class="progress-fill" style="width: ${(activity.progress / activity.target) * 100}%"></div>
@@ -126,7 +127,7 @@ export class ActivityUI {
                 </div>
                 <div class="activity-footer">
                     <div class="activity-reward">
-                        <span>奖励: ${activity.rewardDescription}</span>
+                        <span>奖励: ${escapeHtml(activity.rewardDescription)}</span>
                     </div>
                     <div class="activity-actions">
                         ${isOngoing && !activity.participated ?
@@ -161,11 +162,11 @@ export class ActivityUI {
         return `
             <div class="my-activity-card">
                 <div class="activity-info">
-                    <h4>${activity.name}</h4>
-                    <p>${activity.description}</p>
+                    <h4>${escapeHtml(activity.name)}</h4>
+                    <p>${escapeHtml(activity.description)}</p>
                     <div class="activity-stats">
-                        <span>进度: ${activity.progress}/${activity.target}</span>
-                        <span>奖励: ${activity.rewardDescription}</span>
+                        <span>进度: ${escapeHtml(activity.progress)}/${escapeHtml(activity.target)}</span>
+                        <span>奖励: ${escapeHtml(activity.rewardDescription)}</span>
                     </div>
                 </div>
                 <div class="activity-status">

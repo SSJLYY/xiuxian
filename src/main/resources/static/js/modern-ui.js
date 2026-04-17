@@ -196,7 +196,7 @@ class SimpleUI {
                 </div>
                 <div style="background:rgba(255,255,255,0.1);padding:15px;border-radius:8px;">
                     <h3>背包物品</h3>
-                    <p style="color:#aaa;">背包功能开发中...</p>
+                    <p style="color:#aaa;">完整背包功能请访问 <a href="inventory.html" style="color:#4ade80;">背包页面</a></p>
                 </div>
             </div>
         `;

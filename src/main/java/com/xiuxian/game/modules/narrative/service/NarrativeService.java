@@ -426,7 +426,7 @@ public class NarrativeService {
     private Map<Integer, Integer> getNpcAffinities(Integer playerId) {
         List<PlayerNpcRelation> relations = playerNpcRelationMapper.selectByPlayerId(playerId);
         return relations.stream()
-                .collect(Collectors.toMap(PlayerNpcRelation::getNpcId, PlayerNpcRelation::getAffinity));
+                .collect(Collectors.toMap(PlayerNpcRelation::getNpcId, PlayerNpcRelation::getAffinity, (a, b) -> a));
     }
 
     // ==================== 日常对话 ====================

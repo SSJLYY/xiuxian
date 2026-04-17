@@ -93,7 +93,7 @@ public class SkillService {
         // 批量加载skill信息（避免N+1查询）
         List<Integer> skillIds = list.stream().map(PlayerSkill::getSkillId).distinct().collect(Collectors.toList());
         Map<Integer, Skill> skillMap = skillMapper.selectBatchIds(skillIds)
-                .stream().collect(Collectors.toMap(Skill::getId, s -> s));
+                .stream().collect(Collectors.toMap(Skill::getId, s -> s, (a, b) -> a));
 
         java.util.ArrayList<SkillResponse> res = new java.util.ArrayList<>();
         for (PlayerSkill ps : list) {
@@ -252,8 +252,13 @@ public class SkillService {
      */
     public double calculateSkillDamage(PlayerSkill playerSkill) {
         Skill skill = skillMapper.selectById(playerSkill.getSkillId());
+        if (skill == null) {
+            log.warn("技能不存在: playerSkillId={}, skillId={}", playerSkill.getId(), playerSkill.getSkillId());
+            return 0;
+        }
         int skillLevel = playerSkill.getLevel();
-        double damage = skill.getBaseDamage() + (skillLevel - 1) * skill.getDamagePerLevel();
+        double damage = (skill.getBaseDamage() != null ? skill.getBaseDamage() : 0) 
+                + (skillLevel - 1) * (skill.getDamagePerLevel() != null ? skill.getDamagePerLevel() : 0);
         String type = skill.getSkillType();
         if ("防御".equals(type)) damage = damage * 0.1;
         else if ("辅助".equals(type)) damage = damage * 0.05;
@@ -264,7 +269,11 @@ public class SkillService {
      * 获取技能冷却时间（秒）
      */
     public int getSkillCooldown(PlayerSkill playerSkill) {
-        int baseCooldown = skillMapper.selectById(playerSkill.getSkillId()).getCooldown();
+        Skill skill = skillMapper.selectById(playerSkill.getSkillId());
+        if (skill == null || skill.getCooldown() == null) {
+            return 0;
+        }
+        int baseCooldown = skill.getCooldown();
         int skillLevel = playerSkill.getLevel();
         int reducedCooldown = Math.max(1, baseCooldown - (skillLevel - 1) / 2);
         return reducedCooldown;
@@ -274,7 +283,11 @@ public class SkillService {
      * 获取技能消耗法力
      */
     public int getSkillManaCost(PlayerSkill playerSkill) {
-        int baseCost = skillMapper.selectById(playerSkill.getSkillId()).getManaCost();
+        Skill skill = skillMapper.selectById(playerSkill.getSkillId());
+        if (skill == null || skill.getManaCost() == null) {
+            return 0;
+        }
+        int baseCost = skill.getManaCost();
         int skillLevel = playerSkill.getLevel();
         return baseCost + (skillLevel - 1);
     }
@@ -283,9 +296,13 @@ public class SkillService {
      * 技能使用后增加经验
      */
     @Transactional
-    public void addSkillExperience(Integer playerSkillId, int expGain) {
+    public void addSkillExperience(Integer playerSkillId, Integer playerId, int expGain) {
         PlayerSkill playerSkill = playerSkillMapper.selectById(playerSkillId);
         if (playerSkill == null) throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家技能不存在");
+        // 权限校验：确保技能属于当前玩家
+        if (!playerSkill.getPlayerId().equals(playerId)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "无权操作该技能");
+        }
         playerSkill.setExperience(playerSkill.getExperience() + expGain);
         Skill skill = skillMapper.selectById(playerSkill.getSkillId());
         while (playerSkill.getExperience() >= calculateSkillUpgradeExp(playerSkill.getLevel())
@@ -395,7 +412,7 @@ public class SkillService {
         List<Integer> skillIds = equippedSkills.stream()
                 .map(PlayerSkill::getSkillId).distinct().collect(Collectors.toList());
         Map<Integer, Skill> skillMap = skillMapper.selectBatchIds(skillIds)
-                .stream().collect(Collectors.toMap(Skill::getId, s -> s));
+                .stream().collect(Collectors.toMap(Skill::getId, s -> s, (a, b) -> a));
 
         for (PlayerSkill playerSkill : equippedSkills) {
             Skill skill = skillMap.get(playerSkill.getSkillId());

@@ -61,9 +61,13 @@ public class GameMapService {
         List<GameMap> allMaps = gameMapMapper.selectAllActive();
         List<PlayerMapProgress> playerProgress = playerMapProgressMapper.selectByPlayerId(playerId);
         
-        // 构建进度Map
+        // 构建进度Map，使用mergeFunction处理重复的mapId（取最后一个）
         java.util.Map<Integer, PlayerMapProgress> progressMap = playerProgress.stream()
-            .collect(Collectors.toMap(PlayerMapProgress::getMapId, p -> p));
+            .collect(Collectors.toMap(
+                PlayerMapProgress::getMapId, 
+                p -> p,
+                (existing, replacement) -> replacement // 如果有重复key，保留后来的
+            ));
         
         // 设置解锁状态和当前状态
         for (GameMap map : allMaps) {

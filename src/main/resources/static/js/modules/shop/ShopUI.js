@@ -6,6 +6,7 @@ import { toast } from '../../components/Toast.js';
 import { loading } from '../../components/Loading.js';
 import { modal } from '../../components/Modal.js';
 import { formatUtils } from '../../core/utils/FormatUtils.js';
+import { escapeHtml } from '../../core/utils/Security.js';
 
 export class ShopUI {
     constructor() {
@@ -108,14 +109,14 @@ export class ShopUI {
                 ${items.map(item => `
                     <div class="shop-item ${item.quality}">
                         <div class="item-image">
-                            <img src="${item.image || '/images/items/default.png'}" alt="${item.name}">
+                            <img src="${item.image || '/images/items/default.png'}" alt="${escapeHtml(item.name)}">
                         </div>
                         <div class="item-info">
-                            <h4>${item.name}</h4>
-                            <p class="item-desc">${item.description}</p>
+                            <h4>${escapeHtml(item.name)}</h4>
+                            <p class="item-desc">${escapeHtml(item.description)}</p>
                             <div class="item-stats">
-                                <span class="category">${item.category}</span>
-                                <span class="stock">库存: ${item.stock}</span>
+                                <span class="category">${escapeHtml(item.category)}</span>
+                                <span class="stock">库存: ${escapeHtml(item.stock)}</span>
                             </div>
                         </div>
                         <div class="item-price">
@@ -155,9 +156,9 @@ export class ShopUI {
         const buyHtml = `
             <div class="buy-dialog">
                 <div class="item-preview">
-                    <img src="${item.image || '/images/items/default.png'}" alt="${item.name}">
-                    <h4>${item.name}</h4>
-                    <p>${item.description}</p>
+                    <img src="${item.image || '/images/items/default.png'}" alt="${escapeHtml(item.name)}">
+                    <h4>${escapeHtml(item.name)}</h4>
+                    <p>${escapeHtml(item.description)}</p>
                 </div>
                 <div class="quantity-selector">
                     <label>购买数量:</label>
@@ -236,12 +237,12 @@ export class ShopUI {
                 ${shopService.myOrders.map(order => `
                     <div class="order-card">
                         <div class="order-info">
-                            <div class="order-id">订单号: ${order.orderId}</div>
+                            <div class="order-id">订单号: ${escapeHtml(order.orderId)}</div>
                             <div class="order-items">
                                 ${order.items.map(item => `
                                     <div class="order-item">
-                                        <span>${item.name}</span>
-                                        <span>x${item.quantity}</span>
+                                        <span>${escapeHtml(item.name)}</span>
+                                        <span>x${escapeHtml(item.quantity)}</span>
                                     </div>
                                 `).join('')}
                             </div>

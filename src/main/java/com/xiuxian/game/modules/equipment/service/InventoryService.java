@@ -74,7 +74,7 @@ public class InventoryService {
         if (!itemIds.isEmpty()) {
             List<Item> items = itemService.getItemsByIds(itemIds);
             itemMap = items.stream()
-                    .collect(Collectors.toMap(Item::getId, item -> item));
+                    .collect(Collectors.toMap(Item::getId, item -> item, (a, b) -> a));
         }
         final Map<Integer, Item> finalItemMap = itemMap;
         

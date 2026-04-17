@@ -16,7 +16,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/admin/players")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "${admin.cors.allowed-origins:localhost,127.0.0.1}")
 public class AdminPlayerController {
 
     /**

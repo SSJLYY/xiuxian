@@ -103,7 +103,7 @@ public class QuestService {
         // 批量加载quest信息（避免N+1）
         List<Integer> questIds = list.stream().map(PlayerQuest::getQuestId).distinct().collect(Collectors.toList());
         Map<Integer, Quest> questMap = questMapper.selectBatchIds(questIds)
-                .stream().collect(Collectors.toMap(Quest::getId, q -> q));
+                .stream().collect(Collectors.toMap(Quest::getId, q -> q, (a, b) -> a));
         return list.stream().map(pq -> toDetail(pq, questMap.get(pq.getQuestId()))).collect(Collectors.toList());
     }
     
@@ -430,7 +430,7 @@ public class QuestService {
         if (list.isEmpty()) return new ArrayList<>();
         List<Integer> questIds = list.stream().map(PlayerQuest::getQuestId).distinct().collect(Collectors.toList());
         Map<Integer, Quest> questMap = questMapper.selectBatchIds(questIds)
-                .stream().collect(Collectors.toMap(Quest::getId, q -> q));
+                .stream().collect(Collectors.toMap(Quest::getId, q -> q, (a, b) -> a));
         return list.stream().map(pq -> toDetail(pq, questMap.get(pq.getQuestId()))).collect(Collectors.toList());
     }
 
@@ -446,7 +446,7 @@ public class QuestService {
         // 批量加载quest（避免循环selectById）
         List<Integer> questIds = claimable.stream().map(PlayerQuest::getQuestId).distinct().collect(Collectors.toList());
         Map<Integer, Quest> questMap = questMapper.selectBatchIds(questIds)
-                .stream().collect(Collectors.toMap(Quest::getId, q -> q));
+                .stream().collect(Collectors.toMap(Quest::getId, q -> q, (a, b) -> a));
 
         // 一次性加载玩家信息
         PlayerProfile player = playerService.getPlayerProfileById(playerId);

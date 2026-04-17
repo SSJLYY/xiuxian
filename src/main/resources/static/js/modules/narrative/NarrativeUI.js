@@ -5,6 +5,7 @@ import { narrativeService } from './NarrativeService.js';
 import { toast } from '../../components/Toast.js';
 import { loading } from '../../components/Loading.js';
 import { modal } from '../../components/Modal.js';
+import { escapeHtml } from '../../core/utils/Security.js';
 
 export class NarrativeUI {
     init() {
@@ -78,14 +79,14 @@ export class NarrativeUI {
                     return `
                         <div class="npc-card">
                             <div class="npc-avatar">
-                                <img src="${npc.avatar || '/images/npcs/default.png'}" alt="${npc.name}">
+                                <img src="${npc.avatar || '/images/npcs/default.png'}" alt="${escapeHtml(npc.name)}">
                             </div>
                             <div class="npc-info">
-                                <h4>${npc.name}</h4>
-                                <p class="npc-location">位置: ${npc.location}</p>
-                                <p class="npc-desc">${npc.description}</p>
+                                <h4>${escapeHtml(npc.name)}</h4>
+                                <p class="npc-location">位置: ${escapeHtml(npc.location)}</p>
+                                <p class="npc-desc">${escapeHtml(npc.description)}</p>
                                 <div class="npc-relation">
-                                    <span class="relation-level">关系: ${relationName}</span>
+                                    <span class="relation-level">关系: ${escapeHtml(relationName)}</span>
                                     <div class="relation-bar">
                                         <div class="relation-fill" style="width: ${relationLevel * 10}%"></div>
                                     </div>
@@ -128,16 +129,16 @@ export class NarrativeUI {
                     return `
                         <div class="relation-card">
                             <div class="relation-avatar">
-                                <img src="${npc?.avatar || '/images/npcs/default.png'}" alt="${npc?.name}">
+                                <img src="${npc?.avatar || '/images/npcs/default.png'}" alt="${escapeHtml(npc?.name || '')}">
                             </div>
                             <div class="relation-info">
-                                <h4>${npc?.name || '未知NPC'}</h4>
+                                <h4>${escapeHtml(npc?.name || '未知NPC')}</h4>
                                 <div class="relation-level">
-                                    <span>${rel.relationName}</span>
-                                    <span>等级 ${rel.relationLevel}</span>
+                                    <span>${escapeHtml(rel.relationName)}</span>
+                                    <span>等级 ${escapeHtml(rel.relationLevel)}</span>
                                 </div>
                                 <div class="relation-progress">
-                                    <span>亲密度: ${rel.intimacy}</span>
+                                    <span>亲密度: ${escapeHtml(rel.intimacy)}</span>
                                     <div class="intimacy-bar">
                                         <div class="intimacy-fill" style="width: ${rel.intimacy}%"></div>
                                     </div>
@@ -169,15 +170,15 @@ export class NarrativeUI {
         const dialogueHtml = `
             <div class="dialogue-container">
                 <div class="dialogue-avatar">
-                    <img src="${npc.avatar}" alt="${npc.name}">
+                    <img src="${npc.avatar}" alt="${escapeHtml(npc.name)}">
                 </div>
                 <div class="dialogue-content">
-                    <div class="dialogue-name">${npc.name}</div>
-                    <div class="dialogue-text">${dialogue.text}</div>
+                    <div class="dialogue-name">${escapeHtml(npc.name)}</div>
+                    <div class="dialogue-text">${escapeHtml(dialogue.text)}</div>
                     ${dialogue.options ? `
                         <div class="dialogue-options">
                             ${dialogue.options.map((option, index) => `
-                                <button class="btn btn-option" data-option-index="${index}">${option.text}</button>
+                                <button class="btn btn-option" data-option-index="${index}">${escapeHtml(option.text)}</button>
                             `).join('')}
                         </div>
                     ` : ''}
@@ -218,9 +219,9 @@ export class NarrativeUI {
                     ${npc.availableQuests.map(quest => `
                         <div class="quest-item">
                             <div class="quest-info">
-                                <h4>${quest.name}</h4>
-                                <p>${quest.description}</p>
-                                <div class="quest-reward">奖励: ${quest.rewardDescription}</div>
+                                <h4>${escapeHtml(quest.name)}</h4>
+                                <p>${escapeHtml(quest.description)}</p>
+                                <div class="quest-reward">奖励: ${escapeHtml(quest.rewardDescription)}</div>
                             </div>
                             <button class="btn btn-success" data-action="start-quest" data-quest-id="${quest.id}">接受</button>
                         </div>

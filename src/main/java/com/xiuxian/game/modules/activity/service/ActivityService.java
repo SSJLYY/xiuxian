@@ -150,7 +150,7 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
     /**
      * 更新玩家活动进度
      *
-     * <p>更新玩家在指定活动中的进度。</p>
+     * <p>更新玩家在指定活动中的进度。进度存储为JSON格式：{"value": 100}</p>
      *
      * @param playerId 玩家ID
      * @param activityId 活动ID
@@ -171,23 +171,42 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家未参与该活动");
         }
 
-        // 更新进度
-        progress.setProgress(progress.getProgress() + increment);
+        // 解析JSON进度并更新
+        int currentValue = parseProgressValue(progress.getProgress());
+        currentValue += increment;
+        progress.setProgress("{\"value\": " + currentValue + "}");
         progress.setUpdatedAt(LocalDateTime.now());
         playerActivityProgressMapper.updateById(progress);
 
-        log.info("更新活动进度成功: playerId={}, activityId={}", playerId, activityId);
+        log.info("更新活动进度成功: playerId={}, activityId={}, newValue={}", playerId, activityId, currentValue);
         return progress;
+    }
+
+    /**
+     * 解析进度JSON中的数值
+     */
+    private int parseProgressValue(String progressJson) {
+        if (progressJson == null || progressJson.isEmpty()) {
+            return 0;
+        }
+        try {
+            // 简单解析 {"value": 100}
+            String numeric = progressJson.replaceAll("[^0-9-]", "");
+            return numeric.isEmpty() ? 0 : Integer.parseInt(numeric);
+        } catch (NumberFormatException e) {
+            log.warn("解析进度失败: {}", progressJson);
+            return 0;
+        }
     }
 
     /**
      * 更新玩家活动积分
      *
-     * <p>更新玩家在指定活动中的积分。</p>
+     * <p>更新玩家在指定活动中的积分。积分存储为JSON格式：{"score": 100}</p>
      *
      * @param playerId 玩家ID
      * @param activityId 活动ID
-     * @param score 积分值
+     * @param score 积分值（绝对值，会覆盖原有积分）
      * @return 更新后的活动进度
      */
     @Transactional
@@ -204,13 +223,38 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家未参与该活动");
         }
 
-        // 更新积分（从progress JSON中提取并更新）
-        // 注意：这里简化处理，实际应该解析JSON并更新
+        // 解析现有progress JSON，更新score字段
+        String currentProgress = progress.getProgress();
+        int currentScore = parseScoreFromProgress(currentProgress);
+        currentScore = score; // 使用传入的积分值
+        progress.setProgress("{\"value\": " + parseProgressValue(currentProgress) + ", \"score\": " + currentScore + "}");
         progress.setUpdatedAt(LocalDateTime.now());
         playerActivityProgressMapper.updateById(progress);
 
-        log.info("更新活动积分成功: playerId={}, activityId={}", playerId, activityId);
+        log.info("更新活动积分成功: playerId={}, activityId={}, newScore={}", playerId, activityId, currentScore);
         return progress;
+    }
+
+    /**
+     * 从进度JSON中解析积分
+     */
+    private int parseScoreFromProgress(String progressJson) {
+        if (progressJson == null || progressJson.isEmpty()) {
+            return 0;
+        }
+        try {
+            // 尝试解析包含score的JSON: {"value": 100, "score": 50}
+            int scoreIndex = progressJson.indexOf("\"score\"");
+            if (scoreIndex >= 0) {
+                String scoreStr = progressJson.substring(scoreIndex + 7);
+                scoreStr = scoreStr.replaceAll("[^0-9-]", "");
+                return scoreStr.isEmpty() ? 0 : Integer.parseInt(scoreStr);
+            }
+            return 0;
+        } catch (Exception e) {
+            log.warn("解析积分失败: {}", progressJson);
+            return 0;
+        }
     }
 
     /**
@@ -301,7 +345,7 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
     /**
      * 获取活动排名
      *
-     * <p>获取指定活动的玩家排名列表。</p>
+     * <p>获取指定活动的玩家排名列表。由于progress是JSON格式，在内存中进行排序。</p>
      *
      * @param activityId 活动ID
      * @param limit 返回数量限制
@@ -312,9 +356,20 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         
         QueryWrapper<PlayerActivityProgress> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("activity_id", activityId);
-        queryWrapper.orderByDesc("score");
-        queryWrapper.last("LIMIT " + limit);
+        // 不在SQL中排序，因为在内存中按score排序
         List<PlayerActivityProgress> ranking = playerActivityProgressMapper.selectList(queryWrapper);
+        
+        // 按积分在内存中排序
+        ranking.sort((a, b) -> {
+            int scoreA = parseScoreFromProgress(a.getProgress());
+            int scoreB = parseScoreFromProgress(b.getProgress());
+            return Integer.compare(scoreB, scoreA); // 降序
+        });
+        
+        // 限制返回数量
+        if (ranking.size() > limit) {
+            ranking = ranking.subList(0, limit);
+        }
         
         log.debug("获取活动排名成功: activityId={}, count={}", activityId, ranking.size());
         return ranking;

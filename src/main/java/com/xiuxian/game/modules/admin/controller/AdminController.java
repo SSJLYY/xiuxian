@@ -71,6 +71,13 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<User>> setRole(@PathVariable Integer id, @RequestParam String role) {
         log.info("管理员更新用户角色: userId={}, role={}", id, role);
+        
+        // 角色白名单校验，防止权限提升攻击
+        if (role == null || (!role.equals("USER") && !role.equals("ADMIN") && !role.equals("VIP"))) {
+            log.warn("非法的角色值: role={}", role);
+            throw new BusinessException(ErrorCode.INVALID_PARAMETER);
+        }
+        
         User u = adminPlayerService.updateUserRole(id, role);
         log.info("管理员更新用户角色成功: userId={}, role={}", id, role);
         return ResponseEntity.ok(ApiResponse.success("角色更新成功", u));

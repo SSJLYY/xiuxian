@@ -134,7 +134,7 @@ public class EquipmentService {
         List<Integer> equipmentIds = playerEquipments.stream()
                 .map(PlayerEquipment::getEquipmentId).distinct().collect(Collectors.toList());
         Map<Integer, Equipment> equipmentMap = equipmentMapper.selectBatchIds(equipmentIds)
-                .stream().collect(Collectors.toMap(Equipment::getId, e -> e));
+                .stream().collect(Collectors.toMap(Equipment::getId, e -> e, (a, b) -> a));
 
         List<PlayerEquipmentResponse> responses = new ArrayList<>();
         for (PlayerEquipment pe : playerEquipments) {
@@ -192,7 +192,7 @@ public class EquipmentService {
         List<Integer> equipmentIds = playerEquipments.stream()
                 .map(PlayerEquipment::getEquipmentId).distinct().collect(Collectors.toList());
         Map<Integer, Equipment> equipmentMap = equipmentMapper.selectBatchIds(equipmentIds)
-                .stream().collect(Collectors.toMap(Equipment::getId, e -> e));
+                .stream().collect(Collectors.toMap(Equipment::getId, e -> e, (a, b) -> a));
 
         List<PlayerEquipmentResponse> responses = new ArrayList<>();
         for (PlayerEquipment pe : playerEquipments) {

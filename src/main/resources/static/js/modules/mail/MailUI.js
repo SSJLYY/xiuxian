@@ -6,6 +6,7 @@ import { toast } from '../../components/Toast.js';
 import { loading } from '../../components/Loading.js';
 import { formatUtils } from '../../core/utils/FormatUtils.js';
 import { modal } from '../../components/Modal.js';
+import { escapeHtml } from '../../core/utils/Security.js';
 
 export class MailUI {
     init() {
@@ -95,17 +96,17 @@ export class MailUI {
         return `
             <div class="mail-card ${readClass}">
                 <div class="mail-header">
-                    <div class="mail-sender">${mail.sender}</div>
+                    <div class="mail-sender">${escapeHtml(mail.sender)}</div>
                     <div class="mail-time">${formatUtils.formatDateTime(new Date(mail.sentAt))}</div>
                 </div>
                 <div class="mail-body">
-                    <div class="mail-subject">${mail.subject}</div>
-                    <div class="mail-content">${mail.content.substring(0, 100)}${mail.content.length > 100 ? '...' : ''}</div>
+                    <div class="mail-subject">${escapeHtml(mail.subject)}</div>
+                    <div class="mail-content">${escapeHtml(mail.content.substring(0, 100))}${mail.content.length > 100 ? '...' : ''}</div>
                     ${hasAttachment ? `
                         <div class="mail-attachment">
-                            <span class="attachment-icon">📎</span>
+                            <span class="attachment-icon">*</span>
                             <span class="attachment-text">
-                                ${attachmentClaimed ? '附件已领取' : mail.attachment.map(a => a.name).join(', ')}
+                                ${attachmentClaimed ? '附件已领取' : escapeHtml(mail.attachment.map(a => a.name).join(', '))}
                             </span>
                         </div>
                     ` : ''}
@@ -138,19 +139,19 @@ export class MailUI {
         const detailHtml = `
             <div class="mail-detail">
                 <div class="mail-detail-header">
-                    <div class="sender">${mail.sender}</div>
+                    <div class="sender">${escapeHtml(mail.sender)}</div>
                     <div class="time">${formatUtils.formatDateTime(new Date(mail.sentAt))}</div>
                 </div>
-                <div class="mail-detail-subject">${mail.subject}</div>
-                <div class="mail-detail-content">${mail.content}</div>
+                <div class="mail-detail-subject">${escapeHtml(mail.subject)}</div>
+                <div class="mail-detail-content">${escapeHtml(mail.content)}</div>
                 ${mail.attachment && mail.attachment.length > 0 ? `
                     <div class="mail-detail-attachment">
                         <h4>附件</h4>
                         <div class="attachment-list">
                             ${mail.attachment.map(item => `
                                 <div class="attachment-item">
-                                    <span class="item-name">${item.name}</span>
-                                    <span class="item-quantity">x${item.quantity}</span>
+                                    <span class="item-name">${escapeHtml(item.name)}</span>
+                                    <span class="item-quantity">x${escapeHtml(item.quantity)}</span>
                                 </div>
                             `).join('')}
                         </div>
