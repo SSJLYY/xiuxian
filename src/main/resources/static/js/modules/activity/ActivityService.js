@@ -12,7 +12,7 @@ export class ActivityService {
 
     async getActivities() {
         try {
-            const response = await gameAPI.activity.getList();
+            const response = await gameAPI.getActivities();
             if (response.success) {
                 this.activities = response.data;
                 return response.data;
@@ -26,7 +26,7 @@ export class ActivityService {
 
     async getMyActivities() {
         try {
-            const response = await gameAPI.activity.getMyActivities();
+            const response = await gameAPI.getMyActivityProgress();
             if (response.success) {
                 this.myActivities = response.data;
                 return response.data;
@@ -40,7 +40,7 @@ export class ActivityService {
 
     async participateActivity(activityId) {
         try {
-            const response = await gameAPI.activity.participate(activityId);
+            const response = await gameAPI.participateActivity(activityId);
             if (response.success) {
                 toast.success('参与活动成功!');
                 await this.getActivities();
@@ -56,7 +56,7 @@ export class ActivityService {
 
     async claimReward(activityId) {
         try {
-            const response = await gameAPI.activity.claimReward(activityId);
+            const response = await gameAPI.submitActivityScore(activityId);
             if (response.success) {
                 toast.success('领取奖励成功!');
                 await this.getActivities();

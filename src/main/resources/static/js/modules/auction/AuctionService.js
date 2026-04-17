@@ -4,7 +4,7 @@ import { toast } from '../../components/Toast.js';
 export class AuctionService {
     async listItems() {
         try {
-            const response = await gameAPI.auction.listItems();
+            const response = await gameAPI.getAuctionItems({});
             if (response.success) return response.data;
             throw new Error(response.message);
         } catch (error) {
@@ -15,7 +15,7 @@ export class AuctionService {
 
     async listItem(itemId, startingPrice, buyoutPrice) {
         try {
-            const response = await gameAPI.auction.list(itemId, startingPrice, buyoutPrice);
+            const response = await gameAPI.listAuctionItem(itemId, startingPrice, buyoutPrice);
             if (response.success) {
                 toast.success('上架成功');
                 return response.data;
@@ -29,7 +29,7 @@ export class AuctionService {
 
     async buyItem(auctionId) {
         try {
-            const response = await gameAPI.auction.buy(auctionId);
+            const response = await gameAPI.buyAuctionItem(auctionId);
             if (response.success) {
                 toast.success('购买成功');
                 return response.data;
@@ -43,7 +43,7 @@ export class AuctionService {
 
     async cancelListing(auctionId) {
         try {
-            const response = await gameAPI.auction.cancel(auctionId);
+            const response = await gameAPI.cancelAuctionItem(auctionId);
             if (response.success) {
                 toast.success('下架成功');
                 return response.data;

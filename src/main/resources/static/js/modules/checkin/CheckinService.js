@@ -12,7 +12,7 @@ export class CheckinService {
 
     async getCheckinStatus() {
         try {
-            const response = await gameAPI.checkin.getStatus();
+            const response = await gameAPI.getCheckinStatus();
             if (response.success) {
                 this.checkinStatus = response.data;
                 return response.data;
@@ -26,7 +26,7 @@ export class CheckinService {
 
     async getCalendarData(month, year) {
         try {
-            const response = await gameAPI.checkin.getCalendar(month, year);
+            const response = await gameAPI.getCheckinCalendar(month, year);
             if (response.success) {
                 this.calendarData = response.data;
                 return response.data;
@@ -40,7 +40,7 @@ export class CheckinService {
 
     async doCheckin() {
         try {
-            const response = await gameAPI.checkin.checkin();
+            const response = await gameAPI.doCheckin();
             if (response.success) {
                 toast.success('签到成功!');
                 await this.getCheckinStatus();
@@ -55,7 +55,7 @@ export class CheckinService {
 
     async getCheckinRewards() {
         try {
-            const response = await gameAPI.checkin.getRewards();
+            const response = await gameAPI.getCheckinRewards();
             if (response.success) {
                 return response.data;
             }

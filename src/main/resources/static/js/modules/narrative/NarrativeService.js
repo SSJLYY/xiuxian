@@ -12,7 +12,7 @@ export class NarrativeService {
 
     async getNpcList() {
         try {
-            const response = await gameAPI.npc.getList();
+            const response = await gameAPI.getMaps();
             if (response.success) {
                 this.npcs = response.data;
                 return response.data;
@@ -26,7 +26,7 @@ export class NarrativeService {
 
     async getNpcRelations() {
         try {
-            const response = await gameAPI.npc.getMyRelations();
+            const response = await gameAPI.getCurrentMap();
             if (response.success) {
                 this.myRelations = response.data;
                 return response.data;
@@ -40,7 +40,7 @@ export class NarrativeService {
 
     async interactWithNpc(npcId) {
         try {
-            const response = await gameAPI.npc.interact(npcId);
+            const response = await gameAPI.startDialogue(npcId);
             if (response.success) {
                 toast.success('交互成功');
                 await this.getNpcRelations();
@@ -55,7 +55,7 @@ export class NarrativeService {
 
     async startQuest(npcId, questId) {
         try {
-            const response = await gameAPI.npc.startQuest(npcId, questId);
+            const response = await gameAPI.startDialogue(npcId, questId);
             if (response.success) {
                 toast.success('任务已开始');
                 await this.getNpcRelations();

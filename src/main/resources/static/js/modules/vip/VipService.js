@@ -12,7 +12,7 @@ export class VipService {
 
     async getVipInfo() {
         try {
-            const response = await gameAPI.vip.getInfo();
+            const response = await gameAPI.getVipInfo();
             if (response.success) {
                 this.vipInfo = response.data;
                 return response.data;
@@ -26,7 +26,7 @@ export class VipService {
 
     async getVipLevels() {
         try {
-            const response = await gameAPI.vip.getLevels();
+            const response = await gameAPI.getVipLevels();
             if (response.success) {
                 this.vipLevels = response.data;
                 return response.data;
@@ -40,7 +40,7 @@ export class VipService {
 
     async getVipBenefits() {
         try {
-            const response = await gameAPI.vip.getBenefits();
+            const response = await gameAPI.getDailyVipReward();
             if (response.success) {
                 return response.data;
             }
@@ -53,7 +53,7 @@ export class VipService {
 
     async claimDailyReward() {
         try {
-            const response = await gameAPI.vip.claimDailyReward();
+            const response = await gameAPI.getDailyVipReward();
             if (response.success) {
                 toast.success('领取VIP每日奖励成功!');
                 await this.getVipInfo();
@@ -68,7 +68,7 @@ export class VipService {
 
     async recharge(amount) {
         try {
-            const response = await gameAPI.vip.recharge(amount);
+            const response = await gameAPI.rechargeVip(amount);
             if (response.success) {
                 toast.success('充值成功!');
                 await this.getVipInfo();

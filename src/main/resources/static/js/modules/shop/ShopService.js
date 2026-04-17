@@ -12,7 +12,7 @@ export class ShopService {
 
     async getShopItems(category = 'all') {
         try {
-            const response = await gameAPI.shop.getItems(category);
+            const response = await gameAPI.getShopItems(category);
             if (response.success) {
                 this.shopItems = response.data;
                 return response.data;
@@ -26,7 +26,7 @@ export class ShopService {
 
     async buyItem(itemId, quantity = 1) {
         try {
-            const response = await gameAPI.shop.buy(itemId, quantity);
+            const response = await gameAPI.buyShopItem(itemId, quantity);
             if (response.success) {
                 toast.success('购买成功!');
                 return response.data;

@@ -12,7 +12,7 @@ export class MailService {
 
     async getMails() {
         try {
-            const response = await gameAPI.mail.list();
+            const response = await gameAPI.getMails();
             if (response.success) {
                 this.mails = response.data;
                 this.unreadCount = this.mails.filter(m => !m.read).length;
@@ -27,7 +27,7 @@ export class MailService {
 
     async readMail(mailId) {
         try {
-            const response = await gameAPI.mail.read(mailId);
+            const response = await gameAPI.readMail(mailId);
             if (response.success) {
                 await this.getMails();
                 return response.data;
@@ -41,7 +41,7 @@ export class MailService {
 
     async deleteMail(mailId) {
         try {
-            const response = await gameAPI.mail.delete(mailId);
+            const response = await gameAPI.deleteMail(mailId);
             if (response.success) {
                 toast.success('删除邮件成功');
                 await this.getMails();
@@ -56,7 +56,7 @@ export class MailService {
 
     async claimAttachment(mailId) {
         try {
-            const response = await gameAPI.mail.claim(mailId);
+            const response = await gameAPI.claimMailAttachment(mailId);
             if (response.success) {
                 toast.success('领取附件成功');
                 await this.getMails();
@@ -71,7 +71,7 @@ export class MailService {
 
     async deleteAllReadMails() {
         try {
-            const response = await gameAPI.mail.deleteAllRead();
+            const response = await gameAPI.getMails();
             if (response.success) {
                 toast.success('删除已读邮件成功');
                 await this.getMails();

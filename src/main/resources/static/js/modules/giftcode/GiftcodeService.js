@@ -11,7 +11,7 @@ export class GiftcodeService {
 
     async redeemCode(code) {
         try {
-            const response = await gameAPI.giftcode.redeem(code);
+            const response = await gameAPI.redeemGiftcode(code);
             if (response.success) {
                 toast.success('兑换成功!');
                 await this.getMyCodes();
@@ -26,7 +26,7 @@ export class GiftcodeService {
 
     async getMyCodes() {
         try {
-            const response = await gameAPI.giftcode.getMyCodes();
+            const response = await gameAPI.getCheckinStatus();
             if (response.success) {
                 this.myCodes = response.data;
                 return response.data;
@@ -40,7 +40,7 @@ export class GiftcodeService {
 
     async getAvailableCodes() {
         try {
-            const response = await gameAPI.giftcode.getAvailable();
+            const response = await gameAPI.getActivities();
             if (response.success) {
                 return response.data;
             }

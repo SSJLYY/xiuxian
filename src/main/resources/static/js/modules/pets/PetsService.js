@@ -12,7 +12,7 @@ export class PetsService {
 
     async loadMyPets() {
         try {
-            const response = await gameAPI.pets.getMyPets();
+            const response = await gameAPI.getMyPets();
             if (response.success) {
                 this.myPets = response.data;
                 return response.data;
@@ -26,7 +26,7 @@ export class PetsService {
 
     async loadAvailablePets() {
         try {
-            const response = await gameAPI.pets.getAvailablePets();
+            const response = await gameAPI.getAvailablePets();
             if (response.success) {
                 this.availablePets = response.data;
                 return response.data;
@@ -40,7 +40,7 @@ export class PetsService {
 
     async capturePet(monsterId) {
         try {
-            const response = await gameAPI.pets.capture(monsterId);
+            const response = await gameAPI.capturePet(monsterId);
             if (response.success) {
                 toast.success('捕获成功');
                 await this.loadMyPets();
@@ -55,7 +55,7 @@ export class PetsService {
 
     async feedPet(petId, foodId) {
         try {
-            const response = await gameAPI.pets.feed(petId, foodId);
+            const response = await gameAPI.feedPet(petId, foodId);
             if (response.success) {
                 toast.success('喂养成功');
                 await this.loadMyPets();

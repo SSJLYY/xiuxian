@@ -13,7 +13,7 @@ export class MapService {
 
     async getCurrentMap() {
         try {
-            const response = await gameAPI.map.getCurrent();
+            const response = await gameAPI.getCurrentMap();
             if (response.success) {
                 this.currentMap = response.data;
                 return response.data;
@@ -27,7 +27,7 @@ export class MapService {
 
     async getMapList() {
         try {
-            const response = await gameAPI.map.getList();
+            const response = await gameAPI.getMaps();
             if (response.success) {
                 this.availableMaps = response.data;
                 return response.data;
@@ -41,7 +41,7 @@ export class MapService {
 
     async getExploredMaps() {
         try {
-            const response = await gameAPI.map.getExplored();
+            const response = await gameAPI.exploreMap();
             if (response.success) {
                 this.exploredMaps = response.data;
                 return response.data;
@@ -55,7 +55,7 @@ export class MapService {
 
     async teleportToMap(mapId) {
         try {
-            const response = await gameAPI.map.teleport(mapId);
+            const response = await gameAPI.enterMap(mapId);
             if (response.success) {
                 toast.success('传送成功!');
                 await this.getCurrentMap();
@@ -70,7 +70,7 @@ export class MapService {
 
     async exploreMap(mapId) {
         try {
-            const response = await gameAPI.map.explore(mapId);
+            const response = await gameAPI.exploreMap()mapId);
             if (response.success) {
                 toast.success('探索成功!');
                 await this.getExploredMaps();

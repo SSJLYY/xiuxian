@@ -12,7 +12,7 @@ export class GuildService {
 
     async loadGuildList() {
         try {
-            const response = await gameAPI.guild.list();
+            const response = await gameAPI.getGuildList();
             if (response.success) {
                 this.guildList = response.data;
                 return response.data;
@@ -26,7 +26,7 @@ export class GuildService {
 
     async loadMyGuild() {
         try {
-            const response = await gameAPI.guild.getMyGuild();
+            const response = await gameAPI.getMyGuild();
             if (response.success) {
                 this.myGuild = response.data;
                 return response.data;
@@ -40,7 +40,7 @@ export class GuildService {
 
     async createGuild(name, description) {
         try {
-            const response = await gameAPI.guild.create(name, description);
+            const response = await gameAPI.createGuild(name, description);
             if (response.success) {
                 toast.success('创建宗门成功');
                 await this.loadMyGuild();
@@ -55,7 +55,7 @@ export class GuildService {
 
     async joinGuild(guildId) {
         try {
-            const response = await gameAPI.guild.apply(guildId);
+            const response = await gameAPI.applyGuild(guildId);
             if (response.success) {
                 toast.success('申请已提交');
                 return response.data;
@@ -69,7 +69,7 @@ export class GuildService {
 
     async leaveGuild() {
         try {
-            const response = await gameAPI.guild.leave();
+            const response = await gameAPI.leaveGuild();
             if (response.success) {
                 toast.success('已退出宗门');
                 this.myGuild = null;

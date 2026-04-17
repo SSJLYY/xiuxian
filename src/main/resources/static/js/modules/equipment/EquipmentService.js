@@ -12,7 +12,7 @@ export class EquipmentService {
 
     async loadEquipment() {
         try {
-            const response = await gameAPI.player.getEquipment();
+            const response = await gameAPI.getEquipment();
             if (response.success) {
                 this.currentEquipment = response.data;
                 return response.data;
@@ -26,7 +26,7 @@ export class EquipmentService {
 
     async equipItem(itemId, slot) {
         try {
-            const response = await gameAPI.equipment.equip(itemId, slot);
+            const response = await gameAPI.equipItem(itemId, slot);
             if (response.success) {
                 toast.success('装备成功');
                 await this.loadEquipment();
@@ -41,7 +41,7 @@ export class EquipmentService {
 
     async unequipItem(slot) {
         try {
-            const response = await gameAPI.equipment.unequip(slot);
+            const response = await gameAPI.unequipItem(slot);
             if (response.success) {
                 toast.success('卸下成功');
                 await this.loadEquipment();

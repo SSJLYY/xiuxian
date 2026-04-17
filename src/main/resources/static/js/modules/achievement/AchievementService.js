@@ -4,7 +4,7 @@ import { toast } from '../../components/Toast.js';
 export class AchievementService {
     async getAchievements() {
         try {
-            const response = await gameAPI.achievement.getList();
+            const response = await gameAPI.getAchievements();
             if (response.success) return response.data;
             throw new Error(response.message);
         } catch (error) {
@@ -15,7 +15,7 @@ export class AchievementService {
 
     async claimAchievement(achievementId) {
         try {
-            const response = await gameAPI.achievement.claim(achievementId);
+            const response = await gameAPI.claimAchievement(achievementId);
             if (response.success) {
                 toast.success('领取成功');
                 return response.data;

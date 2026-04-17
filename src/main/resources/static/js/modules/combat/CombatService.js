@@ -17,7 +17,7 @@ export class CombatService {
      */
     async startCombat(monsterId) {
         try {
-            const response = await gameAPI.combat.startCombat(monsterId);
+            const response = await gameAPI.startCombat(monsterId);
             if (response.success) {
                 this.currentCombat = response.data;
                 this.combatHistory.unshift({
@@ -47,7 +47,7 @@ export class CombatService {
         }
 
         try {
-            const response = await gameAPI.combat.executeAttack(skillId);
+            const response = await gameAPI.startCombat(skillId);
             if (response.success) {
                 this.currentCombat = response.data.combat;
                 return response.data;
@@ -67,7 +67,7 @@ export class CombatService {
      */
     async useItem(itemId) {
         try {
-            const response = await gameAPI.combat.useItem(itemId);
+            const response = await gameAPI.useItem(itemId);
             if (response.success) {
                 this.currentCombat = response.data.combat;
                 toast.success('道具使用成功');
@@ -92,7 +92,7 @@ export class CombatService {
         }
 
         try {
-            const response = await gameAPI.combat.flee();
+            const response = await gameAPI.startCombat();
             if (response.success) {
                 toast.success('逃跑成功');
                 this.currentCombat = null;
@@ -112,7 +112,7 @@ export class CombatService {
      */
     async getCombatHistory() {
         try {
-            const response = await gameAPI.combat.getHistory();
+            const response = await gameAPI.getCombatHistory();
             if (response.success) {
                 this.combatHistory = response.data;
                 return response.data;

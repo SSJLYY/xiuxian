@@ -12,7 +12,7 @@ export class SkillsService {
 
     async loadMySkills() {
         try {
-            const response = await gameAPI.skills.getMySkills();
+            const response = await gameAPI.getPlayerSkills();
             if (response.success) {
                 this.mySkills = response.data;
                 return response.data;
@@ -26,7 +26,7 @@ export class SkillsService {
 
     async loadAvailableSkills() {
         try {
-            const response = await gameAPI.skills.getAvailableSkills();
+            const response = await gameAPI.getAvailableSkills();
             if (response.success) {
                 this.availableSkills = response.data;
                 return response.data;
@@ -40,7 +40,7 @@ export class SkillsService {
 
     async learnSkill(skillId) {
         try {
-            const response = await gameAPI.skills.learn(skillId);
+            const response = await gameAPI.learnSkill(skillId);
             if (response.success) {
                 toast.success('学习技能成功');
                 await this.loadMySkills();
@@ -56,7 +56,7 @@ export class SkillsService {
 
     async upgradeSkill(skillId) {
         try {
-            const response = await gameAPI.skills.upgrade(skillId);
+            const response = await gameAPI.upgradeSkill(skillId);
             if (response.success) {
                 toast.success('技能升级成功');
                 await this.loadMySkills();

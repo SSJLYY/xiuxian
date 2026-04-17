@@ -4,7 +4,7 @@ import { toast } from '../../components/Toast.js';
 export class RankingService {
     async getRanking(type = 'level') {
         try {
-            const response = await gameAPI.ranking.get(type);
+            const response = await gameAPI.getRanking(type);
             if (response.success) return response.data;
             throw new Error(response.message);
         } catch (error) {
