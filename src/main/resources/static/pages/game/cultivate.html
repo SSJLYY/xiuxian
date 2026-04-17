@@ -43,12 +43,14 @@
     </div>
 
     <script type="module">
-        import { App } from '/js/App.js';
-        const app = new App();
-        app.init();
-        import('/js/modules/cultivate/index.js').then(module => {
-            module.cultivateUI.init();
-        });
+        (async () => {
+            import { App } from '/js/App.js';
+            const app = new App();
+            await app.init();
+            import('/js/modules/cultivate/index.js').then(module => {
+                module.cultivateUI.init();
+            });
+        })();
     </script>
 </body>
 </html>

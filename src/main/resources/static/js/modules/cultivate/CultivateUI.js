@@ -146,20 +146,23 @@ export class CultivateUI {
         const dialogHtml = `
             <div class="cultivate-types">
                 <div class="cultivate-type" data-type="normal">
-                    <h4>普通修炼</h4>
+                    <h4>🧘 普通修炼</h4>
                     <p>修炼速度 x1.0</p>
                     <p>适合日常修炼</p>
                 </div>
                 <div class="cultivate-type" data-type="intensive">
-                    <h4>闭关修炼</h4>
+                    <h4>🔥 闭关修炼</h4>
                     <p>修炼速度 x1.5</p>
                     <p>消耗更多灵石</p>
                 </div>
                 <div class="cultivate-type" data-type="meditation">
-                    <h4>冥想修炼</h4>
+                    <h4>✨ 冥想修炼</h4>
                     <p>修炼速度 x2.0</p>
                     <p>消耗大量灵石</p>
                 </div>
+            </div>
+            <div style="margin-top: 16px; text-align: center; color: #999; font-size: 12px;">
+                <p>💡 点击选择修炼方式，或点击右上角 × 关闭</p>
             </div>
         `;
 
@@ -167,10 +170,15 @@ export class CultivateUI {
             title: '选择修炼方式',
             content: dialogHtml,
             showCancel: true,
-            confirmText: '取消'
+            cancelText: '取消',
+            confirmText: '',
+            onCancel: () => {
+                console.log('用户取消选择修炼方式');
+            }
         });
 
         document.querySelectorAll('.cultivate-type').forEach(type => {
+            type.style.cursor = 'pointer';
             type.addEventListener('click', (e) => {
                 const cultivateType = e.currentTarget.dataset.type;
                 this.handleStartCultivate(cultivateType);

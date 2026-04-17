@@ -44,11 +44,39 @@ public class AuthService {
 
     @Transactional
     public LoginResponse register(RegisterRequest request) {
-        log.info("开始注册流程: username={}, email={}", request.getUsername(), request.getEmail());
+        log.info("开始注册流程：username={}, email={}", request.getUsername(), request.getEmail());
 
         if (userMapper.selectByUsername(request.getUsername()) != null) {
             throw new BusinessException(ErrorCode.USERNAME_ALREADY_EXISTS);
         }
+        if (userMapper.selectByEmail(request.getEmail()) != null) {
+            throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS);
+        }
+        if (playerProfileMapper.selectByNickname(request.getNickname()) != null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "昵称已被使用，请更换其他昵称");
+        }
+
+        if (!isValidPassword(request.getPassword())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, 
+                "密码强度不足：必须至少 8 位，包含字母和数字");
+        }
+
+        User user = User.builder()
+                .username(request.getUsername())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .email(request.getEmail())
+                .role("USER")
+                .mustChangePassword(false)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+        userMapper.insert(user);
+
+        PlayerProfile playerProfile = playerService.createNewPlayer(user, request.getNickname());
+
+        String token = tokenProvider.generateToken(user.getUsername());
+        return buildLoginResponse(user, playerProfile, token);
+    }
         if (userMapper.selectByEmail(request.getEmail()) != null) {
             throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }

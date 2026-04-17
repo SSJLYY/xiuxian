@@ -67,6 +67,10 @@ public class PlayerProfile {
     @Builder.Default
     private BigDecimal cultivationSpeed = BigDecimal.ONE;
 
+    @TableField(value = "cultivation_type")
+    @Builder.Default
+    private String cultivationType = "normal";
+
     @TableField(value = "spirit_stones")
     @Builder.Default
     private Long spiritStones = 1000L;

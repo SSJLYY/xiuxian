@@ -35,13 +35,26 @@ public class PlayerController {
         }
     }
 
-    @PostMapping("/cultivate")
+    @GetMapping("/cultivate/info")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Void>> cultivate() {
+    public ResponseEntity<ApiResponse<PlayerProfile>> getCultivateInfo() {
         try {
             PlayerProfile profile = playerService.getCurrentPlayerProfile();
-            playerService.cultivate();
-            LogUtils.logUserAction(null, profile.getId(), "START_CULTIVATION", "玩家开始修炼");
+            LogUtils.logUserAction(null, profile.getId(), "GET_CULTIVATE_INFO", "获取修炼信息");
+            return ResponseEntity.ok(ApiResponse.success("获取修炼信息成功", profile));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/cultivate")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Void>> cultivate(@RequestBody(required = false) Map<String, String> params) {
+        try {
+            PlayerProfile profile = playerService.getCurrentPlayerProfile();
+            String type = params != null ? params.getOrDefault("type", "normal") : "normal";
+            playerService.cultivate(type);
+            LogUtils.logUserAction(null, profile.getId(), "START_CULTIVATION", "玩家开始修炼，类型：" + type);
             return ResponseEntity.ok(ApiResponse.success("修炼成功", null));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));

@@ -287,16 +287,49 @@ public class PlayerService {
      * 开始修炼
      * 玩家进入修炼状态，记录开始时间
      * 
+     * @param type 修炼类型：normal(普通) / intensive(闭关) / meditation(冥想)
      * @throws RuntimeException 当玩家已在修炼中或操作失败时抛出异常
      */
     @Transactional
-    public void cultivate() {
+    public void cultivate(String type) {
         PlayerProfile profile = getCurrentPlayerProfile();
-        log.info("玩家开始修炼: ID={}, 等级={}, 境界={}", profile.getId(), profile.getLevel(), profile.getRealm());
+        log.info("玩家开始修炼：ID={}, 等级={}, 境界={}, 类型={}", profile.getId(), profile.getLevel(), profile.getRealm(), type);
 
         if (profile.getIsCultivating() == null) {
             profile.setIsCultivating(false);
         }
+
+        if (profile.getIsCultivating()) {
+            log.info("玩家已在修炼中，忽略重复请求：ID={}", profile.getId());
+            return;
+        }
+
+        double speedMultiplier = getSpeedMultiplier(type);
+        profile.setIsCultivating(true);
+        profile.setLastCultivationStart(LocalDateTime.now());
+        profile.setCultivationSpeed(new BigDecimal(speedMultiplier));
+        profile.setCultivationType(type);
+        playerProfileMapper.updateById(profile);
+
+        log.info("玩家开始修炼成功：ID={}, 开始时间={}, 类型={}, 速度倍数={}", 
+                profile.getId(), profile.getLastCultivationStart(), type, speedMultiplier);
+    }
+
+    /**
+     * 获取修炼类型的速度倍数
+     */
+    private double getSpeedMultiplier(String type) {
+        if (type == null) type = "normal";
+        switch (type) {
+            case "intensive":
+                return 1.5;
+            case "meditation":
+                return 2.0;
+            case "normal":
+            default:
+                return 1.0;
+        }
+    }
 
         if (profile.getIsCultivating()) {
             log.info("玩家已在修炼中，忽略重复请求: ID={}", profile.getId());
@@ -317,14 +350,121 @@ public class PlayerService {
     @Transactional
     public void stopCultivate() {
         PlayerProfile profile = getCurrentPlayerProfile();
-        log.info("玩家停止修炼: ID={}, 修炼状态={}", profile.getId(), profile.getIsCultivating());
+        log.info("玩家停止修炼：ID={}, 修炼状态={}", profile.getId(), profile.getIsCultivating());
 
         if (!profile.getIsCultivating()) {
             profile.setIsCultivating(false);
             playerProfileMapper.updateById(profile);
-            log.info("玩家未在修炼中，忽略停止请求: ID={}", profile.getId());
+            log.info("玩家未在修炼中，忽略停止请求：ID={}", profile.getId());
             return;
         }
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startTime = profile.getLastCultivationStart();
+
+        if (startTime != null) {
+            long cultivationTimeSeconds = java.time.Duration.between(startTime, now).getSeconds();
+            long maxCultivationTime = 24 * 60 * 60;
+            long actualCultivationTime = Math.min(cultivationTimeSeconds, maxCultivationTime);
+
+            long cultivationTimeMinutes = actualCultivationTime / 60;
+            long oldTotalTime = profile.getTotalCultivationTime() == null ? 0 : profile.getTotalCultivationTime();
+            profile.setTotalCultivationTime(oldTotalTime + cultivationTimeMinutes);
+
+            double baseExpPerSecond = 1.0;
+            double cultivationSpeedMultiplier = profile.getCultivationSpeed().doubleValue();
+            long expGained = (long) (actualCultivationTime * baseExpPerSecond * cultivationSpeedMultiplier);
+
+            // 【2026-03-24 优化】使用 GameBalanceUtils 计算灵石收益
+            double cultivationHours = actualCultivationTime / 3600.0;
+            long spiritStonesGained = balanceUtils.calculateCultivationSpiritStones(profile, cultivationHours);
+            
+            // 检查灵石上限，超出部分转为修炼点数
+            long spiritStonesLimit = balanceUtils.calculateSpiritStonesLimit(profile.getRealm());
+            long currentSpiritStones = profile.getSpiritStones();
+            long remainingCapacity = Math.max(0, spiritStonesLimit - currentSpiritStones);
+            long spiritStonesToAdd = Math.min(spiritStonesGained, remainingCapacity);
+            long overflowSpiritStones = spiritStonesGained - spiritStonesToAdd;
+            
+            if (overflowSpiritStones > 0) {
+                profile.setCultivationPoints(profile.getCultivationPoints() + overflowSpiritStones);
+                log.info("灵石超限，{} 灵石转为修炼点数", overflowSpiritStones);
+            }
+
+            profile.setExp(profile.getExp() + expGained);
+            profile.setSpiritStones(profile.getSpiritStones() + spiritStonesToAdd);
+            log.info("修炼收益：时长={}s, 经验+{}, 灵石+{}, 速度倍数=x{}", 
+                    actualCultivationTime, expGained, spiritStonesGained, cultivationSpeedMultiplier);
+
+            // 【2026-04-17 优化】限制单次最多升级 5 次，防止批量修炼导致超时
+            int oldLevel = profile.getLevel();
+            int maxLevelUps = 5;
+            int levelUps = 0;
+            long remainingExp = 0;
+            
+            while (levelUps < maxLevelUps && checkLevelUpWithoutCommit(profile)) {
+                levelUps++;
+            }
+            
+            if (profile.getExp() >= profile.getExpToNext()) {
+                remainingExp = profile.getExp() - profile.getExpToNext();
+                profile.setExp(profile.getExpToNext());
+                log.info("升级次数达到上限{}次，剩余{}经验存入缓冲区", maxLevelUps, remainingExp);
+            }
+            
+            if (profile.getLevel() > oldLevel) {
+                log.info("玩家升级：{}级 -> {}级，共升级{}次", oldLevel, profile.getLevel(), levelUps);
+            }
+
+            try {
+                questProgressService.updateQuestProgressByType(profile.getId(), com.xiuxian.game.modules.quest.entity.Quest.QuestType.DAILY, 1);
+                questProgressService.updateQuestProgressByType(profile.getId(), com.xiuxian.game.modules.quest.entity.Quest.QuestType.WEEKLY, (int) actualCultivationTime);
+                questProgressService.updateQuestProgressByType(profile.getId(), com.xiuxian.game.modules.quest.entity.Quest.QuestType.MONTHLY, 1);
+            } catch (Exception qe) {
+                log.error("更新任务进度失败，修炼收益不受影响：playerId={}", profile.getId(), qe);
+            }
+        } else {
+            log.warn("修炼开始时间为 null，无法计算收益");
+        }
+
+        profile.setIsCultivating(false);
+        profile.setLastCultivationEnd(now);
+        playerProfileMapper.updateById(profile);
+        log.info("玩家停止修炼成功：ID={}", profile.getId());
+    }
+
+    /**
+     * 检查升级但不提交事务（用于循环检查）
+     */
+    private boolean checkLevelUpWithoutCommit(PlayerProfile profile) {
+        if (profile.getExp() < profile.getExpToNext()) {
+            return false;
+        }
+
+        if (profile.getLevel() >= MAX_LEVEL) {
+            log.warn("玩家已达到最大等级：ID={}, level={}", profile.getId(), profile.getLevel());
+            return false;
+        }
+
+        profile.setExp(profile.getExp() - profile.getExpToNext());
+        profile.setLevel(profile.getLevel() + 1);
+        profile.setExpToNext(calculateExpToNext(profile.getLevel()));
+
+        profile.setAttack(profile.getAttack() + LEVEL_UP_ATTACK_BONUS);
+        profile.setDefense(profile.getDefense() + LEVEL_UP_DEFENSE_BONUS);
+        profile.setHealth(profile.getHealth() + LEVEL_UP_HEALTH_BONUS);
+        profile.setMana(profile.getMana() + LEVEL_UP_MANA_BONUS);
+        profile.setSpeed(profile.getSpeed() + LEVEL_UP_SPEED_BONUS);
+        profile.setAttributePoints(profile.getAttributePoints() + REALM_BREAK_ATTRIBUTE_POINTS);
+        profile.setSkillPoints(profile.getSkillPoints() + REALM_BREAK_SKILL_POINTS);
+
+        profile.setHealth(profile.getMaxHealth());
+        profile.setMana(profile.getMaxMana());
+
+        log.info("玩家升级无提交：ID={}, 新等级={}, 经验={}, 下一等级所需经验={}", 
+                profile.getId(), profile.getLevel(), profile.getExp(), profile.getExpToNext());
+        return true;
+    }
 
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startTime = profile.getLastCultivationStart();

@@ -94,9 +94,13 @@ class AuthManager {
         } catch (error) {
             console.error('自动登录失败:', error);
             this.clearAuthData();
-            if (isGamePage) {
+            // Token 验证失败时，无论在哪个页面，都跳转到登录页
+            // 避免无效 token 残留在 localStorage
+            if (!isLoginPage) {
                 window.location.href = 'login.html';
             }
+            this.showToast('认证失败：' + error.message, 'error');
+        }
             this.showToast('认证失败: ' + error.message, 'error');
         }
     }
@@ -174,7 +178,8 @@ class AuthManager {
 
         const username = document.getElementById('loginUsername')?.value.trim();
         const password = document.getElementById('loginPassword')?.value;
-        const userType = 'player'; // 普通用户登录页面固定为player类型
+        /* 普通玩家登录页面固定为 player 类型;管理员请使用 adminLogin.html*/
+        const userType = 'player';
 
         if (!username || !password) {
             this.showToast('请输入用户名和密码', 'warning');
@@ -508,23 +513,33 @@ class AuthManager {
         toast.className = `toast-bubble ${type}`;
         toast.textContent = message;
         const count = document.querySelectorAll('.toast-bubble').length;
-        const bottom = 10 + count * 36;
+        // 优化：限制最多显示 5 个 Toast，防止堆叠过高
+        const maxToasts = 5;
+        const actualCount = Math.min(count, maxToasts);
+        const bottom = 10 + actualCount * 40;
+        // 如果超过最大数量，移除最早的 Toast
+        if (count >= maxToasts) {
+            const firstToast = document.querySelector('.toast-bubble');
+            if (firstToast && firstToast.parentElement) {
+                firstToast.parentElement.removeChild(firstToast);
+            }
+        }
         Object.assign(toast.style, {
             position: 'fixed',
             bottom: `${bottom}px`,
             right: '16px',
             background: this.getToastColor(type),
             color: '#fff',
-            padding: '6px 10px',
+            padding: '8px 14px',
             borderRadius: '9999px',
             boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
             zIndex: '10001',
-            maxWidth: '220px',
-            fontSize: '12px',
-            lineHeight: '1.2',
+            maxWidth: '280px',
+            fontSize: '13px',
+            lineHeight: '1.4',
             opacity: '0',
             transform: 'translateY(8px)',
-            transition: 'all 0.25s ease'
+            transition: 'all 0.3s ease'
         });
         document.body.appendChild(toast);
         requestAnimationFrame(() => {
@@ -538,7 +553,7 @@ class AuthManager {
                 if (toast.parentElement) {
                     toast.parentElement.removeChild(toast);
                 }
-            }, 250);
+            }, 300);
         }, duration);
     }
 
