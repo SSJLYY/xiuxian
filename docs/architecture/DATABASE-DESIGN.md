@@ -3,7 +3,7 @@
 > 本文档覆盖数据库的完整表结构、核心字段说明和表间关系。  
 > 初始化脚本：`src/main/resources/init-database.sql`
 
-**作者**: shaun.sheng &nbsp;|&nbsp; **最后更新**: 2026-04-17（文档内容质量优化）
+**作者**: shaun.sheng &nbsp;|&nbsp; **最后更新**: 2026-04-17
 
 ---
 

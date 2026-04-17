@@ -3,7 +3,7 @@
 > 本规范是代码审查的基准线。新功能提交前请对照检查。  
 > 更新日期：2026-03-27（代码 v3 同步）
 
-**作者**: shaun.sheng &nbsp;|&nbsp; **最后更新**: 2026-03-27（代码 v3 同步：CombatService拆分、Java8Compatibility工具类）
+**作者**: shaun.sheng &nbsp;|&nbsp; **最后更新**: 2026-04-17
 
 ---
 
