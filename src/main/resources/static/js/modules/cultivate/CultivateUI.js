@@ -288,6 +288,17 @@ export class CultivateUI {
             this.cultivateTimer = null;
         }
     }
+
+    /**
+     * 销毁修炼 UI
+     */
+    destroy() {
+        this.stopAutoRefresh();
+        this.elements = null;
+        this.cultivateInfo = null;
+        this.isInitialized = false;
+    }
 }
 
+// 创建全局 CultivateUI 实例
 export const cultivateUI = new CultivateUI();

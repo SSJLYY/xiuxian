@@ -308,6 +308,16 @@ export class CombatUI {
             this.combatTimer = null;
         }
     }
+
+    /**
+     * 销毁战斗 UI
+     */
+    destroy() {
+        this.stopAutoRefresh();
+        this.elements = null;
+        this.currentCombat = null;
+        this.isInitialized = false;
+    }
 }
 
 // 导出单例
