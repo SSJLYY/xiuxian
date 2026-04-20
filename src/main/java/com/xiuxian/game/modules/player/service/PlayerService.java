@@ -331,18 +331,6 @@ public class PlayerService {
         }
     }
 
-        if (profile.getIsCultivating()) {
-            log.info("玩家已在修炼中，忽略重复请求: ID={}", profile.getId());
-            return;
-        }
-
-        profile.setIsCultivating(true);
-        profile.setLastCultivationStart(LocalDateTime.now());
-        playerProfileMapper.updateById(profile);
-
-        log.info("玩家开始修炼成功: ID={}, 开始时间={}", profile.getId(), profile.getLastCultivationStart());
-    }
-
     /**
      * 停止修炼
      * 结束修炼状态，计算修炼收益（经验、灵石等），检查升级，更新任务进度
@@ -464,67 +452,6 @@ public class PlayerService {
         log.info("玩家升级无提交：ID={}, 新等级={}, 经验={}, 下一等级所需经验={}", 
                 profile.getId(), profile.getLevel(), profile.getExp(), profile.getExpToNext());
         return true;
-    }
-
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime startTime = profile.getLastCultivationStart();
-
-        if (startTime != null) {
-            long cultivationTimeSeconds = java.time.Duration.between(startTime, now).getSeconds();
-            long maxCultivationTime = 24 * 60 * 60;
-            long actualCultivationTime = Math.min(cultivationTimeSeconds, maxCultivationTime);
-
-            long cultivationTimeMinutes = actualCultivationTime / 60;
-            long oldTotalTime = profile.getTotalCultivationTime() == null ? 0 : profile.getTotalCultivationTime();
-            profile.setTotalCultivationTime(oldTotalTime + cultivationTimeMinutes);
-
-            double baseExpPerSecond = 1.0;
-            double cultivationSpeedMultiplier = profile.getCultivationSpeed().doubleValue();
-            long expGained = (long) (actualCultivationTime * baseExpPerSecond * cultivationSpeedMultiplier);
-
-            // 【2026-03-24 优化】使用GameBalanceUtils计算灵石收益
-            double cultivationHours = actualCultivationTime / 3600.0;
-            long spiritStonesGained = balanceUtils.calculateCultivationSpiritStones(profile, cultivationHours);
-            
-            // 检查灵石上限，超出部分转为修炼点数
-            long spiritStonesLimit = balanceUtils.calculateSpiritStonesLimit(profile.getRealm());
-            long currentSpiritStones = profile.getSpiritStones();
-            long remainingCapacity = Math.max(0, spiritStonesLimit - currentSpiritStones);
-            long spiritStonesToAdd = Math.min(spiritStonesGained, remainingCapacity);
-            long overflowSpiritStones = spiritStonesGained - spiritStonesToAdd;
-            
-            if (overflowSpiritStones > 0) {
-                profile.setCultivationPoints(profile.getCultivationPoints() + overflowSpiritStones);
-                log.info("灵石超限，{}灵石转为修炼点数", overflowSpiritStones);
-            }
-
-            profile.setExp(profile.getExp() + expGained);
-            profile.setSpiritStones(profile.getSpiritStones() + spiritStonesToAdd);
-            log.info("修炼收益: 时长={}s, 经验+{}, 灵石+{}", actualCultivationTime, expGained, spiritStonesGained);
-
-            int oldLevel = profile.getLevel();
-            checkLevelUp(profile);
-            if (profile.getLevel() > oldLevel) {
-                log.info("玩家升级: {}级 -> {}级", oldLevel, profile.getLevel());
-            }
-
-            try {
-                questProgressService.updateQuestProgressByType(profile.getId(), com.xiuxian.game.modules.quest.entity.Quest.QuestType.DAILY, 1);
-                questProgressService.updateQuestProgressByType(profile.getId(), com.xiuxian.game.modules.quest.entity.Quest.QuestType.WEEKLY, (int) actualCultivationTime);
-                questProgressService.updateQuestProgressByType(profile.getId(), com.xiuxian.game.modules.quest.entity.Quest.QuestType.MONTHLY, 1);
-            } catch (Exception qe) {
-                log.error("更新任务进度失败，修炼收益不受影响: playerId={}", profile.getId(), qe);
-                // 不抛出异常，确保修炼收益和属性更新正常提交
-                // 任务进度丢失不影响核心游戏数据
-            }
-        } else {
-            log.warn("修炼开始时间为null，无法计算收益");
-        }
-
-        profile.setIsCultivating(false);
-        profile.setLastCultivationEnd(now);
-        playerProfileMapper.updateById(profile);
-        log.info("玩家停止修炼成功: ID={}", profile.getId());
     }
 
     /**

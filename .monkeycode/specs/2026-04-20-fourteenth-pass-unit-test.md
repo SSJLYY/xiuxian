@@ -108,7 +108,22 @@ private void internalStartCultivate(PlayerProfile profile) {
 或者**删除漂移的代码块**（如果 startCultivate 方法已存在）：
 
 ### 修复状态
-✅ 已修复 - 删除漂移代码，恢复正确的方法结构
+✅ 已修复 - 删除了 3 处漂移代码块，恢复正确的方法结构
+
+**修复详情**:
+1. 删除 PlayerService.java 第 334-344 行的漂移代码（startCultivate 方法碎片）
+2. 删除 PlayerService.java 第 457-516 行的重复漂移代码（stopCultivate 旧实现）
+3. 删除 AuthService.java 第 80-99 行的重复漂移代码（register 方法碎片）
+4. 修复两个文件末尾缺少的类结束括号
+
+**验证结果**:
+- PlayerService.java: 括号匹配（148 对 148，差值 0）✅
+- AuthService.java: 括号匹配（33 对 33，差值 0）✅
+
+**剩余问题**:
+- ⚠️ 项目存在原有的代码逻辑错误（约 20+ 个"cannot find symbol"错误）
+- ⚠️ 这些错误不是本次检查引入的，是之前开发遗留的问题
+- ⚠️ 需要单独修复缺少的私有方法定义
 
 ---
 

@@ -77,26 +77,6 @@ public class AuthService {
         String token = tokenProvider.generateToken(user.getUsername());
         return buildLoginResponse(user, playerProfile, token);
     }
-        if (userMapper.selectByEmail(request.getEmail()) != null) {
-            throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS);
-        }
-
-        User user = User.builder()
-                .username(request.getUsername())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .email(request.getEmail())
-                .role("USER")
-                .mustChangePassword(false)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
-        userMapper.insert(user);
-
-        PlayerProfile playerProfile = playerService.createNewPlayer(user, request.getNickname());
-
-        String token = tokenProvider.generateToken(user.getUsername());
-        return buildLoginResponse(user, playerProfile, token);
-    }
 
     public LoginResponse login(LoginRequest request) {
         if ("admin".equals(request.getUserType())) {
