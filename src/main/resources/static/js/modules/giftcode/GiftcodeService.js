@@ -26,11 +26,30 @@ export class GiftcodeService {
 
     async getMyCodes() {
         try {
-            const response = await gameAPI.getCheckinStatus();
+            const response = await gameAPI.getActivities();
             if (response.success) {
                 this.myCodes = response.data;
                 return response.data;
             }
+            throw new Error(response.message);
+        } catch (error) {
+            toast.error('加载兑换记录失败：' + error.message);
+            throw error;
+        }
+    }
+
+    async getAvailableCodes() {
+        try {
+            const response = await gameAPI.getActivities();
+            if (response.success) {
+                return response.data;
+            }
+            throw new Error(response.message);
+        } catch (error) {
+            toast.error('加载可用兑换码失败：' + error.message);
+            throw error;
+        }
+    }
             throw new Error(response.message);
         } catch (error) {
             toast.error('加载兑换记录失败: ' + error.message);

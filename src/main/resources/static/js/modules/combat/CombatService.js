@@ -38,13 +38,79 @@ export class CombatService {
 
     /**
      * 执行攻击
-     * @param {number} skillId - 技能ID(可选)
+     * @param {number} skillId - 技能 ID(可选)
      */
     async executeAttack(skillId = null) {
         if (!this.currentCombat) {
             toast.error('当前没有进行中的战斗');
             return null;
         }
+
+        try {
+            const response = await gameAPI.startEnhancedCombat();
+            if (response.success) {
+                this.currentCombat = response.data.combat;
+                return response.data;
+            } else {
+                toast.error('攻击失败：' + response.message);
+                throw new Error(response.message);
+            }
+        } catch (error) {
+            toast.error('攻击失败：' + error.message);
+            throw error;
+        }
+    }
+
+    /**
+     * 使用道具
+     * @param {number} itemId - 道具 ID
+     */
+    async useItem(itemId) {
+        if (!this.currentCombat) {
+            toast.error('当前没有进行中的战斗');
+            return null;
+        }
+
+        try {
+            const response = await gameAPI.useItem(itemId);
+            if (response.success) {
+                this.currentCombat = response.data.combat;
+                toast.success('道具使用成功');
+                return response.data;
+            } else {
+                toast.error('道具使用失败：' + response.message);
+                throw new Error(response.message);
+            }
+        } catch (error) {
+            toast.error('道具使用失败：' + error.message);
+            throw error;
+        }
+    }
+
+    /**
+     * 逃跑
+     */
+    async flee() {
+        if (!this.currentCombat) {
+            toast.error('当前没有进行中的战斗');
+            return null;
+        }
+
+        try {
+            const response = await gameAPI.post('/combat/flee', {});
+            if (response.success) {
+                toast.success('逃跑成功');
+                this.currentCombat = null;
+                return response.data;
+            } else {
+                toast.error('逃跑失败：' + response.message);
+                throw new Error(response.message);
+            }
+        } catch (error) {
+            toast.error('逃跑失败：' + error.message);
+            throw error;
+        }
+    }
 
         try {
             const response = await gameAPI.startCombat(skillId);

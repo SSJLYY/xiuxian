@@ -12,11 +12,17 @@ export class ActivityService {
 
     async getActivities() {
         try {
-            const response = await gameAPI.getActivities();
+            const response = await gameAPI.getAllActivities();
             if (response.success) {
                 this.activities = response.data;
                 return response.data;
             }
+            throw new Error(response.message);
+        } catch (error) {
+            toast.error('加载活动列表失败：' + error.message);
+            throw error;
+        }
+    }
             throw new Error(response.message);
         } catch (error) {
             toast.error('加载活动列表失败: ' + error.message);

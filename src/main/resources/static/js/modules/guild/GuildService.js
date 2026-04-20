@@ -77,6 +77,54 @@ export class GuildService {
             }
             throw new Error(response.message);
         } catch (error) {
+            toast.error('退出失败：' + error.message);
+            throw error;
+        }
+    }
+
+    async getCurrentGuildBoss() {
+        try {
+            const response = await gameAPI.getCurrentGuildBoss();
+            if (response.success) {
+                return response.data;
+            }
+            throw new Error(response.message);
+        } catch (error) {
+            toast.error('获取宗门 Boss 失败：' + error.message);
+            throw error;
+        }
+    }
+
+    async challengeGuildBoss() {
+        try {
+            const response = await gameAPI.challengeGuildBoss();
+            if (response.success) {
+                toast.success('挑战成功');
+                return response.data;
+            }
+            throw new Error(response.message);
+        } catch (error) {
+            toast.error('挑战失败：' + error.message);
+            throw error;
+        }
+    }
+
+    async claimGuildBossReward() {
+        try {
+            const response = await gameAPI.claimGuildBossReward();
+            if (response.success) {
+                toast.success('领取奖励成功');
+                return response.data;
+            }
+            throw new Error(response.message);
+        } catch (error) {
+            toast.error('领取奖励失败：' + error.message);
+            throw error;
+        }
+    }
+}
+            throw new Error(response.message);
+        } catch (error) {
             toast.error('退出失败: ' + error.message);
             throw error;
         }
