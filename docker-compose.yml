@@ -48,7 +48,7 @@ services:
       SPRING_PROFILES_ACTIVE: prod
 
       # JVM配置
-      JAVA_OPTS: -Xms512m -Xmx1024m -XX:+UseG1GC -XX:MaxGCPauseMillis=200
+      JAVA_OPTS: -Xms512m -Xmx1536m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/logs/heapdump.hprof -Xlog:gc*:file=/app/logs/gc.log:time,uptime:filecount=5,filesize=10M -XX:MaxDirectMemorySize=256m -Djava.awt.headless=true
 
       # 时区配置
       TZ: Asia/Shanghai

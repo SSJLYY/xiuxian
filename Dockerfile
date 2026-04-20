@@ -30,7 +30,7 @@ COPY target/xiuxian-game-*.jar app.jar
 EXPOSE 8081
 
 # 设置JVM参数和应用参数（增加内存以支持新功能）
-ENV JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+ENV JAVA_OPTS="-Xms512m -Xmx1536m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/logs/heapdump.hprof -Xlog:gc*:file=/app/logs/gc.log:time,uptime:filecount=5,filesize=10M -XX:MaxDirectMemorySize=256m -Djava.awt.headless=true"
 ENV SERVER_PORT=8081
 ENV SPRING_PROFILES_ACTIVE=prod
 
