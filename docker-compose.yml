@@ -6,15 +6,15 @@ services:
     container_name: xiuxian-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root123456
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: xiuxian_game
       MYSQL_USER: xiuxian
-      MYSQL_PASSWORD: xiuxian123
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       TZ: Asia/Shanghai
     volumes:
       - mysql_data:/var/lib/mysql
       - mysql_logs:/var/log/mysql
-      - ./src/main/resources/init-database.sql:/docker-entrypoint-initdb.d/01-init-database.sql:ro
+      - ./src/main/resources/sql/all_db.sql:/docker-entrypoint-initdb.d/01-init-database.sql:ro
       - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
     ports:
       - "3306:3306"
@@ -40,8 +40,8 @@ services:
     environment:
       # 数据库配置
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/xiuxian_game?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root123456
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_ROOT_USERNAME:root}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
 
       # 服务器配置
       SERVER_PORT: 8081
@@ -58,15 +58,15 @@ services:
       LOGGING_FILE_PATH: /app/logs
 
       # 安全配置
-      JWT_SECRET: xiuxian-game-jwt-secret-key-2024
+      JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: 86400000
-      ADMIN_PASSWORD: SecureAdminPassword2024!
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
 
       # ==================== 阶段一：基础设施升级配置 ====================
       # Redis 配置
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
-      SPRING_REDIS_PASSWORD: redis123456
+      SPRING_REDIS_PASSWORD: ${REDIS_PASSWORD}
       SPRING_REDIS_DATABASE: 0
 
       # 缓存配置 - 改为 Redis

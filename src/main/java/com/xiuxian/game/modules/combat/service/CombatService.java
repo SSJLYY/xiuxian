@@ -29,6 +29,32 @@ import java.util.concurrent.ThreadLocalRandom;
 import com.xiuxian.game.common.exception.BusinessException;
 import com.xiuxian.game.common.exception.ErrorCode;
 
+/**
+ * 战斗服务类
+ * 
+ * <p>提供战斗相关的核心业务逻辑，包括：</p>
+ * <ul>
+ *   <li>回合制战斗计算 - 玩家 vs 怪物</li>
+ *   <li>连击机制 - 根据速度属性触发多次攻击</li>
+ *   <li>掉落计算 - 基于幸运值和掉落率</li>
+ *   <li>战斗日志记录 - 详细战斗过程追踪</li>
+ *   <li>宠物战斗加成 - 宠物参战机制</li>
+ *   <li>装备属性加成 - 战斗中的装备效果</li>
+ * </ul>
+ * 
+ * <p>战斗流程：</p>
+ * <ol>
+ *   <li>选择怪物并检测冲突</li>
+ *   <li>计算双方属性（含装备/技能/宠物加成）</li>
+ *   <li>回合制战斗模拟</li>
+ *   <li>计算战利品掉落</li>
+ *   <li>记录战斗日志</li>
+ * </ol>
+ * 
+ * @author xiuxian-game-team
+ * @version 1.0
+ * @since 2024-01-01
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
