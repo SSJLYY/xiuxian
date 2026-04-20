@@ -113,7 +113,7 @@ public class GuildBossService {
      * @return 挑战结果
      * @throws BusinessException 当玩家不是仙盟成员或挑战次数已满时抛出
      */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public ChallengeResult challengeBoss(Integer playerId) {
         Integer guildId = getPlayerGuildId(playerId);
         GuildBoss boss = getOrCreateBoss(guildId);
@@ -219,7 +219,7 @@ public class GuildBossService {
      * @return 奖励内容
      * @throws BusinessException 当BOSS未被击败、无贡献或奖励已领取时抛出
      */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> claimReward(Integer playerId) {
         Integer guildId = getPlayerGuildId(playerId);
 

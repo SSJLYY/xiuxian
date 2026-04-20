@@ -139,7 +139,7 @@ public class InventoryService {
      * @param quantity 数量
      * @return 添加的物品
      */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public PlayerItemResponse addItemToInventory(Integer playerId, Integer itemId, Integer quantity) {
         log.info("添加物品到背包, playerId={}, itemId={}, quantity={}", playerId, itemId, quantity);
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
@@ -191,7 +191,7 @@ public class InventoryService {
      * @param quantity 数量
      * @return 移除后的物品（如果数量为0则返回null）
      */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public PlayerItemResponse removeItemFromInventory(Integer playerId, Integer itemId, Integer quantity) {
         log.info("从背包移除物品, playerId={}, itemId={}, quantity={}", playerId, itemId, quantity);
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
@@ -232,7 +232,7 @@ public class InventoryService {
      * @param itemId 物品ID
      * @return 使用后的物品
      */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public PlayerItemResponse useItem(Integer playerId, Integer itemId) {
         log.info("使用物品, playerId={}, itemId={}", playerId, itemId);
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
@@ -277,7 +277,7 @@ public class InventoryService {
      * @param playerId 玩家ID
      * @return 使用结果
      */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> useItem(Integer playerItemId, Integer quantity, Integer playerId) {
         log.info("使用物品（重载）, playerId={}, playerItemId={}, quantity={}", playerId, playerItemId, quantity);
         // 根据playerItemId获取itemId
@@ -328,7 +328,7 @@ public class InventoryService {
      * @param playerItemId 玩家物品ID
      * @param quantity 数量
      */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void sellItem(Integer playerId, Integer playerItemId, Integer quantity) {
         log.info("出售物品, playerId={}, playerItemId={}, quantity={}", playerId, playerItemId, quantity);
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
