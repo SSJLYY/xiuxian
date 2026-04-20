@@ -26,12 +26,6 @@ export class AuctionService {
             throw error;
         }
     }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('上架失败: ' + error.message);
-            throw error;
-        }
-    }
 
     async buyItem(auctionId) {
         try {

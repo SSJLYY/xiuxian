@@ -71,12 +71,23 @@ export class MailService {
 
     async deleteAllReadMails() {
         try {
-            const response = await gameAPI.getMails();
-            if (response.success) {
-                toast.success('删除已读邮件成功');
-                await this.getMails();
-                return response.data;
+            const readMails = this.mails.filter(m => m.read);
+            if (readMails.length === 0) {
+                toast.info('没有已读邮件');
+                return;
             }
+            
+            for (const mail of readMails) {
+                await gameAPI.deleteMail(mail.id);
+            }
+            
+            toast.success('删除已读邮件成功');
+            await this.getMails();
+        } catch (error) {
+            toast.error('删除失败：' + error.message);
+            throw error;
+        }
+    }
             throw new Error(response.message);
         } catch (error) {
             toast.error('删除失败: ' + error.message);

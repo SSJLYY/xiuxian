@@ -64,7 +64,37 @@ export class SkillsService {
             }
             throw new Error(response.message);
         } catch (error) {
-            toast.error('技能升级失败: ' + error.message);
+            toast.error('技能升级失败：' + error.message);
+            throw error;
+        }
+    }
+
+    async equipSkill(playerSkillId, slotNumber) {
+        try {
+            const response = await gameAPI.equipSkill(playerSkillId, slotNumber);
+            if (response.success) {
+                toast.success('装备技能成功');
+                await this.loadMySkills();
+                return response.data;
+            }
+            throw new Error(response.message);
+        } catch (error) {
+            toast.error('装备技能失败：' + error.message);
+            throw error;
+        }
+    }
+
+    async unequipSkill(playerSkillId) {
+        try {
+            const response = await gameAPI.unequipSkill(playerSkillId);
+            if (response.success) {
+                toast.success('卸下技能成功');
+                await this.loadMySkills();
+                return response.data;
+            }
+            throw new Error(response.message);
+        } catch (error) {
+            toast.error('卸下技能失败：' + error.message);
             throw error;
         }
     }

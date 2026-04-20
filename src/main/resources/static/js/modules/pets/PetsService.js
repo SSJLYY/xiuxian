@@ -67,9 +67,48 @@ export class PetsService {
             throw error;
         }
     }
+
+    async activatePet(playerPetId) {
+        try {
+            const response = await gameAPI.activatePet(playerPetId);
+            if (response.success) {
+                toast.success('激活宠物成功');
+                await this.loadMyPets();
+                return response.data;
+            }
             throw new Error(response.message);
         } catch (error) {
-            toast.error('喂养失败: ' + error.message);
+            toast.error('激活宠物失败：' + error.message);
+            throw error;
+        }
+    }
+
+    async trainPet(playerPetId) {
+        try {
+            const response = await gameAPI.trainPet(playerPetId);
+            if (response.success) {
+                toast.success('训练宠物成功');
+                await this.loadMyPets();
+                return response.data;
+            }
+            throw new Error(response.message);
+        } catch (error) {
+            toast.error('训练宠物失败：' + error.message);
+            throw error;
+        }
+    }
+
+    async renamePet(playerPetId, newName) {
+        try {
+            const response = await gameAPI.renamePet(playerPetId, newName);
+            if (response.success) {
+                toast.success('宠物改名成功');
+                await this.loadMyPets();
+                return response.data;
+            }
+            throw new Error(response.message);
+        } catch (error) {
+            toast.error('宠物改名失败：' + error.message);
             throw error;
         }
     }
