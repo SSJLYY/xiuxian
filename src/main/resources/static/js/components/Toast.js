@@ -24,20 +24,23 @@ class Toast {
     }
 
     /**
-     * 显示Toast消息
+     * 显示 Toast 消息
      * @param {string} message - 消息内容
      * @param {string} type - 消息类型 (success/error/warning/info)
-     * @param {number} duration - 显示时长(毫秒),0表示不自动消失
+     * @param {number} duration - 显示时长 (毫秒),0 表示不自动消失
      */
     show(message, type = 'info', duration = 3000) {
-        // 创建Toast元素
+        // XSS 防护：转义消息内容
+        const escapedMessage = this.escapeHtml(message);
+        
+        // 创建 Toast 元素
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
         toast.innerHTML = `
             <div class="toast-icon">
                 ${this.getIcon(type)}
             </div>
-            <div class="toast-message">${message}</div>
+            <div class="toast-message">${escapedMessage}</div>
             <button class="toast-close" onclick="this.parentElement.remove()">×</button>
         `;
 
@@ -78,9 +81,27 @@ class Toast {
     }
 
     /**
+     * XSS 防护：转义 HTML 特殊字符
+     * @param {string} text - 原始文本
+     * @returns {string} 转义后的文本
+     */
+    escapeHtml(text) {
+        if (text == null) return '';
+        const str = String(text);
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return str.replace(/[&<>"']/g, c => map[c]);
+    }
+
+    /**
      * 获取图标
      * @param {string} type - 消息类型
-     * @returns {string} 图标HTML
+     * @returns {string} 图标 HTML
      */
     getIcon(type) {
         const icons = {
