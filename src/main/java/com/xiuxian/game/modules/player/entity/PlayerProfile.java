@@ -47,7 +47,13 @@ public class PlayerProfile {
     private String nickname;
 
     /**
-     * 玩家等级，默认1级
+     * 玩家头像 URL
+     */
+    @TableField(value = "avatar")
+    private String avatar;
+
+    /**
+     * 玩家等级，默认 1 级
      */
     @Builder.Default
     private Integer level = 1;
@@ -130,7 +136,13 @@ public class PlayerProfile {
     private Integer health = 100;
 
     @Builder.Default
+    private Integer maxHealth = 100;
+
+    @Builder.Default
     private Integer mana = 50;
+
+    @Builder.Default
+    private Integer maxMana = 50;
 
     @Builder.Default
     private Integer speed = 10;

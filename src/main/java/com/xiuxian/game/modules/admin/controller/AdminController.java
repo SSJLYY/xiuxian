@@ -74,8 +74,8 @@ public class AdminController {
         
         // 角色白名单校验，防止权限提升攻击
         if (role == null || (!role.equals("USER") && !role.equals("ADMIN") && !role.equals("VIP"))) {
-            log.warn("非法的角色值: role={}", role);
-            throw new BusinessException(ErrorCode.INVALID_PARAMETER);
+            log.warn("非法的角色值：role={}", role);
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "非法的角色值");
         }
         
         User u = adminPlayerService.updateUserRole(id, role);

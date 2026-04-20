@@ -436,7 +436,7 @@ public class PlayerService {
 
         profile.setExp(profile.getExp() - profile.getExpToNext());
         profile.setLevel(profile.getLevel() + 1);
-        profile.setExpToNext(calculateExpToNext(profile.getLevel()));
+        profile.setExpToNext(balanceUtils.calculateExpToNext(profile.getLevel()));
 
         profile.setAttack(profile.getAttack() + LEVEL_UP_ATTACK_BONUS);
         profile.setDefense(profile.getDefense() + LEVEL_UP_DEFENSE_BONUS);

@@ -10,8 +10,14 @@ import org.apache.ibatis.annotations.Select;
 public interface PlayerProfileMapper extends BaseMapper<PlayerProfile> {
     
     /**
-     * 根据用户ID查找玩家档案
+     * 根据用户 ID 查找玩家档案
      */
     @Select("SELECT * FROM player_profiles WHERE user_id = #{userId}")
     PlayerProfile selectByUserId(@Param("userId") Integer userId);
+
+    /**
+     * 根据昵称查找玩家档案
+     */
+    @Select("SELECT * FROM player_profiles WHERE nickname = #{nickname}")
+    PlayerProfile selectByNickname(@Param("nickname") String nickname);
 }
