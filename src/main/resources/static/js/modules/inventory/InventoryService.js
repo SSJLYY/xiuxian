@@ -147,6 +147,11 @@ export class InventoryService {
     }
 
     async sellItem(itemId, quantity = 1) {
+        if (!itemId || quantity < 1) {
+            toast.error('参数错误');
+            return;
+        }
+        
         try {
             const response = await gameAPI.sellItem(itemId, quantity);
             if (response.success) {
@@ -164,6 +169,11 @@ export class InventoryService {
     }
 
     async discardItem(itemId, quantity = 1) {
+        if (!itemId || quantity < 1) {
+            toast.error('参数错误');
+            return;
+        }
+        
         if (!confirm('确定要丢弃这个物品吗？此操作不可恢复!')) {
             return;
         }
