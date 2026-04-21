@@ -129,8 +129,6 @@ class AuthManager {
             }
             this.showToast('认证失败：' + error.message, 'error');
         }
-            this.showToast('认证失败: ' + error.message, 'error');
-        }
     }
 
     // 加载用户数据 - 必须从后端加载，不允许降级
