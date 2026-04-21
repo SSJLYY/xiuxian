@@ -292,17 +292,6 @@ public class DataInitializer implements CommandLineRunner {
             logger.debug("users.must_change_password 列已存在，跳过");
         }
     }
-    }
-
-    private void ensureUsersForceChangeColumn() {
-        String alter = "ALTER TABLE users ADD COLUMN must_change_password TINYINT(1) NOT NULL DEFAULT 0";
-        try (Connection conn = dataSource.getConnection(); Statement st = conn.createStatement()) {
-            st.execute(alter);
-            logger.info("添加 users.must_change_password 列成功");
-        } catch (Exception e) {
-            logger.warn("users.must_change_password 列可能已存在: {}", e.getMessage());
-        }
-    }
 
     private void ensureAdminUser() {
         try {
