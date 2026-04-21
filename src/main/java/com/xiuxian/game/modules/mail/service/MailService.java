@@ -43,8 +43,6 @@ public class MailService {
     // module boundary: access player/equipment data via Service, not direct Mapper injection
     private final PlayerService playerService;
     private final EquipmentService equipmentService;
-    @Lazy
-    private final MailService self;
 
     private static final int MAX_MAILBOX_SIZE = 100;
 
@@ -130,13 +128,13 @@ public class MailService {
      */
     public void sendBatchMail(List<Integer> playerIds, String title, String content, 
                               String mailType, List<MailAttachment> attachments, LocalDateTime expireAt) {
-        log.info("批量发送邮件: playerCount={}, title={}", playerIds.size(), title);
+        log.info("批量发送邮件：playerCount={}, title={}", playerIds.size(), title);
         
         for (Integer playerId : playerIds) {
             try {
-                self.sendMail(playerId, title, content, mailType, attachments, expireAt);
+                sendMail(playerId, title, content, mailType, attachments, expireAt);
             } catch (Exception e) {
-                log.error("发送邮件失败: playerId={}", playerId, e);
+                log.error("发送邮件失败：playerId={}", playerId, e);
             }
         }
     }
