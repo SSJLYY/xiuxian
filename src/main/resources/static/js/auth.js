@@ -30,6 +30,8 @@ class AuthManager {
 
     // 绑定事件
     bindEvents() {
+        console.log('AuthManager bindEvents 开始');
+        
         // 登录表单
         const loginForm = document.getElementById('loginForm');
         if (loginForm) {
@@ -37,6 +39,9 @@ class AuthManager {
                 e.preventDefault();
                 this.login();
             });
+            console.log('登录表单事件绑定成功');
+        } else {
+            console.warn('登录表单元素不存在');
         }
 
         // 注册表单
@@ -46,7 +51,30 @@ class AuthManager {
                 e.preventDefault();
                 this.register();
             });
+            console.log('注册表单事件绑定成功');
+        } else {
+            console.warn('注册表单元素不存在');
         }
+        
+        // 绑定标签页切换
+        const loginTab = document.querySelector('.tab-btn[onclick*="showLogin"]');
+        const registerTab = document.querySelector('.tab-btn[onclick*="showRegister"]');
+        
+        if (loginTab) {
+            loginTab.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.showLoginForm();
+            });
+        }
+        
+        if (registerTab) {
+            registerTab.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.showRegisterForm();
+            });
+        }
+        
+        console.log('AuthManager bindEvents 完成');
     }
 
     // 检查认证状态
@@ -652,33 +680,39 @@ class AuthManager {
     }
 }
 
-// 立即初始化 AuthManager
-var authManager = new AuthManager();
-window.authManagerInstance = authManager;
-window.authManager = authManager;
-console.log('AuthManager立即初始化完成');
+// 在 DOM 加载完成后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOMContentLoaded - 初始化 AuthManager');
+    
+    // 立即初始化 AuthManager
+    var authManager = new AuthManager();
+    window.authManagerInstance = authManager;
+    window.authManager = authManager;
+    console.log('AuthManager 初始化完成');
+});
 
 // 全局函数
 window.login = function(event) {
     if (event) event.preventDefault();
-    if (authManager) authManager.login();
+    if (window.authManagerInstance) window.authManagerInstance.login();
 };
 
 window.register = function(event) {
     if (event) event.preventDefault();
-    if (authManager) authManager.register();
+    if (window.authManagerInstance) window.authManagerInstance.register();
 };
 
+
 window.logout = function() {
-    if (authManager) authManager.logout();
+    if (window.authManagerInstance) window.authManagerInstance.logout();
 };
 
 window.showLogin = function() {
-    if (authManager) authManager.showLoginForm();
+    if (window.authManagerInstance) window.authManagerInstance.showLoginForm();
 };
 
 window.showRegister = function() {
-    if (authManager) authManager.showRegisterForm();
+    if (window.authManagerInstance) window.authManagerInstance.showRegisterForm();
 };
 
 window.showModule = function(moduleName) {
