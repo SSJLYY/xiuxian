@@ -63,9 +63,6 @@ public class DataInitializer implements CommandLineRunner {
             
             ensureUsersRoleColumn();
             ensureUsersForceChangeColumn();
-            ensurePlayerSkillsDefaults();
-            ensurePlayerItemsDefaults();
-            ensureShopItemsDefaults();
             ensureAdminUser();
             // 初始化默认技能数据
             logger.info("初始化默认技能数据...");
@@ -311,42 +308,7 @@ public class DataInitializer implements CommandLineRunner {
                 logger.info("默认管理员账户创建成功");
             }
         } catch (Exception e) {
-            logger.warn("创建默认管理员账户失败: {}", e.getMessage());
-        }
-    }
-    private void ensurePlayerSkillsDefaults() {
-        String alter1 = "ALTER TABLE player_skills MODIFY COLUMN created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP";
-        String alter2 = "ALTER TABLE player_skills MODIFY COLUMN updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP";
-        try (Connection conn = dataSource.getConnection(); Statement st = conn.createStatement()) {
-            st.execute(alter1);
-            st.execute(alter2);
-            logger.info("修改表 player_skills 的时间戳字段默认值成功");
-        } catch (Exception e) {
-            logger.warn("修改表 player_skills 的时间戳字段失败: {}", e.getMessage());
-        }
-    }
-
-    private void ensurePlayerItemsDefaults() {
-        String alter1 = "ALTER TABLE player_items MODIFY COLUMN created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP";
-        String alter2 = "ALTER TABLE player_items MODIFY COLUMN updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP";
-        try (Connection conn = dataSource.getConnection(); Statement st = conn.createStatement()) {
-            st.execute(alter1);
-            st.execute(alter2);
-            logger.info("修改表 player_items 的时间戳字段默认值成功");
-        } catch (Exception e) {
-            logger.warn("修改表 player_items 的时间戳字段失败: {}", e.getMessage());
-        }
-    }
-
-    private void ensureShopItemsDefaults() {
-        String alter1 = "ALTER TABLE shop_items MODIFY COLUMN created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP";
-        String alter2 = "ALTER TABLE shop_items MODIFY COLUMN updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP";
-        try (Connection conn = dataSource.getConnection(); Statement st = conn.createStatement()) {
-            st.execute(alter1);
-            st.execute(alter2);
-            logger.info("修改表 shop_items 的时间戳字段默认值成功");
-        } catch (Exception e) {
-            logger.warn("修改表 shop_items 的时间戳字段失败: {}", e.getMessage());
+            logger.warn("创建默认管理员账户失败：{}", e.getMessage());
         }
     }
     
