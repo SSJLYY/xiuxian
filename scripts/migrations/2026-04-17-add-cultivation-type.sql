@@ -4,12 +4,9 @@
 -- 兼容 MySQL 8.0.x（所有小版本）
 -- =====================================================
 
--- 检查并添加 cultivation_type 字段
-CALL add_cultivation_type_if_not_exists('player_profiles', 'cultivation_type');
-
 DELIMITER $$
 
--- 添加字段的存储过程
+-- 创建添加字段的存储过程
 CREATE PROCEDURE add_cultivation_type_if_not_exists(IN tableName VARCHAR(64), IN columnName VARCHAR(64))
 BEGIN
     DECLARE column_count INT DEFAULT 0;
@@ -34,7 +31,7 @@ BEGIN
     END IF;
 END$$
 
--- 添加索引的存储过程
+-- 创建添加索引的存储过程
 CREATE PROCEDURE add_cultivation_type_index_if_not_exists()
 BEGIN
     DECLARE index_count INT DEFAULT 0;
@@ -55,14 +52,16 @@ END$$
 
 DELIMITER ;
 
--- 执行
+-- 执行存储过程添加字段
 CALL add_cultivation_type_if_not_exists('player_profiles', 'cultivation_type');
-CALL add_cultivation_type_index_if_not_exists;
+
+-- 执行存储过程添加索引
+CALL add_cultivation_type_index_if_not_exists();
 
 -- 设置默认值
 UPDATE player_profiles SET cultivation_type = 'normal' WHERE cultivation_type IS NULL;
 
--- 清理
+-- 清理存储过程
 DROP PROCEDURE IF EXISTS add_cultivation_type_if_not_exists;
 DROP PROCEDURE IF EXISTS add_cultivation_type_index_if_not_exists;
 

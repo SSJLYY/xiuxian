@@ -6,7 +6,7 @@
 
 DELIMITER $$
 
--- 通用添加索引存储过程
+-- 创建添加索引的存储过程
 CREATE PROCEDURE add_index_if_not_exists(IN idx_name VARCHAR(64), IN table_name VARCHAR(64), IN idx_def TEXT)
 BEGIN
     DECLARE index_count INT DEFAULT 0;
@@ -28,7 +28,7 @@ BEGIN
     END IF;
 END$$
 
--- 通用添加唯一索引存储过程
+-- 创建添加唯一索引的存储过程
 CREATE PROCEDURE add_unique_index_if_not_exists(IN idx_name VARCHAR(64), IN table_name VARCHAR(64), IN idx_def TEXT)
 BEGIN
     DECLARE index_count INT DEFAULT 0;
@@ -52,22 +52,24 @@ END$$
 
 DELIMITER ;
 
--- ==================== 战斗日志表复合索引 ====================
+-- ==================== 执行索引创建 ====================
+
+-- 战斗日志表复合索引
 CALL add_index_if_not_exists('idx_combat_player_time', 'combat_logs', '(player_id, created_at DESC)');
 
--- ==================== 玩家物品表复合索引 ====================
+-- 玩家物品表复合索引
 CALL add_index_if_not_exists('idx_player_type', 'player_items', '(player_id, item_type)');
 
--- ==================== 任务进度表唯一索引 ====================
+-- 任务进度表唯一索引
 CALL add_unique_index_if_not_exists('uk_player_quest', 'quest_progress', '(player_id, quest_id)');
 
--- ==================== 玩家技能表唯一索引 ====================
+-- 玩家技能表唯一索引
 CALL add_unique_index_if_not_exists('uk_player_skill', 'player_skills', '(player_id, skill_id)');
 
--- ==================== 邮件表复合索引 ====================
+-- 邮件表复合索引
 CALL add_index_if_not_exists('idx_player_status_time', 'mails', '(player_id, status, created_at DESC)');
 
--- ==================== 好友表复合索引 ====================
+-- 好友表复合索引
 CALL add_index_if_not_exists('idx_player_status', 'friends', '(player_id, friend_status)');
 
 -- 清理存储过程
