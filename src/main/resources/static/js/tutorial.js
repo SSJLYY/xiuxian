@@ -616,12 +616,16 @@ class TutorialSystem {
         const btnEl = document.getElementById('tutorialActionBtn');
         if (btnEl) {
             btnEl.textContent = step.action;
-            btnEl.onclick = () => this.handleAction(step);
+            btnEl.onclick = () => {
+            console.log('[Tutorial] 行动按钮被点击，步骤:', step.id, step.title);
+            this.handleAction(step);
+        };
         }
     }
 
     // 处理行动按钮点击
     handleAction(step) {
+        console.log('[Tutorial] 处理行动按钮点击:', step.title);
         // 根据步骤导航到对应页面/模块
         switch (step.id) {
             case 1: // 开始修炼
@@ -646,25 +650,36 @@ class TutorialSystem {
 
     // 导航到对应模块
     navigateTo(module) {
+        console.log('[Tutorial] 导航到模块:', module);
+        
+        // 直接使用 showModule 函数（如果可用）
+        if (window.showModule) {
+            console.log('[Tutorial] 使用 showModule 函数切换模块');
+            window.showModule(module);
+            return;
+        }
+        
         // 尝试点击侧边栏导航
         const navMap = {
-            cultivation: ['.nav-item[data-module="dashboard"]', '.nav-button[onclick*="dashboard"]'],
-            combat: ['.nav-item[data-module="combat"]', '.nav-button[onclick*="combat"]', 'a[href="enhanced_combat.html"]'],
-            pets: ['.nav-item[data-module="pets"]', '.nav-button[onclick*="pets"]', 'a[href="pets.html"]'],
-            skills: ['.nav-item[data-module="skills"]', '.nav-button[onclick*="skills"]', 'a[href="skills.html"]'],
-            inventory: ['.nav-item[data-module="inventory"]', '.nav-button[onclick*="inventory"]'],
-            shop: ['.nav-item[data-module="shop"]', '.nav-button[onclick*="shop"]'],
-            quests: ['.nav-item[data-module="quests"]', '.nav-button[onclick*="quests"]']
+            cultivation: ['dashboard'],
+            combat: ['.nav-item[data-module="combat"] button', 'a[href="enhanced_combat.html"]'],
+            pets: ['.nav-item[data-module="pets"] button', 'a[href="pets.html"]'],
+            skills: ['.nav-item[data-module="skills"] button', 'a[href="skills.html"]'],
+            inventory: ['.nav-item[data-module="inventory"] button'],
+            shop: ['.nav-item[data-module="shop"] button'],
+            quests: ['.nav-item[data-module="quests"] button']
         };
 
         const selectors = navMap[module] || [];
         for (const sel of selectors) {
             const el = document.querySelector(sel);
             if (el) {
+                console.log('[Tutorial] 找到导航元素:', sel, el);
                 el.click();
                 return;
             }
         }
+        console.warn('[Tutorial] 未找到导航元素:', module, selectors);
     }
 
     // 定期轮询进度（玩家完成任务后自动推进）
