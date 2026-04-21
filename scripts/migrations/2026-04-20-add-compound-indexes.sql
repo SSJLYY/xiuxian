@@ -57,8 +57,8 @@ DELIMITER ;
 -- 战斗日志表复合索引
 CALL add_index_if_not_exists('idx_combat_player_time', 'combat_logs', '(player_id, created_at DESC)');
 
--- 玩家物品表复合索引
-CALL add_index_if_not_exists('idx_player_type', 'player_items', '(player_id, item_type)');
+-- 玩家物品表复合索引（使用实际的 player_id, item_id）
+CALL add_index_if_not_exists('idx_player_item', 'player_items', '(player_id, item_id)');
 
 -- 任务进度表唯一索引
 CALL add_unique_index_if_not_exists('uk_player_quest', 'quest_progress', '(player_id, quest_id)');
