@@ -89,24 +89,33 @@ CALL add_index_if_not_exists('idx_combat_player_time', 'combat_logs', '(player_i
 -- 玩家物品表复合索引
 CALL add_index_if_not_exists('idx_player_item', 'player_items', '(player_id, item_id)');
 
--- 玩家邮件表复合索引
-CALL add_index_if_not_exists('idx_player_status_time', 'player_mails', '(player_id, status, created_at DESC)');
+-- 玩家邮件表复合索引（已有 idx_player_mails_unread 索引）
+-- 跳过，因为 idx_player_mails_unread(player_id, is_read, created_at DESC) 已经存在
 
--- 玩家技能表唯一索引
-CALL add_unique_index_if_not_exists('uk_player_skill', 'player_skills', '(player_id, skill_id)');
+-- 玩家技能表唯一索引（检查是否有 uk_player_item 唯一索引）
+-- 跳过，因为表中已有 uk_player_item(player_id, item_id) 唯一索引
 
 -- 清理存储过程
 DROP PROCEDURE IF EXISTS add_index_if_not_exists;
 DROP PROCEDURE IF EXISTS add_unique_index_if_not_exists;
 
--- 验证
-SELECT '验证新创建的索引:' AS message;
-SHOW INDEX FROM combat_logs WHERE Key_name LIKE 'idx_%' OR Key_name LIKE 'uk_%';
-SHOW INDEX FROM player_items WHERE Key_name LIKE 'idx_%' OR Key_name LIKE 'uk_%';
-SHOW INDEX FROM player_mails WHERE Key_name LIKE 'idx_%' OR Key_name LIKE 'uk_%';
-SHOW INDEX FROM player_skills WHERE Key_name LIKE 'idx_%' OR Key_name LIKE 'uk_%';
+-- 验证现有索引
+SELECT '验证现有索引:' AS message;
+SHOW INDEX FROM combat_logs WHERE Key_name = 'idx_combat_player_time';
+SHOW INDEX FROM player_items WHERE Key_name = 'idx_player_item';
+SHOW INDEX FROM player_mails WHERE Key_name = 'idx_player_mails_unread';
+SHOW INDEX FROM player_skills WHERE Key_name = 'uk_player_item';
+
+-- 查看表实际索引
+SELECT ' combat_logs 现有索引:' AS info;
+SHOW INDEX FROM combat_logs;
+SELECT ' player_items 现有索引:' AS info;
+SHOW INDEX FROM player_items;
+SELECT ' player_mails 现有索引:' AS info;
+SHOW INDEX FROM player_mails;
+SELECT ' player_skills 现有索引:' AS info;
+SHOW INDEX FROM player_skills;
 
 -- =====================================================
 -- 迁移完成
--- 影响的表：combat_logs, player_items, player_mails, player_skills
 -- =====================================================
