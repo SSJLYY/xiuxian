@@ -14,8 +14,8 @@ class GameApi extends ApiClient {
     }
 
     // ========== 认证相关 ==========
-    async login(username, password) {
-        return this.post('/auth/login', { username, password });
+    async login(username, password, userType = 'player') {
+        return this.post('/auth/login', { username, password, userType });
     }
 
     async register(data) {
