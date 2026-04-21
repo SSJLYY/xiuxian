@@ -648,10 +648,13 @@ class TutorialSystem {
     navigateTo(module) {
         // 尝试点击侧边栏导航
         const navMap = {
-            cultivation: ['[href="#cultivation"]', '[data-tab="cultivation"]', '.nav-item[data-section="cultivation"]'],
-            combat: ['[href="#combat"]', '[data-tab="combat"]', '.nav-item[data-section="combat"]', 'a[href="enhanced_combat.html"]'],
-            pets: ['[href="#pets"]', '[data-tab="pets"]', '.nav-item[data-section="pets"]', 'a[href="pets.html"]'],
-            skills: ['[href="#skills"]', '[data-tab="skills"]', '.nav-item[data-section="skills"]', 'a[href="skills.html"]']
+            cultivation: ['.nav-item[data-module="dashboard"]', '.nav-button[onclick*="dashboard"]'],
+            combat: ['.nav-item[data-module="combat"]', '.nav-button[onclick*="combat"]', 'a[href="enhanced_combat.html"]'],
+            pets: ['.nav-item[data-module="pets"]', '.nav-button[onclick*="pets"]', 'a[href="pets.html"]'],
+            skills: ['.nav-item[data-module="skills"]', '.nav-button[onclick*="skills"]', 'a[href="skills.html"]'],
+            inventory: ['.nav-item[data-module="inventory"]', '.nav-button[onclick*="inventory"]'],
+            shop: ['.nav-item[data-module="shop"]', '.nav-button[onclick*="shop"]'],
+            quests: ['.nav-item[data-module="quests"]', '.nav-button[onclick*="quests"]']
         };
 
         const selectors = navMap[module] || [];
