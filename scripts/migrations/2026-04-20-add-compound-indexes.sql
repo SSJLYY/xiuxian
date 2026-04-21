@@ -4,6 +4,10 @@
 -- 兼容 MySQL 8.0.x（所有小版本）
 -- =====================================================
 
+-- 清理之前可能残留的存储过程
+DROP PROCEDURE IF EXISTS add_index_if_not_exists;
+DROP PROCEDURE IF EXISTS add_unique_index_if_not_exists;
+
 DELIMITER $$
 
 -- 创建添加索引的存储过程
