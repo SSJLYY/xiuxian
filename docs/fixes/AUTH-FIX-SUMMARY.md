@@ -184,3 +184,25 @@ AuthManager bindEvents 开始
 - 版本：1.0
 - 更新日期：2026-04-21
 - 更新人：AI Agent
+
+## 额外修复
+
+### 新手引导导航按钮问题
+
+**问题**：新手引导左下角的"开始修炼"按钮点击后没有反应
+
+**原因**：`tutorial.js` 的 `navigateTo()` 方法使用了错误的 CSS 选择器，无法匹配 `game.html` 的实际导航结构
+
+**修复**：更新导航映射选择器
+```javascript
+// 修复前（错误的选择器）
+cultivation: ['[href="#cultivation"]', '[data-tab="cultivation"]']
+
+// 修复后（匹配实际 HTML）
+cultivation: ['.nav-item[data-module="dashboard"]', '.nav-button[onclick*="dashboard"]']
+combat: ['.nav-item[data-module="combat"]', '.nav-button[onclick*="combat"]']
+pets: ['.nav-item[data-module="pets"]', '.nav-button[onclick*="pets"]']
+skills: ['.nav-item[data-module="skills"]', '.nav-button[onclick*="skills"]']
+```
+
+**提交**: d3e6d9d
