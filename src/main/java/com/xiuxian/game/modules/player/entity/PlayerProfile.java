@@ -55,6 +55,7 @@ public class PlayerProfile {
     /**
      * 玩家等级，默认 1 级
      */
+    @TableField(value = "level")
     @Builder.Default
     private Integer level = 1;
 
@@ -66,6 +67,7 @@ public class PlayerProfile {
     @Builder.Default
     private Long expToNext = 100L;
 
+    @TableField(value = "realm")
     @Builder.Default
     private String realm = "练气期";
 
@@ -126,24 +128,31 @@ public class PlayerProfile {
     private LocalDateTime lastCultivationEnd;
 
     // 基础属性
+    @TableField(value = "attack")
     @Builder.Default
     private Integer attack = 10;
 
+    @TableField(value = "defense")
     @Builder.Default
     private Integer defense = 5;
 
+    @TableField(value = "health")
     @Builder.Default
     private Integer health = 100;
 
+    @TableField(value = "max_health")
     @Builder.Default
     private Integer maxHealth = 100;
 
+    @TableField(value = "mana")
     @Builder.Default
     private Integer mana = 50;
 
+    @TableField(value = "max_mana")
     @Builder.Default
     private Integer maxMana = 50;
 
+    @TableField(value = "speed")
     @Builder.Default
     private Integer speed = 10;
 
