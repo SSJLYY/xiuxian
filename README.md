@@ -111,4 +111,4 @@ Spring Boot（端口 8082）
 
 ## 许可证
 
-MIT © [SSJLYY](https://github.com/SSJLYY/xiuxian)
+MIT © [shaun.sheng](https://github.com/SSJLYY/xiuxian)
