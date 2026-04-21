@@ -11,13 +11,15 @@
 <body>
     <div id="loginPage" class="container active">
         <div class="login-form">
-            <h1><i class="fa-solid fa-wand-magic-sparkles"></i> xiuxian挂机</h1>
-            <p>大道争锋,始于足下</p>
+            <h1><i class="fa-solid fa-wand-magic-sparkles"></i> xiuxian 挂机</h1>
+            <p>大道争锋，始于足下</p>
             <div class="tabs">
                 <button class="tab-btn active" onclick="if(window.authManagerInstance) window.authManagerInstance.showLoginForm()">登录</button>
                 <button class="tab-btn" onclick="if(window.authManagerInstance) window.authManagerInstance.showRegisterForm()">注册</button>
             </div>
-            <div id="loginForm" class="form-content" style="display: block;">
+            
+            <!-- 登录表单 -->
+            <form id="loginForm" class="form-content" style="display: block;">
                 <div class="input-group">
                     <i class="fa-solid fa-user"></i>
                     <input type="text" id="loginUsername" placeholder="用户名" required>
@@ -26,7 +28,7 @@
                     <i class="fa-solid fa-lock"></i>
                     <input type="password" id="loginPassword" placeholder="密码" required>
                 </div>
-                <button class="btn btn-primary" id="loginBtn"><i class="fa-solid fa-right-to-bracket"></i> 登录</button>
+                <button type="submit" class="btn btn-primary" id="loginBtn"><i class="fa-solid fa-right-to-bracket"></i> 登录</button>
                 
                 <!-- 管理员登录链接 -->
                 <div class="text-center mt-4">
@@ -35,8 +37,10 @@
                         管理员登录
                     </a>
                 </div>
-            </div>
-            <div id="registerForm" class="form-content" style="display: none;">
+            </form>
+            
+            <!-- 注册表单 -->
+            <form id="registerForm" class="form-content" style="display: none;">
                 <div class="input-group">
                     <i class="fa-solid fa-user"></i>
                     <input type="text" id="registerUsername" placeholder="用户名" required>
@@ -57,31 +61,12 @@
                     <i class="fa-solid fa-lock"></i>
                     <input type="password" id="registerConfirmPassword" placeholder="确认密码" required>
                 </div>
-                <button class="btn-primary" id="registerBtn"><i class="fa-solid fa-user-plus"></i> 注册</button>
-            </div>
+                <button type="submit" class="btn-primary" id="registerBtn"><i class="fa-solid fa-user-plus"></i> 注册</button>
+            </form>
         </div>
     </div>
     <div id="loading" class="loading hidden"><div class="spinner"></div><span>加载中...</span></div>
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
-    <script>
-        // 绑定登录和注册按钮事件
-        document.addEventListener('DOMContentLoaded', function() {
-            const loginBtn = document.getElementById('loginBtn');
-            const registerBtn = document.getElementById('registerBtn');
-            
-            if (loginBtn && window.authManagerInstance) {
-                loginBtn.addEventListener('click', function() {
-                    window.authManagerInstance.login();
-                });
-            }
-            
-            if (registerBtn && window.authManagerInstance) {
-                registerBtn.addEventListener('click', function() {
-                    window.authManagerInstance.register();
-                });
-            }
-        });
-    </script>
 </body>
 </html>
