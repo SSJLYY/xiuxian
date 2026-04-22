@@ -41,11 +41,11 @@ src/main/resources/static/
 │   ├── pets.js              # 宠物系统
 │   ├── inventory.js         # 背包系统
 │   ├── guild.js             # 宗门系统
-│   ├── ranking.js           # 排行榜
-│   ├── achievement.js       # 成就系统
-│   ├── mail.js              # 邮件系统
+│   ├── modules/ranking/     # 排行榜模块目录
+│   ├── modules/achievement/ # 成就模块目录
+│   ├── modules/mail/        # 邮件模块目录
 │   ├── announcement.js      # 公告系统
-│   ├── auction.js           # 拍卖行
+│   ├── modules/auction/     # 拍卖行模块目录
 │   ├── vip.js               # VIP 系统
 │   ├── activity.js          # 活动系统
 │   ├── checkin.js           # 签到系统
@@ -55,10 +55,12 @@ src/main/resources/static/
 │   ├── pet-hunger-monitor.js # 宠物饱食度监控悬浮组件
 │   ├── breakthrough-evolution.js # 境界突破 + 宠物进化 UI
 │   ├── combo-pokedex.js     # 技能连招 + 宠物图鉴
-│   ├── narrative.js         # 叙事系统（NPC对话、传说图鉴、离线事件）
-│   ├── game-map.js          # 地图系统
+│   ├── modules/narrative/   # 叙事系统模块目录
+│   ├── modules/lore/        # 传说图鉴模块目录
+│   ├── modules/map/         # 地图系统模块目录
 │   ├── guild-boss.js        # 宗门 BOSS
-│   ├── achievement-panel.js # 成就面板（game.html 内嵌版）
+│   ├── modules/checkin/     # 签到模块目录
+│   ├── modules/petEvolution/ # 宠物进化模块目录
 │   ├── mobile-interaction.js # 移动端手势、通知、加载状态
 │
 │   # 战斗增强层

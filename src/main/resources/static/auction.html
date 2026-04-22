@@ -68,11 +68,6 @@
                         <i class="fas fa-history"></i> 我的拍卖
                     </button>
                 </li>
-                <li class="nav-tab" data-module="list-item">
-                    <button onclick="showTab('list-item')">
-                        <i class="fas fa-tag"></i> 上架物品
-                    </button>
-                </li>
             </ul>
         </nav>
 
@@ -152,73 +147,6 @@
                 </div>
             </div>
             
-            <!-- 上架物品 -->
-            <div id="list-item-tab" class="tab-content" style="display: none;">
-                <div class="module-header">
-                    <h2><i class="fas fa-tag"></i> 上架物品</h2>
-                    <p>将您的物品放到拍卖行进行拍卖</p>
-                </div>
-                
-                <div class="panel-section">
-                    <form id="listItemForm">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <div class="mb-4">
-                                    <label class="block text-sm font-medium mb-1">物品类型 *</label>
-                                    <select id="itemType" class="form-control" required onchange="loadPlayerItems()">
-                                        <option value="">请选择物品类型</option>
-                                        <option value="ITEM">普通物品</option>
-                                        <option value="EQUIPMENT">装备</option>
-                                        <option value="PET">宠物</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="mb-4">
-                                    <label class="block text-sm font-medium mb-1">选择物品 *</label>
-                                    <select id="playerItemId" class="form-control" required>
-                                        <option value="">请先选择物品类型</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="mb-4">
-                                    <label class="block text-sm font-medium mb-1">数量 *</label>
-                                    <input type="number" id="quantity" class="form-control" min="1" value="1" required>
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <div class="mb-4">
-                                    <label class="block text-sm font-medium mb-1">起拍价格 (灵石) *</label>
-                                    <input type="number" id="price" class="form-control" min="1" required>
-                                </div>
-                                
-                                <div class="mb-4">
-                                    <label class="block text-sm font-medium mb-1">拍卖时长 (小时) *</label>
-                                    <select id="duration" class="form-control" required>
-                                        <option value="24">24小时</option>
-                                        <option value="48">48小时</option>
-                                        <option value="72">72小时</option>
-                                        <option value="168">1周</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="mb-4">
-                                    <label class="block text-sm font-medium mb-1">手续费</label>
-                                    <div class="bg-yellow-50 border border-yellow-200 rounded p-3">
-                                        <p>手续费: <span id="feeAmount">0</span> 灵石 (售价的5%)</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="mt-6">
-                            <button type="submit" class="btn btn-primary w-full py-3">
-                                <i class="fas fa-tag"></i> 确认上架
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
         </main>
     </div>
 
@@ -237,31 +165,38 @@
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/game.js"></script>
-    <script src="js/auction.js"></script>
-    <script>
-        // 页面加载完成后初始化
+    <script type="module">
+        import { mountAuctionGlobals } from './js/modules/auction/index.js';
+
         document.addEventListener('DOMContentLoaded', function() {
-            loadPlayerData();
-            loadAuctionItems(1);
+            if (window.authManager?.loadPlayerProfile) {
+                window.authManager.loadPlayerProfile();
+            }
+            mountAuctionGlobals().init();
         });
-        
-        // 表单提交事件
-        document.getElementById('listItemForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            listItem();
-        });
-        
-        // 价格变化时计算手续费
-        document.getElementById('price').addEventListener('input', function() {
-            const price = parseInt(this.value) || 0;
-            const fee = Math.max(1, Math.floor(price * 0.05));
-            document.getElementById('feeAmount').textContent = fee;
-        });
-        
-        // 返回游戏主界面
-        function goBack() {
+
+        window.goBack = function() {
             window.location.href = 'index.html';
-        }
+        };
+
+        window.showTab = function(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.style.display = 'none';
+            });
+            document.querySelectorAll('.nav-tab').forEach(el => {
+                el.classList.remove('active');
+            });
+            const content = document.getElementById(`${tab}-tab`);
+            const nav = document.querySelector(`.nav-tab[data-module="${tab}"]`);
+            if (content) content.style.display = 'block';
+            if (nav) nav.classList.add('active');
+            if (tab === 'browse') return window.auctionUI?.loadAuctionItems();
+            if (tab === 'my-auctions') return window.auctionUI?.loadMyAuctionItems();
+        };
+
+        window.loadMyAuctions = async function() {
+            return window.auctionUI?.loadMyAuctionItems();
+        };
     </script>
 </body>
 </html>

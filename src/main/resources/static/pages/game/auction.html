@@ -28,19 +28,19 @@
                     <h1 class="page-title">拍卖行</h1>
                     
                     <div class="auction-content">
-                        <div class="auction-tabs">
-                            <button class="tab-btn active" data-tab="auction-list">拍卖列表</button>
-                            <button class="tab-btn" data-tab="my-items">我的拍卖</button>
+                        <div class="auction-tabs mb-4">
+                            <button class="tab-btn active" data-auction-tab="browse" onclick="switchAuctionTab('browse')">拍卖列表</button>
+                            <button class="tab-btn" data-auction-tab="mine" onclick="switchAuctionTab('mine')">我的拍卖</button>
                         </div>
 
-                        <div class="tab-pane active" id="auction-list">
-                            <div class="auction-list" id="auctionList">
+                        <div id="auction-browse-panel">
+                            <div id="auction-items-list" class="auction-list">
                                 <div class="loading">加载拍卖物品中...</div>
                             </div>
                         </div>
 
-                        <div class="tab-pane" id="my-items">
-                            <div class="my-auction-items" id="myAuctionItems">
+                        <div id="auction-mine-panel" style="display:none;">
+                            <div id="auction-my-items-list" class="my-auction-items">
                                 <div class="loading">加载我的拍卖中...</div>
                             </div>
                         </div>
@@ -52,11 +52,10 @@
 
     <script type="module">
         import { App } from '/js/App.js';
+        import { mountAuctionGlobals } from '/js/modules/auction/index.js';
         const app = new App();
         app.init();
-        import('/js/modules/auction/index.js').then(module => {
-            module.auctionUI.init();
-        });
+        mountAuctionGlobals().init();
     </script>
 </body>
 </html>

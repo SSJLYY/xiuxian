@@ -1,60 +1,123 @@
 import { auctionService } from './AuctionService.js';
-import { toast } from '../../components/Toast.js';
-import { loading } from '../../components/Loading.js';
-import { escapeHtml } from '../../core/utils/Security.js';
+
+function escapeText(value) {
+    return window.escapeHtml ? window.escapeHtml(value) : String(value ?? '');
+}
+
+function showToast(message, type = 'info') {
+    if (window.moduleManager?.showToast) {
+        window.moduleManager.showToast(message, type);
+        return;
+    }
+    if (window.authManager?.showToast) {
+        window.authManager.showToast(message, type);
+        return;
+    }
+    console.log(`[${type}] ${message}`);
+}
+
+function formatAuctionTime(endTime) {
+    if (!endTime) return '-';
+    const now = Date.now();
+    const end = new Date(endTime).getTime();
+    const diff = Math.max(0, Math.floor((end - now) / 1000));
+    const h = Math.floor(diff / 3600);
+    const m = Math.floor((diff % 3600) / 60);
+    const s = diff % 60;
+    if (h > 0) return `${h}小时${m}分`;
+    if (m > 0) return `${m}分${s}秒`;
+    return `${s}秒`;
+}
 
 export class AuctionUI {
-    init() {
-        this.loadAuctions();
+    constructor() {
+        this.currentMyStatus = '';
     }
 
-    async loadAuctions() {
-        loading.show();
-        try {
-            const items = await auctionService.listItems();
-            this.renderAuctions(items);
-        } catch (error) {
-            toast.error('加载失败');
-        } finally {
-            loading.hide();
-        }
+    async init() {
+        return this.switchTab('browse');
     }
 
-    renderAuctions(items) {
-        const container = document.getElementById('auctionContainer');
-        if (!container) return;
-
-        if (items.length === 0) {
-            container.innerHTML = '<p>暂无拍卖物品</p>';
-            return;
-        }
-
-        container.innerHTML = items.map(item => `
-            <div class="auction-card">
-                <div class="item-info">
-                    <h4>${escapeHtml(item.itemName)}</h4>
-                    <p>起拍价: ${escapeHtml(item.startingPrice)} 灵石</p>
-                    <p>一口价: ${escapeHtml(item.buyoutPrice)} 灵石</p>
-                </div>
-                <button class="btn btn-primary" data-action="buy" data-auction-id="${item.id}">购买</button>
-            </div>
-        `).join('');
-
-        container.querySelectorAll('[data-action="buy"]').forEach(btn => {
-            btn.addEventListener('click', (e) => this.handleBuy(e.target.dataset.auctionId));
+    async switchTab(tab) {
+        document.querySelectorAll('#auction-module .tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.auctionTab === tab);
         });
+        const browsePanel = document.getElementById('auction-browse-panel');
+        const minePanel = document.getElementById('auction-mine-panel');
+        if (browsePanel) browsePanel.style.display = tab === 'browse' ? '' : 'none';
+        if (minePanel) minePanel.style.display = tab === 'mine' ? '' : 'none';
+        return tab === 'browse' ? this.loadAuctionItems() : this.loadMyAuctionItems(this.currentMyStatus);
     }
 
-    async handleBuy(auctionId) {
-        loading.show();
+    async loadAuctionItems() {
+        const panel = document.getElementById('auction-items-list') || document.getElementById('auctionItemsContainer');
+        if (!panel) return;
+        panel.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载拍卖品...</p></div>';
         try {
-            await auctionService.buyItem(auctionId);
-            await this.loadAuctions();
+            const filters = {
+                itemType: document.getElementById('auction-type-filter')?.value || '',
+                minPrice: document.getElementById('auction-min-price')?.value || '',
+                maxPrice: document.getElementById('auction-max-price')?.value || ''
+            };
+            const items = await auctionService.getAuctionItems(filters);
+            if (!items.length) {
+                panel.innerHTML = '<div class="empty-state">拍卖市场暂无商品</div>';
+                return;
+            }
+            panel.innerHTML = items.map(item => `
+                <div class="auction-item-card p-4 rounded" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="font-semibold">${escapeText(item.itemName || '未知物品')}</h4>
+                        <span class="text-xs text-muted">${formatAuctionTime(item.endTime)}</span>
+                    </div>
+                    <div class="text-sm text-muted mb-2">${escapeText(item.description || '无描述')}</div>
+                    <div class="font-bold mb-3" style="color:var(--accent-gold);"><i class="fa-solid fa-gem"></i> ${item.currentPrice || item.startPrice || 0}</div>
+                    <button class="btn btn-sm w-full btn-primary" onclick="buyAuctionItem(${item.id})">竞拍/购买</button>
+                </div>
+            `).join('');
         } catch (error) {
-            toast.error('购买失败');
-        } finally {
-            loading.hide();
+            panel.innerHTML = `<div class="empty-state">加载失败: ${escapeText(error.message)}</div>`;
         }
+    }
+
+    async loadMyAuctionItems(status = '') {
+        this.currentMyStatus = status;
+        const panel = document.getElementById('auction-my-items-list') || document.getElementById('myAuctionItems');
+        if (!panel) return;
+        panel.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载中...</p></div>';
+        try {
+            const allItems = await auctionService.getMyAuctionItems();
+            const items = status ? allItems.filter(item => item.status === status) : allItems;
+            if (!items.length) {
+                panel.innerHTML = '<div class="empty-state">您暂无拍卖中的物品</div>';
+                return;
+            }
+            panel.innerHTML = items.map(item => `
+                <div class="auction-item-card p-4 rounded" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="font-semibold">${escapeText(item.itemName || '未知物品')}</h4>
+                        <span class="text-xs text-muted">${item.status || 'ACTIVE'}</span>
+                    </div>
+                    <div class="font-bold mb-3" style="color:var(--accent-gold);"><i class="fa-solid fa-gem"></i> ${item.currentPrice || item.startPrice || 0}</div>
+                    <button class="btn btn-sm w-full btn-danger" onclick="cancelAuctionItem(${item.id})">取消拍卖</button>
+                </div>
+            `).join('');
+        } catch (error) {
+            panel.innerHTML = `<div class="empty-state">加载失败: ${escapeText(error.message)}</div>`;
+        }
+    }
+
+    async buyAuctionItem(auctionId) {
+        await auctionService.buyAuctionItem(auctionId);
+        showToast('购买成功！', 'success');
+        if (window.authManager?.loadPlayerProfile) await window.authManager.loadPlayerProfile();
+        return this.loadAuctionItems();
+    }
+
+    async cancelAuctionItem(auctionId) {
+        await auctionService.cancelAuctionItem(auctionId);
+        showToast('已取消拍卖', 'info');
+        return this.loadMyAuctionItems(this.currentMyStatus);
     }
 }
 

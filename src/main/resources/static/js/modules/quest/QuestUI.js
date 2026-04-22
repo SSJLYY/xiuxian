@@ -1,233 +1,98 @@
-/**
- * 任务模块 - UI渲染层
- */
 import { questService } from './QuestService.js';
-import { toast } from '../../components/Toast.js';
-import { loading } from '../../components/Loading.js';
+
+function escapeText(value) {
+    return window.escapeHtml ? window.escapeHtml(value) : String(value ?? '');
+}
+
+function showToast(message, type = 'info') {
+    if (window.moduleManager?.showToast) {
+        window.moduleManager.showToast(message, type);
+        return;
+    }
+    if (window.authManager?.showToast) {
+        window.authManager.showToast(message, type);
+        return;
+    }
+    console.log(`[${type}] ${message}`);
+}
 
 export class QuestUI {
     constructor() {
-        this.currentType = 'all';
+        this.currentTab = 'daily';
     }
 
-    init() {
-        this.setupElements();
-        this.bindEvents();
-        this.loadQuestData();
+    async init() {
+        return this.switchTab(this.currentTab);
     }
 
-    setupElements() {
-        this.elements = {
-            questListContainer: document.getElementById('questListContainer'),
-            myQuestsContainer: document.getElementById('myQuestsContainer'),
-            typeFilter: document.getElementById('typeFilter'),
-            questTabs: document.querySelectorAll('[data-tab="quest"]')
-        };
-    }
-
-    bindEvents() {
-        // 标签页切换
-        this.elements.questTabs.forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                this.switchTab(e.target.dataset.questTab);
-            });
+    async switchTab(tab) {
+        this.currentTab = tab;
+        document.querySelectorAll('#quests-module .tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.questTab === tab);
         });
-
-        // 类型筛选
-        if (this.elements.typeFilter) {
-            this.elements.typeFilter.addEventListener('change', (e) => {
-                this.currentType = e.target.value;
-                this.loadQuestList();
-            });
-        }
-    }
-
-    switchTab(tabName) {
-        this.elements.questTabs.forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.questTab === tabName);
-        });
-
-        if (tabName === 'available') {
-            this.elements.questListContainer.style.display = 'block';
-            this.elements.myQuestsContainer.style.display = 'none';
-        } else {
-            this.elements.questListContainer.style.display = 'none';
-            this.elements.myQuestsContainer.style.display = 'block';
-        }
-    }
-
-    async loadQuestData() {
-        loading.show();
+        const list = document.getElementById('questsList') || document.getElementById('questList');
+        if (!list) return;
+        list.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载中...</p></div>';
         try {
-            await Promise.all([
-                questService.getQuestList(this.currentType),
-                questService.getMyQuests()
-            ]);
-            this.renderQuestList();
-            this.renderMyQuests();
+            const quests = await questService.getQuestsByTab(tab);
+            this.renderQuestList(list, quests, tab);
         } catch (error) {
-            toast.error('加载任务数据失败');
-        } finally {
-            loading.hide();
+            list.innerHTML = `<div class="empty-state">加载失败: ${escapeText(error.message)}</div>`;
         }
     }
 
-    async loadQuestList() {
-        loading.show();
-        try {
-            await questService.getQuestList(this.currentType);
-            this.renderQuestList();
-        } catch (error) {
-            toast.error('加载任务列表失败');
-        } finally {
-            loading.hide();
-        }
-    }
-
-    renderQuestList() {
-        const container = this.elements.questListContainer;
-        if (!container) return;
-
-        if (questService.quests.length === 0) {
-            container.innerHTML = '<p>暂无任务</p>';
+    renderQuestList(container, quests, tab) {
+        if (!quests.length) {
+            container.innerHTML = '<div class="empty-state">暂无任务</div>';
+            this.updateStats([]);
             return;
         }
-
-        container.innerHTML = `
-            <div class="quest-list">
-                ${questService.quests.map(quest => this.renderQuestCard(quest, 'available')).join('')}
-            </div>
-        `;
-
-        // 绑定接受按钮
-        container.querySelectorAll('[data-action="accept"]').forEach(btn => {
-            btn.addEventListener('click', (e) => this.handleAccept(e.target.dataset.questId));
-        });
-    }
-
-    renderMyQuests() {
-        const container = this.elements.myQuestsContainer;
-        if (!container) return;
-
-        if (questService.myQuests.length === 0) {
-            container.innerHTML = '<p>暂无进行中的任务</p>';
-            return;
-        }
-
-        container.innerHTML = `
-            <div class="my-quests-list">
-                ${questService.myQuests.map(quest => this.renderQuestCard(quest, 'my')).join('')}
-            </div>
-        `;
-
-        // 绑定完成和领取按钮
-        container.querySelectorAll('[data-action="complete"]').forEach(btn => {
-            btn.addEventListener('click', (e) => this.handleComplete(e.target.dataset.questId));
-        });
-
-        container.querySelectorAll('[data-action="claim"]').forEach(btn => {
-            btn.addEventListener('click', (e) => this.handleClaim(e.target.dataset.questId));
-        });
-    }
-
-    renderQuestCard(quest, type) {
-        const typeLabel = this.translateType(quest.type);
-        const status = quest.status || type === 'available' ? 'available' : quest.status;
-        const progress = quest.progress || 0;
-        const target = quest.target || 1;
-        const progressPercent = Math.min((progress / target) * 100, 100);
-
-        return `
-            <div class="quest-card ${quest.priority} ${status}">
-                <div class="quest-header">
-                    <h4>${quest.name}</h4>
-                    <span class="quest-type ${quest.type}">${typeLabel}</span>
+        const normalized = quests.map(q => ({
+            quest: q.quest || q,
+            completed: !!q.completed,
+            rewardClaimed: !!q.rewardClaimed,
+            currentProgress: q.currentProgress || 0,
+            id: q.id || q.quest?.id
+        }));
+        const typeLabel = { daily: '每日', weekly: '每周', monthly: '每月', main: '主线' }[tab] || '';
+        container.innerHTML = normalized.map(q => {
+            const prog = Math.min(q.currentProgress || 0, q.quest.requiredAmount || 1);
+            const pct = Math.round((prog / (q.quest.requiredAmount || 1)) * 100);
+            return `
+                <div class="quest-item ${q.completed ? 'completed' : ''}" style="background:rgba(255,255,255,0.05);padding:12px;border-radius:8px;">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="font-semibold">${escapeText(q.quest.title || q.quest.name || '任务')} <span class="text-xs text-muted">[${typeLabel}]</span></div>
+                        ${q.completed && !q.rewardClaimed ? `<button class="btn btn-primary btn-sm" onclick="claimQuest(${q.id})">领取奖励</button>` : q.completed ? `<span class="text-green-400 text-sm">已完成</span>` : ''}
+                    </div>
+                    <div class="text-sm text-muted mb-2">${escapeText(q.quest.description || '')}</div>
+                    <div class="flex items-center gap-2 mb-1">
+                        <div class="flex-1 bg-white/10 rounded-full h-2"><div class="bg-accent h-2 rounded-full" style="width:${pct}%"></div></div>
+                        <span class="text-xs text-muted">${prog}/${q.quest.requiredAmount || 1}</span>
+                    </div>
+                    <div class="flex gap-4 text-xs text-muted"><span>奖励：经验 ${q.quest.rewardExp || 0}，灵石 ${q.quest.rewardSpiritStones || 0}</span></div>
                 </div>
-                <div class="quest-body">
-                    <p class="quest-desc">${quest.description}</p>
-                    <div class="quest-progress">
-                        <div class="progress-info">
-                            <span>进度: ${progress}/${target}</span>
-                            <span class="progress-percent">${progressPercent.toFixed(0)}%</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: ${progressPercent}%"></div>
-                        </div>
-                    </div>
-                    <div class="quest-rewards">
-                        <span class="reward-label">奖励:</span>
-                        ${quest.rewards.map(reward => `
-                            <span class="reward-item">${reward.description}</span>
-                        `).join('')}
-                    </div>
-                </div>
-                <div class="quest-footer">
-                    <div class="quest-deadline">
-                        <span>截止时间: ${quest.deadline ? new Date(quest.deadline).toLocaleString() : '无限制'}</span>
-                    </div>
-                    <div class="quest-actions">
-                        ${type === 'available' && !quest.accepted ? `
-                            <button class="btn btn-primary" data-action="accept" data-quest-id="${quest.id}">接受</button>
-                        ` : ''}
-                        ${type === 'my' && status === 'in-progress' && progress >= target ? `
-                            <button class="btn btn-success" data-action="complete" data-quest-id="${quest.id}">完成</button>
-                        ` : ''}
-                        ${type === 'my' && status === 'completed' && !quest.claimed ? `
-                            <button class="btn btn-success" data-action="claim" data-quest-id="${quest.id}">领取奖励</button>
-                        ` : ''}
-                        ${status === 'claimed' ? `
-                            <button class="btn btn-disabled" disabled>已领取</button>
-                        ` : ''}
-                    </div>
-                </div>
-            </div>
-        `;
+            `;
+        }).join('');
+        this.updateStats(normalized);
     }
 
-    translateType(type) {
-        const typeMap = {
-            'daily': '每日',
-            'weekly': '每周',
-            'monthly': '每月',
-            'main': '主线'
-        };
-        return typeMap[type] || type;
+    updateStats(normalized) {
+        const total = normalized.length;
+        const completed = normalized.filter(q => q.completed).length;
+        const claimable = normalized.filter(q => q.completed && !q.rewardClaimed).length;
+        const el1 = document.getElementById('quest-completed-count');
+        const el2 = document.getElementById('quest-claimable-count');
+        const el3 = document.getElementById('quest-total-count');
+        if (el1) el1.textContent = completed;
+        if (el2) el2.textContent = claimable;
+        if (el3) el3.textContent = total;
     }
 
-    async handleAccept(questId) {
-        loading.show();
-        try {
-            await questService.acceptQuest(questId);
-            await this.loadQuestData();
-        } catch (error) {
-            toast.error('接受任务失败');
-        } finally {
-            loading.hide();
-        }
-    }
-
-    async handleComplete(questId) {
-        loading.show();
-        try {
-            await questService.completeQuest(questId);
-            await this.loadQuestData();
-        } catch (error) {
-            toast.error('完成任务失败');
-        } finally {
-            loading.hide();
-        }
-    }
-
-    async handleClaim(questId) {
-        loading.show();
-        try {
-            await questService.claimReward(questId);
-            await this.loadQuestData();
-        } catch (error) {
-            toast.error('领取奖励失败');
-        } finally {
-            loading.hide();
-        }
+    async claimQuest(questId) {
+        await questService.claimQuest(questId);
+        showToast('任务奖励领取成功', 'success');
+        if (window.authManager?.loadPlayerProfile) await window.authManager.loadPlayerProfile();
+        return this.switchTab(this.currentTab);
     }
 }
 

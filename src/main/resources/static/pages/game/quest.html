@@ -27,12 +27,13 @@
                     
                     <div class="quest-content">
                         <div class="quest-tabs">
-                            <button class="tab-btn active" data-tab="active-quests">进行中</button>
-                            <button class="tab-btn" data-tab="available-quests">可接取</button>
-                            <button class="tab-btn" data-tab="completed-quests">已完成</button>
+                            <button class="tab-btn active" data-quest-tab="daily" onclick="switchQuestTab('daily')">每日任务</button>
+                            <button class="tab-btn" data-quest-tab="weekly" onclick="switchQuestTab('weekly')">每周任务</button>
+                            <button class="tab-btn" data-quest-tab="monthly" onclick="switchQuestTab('monthly')">每月任务</button>
+                            <button class="tab-btn" data-quest-tab="main" onclick="switchQuestTab('main')">主线任务</button>
                         </div>
 
-                        <div class="quest-list" id="questList">
+                        <div class="quest-list" id="questsList">
                             <div class="loading">加载任务中...</div>
                         </div>
                     </div>
@@ -43,11 +44,10 @@
 
     <script type="module">
         import { App } from '/js/App.js';
+        import { mountQuestGlobals } from '/js/modules/quest/index.js';
         const app = new App();
         app.init();
-        import('/js/modules/quest/index.js').then(module => {
-            module.questUI.init();
-        });
+        mountQuestGlobals().init();
     </script>
 </body>
 </html>

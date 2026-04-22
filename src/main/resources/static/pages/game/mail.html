@@ -28,17 +28,6 @@
                         <div class="mail-list" id="mailList">
                             <div class="loading">加载邮件中...</div>
                         </div>
-
-                        <div class="mail-detail" id="mailDetail" style="display: none;">
-                            <h2 id="mailTitle">邮件标题</h2>
-                            <p id="mailSender">发件人: 系统</p>
-                            <p id="mailTime">时间: 2026-03-27</p>
-                            <div id="mailContent">邮件内容</div>
-                            <div class="mail-attachments" id="mailAttachments">
-                                <h3>附件</h3>
-                            </div>
-                            <button id="collectAttachmentsBtn" class="btn-primary">领取附件</button>
-                        </div>
                     </div>
                 </div>
             </main>
@@ -47,11 +36,10 @@
 
     <script type="module">
         import { App } from '/js/App.js';
+        import { mountMailGlobals } from '/js/modules/mail/index.js';
         const app = new App();
         app.init();
-        import('/js/modules/mail/index.js').then(module => {
-            module.mailUI.init();
-        });
+        mountMailGlobals().init();
     </script>
 </body>
 </html>

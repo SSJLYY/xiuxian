@@ -28,7 +28,7 @@ static/
 │   ├── skills.js                 # 技能逻辑
 │   ├── pets.js                   # 宠物逻辑
 │   ├── guild.js                  # 宗门逻辑
-│   ├── auction.js                # 拍卖行逻辑
+│   ├── modules/auction/          # 拍卖行模块目录
 │   ├── ...                       # 40个JS文件平铺
 │   └── main.js                   # 主入口
 ├── css/
