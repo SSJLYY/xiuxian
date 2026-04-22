@@ -96,6 +96,9 @@ public class PlayerPet {
     @TableField(value = "last_train_time")
     private LocalDateTime lastTrainTime;
 
+    @TableField(exist = false)
+    private LocalDateTime trainCooldownUntil;
+
     @TableField(value = "captured_at")
     private LocalDateTime capturedAt;
 

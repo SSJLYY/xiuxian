@@ -1022,33 +1022,41 @@ function renderMyPets(pets) {
     }
     
     container.innerHTML = pets.map(pet => {
-        const qualityColors = { NORMAL: '#aaa', GOOD: '#5ba85b', RARE: '#4a90d9', EPIC: '#9b59b6', LEGENDARY: '#f39c12' };
-        const qualityColor = qualityColors[pet.quality] || '#aaa';
+        const rarityNames = { 1: '普通', 2: '稀有', 3: '史诗', 4: '传说', 5: '神话' };
+        const qualityColors = { 1: '#aaa', 2: '#5ba85b', 3: '#4a90d9', 4: '#9b59b6', 5: '#f39c12' };
+        const rarity = Number(pet.rarity || 1);
+        const qualityColor = qualityColors[rarity] || '#aaa';
         const isActive = pet.isActive || false;
         const isLocked = pet.isLocked || false;
+        const expToNext = pet.expToNext || 100;
+        const trainingCooldownUntil = pet.trainCooldownUntil ? new Date(pet.trainCooldownUntil) : null;
+        const trainingCoolingDown = trainingCooldownUntil && trainingCooldownUntil > new Date();
         return `
             <div class="pet-card p-4 rounded" style="background:rgba(255,255,255,0.05);border:1px solid ${isActive ? qualityColor : 'rgba(255,255,255,0.1)'};">
                 <div class="flex items-center justify-between mb-2">
                     <div class="flex items-center gap-2">
                         <span class="pet-icon" style="font-size:1.5rem;">${getPetEmoji(pet.type || 'NORMAL')}</span>
                         <div>
-                            <h4 class="font-semibold">${escapeHtml(pet.name || pet.petName || '宠物')}</h4>
-                            <span class="text-xs" style="color:${qualityColor};">${pet.quality || '普通'}</span>
+                            <h4 class="font-semibold">${escapeHtml(pet.nickname || pet.name || pet.petName || '宠物')}</h4>
+                            <span class="text-xs" style="color:${qualityColor};">${rarityNames[rarity] || '普通'}</span>
                         </div>
                     </div>
                     ${isActive ? '<span class="text-xs px-2 py-1 rounded" style="background:rgba(46,204,113,0.2);color:#2ecc71;">出战中</span>' : ''}
                     ${isLocked ? '<i class="fa-solid fa-lock text-muted"></i>' : ''}
                 </div>
                 <div class="text-xs text-muted mb-2">
-                    等级 ${pet.level || 1} | 经验 ${pet.exp || 0}
+                    等级 ${pet.level || 1} | 经验 ${pet.exp || 0}/${expToNext}
                 </div>
                 <div class="text-xs text-muted mb-2">
-                    攻击 ${pet.attack || 0} | 防御 ${pet.defense || 0} | 生命 ${pet.maxHp || pet.hp || 0}
+                    攻击 ${pet.attack || 0} | 防御 ${pet.defense || 0} | 生命 ${pet.health || 0}/${pet.maxHealth || 0}
+                </div>
+                <div class="text-xs text-muted mb-2">
+                    忠诚 ${pet.loyalty || 0} | 饱食 ${pet.hunger || 0}
                 </div>
                 <div class="flex gap-2 flex-wrap mt-3">
                     ${!isActive ? `<button class="btn btn-sm btn-primary" onclick="activatePet(${pet.id})"><i class="fa-solid fa-play"></i> 出战</button>` : ''}
                     <button class="btn btn-sm" onclick="feedPet(${pet.id})"><i class="fa-solid fa-utensils"></i> 喂食</button>
-                    <button class="btn btn-sm" onclick="trainPet(${pet.id})"><i class="fa-solid fa-dumbbell"></i> 训练</button>
+                    <button class="btn btn-sm" ${trainingCoolingDown ? 'disabled' : ''} onclick="trainPet(${pet.id})"><i class="fa-solid fa-dumbbell"></i> ${trainingCoolingDown ? '训练冷却中' : '训练'}</button>
                     <button class="btn btn-sm" onclick="togglePetLock(${pet.id})"><i class="fa-solid fa-${isLocked ? 'unlock' : 'lock'}"></i></button>
                     ${!isLocked ? `<button class="btn btn-sm btn-danger" onclick="releasePet(${pet.id})"><i class="fa-solid fa-trash"></i></button>` : ''}
                 </div>
@@ -1154,16 +1162,16 @@ window.feedPet = async function(playerPetId) {
 };
 
 window.trainPet = async function(playerPetId) {
-    const types = ['ATTACK', 'DEFENSE', 'HP'];
-    const type = prompt('选择训练类型 (ATTACK/DEFENSE/HP):');
-    if (!types.includes(type?.toUpperCase())) {
+    const types = ['普通训练', '强化训练', '特训'];
+    const type = prompt('选择训练类型（普通训练/强化训练/特训）:');
+    if (!types.includes(type?.trim())) {
         moduleManager.showToast('无效的训练类型', 'error');
         return;
     }
     try {
-        const res = await api.post(`/pets/train/${playerPetId}`, { trainingType: type.toUpperCase() });
+        const res = await api.post(`/pets/train/${playerPetId}`, { trainingType: type.trim() });
         if (!res.success) throw new Error(res.message);
-        moduleManager.showToast('训练成功！属性提升了！', 'success');
+        moduleManager.showToast('训练成功！成长有所提升。', 'success');
         await loadMyPets();
     } catch (e) {
         moduleManager.showToast('训练失败: ' + e.message, 'error');

@@ -48,6 +48,10 @@ import com.xiuxian.game.common.exception.ErrorCode;
 @RequiredArgsConstructor
 public class PetService {
 
+    private static final long PET_BASE_EXP_TO_NEXT = 100L;
+    private static final long PET_TRAINING_COOLDOWN_MINUTES = 10L;
+    private static final int DEFAULT_EVOLUTION_ITEM_QUANTITY = 1;
+
     private final PetMapper petMapper;
     private final PlayerPetMapper playerPetMapper;
     private final PetSkillMapper petSkillMapper;
@@ -83,14 +87,27 @@ public class PetService {
      * 获取玩家所有宠物
      */
     public List<PlayerPet> getPlayerPets(Integer playerId) {
-        return playerPetMapper.selectByPlayerId(playerId);
+        List<PlayerPet> pets = playerPetMapper.selectByPlayerId(playerId);
+        LocalDateTime now = LocalDateTime.now();
+        for (PlayerPet pet : pets) {
+            if (pet.getLastTrainTime() != null) {
+                pet.setTrainCooldownUntil(pet.getLastTrainTime().plusMinutes(PET_TRAINING_COOLDOWN_MINUTES));
+            } else {
+                pet.setTrainCooldownUntil(now.minusSeconds(1));
+            }
+        }
+        return pets;
     }
 
     /**
      * 获取玩家当前出战宠物
      */
     public PlayerPet getActivePet(Integer playerId) {
-        return playerPetMapper.selectActivePet(playerId);
+        PlayerPet pet = playerPetMapper.selectActivePet(playerId);
+        if (pet != null && pet.getLastTrainTime() != null) {
+            pet.setTrainCooldownUntil(pet.getLastTrainTime().plusMinutes(PET_TRAINING_COOLDOWN_MINUTES));
+        }
+        return pet;
     }
 
     public PlayerPetMapper getPlayerPetMapper() {
@@ -114,6 +131,14 @@ public class PetService {
         if (playerPet != null) {
             playerPetMapper.updateById(playerPet);
         }
+    }
+
+    private PlayerPet getOwnedPlayerPet(Integer playerId, Integer playerPetId) {
+        PlayerPet playerPet = playerPetMapper.selectById(playerPetId);
+        if (playerPet == null || !playerPet.getPlayerId().equals(playerId)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "宠物不存在或不属于该玩家");
+        }
+        return playerPet;
     }
 
     /**
@@ -230,6 +255,12 @@ public class PetService {
         playerPet.setNickname(pet.getName());
         playerPet.setLevel(1);
         playerPet.setExp(0L);
+        playerPet.setExpToNext(PET_BASE_EXP_TO_NEXT);
+        playerPet.setAttack(pet.getBaseAttack());
+        playerPet.setDefense(pet.getBaseDefense());
+        playerPet.setHealth(pet.getBaseHealth());
+        playerPet.setMaxHealth(pet.getBaseHealth());
+        playerPet.setSpeed(pet.getBaseSpeed());
         playerPet.setHunger(100);
         playerPet.setLoyalty(50);
         playerPet.setIsActive(false);
@@ -246,15 +277,14 @@ public class PetService {
      * 设置出战宠物（用原子SQL批量取消，避免循环updateById）
      */
     public void setActivePet(Integer playerId, Integer playerPetId) {
+        PlayerPet targetPet = getOwnedPlayerPet(playerId, playerPetId);
         // 原子SQL：取消所有出战状态（1次DB写，替代循环updateById）
         playerPetMapper.deactivateAllPets(playerId);
         // 设置新的出战宠物
-        PlayerPet targetPet = playerPetMapper.selectById(playerPetId);
-        if (targetPet != null && targetPet.getPlayerId().equals(playerId)) {
-            targetPet.setIsActive(true);
-            playerPetMapper.updateById(targetPet);
-            log.info("设置出战宠物: playerId={}, petId={}", playerId, playerPetId);
-        }
+        targetPet.setIsActive(true);
+        targetPet.setUpdatedAt(LocalDateTime.now());
+        playerPetMapper.updateById(targetPet);
+        log.info("设置出战宠物: playerId={}, petId={}", playerId, playerPetId);
     }
 
     /**
@@ -262,10 +292,7 @@ public class PetService {
      */
     @Transactional
     public void feedPet(Integer playerId, Integer playerPetId) {
-        PlayerPet playerPet = playerPetMapper.selectById(playerPetId);
-        if (playerPet == null || !playerPet.getPlayerId().equals(playerId)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "宠物不存在或不属于该玩家");
-        }
+        PlayerPet playerPet = getOwnedPlayerPet(playerId, playerPetId);
 
         // 消耗食物道具（简化处理，直接增加饱食度）
         int newHunger = Math.min(100, playerPet.getHunger() + 20);
@@ -282,14 +309,13 @@ public class PetService {
      */
     @Transactional
     public void trainPet(Integer playerId, Integer playerPetId, String trainingType) {
-        PlayerPet playerPet = playerPetMapper.selectById(playerPetId);
-        if (playerPet == null || !playerPet.getPlayerId().equals(playerId)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "宠物不存在或不属于该玩家");
-        }
+        PlayerPet playerPet = getOwnedPlayerPet(playerId, playerPetId);
 
-        Pet pet = petMapper.selectById(playerPet.getPetId());
-        if (pet == null) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "宠物模板不存在");
+        LocalDateTime cooldownUntil = playerPet.getLastTrainTime() == null
+                ? null
+                : playerPet.getLastTrainTime().plusMinutes(PET_TRAINING_COOLDOWN_MINUTES);
+        if (cooldownUntil != null && cooldownUntil.isAfter(LocalDateTime.now())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "训练冷却中，请稍后再试");
         }
 
         int expGain = 0;
@@ -320,6 +346,7 @@ public class PetService {
 
         playerPet.setExp(playerPet.getExp() + expGain);
         playerPet.setLoyalty(Math.max(0, playerPet.getLoyalty() - loyaltyCost));
+        playerPet.setLastTrainTime(LocalDateTime.now());
         playerPet.setUpdatedAt(LocalDateTime.now());
 
         // 检查升级
@@ -341,14 +368,20 @@ public class PetService {
      * 检查宠物是否升级
      */
     private void checkPetLevelUp(PlayerPet playerPet) {
-        int level = playerPet.getLevel();
-        long exp = playerPet.getExp();
-        // 简化：每100经验升1级
-        int newLevel = level + (int) (exp / 100);
-        if (newLevel > level) {
-            playerPet.setLevel(newLevel);
-            playerPet.setExp(exp % 100);
-            PetService.log.info("宠物升级: petId={}, newLevel={}", playerPet.getId(), newLevel);
+        int levelUps = 0;
+        while (playerPet.getExp() >= playerPet.getExpToNext()) {
+            playerPet.setExp(playerPet.getExp() - playerPet.getExpToNext());
+            playerPet.setLevel(playerPet.getLevel() + 1);
+            playerPet.setExpToNext(PET_BASE_EXP_TO_NEXT + (playerPet.getLevel() - 1L) * 20L);
+            playerPet.setAttack(playerPet.getAttack() + 2);
+            playerPet.setDefense(playerPet.getDefense() + 1);
+            playerPet.setHealth(playerPet.getHealth() + 10);
+            playerPet.setMaxHealth(playerPet.getMaxHealth() + 10);
+            playerPet.setSpeed(playerPet.getSpeed() + 1);
+            levelUps++;
+        }
+        if (levelUps > 0) {
+            PetService.log.info("宠物升级: petId={}, levelUps={}, newLevel={}", playerPet.getId(), levelUps, playerPet.getLevel());
         }
     }
 
@@ -356,11 +389,15 @@ public class PetService {
      * 重命名宠物
      */
     public void renamePet(Integer playerId, Integer playerPetId, String newNickname) {
-        PlayerPet playerPet = playerPetMapper.selectById(playerPetId);
-        if (playerPet == null || !playerPet.getPlayerId().equals(playerId)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "宠物不存在或不属于该玩家");
+        PlayerPet playerPet = getOwnedPlayerPet(playerId, playerPetId);
+        if (newNickname == null || newNickname.trim().isEmpty()) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "昵称不能为空");
         }
-        playerPet.setNickname(newNickname);
+        String normalizedNickname = newNickname.trim();
+        if (normalizedNickname.length() > 30) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "昵称长度不能超过30个字符");
+        }
+        playerPet.setNickname(normalizedNickname);
         playerPet.setUpdatedAt(LocalDateTime.now());
         playerPetMapper.updateById(playerPet);
         log.info("重命名宠物: petId={}, newNickname={}", playerPetId, newNickname);
@@ -371,12 +408,12 @@ public class PetService {
      */
     @Transactional
     public void releasePet(Integer playerId, Integer playerPetId) {
-        PlayerPet playerPet = playerPetMapper.selectById(playerPetId);
-        if (playerPet == null || !playerPet.getPlayerId().equals(playerId)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "宠物不存在或不属于该玩家");
-        }
+        PlayerPet playerPet = getOwnedPlayerPet(playerId, playerPetId);
         if (Boolean.TRUE.equals(playerPet.getIsLocked())) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "已加锁的宠物无法放生");
+        }
+        if (Boolean.TRUE.equals(playerPet.getIsActive())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "出战中的宠物无法放生，请先取消出战");
         }
         playerPetMapper.deleteById(playerPetId);
         log.info("放生宠物: playerId={}, petId={}", playerId, playerPetId);
@@ -386,10 +423,7 @@ public class PetService {
      * 加解锁宠物
      */
     public void toggleLockPet(Integer playerId, Integer playerPetId) {
-        PlayerPet playerPet = playerPetMapper.selectById(playerPetId);
-        if (playerPet == null || !playerPet.getPlayerId().equals(playerId)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "宠物不存在或不属于该玩家");
-        }
+        PlayerPet playerPet = getOwnedPlayerPet(playerId, playerPetId);
         boolean newLock = !Boolean.TRUE.equals(playerPet.getIsLocked());
         playerPet.setIsLocked(newLock);
         playerPet.setUpdatedAt(LocalDateTime.now());
@@ -400,18 +434,16 @@ public class PetService {
     /**
      * 获取训练日志
      */
-    public List<PetTrainingLog> getTrainingLogs(Integer playerPetId, Integer limit) {
+    public List<PetTrainingLog> getTrainingLogs(Integer playerId, Integer playerPetId, Integer limit) {
+        getOwnedPlayerPet(playerId, playerPetId);
         return petTrainingLogMapper.selectByPlayerPetId(playerPetId, limit);
     }
 
     /**
      * 检查宠物是否满足进化条件
      */
-    public PetEvolutionResult checkEvolution(Integer playerPetId) {
-        PlayerPet playerPet = playerPetMapper.selectById(playerPetId);
-        if (playerPet == null) {
-            return PetEvolutionResult.fail("宠物不存在");
-        }
+    public PetEvolutionResult checkEvolution(Integer playerId, Integer playerPetId) {
+        PlayerPet playerPet = getOwnedPlayerPet(playerId, playerPetId);
 
         Pet pet = petMapper.selectById(playerPet.getPetId());
         if (pet == null) {
@@ -439,13 +471,13 @@ public class PetService {
      * 进化宠物
      */
     @Transactional
-    public PetEvolutionResult evolvePet(Integer playerPetId) {
-        PetEvolutionResult check = checkEvolution(playerPetId);
+    public PetEvolutionResult evolvePet(Integer playerId, Integer playerPetId) {
+        PetEvolutionResult check = checkEvolution(playerId, playerPetId);
         if (!check.isSuccess()) {
             return check;
         }
 
-        PlayerPet playerPet = playerPetMapper.selectById(playerPetId);
+        PlayerPet playerPet = getOwnedPlayerPet(playerId, playerPetId);
         PetEvolution evolution = check.getEvolution();
 
         // 进化后的宠物
@@ -454,11 +486,28 @@ public class PetService {
             return PetEvolutionResult.fail("进化目标宠物不存在");
         }
 
+        Integer requiredItemId = evolution.getRequiredItemId();
+        int requiredItemQuantity = evolution.getRequiredItemQuantity() == null || evolution.getRequiredItemQuantity() <= 0
+                ? DEFAULT_EVOLUTION_ITEM_QUANTITY
+                : evolution.getRequiredItemQuantity();
+        PlayerItem evolutionItem = requiredItemId == null
+                ? null
+                : playerService.getPlayerItemByPlayerAndItem(playerId, requiredItemId);
+        if (requiredItemId != null && (evolutionItem == null || evolutionItem.getQuantity() == null || evolutionItem.getQuantity() < requiredItemQuantity)) {
+            return PetEvolutionResult.fail("缺少进化丹，无法进化");
+        }
+
+        if (requiredItemId != null) {
+            if (evolutionItem.getQuantity() == requiredItemQuantity) {
+                playerService.deletePlayerItem(evolutionItem.getId());
+            } else {
+                evolutionItem.setQuantity(evolutionItem.getQuantity() - requiredItemQuantity);
+                playerService.updatePlayerItem(evolutionItem);
+            }
+        }
+
         // 更新玩家宠物记录
         playerPet.setPetId(newPet.getId());
-        playerPet.setNickname(newPet.getName());
-        playerPet.setLevel(1);
-        playerPet.setExp(0L);
         playerPet.setLoyalty(Math.min(100, playerPet.getLoyalty() + 20));
         playerPet.setUpdatedAt(LocalDateTime.now());
         playerPetMapper.updateById(playerPet);
@@ -477,11 +526,8 @@ public class PetService {
     /**
      * 获取宠物进化信息
      */
-    public Map<String, Object> getPetEvolutionInfo(Integer playerPetId) {
-        PlayerPet playerPet = playerPetMapper.selectById(playerPetId);
-        if (playerPet == null) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "宠物不存在");
-        }
+    public Map<String, Object> getPetEvolutionInfo(Integer playerId, Integer playerPetId) {
+        PlayerPet playerPet = getOwnedPlayerPet(playerId, playerPetId);
         Pet pet = petMapper.selectById(playerPet.getPetId());
         List<PetEvolution> evolutions = petEvolutionMapper.selectByPetId(pet.getId());
 
@@ -489,6 +535,7 @@ public class PetService {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "该宠物无法进化");
         }
         PetEvolution evolution = evolutions.get(0);
+        Pet evolvedPet = petMapper.selectById(evolution.getEvolvedPetId());
 
         Map<String, Object> result = new java.util.HashMap<>();
         result.put("currentLevel", playerPet.getLevel());
@@ -498,6 +545,21 @@ public class PetService {
         result.put("canEvolve", playerPet.getLevel() >= (evolution.getRequiredLevel() != null ? evolution.getRequiredLevel() : 1)
                 && (evolution.getRequiredLoyalty() == null || playerPet.getLoyalty() >= evolution.getRequiredLoyalty()));
         result.put("evolvedPetId", evolution.getEvolvedPetId());
+        Integer requiredItemId = evolution.getRequiredItemId();
+        int requiredItemQuantity = evolution.getRequiredItemQuantity() == null || evolution.getRequiredItemQuantity() <= 0
+                ? DEFAULT_EVOLUTION_ITEM_QUANTITY
+                : evolution.getRequiredItemQuantity();
+        result.put("requiredItemId", requiredItemId);
+        result.put("requiredItemQuantity", requiredItemQuantity);
+        result.put("currentPetName", pet.getName());
+        result.put("currentPetNickname", playerPet.getNickname());
+        result.put("targetPetName", evolvedPet != null ? evolvedPet.getName() : null);
+        result.put("attackBonus", evolution.getAttackBonus());
+        result.put("defenseBonus", evolution.getDefenseBonus());
+        result.put("healthBonus", evolution.getHealthBonus());
+        result.put("speedBonus", evolution.getSpeedBonus());
+        PlayerItem evolutionItem = requiredItemId == null ? null : playerService.getPlayerItemByPlayerAndItem(playerId, requiredItemId);
+        result.put("hasRequiredItem", requiredItemId == null || (evolutionItem != null && evolutionItem.getQuantity() != null && evolutionItem.getQuantity() >= requiredItemQuantity));
         return result;
     }
 

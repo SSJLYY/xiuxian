@@ -3,35 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>宠物系统 - xiuxian挂机</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    <title>宠物系统 - 修仙挂机游戏</title>
     <link rel="stylesheet" href="css/style.css">
-    
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#8B4513',
-                        secondary: '#2F4F4F',
-                        accent: '#CD5C5C',
-                        light: '#F5F5DC',
-                        dark: '#2C3E50',
-                    },
-                    fontFamily: {
-                        ancient: ['"Ma Shan Zheng"', '"Noto Serif SC"', 'serif'],
-                    }
-                }
-            }
-        }
-    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div class="container active" style="padding: 20px;">
-        <!-- 头部 -->
-        <header class="game-header">
+    <div class="container active" style="padding:20px;max-width:1400px;margin:0 auto;">
+        <header class="game-header" style="margin-bottom:20px;">
             <div class="player-info">
                 <h2><i class="fa-solid fa-paw"></i> 宠物系统</h2>
                 <div class="player-stats">
@@ -40,78 +18,50 @@
                 </div>
             </div>
             <div class="header-actions">
-                <button class="btn btn-secondary" onclick="window.location.href='cultivate.html'">
-                    <i class="fa-solid fa-arrow-left"></i> 返回
+                <button class="btn btn-secondary" onclick="window.location.href='game.html'">
+                    <i class="fa-solid fa-arrow-left"></i> 返回游戏
                 </button>
             </div>
         </header>
 
-        <!-- 主内容区域 -->
-        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-top: 20px;">
-            <!-- 左侧：我的宠物列表 -->
-            <div class="panel-section">
-                <h3><i class="fa-solid fa-heart"></i> 我的宠物</h3>
-                <div id="myPetsList" style="margin-top: 15px;">
-                    <div style="text-align: center; padding: 40px; color: #718096;">
-                        <i class="fa-solid fa-paw" style="font-size: 48px; opacity: 0.3;"></i>
-                        <p style="margin-top: 15px;">暂无宠物</p>
-                        <p style="font-size: 14px; margin-top: 5px;">去捕获你的第一只宠物吧！</p>
-                    </div>
+        <div id="pets-module" class="module" style="display:block;">
+            <div class="pets-panel">
+                <div class="module-header mb-4">
+                    <h2><i class="fa-solid fa-paw"></i> 宠物系统</h2>
                 </div>
-            </div>
-
-            <!-- 右侧：宠物详情和操作 -->
-            <div class="panel-section">
-                <h3><i class="fa-solid fa-info-circle"></i> 宠物详情</h3>
-                <div id="petDetails" style="margin-top: 15px;">
-                    <div style="text-align: center; padding: 60px; color: #718096;">
-                        <i class="fa-solid fa-hand-pointer" style="font-size: 48px; opacity: 0.3;"></i>
-                        <p style="margin-top: 15px;">选择一个宠物查看详情</p>
-                    </div>
+                <div class="pets-tabs mb-4">
+                    <button class="tab-btn active" data-pet-tab="my" onclick="switchPetTab('my')">我的宠物</button>
+                    <button class="tab-btn" data-pet-tab="available" onclick="switchPetTab('available')">可捕获</button>
                 </div>
-            </div>
-        </div>
-
-        <!-- 可捕获宠物区域 -->
-        <div class="panel-section" style="margin-top: 20px;">
-            <h3><i class="fa-solid fa-search"></i> 可捕获的宠物</h3>
-            <div id="availablePets" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
-                <!-- 宠物卡片将在这里动态加载 -->
+                <div id="pets-my-panel">
+                    <div id="active-pet-info" class="active-pet-card mb-4 p-4 rounded" style="display:none;"></div>
+                    <div id="myPetsList" class="pets-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:15px;"></div>
+                </div>
+                <div id="pets-available-panel" style="display:none;">
+                    <div id="availablePetsList" class="pets-available-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:15px;"></div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- 提示信息 -->
-    <div id="toast" class="toast hidden"></div>
-
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
-    <script src="js/pets.js"></script>
+    <script src="js/modules.js"></script>
     <script src="js/pet-hunger-monitor.js"></script>
     <script src="js/breakthrough-evolution.js"></script>
     <script src="js/combo-pokedex.js"></script>
     <script>
-        // 页面加载时初始化
-        window.addEventListener('DOMContentLoaded', async () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             if (!window.authManager) {
                 window.authManager = new AuthManager();
             }
-            
+
             const isAuth = await window.authManager.checkAuthStatus();
             if (!isAuth) {
                 window.location.href = 'login.html';
                 return;
             }
 
-            // 加载玩家信息
-            await loadPlayerInfo();
-            
-            // 加载宠物数据
-            await loadPets();
-        });
-
-        // 加载玩家信息
-        async function loadPlayerInfo() {
             try {
                 const response = await gameAPI.getCurrentPlayerProfile();
                 if (response.success && response.data) {
@@ -121,138 +71,11 @@
             } catch (error) {
                 console.error('加载玩家信息失败:', error);
             }
-        }
 
-        // 加载宠物数据
-        async function loadPets() {
-            try {
-                // 加载我的宠物
-                await loadMyPets();
-                
-                // 加载可捕获的宠物
-                await loadAvailablePets();
-            } catch (error) {
-                console.error('加载宠物数据失败:', error);
-                showToast('加载宠物数据失败: ' + error.message, 'error');
+            if (window.loadMyPets) {
+                await window.loadMyPets();
             }
-        }
-
-        // 加载我的宠物
-        async function loadMyPets() {
-            const container = document.getElementById('myPetsList');
-            container.innerHTML = '<div style="text-align: center; padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> 加载中...</div>';
-            
-            try {
-                // TODO: 调用API获取我的宠物列表
-                // const response = await gameAPI.getMyPets();
-                
-                // 暂时显示空状态
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #718096;">
-                        <i class="fa-solid fa-paw" style="font-size: 48px; opacity: 0.3;"></i>
-                        <p style="margin-top: 15px;">暂无宠物</p>
-                        <p style="font-size: 14px; margin-top: 5px;">去捕获你的第一只宠物吧！</p>
-                    </div>
-                `;
-            } catch (error) {
-                container.innerHTML = '<div style="text-align: center; padding: 20px; color: #e53e3e;">加载失败</div>';
-            }
-        }
-
-        // 加载可捕获的宠物
-        async function loadAvailablePets() {
-            const container = document.getElementById('availablePets');
-            container.innerHTML = '<div style="text-align: center; padding: 20px; grid-column: 1/-1;"><i class="fa-solid fa-spinner fa-spin"></i> 加载中...</div>';
-            
-            try {
-                // TODO: 调用API获取可捕获的宠物列表
-                // const response = await gameAPI.getAvailablePets();
-                
-                // 暂时显示示例数据
-                const samplePets = [
-                    { id: 1, name: '小灵猫', type: '灵兽', rarity: 1, level: 1, description: '可爱的灵猫，适合新手培养', captureRate: 80 },
-                    { id: 2, name: '灵狐', type: '灵兽', rarity: 2, level: 10, description: '修炼千年的灵狐，擅长速度和敏捷', captureRate: 60 },
-                    { id: 3, name: '冰霜狼', type: '妖兽', rarity: 3, level: 25, description: '来自极北之地的冰狼', captureRate: 35 },
-                ];
-                
-                container.innerHTML = samplePets.map(pet => `
-                    <div class="skill-item" style="cursor: pointer;" onclick="showPetCapture(${pet.id})">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <h4 style="font-size: 16px; font-weight: 600; color: #8B4513;">${pet.name}</h4>
-                            <span style="font-size: 12px; padding: 4px 8px; background: rgba(139,69,19,0.1); border-radius: 12px; color: #8B4513;">
-                                ${pet.type}
-                            </span>
-                        </div>
-                        <p style="font-size: 14px; color: #4a5568; margin-bottom: 10px;">${pet.description}</p>
-                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #718096;">
-                            <span><i class="fa-solid fa-star"></i> 等级 ${pet.level}</span>
-                            <span><i class="fa-solid fa-percentage"></i> 捕获率 ${pet.captureRate}%</span>
-                        </div>
-                        <button class="btn btn-success btn-sm" style="width: 100%; margin-top: 10px;" onclick="event.stopPropagation(); capturePet(${pet.id})">
-                            <i class="fa-solid fa-hand-sparkles"></i> 捕获
-                        </button>
-                    </div>
-                `).join('');
-            } catch (error) {
-                container.innerHTML = '<div style="text-align: center; padding: 20px; color: #e53e3e; grid-column: 1/-1;">加载失败</div>';
-            }
-        }
-
-        // 显示宠物捕获详情
-        function showPetCapture(petId) {
-            const detailsContainer = document.getElementById('petDetails');
-            detailsContainer.innerHTML = `
-                <div style="padding: 20px;">
-                    <h4 style="font-size: 18px; font-weight: 600; color: #8B4513; margin-bottom: 15px;">
-                        <i class="fa-solid fa-paw"></i> 宠物 #${petId}
-                    </h4>
-                    <p style="color: #718096; margin-bottom: 20px;">点击"捕获"按钮尝试捕获这只宠物</p>
-                    <div style="background: rgba(139,69,19,0.05); padding: 15px; border-radius: 8px; border: 1px solid rgba(139,69,19,0.2);">
-                        <p style="font-size: 14px; color: #4a5568; line-height: 1.8;">
-                            <strong>提示：</strong><br>
-                            • 捕获成功率受宠物稀有度影响<br>
-                            • 等级越高的宠物越难捕获<br>
-                            • 捕获失败不会消耗资源<br>
-                            • 捕获成功后宠物将加入你的队伍
-                        </p>
-                    </div>
-                </div>
-            `;
-        }
-
-        // 捕获宠物
-        async function capturePet(petId) {
-            try {
-                showToast('正在尝试捕获宠物...', 'info');
-                
-                // TODO: 调用API捕获宠物
-                // const response = await gameAPI.capturePet(petId);
-                
-                // 暂时模拟捕获
-                const success = Math.random() > 0.5;
-                
-                if (success) {
-                    showToast('捕获成功！宠物已加入你的队伍', 'success');
-                    await loadMyPets();
-                } else {
-                    showToast('捕获失败，请再试一次', 'warning');
-                }
-            } catch (error) {
-                console.error('捕获宠物失败:', error);
-                showToast('捕获失败: ' + error.message, 'error');
-            }
-        }
-
-        // 显示提示信息
-        function showToast(message, type = 'info') {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.className = `toast ${type}`;
-            
-            setTimeout(() => {
-                toast.classList.add('hidden');
-            }, 3000);
-        }
+        });
     </script>
 </body>
 </html>

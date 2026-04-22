@@ -781,9 +781,24 @@ class PetEvolutionSystem {
         if (!modal || !body) return;
 
         const canEvolve = data.canEvolve;
-        const pet = data.pet || {};
-        const evolution = data.evolution || {};
-        const conditions = data.conditions || {};
+        const pet = {
+            petId,
+            nickname: data.currentPetNickname || data.currentPetName,
+            level: data.currentLevel,
+            loyalty: data.currentLoyalty
+        };
+        const evolution = {
+            targetName: data.targetPetName,
+            attackBonus: data.attackBonus,
+            defenseBonus: data.defenseBonus,
+            healthBonus: data.healthBonus,
+            speedBonus: data.speedBonus
+        };
+        const conditions = {
+            levelMet: (data.currentLevel || 0) >= (data.requiredLevel || 1),
+            loyaltyMet: (data.currentLoyalty || 0) >= (data.requiredLoyalty || 0),
+            itemMet: data.hasRequiredItem === true
+        };
 
         body.innerHTML = canEvolve ? `
             <div class="pe-pet-preview">
@@ -823,9 +838,9 @@ class PetEvolutionSystem {
         ` : `
             <div class="pe-conditions">
                 <div class="pe-conditions-title">进化条件</div>
-                ${this.renderCondition('等级达到 20', conditions.levelMet, `当前 Lv.${pet.level || 1}`)}
-                ${this.renderCondition('忠诚度 ≥ 80', conditions.loyaltyMet, `当前 ${pet.loyalty || 0}`)}
-                ${this.renderCondition('持有进化丹', conditions.itemMet, '背包中检查')}
+                ${this.renderCondition(`等级达到 ${data.requiredLevel || 1}`, conditions.levelMet, `当前 Lv.${pet.level || 1}`)}
+                ${this.renderCondition(`忠诚度 ≥ ${data.requiredLoyalty || 0}`, conditions.loyaltyMet, `当前 ${pet.loyalty || 0}`)}
+                ${this.renderCondition(`持有进化丹 ×${data.requiredItemQuantity || 1}`, conditions.itemMet, conditions.itemMet ? '已满足' : '背包不足')}
             </div>
             <div class="pe-conditions-tip">
                 满足以上条件后即可进化，进化道具可从每周任务/宗门活动获得

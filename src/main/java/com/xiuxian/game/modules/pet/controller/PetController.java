@@ -198,7 +198,8 @@ public class PetController {
             @PathVariable Integer playerPetId,
             @RequestParam(required = false, defaultValue = "10") Integer limit) {
         try {
-            List<PetTrainingLog> logs = petService.getTrainingLogs(playerPetId, limit);
+            Integer playerId = playerService.getCurrentPlayerId();
+            List<PetTrainingLog> logs = petService.getTrainingLogs(playerId, playerPetId, limit);
             return ResponseEntity.ok(ApiResponse.success("获取成功", logs));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
@@ -210,10 +211,11 @@ public class PetController {
     /**
      * 检查宠物是否可以进化
      */
-    @GetMapping("/evolution/check/{playerPetId}")
-    public ResponseEntity<ApiResponse<PetEvolutionResult>> checkEvolution(@PathVariable Integer playerPetId) {
+        @GetMapping("/evolution/check/{playerPetId}")
+        public ResponseEntity<ApiResponse<PetEvolutionResult>> checkEvolution(@PathVariable Integer playerPetId) {
         try {
-            PetEvolutionResult result = petService.checkEvolution(playerPetId);
+            Integer playerId = playerService.getCurrentPlayerId();
+            PetEvolutionResult result = petService.checkEvolution(playerId, playerPetId);
             return ResponseEntity.ok(ApiResponse.success(result.isSuccess() ? "可以进化" : "不可进化", result));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
@@ -226,7 +228,8 @@ public class PetController {
     @PostMapping("/evolution/evolve/{playerPetId}")
     public ResponseEntity<ApiResponse<PetEvolutionResult>> evolvePet(@PathVariable Integer playerPetId) {
         try {
-            PetEvolutionResult result = petService.evolvePet(playerPetId);
+            Integer playerId = playerService.getCurrentPlayerId();
+            PetEvolutionResult result = petService.evolvePet(playerId, playerPetId);
             return ResponseEntity.ok(ApiResponse.success(result.isSuccess() ? "进化成功！" : "进化失败", result));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
@@ -239,7 +242,8 @@ public class PetController {
     @GetMapping("/evolution/info/{playerPetId}")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getEvolutionInfo(@PathVariable Integer playerPetId) {
         try {
-            Map<String, Object> info = petService.getPetEvolutionInfo(playerPetId);
+            Integer playerId = playerService.getCurrentPlayerId();
+            Map<String, Object> info = petService.getPetEvolutionInfo(playerId, playerPetId);
             return ResponseEntity.ok(ApiResponse.success("获取成功", info));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
