@@ -98,12 +98,17 @@ class TutorialSystem {
         const tutorialState = localStorage.getItem(this.tutorialKey);
         if (tutorialState === 'true' || tutorialState === 'skipped') {
             this.isCompleted = true;
+            this.destroyUI();
             this.setupExitHook(); // 仍然挂载退出钩子
             return;
         }
 
         // 恢复进度
         const savedStep = parseInt(localStorage.getItem(this.tutorialStepKey) || '0', 10);
+        if (Number.isFinite(savedStep) && savedStep >= this.TUTORIAL_STEPS.length) {
+            this.completeAll();
+            return;
+        }
         this.currentStep = Number.isFinite(savedStep)
             ? Math.max(0, Math.min(savedStep, this.TUTORIAL_STEPS.length - 1))
             : 0;
@@ -820,6 +825,14 @@ class TutorialSystem {
         this._focusedElement = null;
     }
 
+    destroyUI() {
+        this.clearStepHighlights();
+        const panel = document.getElementById('tutorialPanel');
+        if (panel) panel.remove();
+        const focusMask = document.getElementById('tutorialFocusMask');
+        if (focusMask) focusMask.remove();
+    }
+
     findButtonByText(containerSelector, keywords) {
         const buttons = document.querySelectorAll(`${containerSelector} button`);
         for (const btn of buttons) {
@@ -1103,8 +1116,7 @@ class TutorialSystem {
         }
 
         // 隐藏面板
-        const panel = document.getElementById('tutorialPanel');
-        if (panel) panel.style.display = 'none';
+        this.destroyUI();
 
         if (this._focusSyncHandler) {
             window.removeEventListener('resize', this._focusSyncHandler);
@@ -1232,8 +1244,7 @@ class TutorialSystem {
                 clearInterval(this._highlightTimer);
                 this._highlightTimer = null;
             }
-            const panel = document.getElementById('tutorialPanel');
-            if (panel) panel.style.display = 'none';
+            this.destroyUI();
             if (this._pollTimer) clearInterval(this._pollTimer);
             if (this._focusSyncHandler) {
                 window.removeEventListener('resize', this._focusSyncHandler);

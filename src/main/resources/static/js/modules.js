@@ -1803,7 +1803,9 @@ window.checkInSystem = {
     
     loadStatus: async function() {
         try {
-            const res = await api.get('/checkin/status');
+            const year = this.currentMonth.getFullYear();
+            const month = this.currentMonth.getMonth() + 1;
+            const res = await api.get(`/checkin/status?year=${year}&month=${month}`);
             if (!res.success) throw new Error(res.message);
             const status = res.data;
             this.renderCalendar(status);
@@ -1812,7 +1814,7 @@ window.checkInSystem = {
             // 更新签到按钮
             const btn = document.getElementById('checkin-btn');
             if (btn) {
-                if (status.todayChecked) {
+                if (status.checkedToday) {
                     btn.disabled = true;
                     btn.innerHTML = '<i class="fa-solid fa-check"></i> 今日已签到';
                 } else {
@@ -1838,7 +1840,9 @@ window.checkInSystem = {
         const firstDay = new Date(year, month, 1).getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
         const today = new Date().getDate();
-        const checkedDays = status.checkedDays || [];
+        const checkedDays = (status.calendar || [])
+            .filter(cell => cell.checked)
+            .map(cell => cell.day);
         
         let html = '';
         // 空白
@@ -1871,8 +1875,8 @@ window.checkInSystem = {
         const el2 = document.getElementById('checkin-total-days');
         const el3 = document.getElementById('checkin-today-reward');
         if (el1) el1.textContent = status.consecutiveDays || 0;
-        if (el2) el2.textContent = status.totalDays || 0;
-        if (el3) el3.textContent = status.todayReward?.spiritStones || 0;
+        if (el2) el2.textContent = status.totalCheckedThisMonth || 0;
+        if (el3) el3.textContent = status.todayRewardStones || 0;
     }
 };
 
@@ -1887,8 +1891,7 @@ window.doCheckIn = async function() {
     try {
         const res = await api.post('/checkin/do');
         if (!res.success) throw new Error(res.message);
-        const result = res.data;
-        moduleManager.showToast(result.message || '签到成功！', 'success');
+        moduleManager.showToast(res.message || '签到成功！', 'success');
         if (window.authManager?.loadPlayerProfile) await window.authManager.loadPlayerProfile();
         await checkInSystem.loadStatus();
     } catch (e) {

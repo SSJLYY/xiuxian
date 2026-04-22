@@ -44,10 +44,17 @@ public class CheckInController {
      */
     @GetMapping("/status")
     @PreAuthorize("isAuthenticated()")
-    public ApiResponse<CheckInService.CheckInStatus> getStatus() {
+    public ApiResponse<CheckInService.CheckInStatus> getStatus(
+            @RequestParam(value = "year", required = false) Integer year,
+            @RequestParam(value = "month", required = false) Integer month) {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
-            CheckInService.CheckInStatus status = checkInService.getStatus(playerId);
+            CheckInService.CheckInStatus status;
+            if (year != null && month != null) {
+                status = checkInService.getStatus(playerId, year, month);
+            } else {
+                status = checkInService.getStatus(playerId);
+            }
             return ApiResponse.success("获取成功", status);
         } catch (Exception e) {
             log.error("获取签到状态失败", e);

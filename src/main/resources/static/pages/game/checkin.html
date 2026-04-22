@@ -21,41 +21,63 @@
             </nav>
 
             <main class="game-main">
-                <div class="checkin-page">
-                    <h1 class="page-title">每日签到</h1>
-                    
-                    <div class="checkin-content">
-                        <div class="checkin-status">
-                            <p>今日已签到: <span id="todayChecked">否</span></p>
-                            <p>连续签到: <span id="consecutiveDays">0</span> 天</p>
+                <div id="checkin-module" class="module" style="display:block;">
+                    <div class="checkin-panel">
+                        <div class="module-header mb-4">
+                            <h2><i class="fa-solid fa-calendar-check"></i> 每日签到</h2>
                         </div>
-
-                        <div class="checkin-calendar" id="checkinCalendar">
-                            <h2>签到日历</h2>
-                            <div class="calendar-grid">
-                                <div class="calendar-day" data-day="1">第1天</div>
-                                <div class="calendar-day" data-day="2">第2天</div>
-                                <div class="calendar-day" data-day="3">第3天</div>
-                                <div class="calendar-day" data-day="4">第4天</div>
-                                <div class="calendar-day" data-day="5">第5天</div>
-                                <div class="calendar-day" data-day="6">第6天</div>
-                                <div class="calendar-day" data-day="7">第7天</div>
+                        <div class="checkin-calendar mb-4 p-4 bg-secondary/5 rounded">
+                            <div class="checkin-month-header flex items-center justify-between mb-4">
+                                <button class="btn btn-sm" onclick="changeCheckinMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                                <h3 id="checkin-month-title" class="text-lg font-bold">签到日历</h3>
+                                <button class="btn btn-sm" onclick="changeCheckinMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
+                            </div>
+                            <div class="checkin-weekdays grid grid-cols-7 gap-1 mb-2">
+                                <div class="text-center text-xs text-muted">日</div>
+                                <div class="text-center text-xs text-muted">一</div>
+                                <div class="text-center text-xs text-muted">二</div>
+                                <div class="text-center text-xs text-muted">三</div>
+                                <div class="text-center text-xs text-muted">四</div>
+                                <div class="text-center text-xs text-muted">五</div>
+                                <div class="text-center text-xs text-muted">六</div>
+                            </div>
+                            <div id="checkin-days-grid" class="checkin-days-grid grid grid-cols-7 gap-1"></div>
+                        </div>
+                        <div class="checkin-action mb-4 text-center">
+                            <button class="btn btn-lg" id="checkin-btn" onclick="doCheckIn()">
+                                <i class="fa-solid fa-calendar-check"></i> 今日签到
+                            </button>
+                        </div>
+                        <div class="checkin-stats p-4 bg-secondary/5 rounded">
+                            <div class="flex items-center justify-around text-center">
+                                <div>
+                                    <div class="text-lg font-bold text-accent" id="checkin-consecutive-days">0</div>
+                                    <div class="text-xs text-muted">连续签到</div>
+                                </div>
+                                <div>
+                                    <div class="text-lg font-bold text-green-400" id="checkin-total-days">0</div>
+                                    <div class="text-xs text-muted">累计签到</div>
+                                </div>
+                                <div>
+                                    <div class="text-lg font-bold text-aqua" id="checkin-today-reward">0</div>
+                                    <div class="text-xs text-muted">今日奖励</div>
+                                </div>
                             </div>
                         </div>
-
-                        <button id="checkinBtn" class="btn-primary">立即签到</button>
                     </div>
                 </div>
             </main>
         </div>
     </div>
 
-    <script type="module">
-        import { App } from '/js/App.js';
-        const app = new App();
-        app.init();
-        import('/js/modules/checkin/index.js').then(module => {
-            module.checkinUI.init();
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/modules.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.checkInSystem && typeof window.checkInSystem.init === 'function') {
+                window.checkInSystem.init();
+            }
         });
     </script>
 </body>

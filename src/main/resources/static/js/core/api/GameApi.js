@@ -425,7 +425,10 @@ class GameApi extends ApiClient {
     }
 
     // ========== 签到相关 ==========
-    async getCheckinStatus() {
+    async getCheckinStatus(year = null, month = null) {
+        if (year != null && month != null) {
+            return this.get(`/checkin/status?year=${year}&month=${month}`);
+        }
         return this.get('/checkin/status');
     }
 
@@ -434,11 +437,25 @@ class GameApi extends ApiClient {
     }
 
     async getCheckinCalendar(month, year) {
-        return this.get(`/checkin/calendar?month=${month}&year=${year}`);
+        return this.getCheckinStatus(year, month);
     }
 
     async getCheckinRewards() {
-        return this.get('/checkin/rewards');
+        const response = await this.get('/checkin/status');
+        if (!response?.success) {
+            return response;
+        }
+        return {
+            success: true,
+            message: 'ok',
+            data: [
+                { day: 1, description: '灵石 x200，经验 x500' },
+                { day: 3, description: '灵石 x300，经验 x800' },
+                { day: 7, description: '灵石 x800，经验 x3000' },
+                { day: 14, description: '灵石 x1500，经验 x5000' },
+                { day: 30, description: '灵石 x3000，经验 x10000' }
+            ]
+        };
     }
 
     // ========== VIP 相关 ==========

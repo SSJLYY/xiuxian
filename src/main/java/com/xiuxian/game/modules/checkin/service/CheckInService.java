@@ -90,6 +90,7 @@ public class CheckInService {
         record.setRewardSpiritStones(stones);
         record.setRewardExp(exp);
         record.setIsMakeup(false);
+        record.setCreatedAt(LocalDateTime.now());
         checkInMapper.insert(record);
 
         // 发放奖励
@@ -118,22 +119,38 @@ public class CheckInService {
      */
     public CheckInStatus getStatus(Integer playerId) {
         LocalDate today = LocalDate.now();
-        YearMonth ym = YearMonth.from(today);
+        return getStatus(playerId, today.getYear(), today.getMonthValue());
+    }
+
+    /**
+     * 获取指定年月的签到状态（月历数据）
+     */
+    public CheckInStatus getStatus(Integer playerId, Integer year, Integer month) {
+        LocalDate today = LocalDate.now();
+        YearMonth ym;
+        try {
+            ym = YearMonth.of(year, month);
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "月份参数不合法");
+        }
 
         List<PlayerCheckIn> monthRecords = checkInMapper.findByPlayerAndMonth(
-                playerId, today.getYear(), today.getMonthValue());
+                playerId, ym.getYear(), ym.getMonthValue());
 
         Set<Integer> checkedDays = new HashSet<>();
         for (PlayerCheckIn r : monthRecords) {
             checkedDays.add(r.getCheckInDate().getDayOfMonth());
         }
 
-        boolean checkedToday = checkedDays.contains(today.getDayOfMonth());
-        int consecutiveDays = checkedToday ? calculateConsecutiveDays(playerId, today) :
-                calculateConsecutiveDays(playerId, today.minusDays(1));
+        boolean isCurrentMonth = ym.getYear() == today.getYear() && ym.getMonthValue() == today.getMonthValue();
+        boolean checkedToday = isCurrentMonth && checkedDays.contains(today.getDayOfMonth());
+        int consecutiveDays = checkedToday ? calculateConsecutiveDays(playerId, today)
+                : calculateConsecutiveDays(playerId, today.minusDays(1));
 
         // 预览今日奖励（未签到）
-        int nextConsecutive = checkedToday ? consecutiveDays : consecutiveDays + 1;
+        int nextConsecutive = isCurrentMonth
+                ? (checkedToday ? consecutiveDays : consecutiveDays + 1)
+                : consecutiveDays;
         int[] todayReward = getRewardForDay(nextConsecutive);
 
         // 月历格子
