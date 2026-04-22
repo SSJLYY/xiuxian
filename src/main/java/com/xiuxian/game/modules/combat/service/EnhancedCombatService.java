@@ -50,6 +50,7 @@ public class EnhancedCombatService {
     private final EquipmentService equipmentService;
     private final PetService petService;
     private final ObjectMapper objectMapper;
+    private final CombatService combatService;
 
     private static final Pattern NUMBER_PATTERN = Pattern.compile("(\\d+)");
 
@@ -76,7 +77,9 @@ public class EnhancedCombatService {
 
         // 获取宠物加成
         PlayerPet activePet = petService.getActivePet(playerId);
-        if (activePet != null) {
+        PetCombatBonus petBonus = petService.calculatePetCombatBonus(activePet);
+        boolean petEligible = activePet != null && petBonus != null && petBonus.isEligible();
+        if (petEligible) {
             playerHealth += activePet.getHealth();
             playerAttack += activePet.getAttack();
             playerDefense += activePet.getDefense();
@@ -93,8 +96,10 @@ public class EnhancedCombatService {
         battleLog.add("战斗开始！" + player.getNickname() + " VS " + monster.getName());
 
         // 添加宠物参战日志
-        if (activePet != null) {
+        if (petEligible) {
             battleLog.add(player.getNickname() + "的宠物" + activePet.getNickname() + "加入战斗");
+        } else if (activePet != null) {
+            battleLog.add(activePet.getNickname() + "因饱食度不足，无法参战");
         }
 
         int currentPlayerHealth = playerHealth;
@@ -107,62 +112,73 @@ public class EnhancedCombatService {
         while (currentPlayerHealth > 0 && currentMonsterHealth > 0 && rounds < maxRounds) {
             rounds++;
 
-            // 根据速度决定先后手
-            boolean playerFirst = playerSpeed >= monsterSpeed;
+            CombatService.ActionPlan actionPlan = combatService.createActionPlan(playerSpeed, monsterSpeed);
 
-            if (playerFirst) {
+            if (actionPlan.playerFirst) {
                 // 玩家回合
-                String playerAction = executePlayerTurn(player, skillId, itemId, currentPlayerMana,
-                        monster, currentMonsterHealth, monsterDefense, battleLog);
+                for (int i = 0; i < actionPlan.playerActions && currentMonsterHealth > 0; i++) {
+                    String playerAction = executePlayerTurn(player, skillId, itemId, currentPlayerMana,
+                            monster, currentMonsterHealth, monsterDefense, battleLog);
 
-                // 更新玩家法力消耗
-                if (playerAction.startsWith("技能")) {
-                    Skill skill = skillService.getSkillById(skillId);
-                    if (skill != null) {
-                        currentPlayerMana = Math.max(0, currentPlayerMana - skill.getManaCost());
+                    if (playerAction.startsWith("技能")) {
+                        Skill skill = skillService.getSkillById(skillId);
+                        if (skill != null) {
+                            currentPlayerMana = Math.max(0, currentPlayerMana - skill.getManaCost());
+                        }
+                    }
+
+                    int playerDamage = parseDamageFromLog(playerAction);
+                    currentMonsterHealth -= playerDamage;
+                    if (playerAction.startsWith("恢复生命")) {
+                        currentPlayerHealth = Math.min(playerHealth, currentPlayerHealth + parseHealFromLog(playerAction));
                     }
                 }
 
-                // 解析造成的伤害
-                int playerDamage = parseDamageFromLog(playerAction);
-                currentMonsterHealth -= playerDamage;
-                if (playerAction.startsWith("恢复生命")) {
-                    currentPlayerHealth = Math.min(playerHealth, currentPlayerHealth + parseHealFromLog(playerAction));
-                }
+                combatService.applyPetSkillDamage(rounds, petEligible ? petBonus : null, battleLog, damage -> currentMonsterHealth -= damage);
 
                 if (currentMonsterHealth <= 0) break;
 
                 // 怪物回合
-                String monsterAction = executeMonsterTurn(monster, currentPlayerHealth, playerDefense, battleLog);
-                int monsterDamage = parseDamageFromLog(monsterAction);
-                currentPlayerHealth -= monsterDamage;
+                for (int i = 0; i < actionPlan.monsterActions && currentPlayerHealth > 0; i++) {
+                    String monsterAction = executeMonsterTurn(monster, player, currentPlayerHealth, playerDefense, battleLog);
+                    int monsterDamage = parseDamageFromLog(monsterAction);
+                    currentPlayerHealth -= monsterDamage;
+                }
             } else {
                 // 怪物先手
-                String monsterAction = executeMonsterTurn(monster, currentPlayerHealth, playerDefense, battleLog);
-                int monsterDamage = parseDamageFromLog(monsterAction);
-                currentPlayerHealth -= monsterDamage;
+                for (int i = 0; i < actionPlan.monsterActions && currentPlayerHealth > 0; i++) {
+                    String monsterAction = executeMonsterTurn(monster, player, currentPlayerHealth, playerDefense, battleLog);
+                    int monsterDamage = parseDamageFromLog(monsterAction);
+                    currentPlayerHealth -= monsterDamage;
+                }
 
                 if (currentPlayerHealth <= 0) break;
 
                 // 玩家回击
-                String playerAction = executePlayerTurn(player, skillId, itemId, currentPlayerMana,
-                        monster, currentMonsterHealth, monsterDefense, battleLog);
+                for (int i = 0; i < actionPlan.playerActions && currentMonsterHealth > 0; i++) {
+                    String playerAction = executePlayerTurn(player, skillId, itemId, currentPlayerMana,
+                            monster, currentMonsterHealth, monsterDefense, battleLog);
 
-                // 更新法力消耗
-                if (playerAction.startsWith("技能")) {
-                    Skill skill = skillService.getSkillById(skillId);
-                    if (skill != null) {
-                        currentPlayerMana = Math.max(0, currentPlayerMana - skill.getManaCost());
+                    if (playerAction.startsWith("技能")) {
+                        Skill skill = skillService.getSkillById(skillId);
+                        if (skill != null) {
+                            currentPlayerMana = Math.max(0, currentPlayerMana - skill.getManaCost());
+                        }
+                    }
+
+                    int playerDamage = parseDamageFromLog(playerAction);
+                    currentMonsterHealth -= playerDamage;
+                    if (playerAction.startsWith("恢复生命")) {
+                        currentPlayerHealth = Math.min(playerHealth, currentPlayerHealth + parseHealFromLog(playerAction));
                     }
                 }
 
-                // 解析造成的伤害
-                int playerDamage = parseDamageFromLog(playerAction);
-                currentMonsterHealth -= playerDamage;
-                if (playerAction.startsWith("恢复生命")) {
-                    currentPlayerHealth = Math.min(playerHealth, currentPlayerHealth + parseHealFromLog(playerAction));
-                }
+                combatService.applyPetSkillDamage(rounds, petEligible ? petBonus : null, battleLog, damage -> currentMonsterHealth -= damage);
             }
+        }
+
+        if (petEligible) {
+            petService.consumePetHungerAfterCombat(playerId);
         }
 
         // 判断战斗结果
@@ -198,23 +214,13 @@ public class EnhancedCombatService {
             player.setExp(player.getExp() + expGained);
             player.setSpiritStones(player.getSpiritStones() + spiritStonesGained);
 
-            // 检查升级
-            int levelUps = 0;
-            int maxLevel = 1000;
-            while (player.getExp() >= player.getExpToNext() && player.getLevel() < maxLevel && levelUps < 100) {
-                player.setExp(player.getExp() - player.getExpToNext());
-                player.setLevel(player.getLevel() + 1);
-                player.setExpToNext((long)(player.getExpToNext() * 1.5));
-                player.setHealth(player.getHealth() + 10);
-                player.setMana(player.getMana() + 5);
-                player.setAttack(player.getAttack() + 2);
-                player.setDefense(player.getDefense() + 1);
-                player.setAttributePoints(player.getAttributePoints() + 5);
+            int oldLevel = player.getLevel();
+            int levelUps = playerService.applyLevelUpsWithoutCommit(player, 100);
+            if (levelUps > 0) {
                 battleLog.add("升级！当前等级" + player.getLevel());
-                levelUps++;
             }
-            if (player.getLevel() >= maxLevel) {
-                battleLog.add("已达到最高等级" + maxLevel);
+            if (oldLevel < 1000 && player.getLevel() >= 1000) {
+                battleLog.add("已达到最高等级1000");
             }
 
             battleLog.add("获得经验" + expGained + "，灵石" + spiritStonesGained);
@@ -291,12 +297,12 @@ public class EnhancedCombatService {
                 if (skill != null && currentMana >= skill.getManaCost()) {
                     // 计算技能伤害
                     double skillDamage = skill.getBaseDamage() + (skill.getDamagePerLevel() * playerSkill.getLevel());
-                    int damage = calculateDamage((int) skillDamage, monsterDefense, player.getLevel(), monster.getLevel());
+                    int damage = combatService.calculateDamage((int) skillDamage, monsterDefense, player.getLevel(), monster.getLevel(), player.getSpeed(), monster.getSpeed(), true, battleLog);
 
                     // 检查暴击
                     boolean isCritical = checkCriticalHit(player);
                     if (isCritical) {
-                        damage = (int) (damage * 1.5);
+                        damage = (int) (damage * 1.8);
                         battleLog.add(player.getNickname() + "施放技能【" + skill.getName() + "】造成" + damage + "点暴击伤害");
                         return "技能暴击伤害" + damage;
                     } else {
@@ -327,12 +333,12 @@ public class EnhancedCombatService {
         }
 
         // 普通攻击
-        int damage = calculateDamage(player.getAttack(), monsterDefense, player.getLevel(), monster.getLevel());
+        int damage = combatService.calculateDamage(player.getAttack(), monsterDefense, player.getLevel(), monster.getLevel(), player.getSpeed(), monster.getSpeed(), true, battleLog);
 
         // 检查暴击
         boolean isCritical = checkCriticalHit(player);
         if (isCritical) {
-            damage = (int) (damage * 1.5);
+            damage = (int) (damage * 1.8);
             battleLog.add(player.getNickname() + "造成" + damage + "点暴击伤害");
             return "普攻暴击伤害" + damage;
         } else {
@@ -344,19 +350,15 @@ public class EnhancedCombatService {
     /**
      * 执行怪物回合
      */
-    private String executeMonsterTurn(Monster monster, int playerHealth, int playerDefense, List<String> battleLog) {
+    private String executeMonsterTurn(Monster monster, PlayerProfile player, int playerHealth, int playerDefense, List<String> battleLog) {
         // 怪物普通攻击
-        int damage = calculateDamage(monster.getAttack(), playerDefense, monster.getLevel(), 1); // 玩家等级传1简化
+        int damage = combatService.calculateDamage(monster.getAttack(), playerDefense, monster.getLevel(), player.getLevel(), monster.getSpeed(), player.getSpeed(), false, battleLog);
         battleLog.add(monster.getName() + "攻击造成" + damage + "点伤害");
         return "造成" + damage + "伤害";
     }
 
-    /**
-     * 检查是否暴击
-     */
     private boolean checkCriticalHit(PlayerProfile player) {
-        // 10%基础暴击率，暂不考虑装备加成
-        return rng().nextInt(100) < 10;
+        return rng().nextInt(100) < 5;
     }
 
     /**
@@ -431,32 +433,6 @@ public class EnhancedCombatService {
         }
     }
 
-    /**
-     * 计算减伤后的最终伤害
-     */
-    private int calculateDamage(int attack, int defense, int attackerLevel, int defenderLevel) {
-        // 等级差影响（降级压制，高等级加成）
-        double levelFactor = 1.0 + (attackerLevel - defenderLevel) * 0.03;
-        levelFactor = Math.max(0.7, Math.min(1.3, levelFactor));
-
-        // 防御减伤（递减公式，最低减伤10%）
-        double damageReduction = Math.min(0.5, defense / (defense + 200.0));
-
-        // 基础伤害
-        int baseDamage = (int) (attack * levelFactor);
-        // 应用防御
-        int finalDamage = (int) (baseDamage * (1.0 - damageReduction));
-
-        // 随机波动±15%
-        int variance = (int) (finalDamage * 0.15);
-        if (variance > 0) {
-            finalDamage += rng().nextInt(variance * 2 + 1) - variance;
-        }
-
-        // 保证最低伤害（至少造成攻击力的20%）
-        int minDamage = Math.max(1, attack / 5);
-        return Math.max(minDamage, finalDamage);
-    }
 
     /**
      * 计算经验奖励（含等级差修正）

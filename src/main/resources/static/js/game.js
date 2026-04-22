@@ -456,6 +456,8 @@ class GameManager {
                 throw new Error(response.message || '停止修炼失败');
             }
 
+            const result = response.data || {};
+
             this.isCultivating = false;
             this.stopCultivationTimer();
             this.cultivationTime = 0;
@@ -466,7 +468,14 @@ class GameManager {
                 await window.authManager.loadPlayerProfile();
             }
 
-            this.showToast('停止修炼成功', 'info');
+            this.showToast(
+                this.formatOutcomeToast(
+                    '收功完成',
+                    `经验+${result.expGained || 0} 灵石+${result.spiritStonesGained || 0}`,
+                    result.levelUps > 0 ? `连升${result.levelUps}级` : ''
+                ),
+                'success'
+            );
 
         } catch (error) {
             console.error('停止修炼失败:', error);
@@ -581,6 +590,10 @@ class GameManager {
         this.showToast(message, 'info');
     }
 
+    formatOutcomeToast(title, core, extra = '') {
+        return extra ? `${title} | ${core} | ${extra}` : `${title} | ${core}`;
+    }
+
     // 领取离线奖励 - 使用后端存在的API
     async claimOfflineRewards() {
         try {
@@ -590,12 +603,34 @@ class GameManager {
                 throw new Error(response.message || '领取离线奖励失败');
             }
 
-            this.showToast('离线奖励领取成功', 'success');
+            const reward = response.data;
+            if (!reward?.hasReward) {
+                this.showToast(reward?.message || '当前没有可领取的离线奖励', 'info');
+                return;
+            }
+
+            if (!reward.rewardId) {
+                throw new Error('离线奖励记录缺失，无法领取');
+            }
+
+            const claimResponse = await gameAPI.claimOfflineRewardById(reward.rewardId);
+            if (!claimResponse.success) {
+                throw new Error(claimResponse.message || '领取离线奖励失败');
+            }
 
             // 刷新玩家数据
             if (window.authManager) {
                 await window.authManager.loadPlayerProfile();
             }
+
+            this.showToast(
+                this.formatOutcomeToast(
+                    '离线奖励到账',
+                    `经验+${reward.expGained || 0} 灵石+${reward.spiritStonesGained || 0}`,
+                    claimResponse.data?.leveledUp ? `等级 ${claimResponse.data.oldLevel}→${claimResponse.data.newLevel}` : ''
+                ),
+                'success'
+            );
 
         } catch (error) {
             console.error('领取离线奖励失败:', error);

@@ -3205,8 +3205,48 @@ img[loading="lazy"] {
 .checkin-calendar {
     border-radius: 12px;
 }
+
+.checkin-days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.35rem;
+}
+
+.checkin-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.35rem;
+    margin-bottom: 0.35rem;
+}
+
+.checkin-weekdays > div {
+    text-align: center;
+    font-size: 0.72rem;
+    line-height: 1;
+    padding: 0.2rem 0;
+    color: var(--text-muted);
+}
+
 .checkin-day {
     transition: all 0.2s;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0.15rem 0.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.checkin-mark {
+    font-size: 0.82rem;
+    line-height: 1;
+    font-weight: 700;
+}
+
+.checkin-reward-icon {
+    font-size: 0.78rem;
+    line-height: 1;
+    opacity: 0.52;
 }
 .checkin-day.today {
     box-shadow: 0 0 0 2px var(--accent-gold);
@@ -3288,5 +3328,35 @@ img[loading="lazy"] {
     .pets-panel, .skills-panel, .narrative-panel, .lore-panel,
     .combos-panel, .pet-evolution-panel, .map-panel, .checkin-panel, .achievements-panel {
         max-width: 100%;
+    }
+
+    .checkin-weekdays,
+    .checkin-days-grid {
+        gap: 0.22rem;
+    }
+
+    .checkin-weekdays > div {
+        font-size: 0.68rem;
+        padding: 0.14rem 0;
+    }
+
+    .checkin-day {
+        min-height: 36px;
+        border-radius: 6px;
+        padding: 0.08rem;
+    }
+
+    .checkin-day .text-sm {
+        font-size: 0.78rem;
+        line-height: 1;
+    }
+
+    .checkin-mark {
+        font-size: 0.72rem;
+    }
+
+    .checkin-reward-icon {
+        font-size: 0.68rem;
+        opacity: 0.46;
     }
 }

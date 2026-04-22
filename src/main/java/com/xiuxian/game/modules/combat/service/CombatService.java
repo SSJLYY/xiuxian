@@ -60,6 +60,18 @@ import com.xiuxian.game.common.exception.ErrorCode;
 @RequiredArgsConstructor
 public class CombatService {
 
+    static class ActionPlan {
+        final int playerActions;
+        final int monsterActions;
+        final boolean playerFirst;
+
+        ActionPlan(int playerActions, int monsterActions, boolean playerFirst) {
+            this.playerActions = playerActions;
+            this.monsterActions = monsterActions;
+            this.playerFirst = playerFirst;
+        }
+    }
+
     private final PlayerService playerService;       // 模块边界：通过PlayerService访问玩家数据
     private final MapMonsterMapper mapMonsterMapper;
     private final MonsterMapper monsterMapper;
@@ -353,24 +365,18 @@ public class CombatService {
         while (ctx.currentPlayerHealth > 0 && ctx.currentMonsterHealth > 0 && ctx.rounds < maxRounds) {
             ctx.rounds++;
 
-            // 计算本回合行动次数
-            int playerActions = 1, monsterActions = 1;
-            if (ctx.speedRatio >= 2.0) { playerActions = 3; monsterActions = 1; }
-            else if (ctx.speedRatio >= 1.5) { playerActions = 2; monsterActions = 1; }
-            else if (1.0 / ctx.speedRatio >= 2.0) { playerActions = 1; monsterActions = 3; }
-            else if (1.0 / ctx.speedRatio >= 1.5) { playerActions = 1; monsterActions = 2; }
+            ActionPlan actionPlan = createActionPlan(ctx.playerSpeed, ctx.monsterSpeed);
 
-            boolean playerFirst = ctx.playerSpeed >= ctx.monsterSpeed;
-            if (playerFirst) {
-                executePlayerTurn(ctx, playerActions);
-                executePetSkill(ctx, petBonus);
+            if (actionPlan.playerFirst) {
+                executePlayerTurn(ctx, actionPlan.playerActions);
+                applyPetSkillDamage(ctx.rounds, petBonus, ctx.battleLog, damage -> ctx.currentMonsterHealth -= damage);
                 if (ctx.currentMonsterHealth <= 0) break;
-                executeMonsterTurn(ctx, monsterActions);
+                executeMonsterTurn(ctx, actionPlan.monsterActions);
             } else {
-                executeMonsterTurn(ctx, monsterActions);
+                executeMonsterTurn(ctx, actionPlan.monsterActions);
                 if (ctx.currentPlayerHealth <= 0) break;
-                executePlayerTurn(ctx, playerActions);
-                executePetSkill(ctx, petBonus);
+                executePlayerTurn(ctx, actionPlan.playerActions);
+                applyPetSkillDamage(ctx.rounds, petBonus, ctx.battleLog, damage -> ctx.currentMonsterHealth -= damage);
             }
         }
 
@@ -406,16 +412,35 @@ public class CombatService {
         }
     }
 
-    /** 宠物技能触发 */
-    private void executePetSkill(CombatContext ctx, PetCombatBonus petBonus) {
-        if (petBonus == null || ctx.rounds % petBonus.getSkillCooldown() != 0) return;
+    ActionPlan createActionPlan(int playerSpeed, int monsterSpeed) {
+        double speedRatio = monsterSpeed > 0 ? (double) playerSpeed / monsterSpeed : 2.0;
+        int playerActions = 1;
+        int monsterActions = 1;
+        if (speedRatio >= 2.0) { playerActions = 3; }
+        else if (speedRatio >= 1.5) { playerActions = 2; }
+        else if (1.0 / speedRatio >= 2.0) { monsterActions = 3; }
+        else if (1.0 / speedRatio >= 1.5) { monsterActions = 2; }
+        return new ActionPlan(playerActions, monsterActions, playerSpeed >= monsterSpeed);
+    }
+
+    interface DamageSink {
+        void apply(int damage);
+    }
+
+    void applyPetSkillDamage(int round, PetCombatBonus petBonus, List<String> battleLog, DamageSink damageSink) {
+        if (petBonus == null || round % petBonus.getSkillCooldown() != 0) {
+            return;
+        }
         if (rng().nextDouble() < petBonus.getSkillTriggerChance()) {
             int petDamage = petBonus.getSkillDamage();
-            ctx.currentMonsterHealth -= petDamage;
+            if (petBonus.isResonance()) {
+                petDamage *= 2;
+            }
+            damageSink.apply(petDamage);
             String resonanceMsg = petBonus.isResonance() ? "【共鸣迸发】" : "";
-            ctx.battleLog.add("🐾 " + resonanceMsg + petBonus.getPetName() + "发动灵兽技能！造成了" + petDamage + "点伤害！");
+            battleLog.add("🐾 " + resonanceMsg + petBonus.getPetName() + "发动灵兽技能！造成了" + petDamage + "点伤害！");
         } else {
-            ctx.battleLog.add("🐾 " + petBonus.getPetName() + "准备发动技能，但还未准备好...");
+            battleLog.add("🐾 " + petBonus.getPetName() + "准备发动技能，但还未准备好...");
         }
     }
 
@@ -466,18 +491,7 @@ public class CombatService {
 
     /** 升级循环 */
     private void processLevelUp(CombatContext ctx) {
-        int levelUps = 0;
-        while (ctx.player.getExp() >= ctx.player.getExpToNext() && levelUps < 100) {
-            ctx.player.setExp(ctx.player.getExp() - ctx.player.getExpToNext());
-            ctx.player.setLevel(ctx.player.getLevel() + 1);
-            ctx.player.setExpToNext((long)(ctx.player.getExpToNext() * 1.5));
-            ctx.player.setHealth(ctx.player.getHealth() + 10);
-            ctx.player.setMana(ctx.player.getMana() + 5);
-            ctx.player.setAttack(ctx.player.getAttack() + 2);
-            ctx.player.setDefense(ctx.player.getDefense() + 1);
-            ctx.player.setAttributePoints(ctx.player.getAttributePoints() + 5);
-            levelUps++;
-        }
+        int levelUps = playerService.applyLevelUpsWithoutCommit(ctx.player, 100);
         if (levelUps > 0) {
             ctx.battleLog.add("恭喜升级！当前等级：" + ctx.player.getLevel());
         }
@@ -492,9 +506,9 @@ public class CombatService {
      * - 暴击率默认5%，暴击伤害1.8倍
      * - 速度>对方1.5倍时获得额外行动机会
      */
-    private int calculateDamage(int attack, int defense, int attackerLevel, int defenderLevel,
-                                 int attackerSpeed, int defenderSpeed, boolean isPlayerAttacking,
-                                 List<String> battleLog) {
+    int calculateDamage(int attack, int defense, int attackerLevel, int defenderLevel,
+                        int attackerSpeed, int defenderSpeed, boolean isPlayerAttacking,
+                        List<String> battleLog) {
         // 1. 等级压制（降低影响，保持平衡）
         double levelFactor = 1.0 + (attackerLevel - defenderLevel) * 0.03;
         levelFactor = Math.max(0.7, Math.min(1.3, levelFactor));
@@ -694,18 +708,7 @@ public class CombatService {
             player.setExp(player.getExp() + totalExpGained);
             player.setSpiritStones(player.getSpiritStones() + totalSpiritStonesGained);
 
-            int levelUps = 0;
-            while (player.getExp() >= player.getExpToNext() && levelUps < 200) {
-                player.setExp(player.getExp() - player.getExpToNext());
-                player.setLevel(player.getLevel() + 1);
-                player.setExpToNext((long)(player.getExpToNext() * 1.5));
-                player.setHealth(player.getHealth() + 10);
-                player.setMana(player.getMana() + 5);
-                player.setAttack(player.getAttack() + 2);
-                player.setDefense(player.getDefense() + 1);
-                player.setAttributePoints(player.getAttributePoints() + 5);
-                levelUps++;
-            }
+            int levelUps = playerService.applyLevelUpsWithoutCommit(player, 200);
             if (levelUps > 0) {
                 log.debug("玩家升级 {} 次，当前等级: {}", levelUps, player.getLevel());
             }
@@ -719,6 +722,16 @@ public class CombatService {
             if (actualLoss > 0) {
                 player.setSpiritStones(currentSpiritStones - actualLoss);
                 battleLog.add("批量战斗失败，损失灵石：" + actualLoss);
+            }
+        }
+
+        PlayerPet activePet = petService.getActivePet(playerId);
+        if (activePet != null && activePet.getHunger() != null && activePet.getHunger() > 0) {
+            int newHunger = Math.max(0, activePet.getHunger() - actualTimes * 10);
+            activePet.setHunger(newHunger);
+            petService.updatePlayerPet(activePet);
+            if (newHunger < 20) {
+                battleLog.add("💙 连续战斗后宠物饥饿加剧，当前饱食度：" + newHunger);
             }
         }
 
@@ -773,6 +786,12 @@ public class CombatService {
         int playerAttack = player.getAttack() + player.getEquipmentAttackBonus();
         int playerDefense = player.getDefense() + player.getEquipmentDefenseBonus();
         int playerSpeed = player.getSpeed() + player.getEquipmentSpeedBonus();
+        int monsterSpeed = monster.getSpeed();
+
+        PetCombatBonus petBonus = petService.calculatePetCombatBonus(petService.getActivePet(player.getId()));
+        if (petBonus != null && !petBonus.isEligible()) {
+            petBonus = null;
+        }
 
         int currentPlayerHealth = player.getHealth() + player.getEquipmentHealthBonus();
         int currentMonsterHealth = monster.getHealth();
@@ -781,26 +800,50 @@ public class CombatService {
         log.add("战斗开始！" + player.getNickname() + " VS " + monster.getName());
 
         int rounds = 0;
-        boolean playerFirst = playerSpeed >= monster.getSpeed();
+        boolean playerFirst = playerSpeed >= monsterSpeed;
+        double speedRatio = monsterSpeed > 0 ? (double) playerSpeed / monsterSpeed : 2.0;
 
         while (currentPlayerHealth > 0 && currentMonsterHealth > 0 && rounds < 50) {
             rounds++;
+
+            int playerActions = 1, monsterActions = 1;
+            if (speedRatio >= 2.0) { playerActions = 3; }
+            else if (speedRatio >= 1.5) { playerActions = 2; }
+            else if (1.0 / speedRatio >= 2.0) { monsterActions = 3; }
+            else if (1.0 / speedRatio >= 1.5) { monsterActions = 2; }
+
             if (playerFirst) {
-                int dmg = calculateDamage(playerAttack, monster.getDefense(), player.getLevel(), monster.getLevel());
-                currentMonsterHealth -= dmg;
-                log.add("第" + rounds + "回合: " + player.getNickname() + "造成了" + dmg + "点伤害");
+                for (int i = 0; i < playerActions && currentMonsterHealth > 0; i++) {
+                    int dmg = calculateDamage(playerAttack, monster.getDefense(), player.getLevel(), monster.getLevel());
+                    currentMonsterHealth -= dmg;
+                    log.add("第" + rounds + "回合: " + player.getNickname() + "造成了" + dmg + "点伤害");
+                }
+                if (petBonus != null && rounds % petBonus.getSkillCooldown() == 0 && rng().nextDouble() < petBonus.getSkillTriggerChance()) {
+                    currentMonsterHealth -= petBonus.getSkillDamage();
+                    log.add("🐾 " + petBonus.getPetName() + "发动灵兽技能，造成" + petBonus.getSkillDamage() + "点伤害");
+                }
                 if (currentMonsterHealth <= 0) break;
-                int mDmg = calculateDamage(monster.getAttack(), playerDefense, monster.getLevel(), player.getLevel());
-                currentPlayerHealth -= mDmg;
-                log.add("第" + rounds + "回合: " + monster.getName() + "造成了" + mDmg + "点伤害");
+                for (int i = 0; i < monsterActions && currentPlayerHealth > 0; i++) {
+                    int mDmg = calculateDamage(monster.getAttack(), playerDefense, monster.getLevel(), player.getLevel());
+                    currentPlayerHealth -= mDmg;
+                    log.add("第" + rounds + "回合: " + monster.getName() + "造成了" + mDmg + "点伤害");
+                }
             } else {
-                int mDmg = calculateDamage(monster.getAttack(), playerDefense, monster.getLevel(), player.getLevel());
-                currentPlayerHealth -= mDmg;
-                log.add("第" + rounds + "回合: " + monster.getName() + "造成了" + mDmg + "点伤害");
+                for (int i = 0; i < monsterActions && currentPlayerHealth > 0; i++) {
+                    int mDmg = calculateDamage(monster.getAttack(), playerDefense, monster.getLevel(), player.getLevel());
+                    currentPlayerHealth -= mDmg;
+                    log.add("第" + rounds + "回合: " + monster.getName() + "造成了" + mDmg + "点伤害");
+                }
                 if (currentPlayerHealth <= 0) break;
-                int dmg = calculateDamage(playerAttack, monster.getDefense(), player.getLevel(), monster.getLevel());
-                currentMonsterHealth -= dmg;
-                log.add("第" + rounds + "回合: " + player.getNickname() + "造成了" + dmg + "点伤害");
+                for (int i = 0; i < playerActions && currentMonsterHealth > 0; i++) {
+                    int dmg = calculateDamage(playerAttack, monster.getDefense(), player.getLevel(), monster.getLevel());
+                    currentMonsterHealth -= dmg;
+                    log.add("第" + rounds + "回合: " + player.getNickname() + "造成了" + dmg + "点伤害");
+                }
+                if (petBonus != null && rounds % petBonus.getSkillCooldown() == 0 && rng().nextDouble() < petBonus.getSkillTriggerChance()) {
+                    currentMonsterHealth -= petBonus.getSkillDamage();
+                    log.add("🐾 " + petBonus.getPetName() + "发动灵兽技能，造成" + petBonus.getSkillDamage() + "点伤害");
+                }
             }
         }
 

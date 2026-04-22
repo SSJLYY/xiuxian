@@ -13,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @RestController
@@ -21,6 +22,17 @@ import java.util.Map;
 public class PlayerController {
 
     private final PlayerService playerService;
+    private static final long BREAKTHROUGH_IDEMPOTENT_WINDOW_MS = 3000L;
+    private static final ConcurrentHashMap<Integer, Long> BREAKTHROUGH_REQUEST_GUARD = new ConcurrentHashMap<>();
+
+    private boolean isBreakthroughRequestDuplicate(Integer playerId, long now) {
+        Long lastRequestAt = BREAKTHROUGH_REQUEST_GUARD.get(playerId);
+        if (lastRequestAt != null && now - lastRequestAt < BREAKTHROUGH_IDEMPOTENT_WINDOW_MS) {
+            return true;
+        }
+        BREAKTHROUGH_REQUEST_GUARD.put(playerId, now);
+        return false;
+    }
 
     @GetMapping("/profile")
     @PreAuthorize("isAuthenticated()")
@@ -86,12 +98,12 @@ public class PlayerController {
 
     @PostMapping("/cultivate/stop")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Void>> stopCultivate() {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> stopCultivate() {
         try {
             PlayerProfile profile = playerService.getCurrentPlayerProfile();
-            playerService.stopCultivate();
+            Map<String, Object> result = playerService.stopCultivate();
             LogUtils.logUserAction(null, profile.getId(), "STOP_CULTIVATION", "玩家停止修炼");
-            return ResponseEntity.ok(ApiResponse.success("停止修炼成功", null));
+            return ResponseEntity.ok(ApiResponse.success("停止修炼成功", result));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
@@ -167,6 +179,10 @@ public class PlayerController {
     public ResponseEntity<ApiResponse<String>> attemptBreakthrough() {
         try {
             PlayerProfile profile = playerService.getCurrentPlayerProfile();
+            long now = System.currentTimeMillis();
+            if (isBreakthroughRequestDuplicate(profile.getId(), now)) {
+                return ResponseEntity.ok(ApiResponse.error("请求过于频繁，请稍后再试"));
+            }
             String result = playerService.attemptBreakthrough(profile.getId());
             LogUtils.logUserAction(null, profile.getId(), "BREAKTHROUGH", result);
             return ResponseEntity.ok(ApiResponse.success(result));

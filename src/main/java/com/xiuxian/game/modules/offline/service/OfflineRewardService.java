@@ -29,6 +29,7 @@ public class OfflineRewardService {
     private static final int MAX_OFFLINE_HOURS = 12; // 模块边界：通过PlayerService访问玩家数据
     private static final int BASE_EXP_PER_HOUR = 50;
     private static final int BASE_SPIRIT_STONES_PER_HOUR = 10;
+    private static final int MAX_OFFLINE_LEVEL_UPS = 5;
 
     /**
      * 计算离线收益
@@ -139,21 +140,9 @@ public class OfflineRewardService {
         player.setSpiritStones(player.getSpiritStones() + reward.getSpiritStonesGained());
         
         // 模块边界：通过PlayerService访问玩家数据
-        boolean leveledUp = false;
         int oldLevel = player.getLevel();
-        while (player.getExp() >= player.getExpToNext()) {
-            player.setExp(player.getExp() - player.getExpToNext());
-            player.setLevel(player.getLevel() + 1);
-            player.setExpToNext((long)(player.getExpToNext() * 1.5));
-            
-            // 模块边界：通过PlayerService访问玩家数据
-            player.setHealth(player.getHealth() + 10);
-            player.setMana(player.getMana() + 5);
-            player.setAttack(player.getAttack() + 2);
-            player.setDefense(player.getDefense() + 1);
-            player.setAttributePoints(player.getAttributePoints() + 5);
-            leveledUp = true;
-        }
+        int levelUps = playerService.applyLevelUpsWithoutCommit(player, MAX_OFFLINE_LEVEL_UPS);
+        boolean leveledUp = levelUps > 0;
         
         playerService.savePlayerProfile(player);
 

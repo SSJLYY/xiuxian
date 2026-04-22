@@ -93,7 +93,12 @@ public class CombatController {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
             Integer playerLevel = playerService.getCurrentPlayerProfile().getLevel();
-            Monster monster = combatService.generateMonster(playerLevel, request.getMapId());
+            Monster monster = request.getMonsterId() != null
+                    ? combatService.getMonsterById(request.getMonsterId())
+                    : combatService.generateMonster(playerLevel, request.getMapId());
+            if (monster == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("怪物不存在或不可战斗"));
+            }
             Map<String, Object> result = enhancedCombatService.enhancedCombat(
                     playerId, monster, request.getSkillId(), request.getItemId());
             return ResponseEntity.ok(ApiResponse.success("战斗完成", result));
@@ -112,6 +117,9 @@ public class CombatController {
             @PathVariable Integer times,
             @RequestBody Map<String, Object> request) {
         try {
+            if (times == null || times <= 0) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("批量战斗次数必须大于0"));
+            }
             int maxTimes = Math.min(times, 100);
             Integer playerId = playerService.getCurrentPlayerId();
             Integer playerLevel = playerService.getCurrentPlayerProfile().getLevel();
@@ -165,11 +173,14 @@ public class CombatController {
      */
     public static class EnhancedCombatRequest {
         private Integer mapId;
+        private Integer monsterId;
         private Integer skillId;
         private Integer itemId;
 
         public Integer getMapId() { return mapId; }
         public void setMapId(Integer mapId) { this.mapId = mapId; }
+        public Integer getMonsterId() { return monsterId; }
+        public void setMonsterId(Integer monsterId) { this.monsterId = monsterId; }
         public Integer getSkillId() { return skillId; }
         public void setSkillId(Integer skillId) { this.skillId = skillId; }
         public Integer getItemId() { return itemId; }

@@ -169,7 +169,7 @@ const gameAPI = {
     },
 
     async claimOfflineRewards() {
-        return await api.post('/offline-reward/calculate');
+        return await api.get('/offline-reward/calculate');
     },
 
     async claimOfflineRewardById(rewardId) {

@@ -1863,7 +1863,7 @@ window.checkInSystem = {
                             background:${isChecked ? 'rgba(46,204,113,0.15)' : isToday ? 'rgba(212,175,55,0.15)' : 'rgba(255,255,255,0.03)'};
                             border:1px solid ${isChecked ? 'rgba(46,204,113,0.3)' : isToday ? 'rgba(212,175,55,0.3)' : 'transparent'};">
                     <span class="text-sm ${isToday ? 'font-bold' : ''}" style="color:${isToday ? 'var(--accent-gold)' : 'var(--text-light)'};">${d}</span>
-                    ${isChecked ? `<span class="text-xs" style="font-size:0.8rem;">✓</span>` : `<span class="text-xs" style="opacity:0.5;">${rewardIcons[rewardType]}</span>`}
+                    ${isChecked ? `<span class="text-xs checkin-mark">✓</span>` : `<span class="text-xs checkin-reward-icon">${rewardIcons[rewardType]}</span>`}
                 </div>
             `;
         }

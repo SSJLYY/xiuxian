@@ -127,6 +127,9 @@ public class PlayerProfile {
     @TableField(value = "last_cultivation_end")
     private LocalDateTime lastCultivationEnd;
 
+    @TableField(value = "breakthrough_cooldown_until")
+    private LocalDateTime breakthroughCooldownUntil;
+
     // 基础属性
     @TableField(value = "attack")
     @Builder.Default

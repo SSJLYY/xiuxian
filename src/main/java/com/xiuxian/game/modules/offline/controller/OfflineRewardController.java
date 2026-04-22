@@ -32,6 +32,12 @@ public class OfflineRewardController {
         }
     }
 
+    @PostMapping("/calculate")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> calculateOfflineRewardPost() {
+        return calculateOfflineRewardGet();
+    }
+
     @PostMapping("/claim/{rewardId}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Map<String, Object>>> claimOfflineReward(@PathVariable Integer rewardId) {

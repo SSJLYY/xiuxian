@@ -8,6 +8,7 @@ class BreakthroughSystem {
     constructor() {
         this.canBreakthrough = false;
         this.checking = false;
+        this.breakthroughInProgress = false;
         this.createUI();
         this.init();
     }
@@ -85,6 +86,15 @@ class BreakthroughSystem {
     updateBreakthroughButton() {
         const btn = document.getElementById('breakthroughBtn');
         if (!btn) return;
+        if (this.breakthroughInProgress) {
+            btn.classList.remove('breakthrough-btn--active');
+            btn.classList.remove('breakthrough-btn--hidden');
+            btn.disabled = true;
+            btn.innerHTML = `<span class="bt-glow"></span>⌛ 突破进行中`;
+            return;
+        }
+        btn.disabled = false;
+        btn.innerHTML = `<span class="bt-glow"></span>⚡ 冲击境界`;
         if (this.canBreakthrough) {
             btn.classList.remove('breakthrough-btn--hidden');
             btn.classList.add('breakthrough-btn--active');
@@ -95,7 +105,10 @@ class BreakthroughSystem {
     }
 
     showBreakthroughAlert() {
+        const existed = document.getElementById('breakthroughAlert');
+        if (existed) existed.remove();
         const alert = document.createElement('div');
+        alert.id = 'breakthroughAlert';
         alert.className = 'breakthrough-alert';
         alert.innerHTML = `
             <span class="bt-alert-icon">⚡</span>
@@ -103,6 +116,7 @@ class BreakthroughSystem {
                 <div class="bt-alert-title">境界极限已至！</div>
                 <div class="bt-alert-sub">点击"冲击境界"按钮进行突破</div>
             </div>
+            <button class="bt-alert-go" onclick="window.breakthroughSystem.openBreakthroughModal()">前往突破</button>
             <button onclick="this.parentElement.remove()">✕</button>
         `;
         document.body.appendChild(alert);
@@ -179,6 +193,10 @@ class BreakthroughSystem {
     }
 
     openBreakthroughModal() {
+        if (this.breakthroughInProgress) {
+            this.showToast('正在突破中，请稍候', 'warning');
+            return;
+        }
         if (!this.canBreakthrough) {
             this.showToast('当前境界还未达到突破条件', 'warning');
             return;
@@ -187,14 +205,28 @@ class BreakthroughSystem {
     }
 
     closeModal() {
+        if (this.breakthroughInProgress) {
+            return;
+        }
         document.getElementById('breakthroughModal')?.classList.remove('show');
     }
 
     async attemptBreakthrough() {
+        if (this.breakthroughInProgress) {
+            return;
+        }
+        this.breakthroughInProgress = true;
+        this.updateBreakthroughButton();
+
         const btn = document.getElementById('btConfirmBtn');
         if (btn) {
             btn.disabled = true;
             btn.innerHTML = '<span class="bt-btn-glow"></span>⌛ 心魔交战中...';
+        }
+
+        const cancelBtn = document.querySelector('#breakthroughModal .bt-cancel-btn');
+        if (cancelBtn) {
+            cancelBtn.disabled = true;
         }
 
         try {
@@ -207,26 +239,56 @@ class BreakthroughSystem {
             // 关闭突破弹窗
             this.closeModal();
 
-            if (res && res.success) {
-                const result = res.data;
-                const success = result.success || result.breakthroughSuccess;
-                setTimeout(() => {
-                    this.showResult(success, result);
-                }, 2000);
-            } else {
-                setTimeout(() => {
-                    this.showResult(false, { message: res?.message || '突破失败' });
-                }, 2000);
-            }
+            const normalizedResult = this.normalizeBreakthroughResult(res);
+            setTimeout(() => {
+                this.showResult(normalizedResult.success, normalizedResult);
+            }, 2000);
         } catch (e) {
             this.closeModal();
             this.showToast('突破请求失败: ' + e.message, 'error');
         } finally {
+            this.breakthroughInProgress = false;
+            this.updateBreakthroughButton();
             if (btn) {
                 btn.disabled = false;
                 btn.innerHTML = '<span class="bt-btn-glow"></span>踏入心魔之境 →';
             }
+            if (cancelBtn) {
+                cancelBtn.disabled = false;
+            }
         }
+    }
+
+    normalizeBreakthroughResult(res) {
+        if (!res || !res.success) {
+            return {
+                success: false,
+                message: res?.message || '突破失败'
+            };
+        }
+
+        const payload = res.data;
+
+        // 兼容后端返回对象结构
+        if (payload && typeof payload === 'object') {
+            const success = payload.success === true || payload.breakthroughSuccess === true;
+            return {
+                ...payload,
+                success,
+                message: payload.message || res.message || (success ? '突破成功！' : '突破失败')
+            };
+        }
+
+        // 兼容后端仅返回字符串描述
+        const text = String(payload || res.message || '突破失败');
+        const success = text.includes('突破成功');
+        const realmMatch = text.match(/→\s*(.+)$/);
+
+        return {
+            success,
+            message: text,
+            newRealm: realmMatch ? realmMatch[1] : undefined
+        };
     }
 
     showBreakthroughAnimation() {
@@ -299,18 +361,33 @@ class BreakthroughSystem {
         this.updateBreakthroughButton();
     }
 
-    closeResult() {
+    async closeResult() {
+        const resultContent = document.getElementById('btResultContent');
+        const resultTitle = resultContent?.querySelector('.bt-result-title')?.textContent || '';
+        const resultRealm = resultContent?.querySelector('.bt-result-realm')?.textContent || '';
+
         document.getElementById('breakthroughResultModal')?.classList.remove('show');
         // 刷新玩家数据
         if (window.authManager?.loadPlayerProfile) {
-            window.authManager.loadPlayerProfile();
+            await window.authManager.loadPlayerProfile();
         }
         // 重新检查突破状态
-        setTimeout(() => this.checkBreakthroughStatus(), 2000);
+        await this.checkBreakthroughStatus();
+
+        if (resultTitle.includes('成功')) {
+            this.showToast(
+                this.formatOutcomeToast('突破成功', `新境界：${resultRealm || '未知境界'}`, '道心更进一步'),
+                'success'
+            );
+        }
     }
 
     showToast(msg, type) {
         if (window.gameManager?.showToast) window.gameManager.showToast(msg, type);
+    }
+
+    formatOutcomeToast(title, core, extra = '') {
+        return extra ? `${title} | ${core} | ${extra}` : `${title} | ${core}`;
     }
 
     injectStyles() {

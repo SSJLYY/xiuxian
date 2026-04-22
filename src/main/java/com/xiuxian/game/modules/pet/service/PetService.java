@@ -110,6 +110,12 @@ public class PetService {
         }
     }
 
+    public void updatePlayerPet(PlayerPet playerPet) {
+        if (playerPet != null) {
+            playerPetMapper.updateById(playerPet);
+        }
+    }
+
     /**
      * 计算宠物战斗加成
      * GDD设计：宠物在战斗中提供额外伤害、忠诚度影响技能发动概率、饱食度影响参战效果

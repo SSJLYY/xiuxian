@@ -53,6 +53,9 @@ public class PlayerService {
     /** 境界突破基础成功率（70%） */
     private static final double BREAKTHROUGH_SUCCESS_RATE = 0.70;
 
+    /** 突破失败冷却时长（1小时） */
+    private static final long BREAKTHROUGH_COOLDOWN_MS = 60 * 60 * 1000L;
+
     /** 单次升级允许最大连续升级次数（防止无限循环） */
     private static final int MAX_LEVEL_UPS_PER_CHECK = 100;
 
@@ -199,6 +202,9 @@ public class PlayerService {
      */
     public boolean canBreakthrough(Integer playerId) {
         PlayerProfile profile = getPlayerProfileById(playerId);
+        if (isBreakthroughCoolingDown(profile)) {
+            return false;
+        }
         // 需要有足够灵石进行突破挑战
         return profile.getSpiritStones() != null && profile.getSpiritStones() >= BREAKTHROUGH_COST;
     }
@@ -206,7 +212,7 @@ public class PlayerService {
     /**
      * 尝试境界突破
      * 消耗 {@value #BREAKTHROUGH_COST} 灵石，{@value #BREAKTHROUGH_SUCCESS_RATE} 成功率；
-     * 失败不扣灵石但进入1小时冷却
+     * 失败会进入1小时冷却
      *
      * @param playerId 玩家ID
      * @return 突破结果描述
@@ -214,23 +220,50 @@ public class PlayerService {
     @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public String attemptBreakthrough(Integer playerId) {
         PlayerProfile profile = getPlayerProfileById(playerId);
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime cooldownUntil = profile.getBreakthroughCooldownUntil();
+        if (cooldownUntil != null && cooldownUntil.isAfter(now)) {
+            long remainingSeconds = Math.max(1, java.time.Duration.between(now, cooldownUntil).getSeconds());
+            long minutes = remainingSeconds / 60;
+            long seconds = remainingSeconds % 60;
+            throw new BusinessException(ErrorCode.PARAM_ERROR,
+                    "突破冷却中，请" + minutes + "分" + seconds + "秒后再试");
+        }
+
         if (profile.getSpiritStones() == null || profile.getSpiritStones() < BREAKTHROUGH_COST) {
             throw new BusinessException(ErrorCode.PARAM_ERROR,
                     "灵石不足，需要" + BREAKTHROUGH_COST + "灵石进行境界突破");
         }
+        long currentSpiritStones = profile.getSpiritStones();
         // 消耗灵石
-        profile.setSpiritStones(profile.getSpiritStones() - BREAKTHROUGH_COST);
+        profile.setSpiritStones(currentSpiritStones - BREAKTHROUGH_COST);
         // 成功率判断
         boolean success = java.util.concurrent.ThreadLocalRandom.current().nextDouble() < BREAKTHROUGH_SUCCESS_RATE;
         if (success) {
             String oldRealm = profile.getRealm();
             updateRealm(profile);
+            profile.setBreakthroughCooldownUntil(null);
             playerProfileMapper.updateById(profile);
             return "突破成功！" + oldRealm + " → " + profile.getRealm();
         } else {
+            profile.setSpiritStones(currentSpiritStones);
+            profile.setBreakthroughCooldownUntil(now.plusHours(1));
             playerProfileMapper.updateById(profile);
-            return "心魔侵袭，突破失败！消耗" + BREAKTHROUGH_COST + "灵石，1小时后可再次尝试";
+            return "心魔侵袭，突破失败！未消耗灵石，1小时后可再次尝试";
         }
+    }
+
+    private boolean isBreakthroughCoolingDown(PlayerProfile profile) {
+        LocalDateTime cooldownUntil = profile.getBreakthroughCooldownUntil();
+        if (cooldownUntil == null) {
+            return false;
+        }
+        if (!cooldownUntil.isAfter(LocalDateTime.now())) {
+            profile.setBreakthroughCooldownUntil(null);
+            playerProfileMapper.updateById(profile);
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -336,15 +369,20 @@ public class PlayerService {
      * 结束修炼状态，计算修炼收益（经验、灵石等），检查升级，更新任务进度
      */
     @Transactional
-    public void stopCultivate() {
+    public Map<String, Object> stopCultivate() {
         PlayerProfile profile = getCurrentPlayerProfile();
         log.info("玩家停止修炼：ID={}, 修炼状态={}", profile.getId(), profile.getIsCultivating());
 
-        if (!profile.getIsCultivating()) {
+        Map<String, Object> result = new java.util.HashMap<>();
+        result.put("expGained", 0L);
+        result.put("spiritStonesGained", 0L);
+        result.put("levelUps", 0);
+
+        if (profile.getIsCultivating() == null || !profile.getIsCultivating()) {
             profile.setIsCultivating(false);
             playerProfileMapper.updateById(profile);
             log.info("玩家未在修炼中，忽略停止请求：ID={}", profile.getId());
-            return;
+            return result;
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -352,6 +390,10 @@ public class PlayerService {
 
         if (startTime != null) {
             long cultivationTimeSeconds = java.time.Duration.between(startTime, now).getSeconds();
+            if (cultivationTimeSeconds < 0) {
+                log.warn("检测到修炼开始时间晚于当前时间，按0秒处理：playerId={}, start={}, now={}", profile.getId(), startTime, now);
+                cultivationTimeSeconds = 0;
+            }
             long maxCultivationTime = 24 * 60 * 60;
             long actualCultivationTime = Math.min(cultivationTimeSeconds, maxCultivationTime);
 
@@ -360,7 +402,12 @@ public class PlayerService {
             profile.setTotalCultivationTime(oldTotalTime + cultivationTimeMinutes);
 
             double baseExpPerSecond = 1.0;
-            double cultivationSpeedMultiplier = profile.getCultivationSpeed().doubleValue();
+            double cultivationSpeedMultiplier = profile.getCultivationSpeed() == null
+                    ? 1.0
+                    : profile.getCultivationSpeed().doubleValue();
+            if (cultivationSpeedMultiplier <= 0) {
+                cultivationSpeedMultiplier = 1.0;
+            }
             long expGained = (long) (actualCultivationTime * baseExpPerSecond * cultivationSpeedMultiplier);
 
             // 【2026-03-24 优化】使用 GameBalanceUtils 计算灵石收益
@@ -369,18 +416,21 @@ public class PlayerService {
             
             // 检查灵石上限，超出部分转为修炼点数
             long spiritStonesLimit = balanceUtils.calculateSpiritStonesLimit(profile.getRealm());
-            long currentSpiritStones = profile.getSpiritStones();
+            long currentSpiritStones = profile.getSpiritStones() == null ? 0L : profile.getSpiritStones();
             long remainingCapacity = Math.max(0, spiritStonesLimit - currentSpiritStones);
             long spiritStonesToAdd = Math.min(spiritStonesGained, remainingCapacity);
             long overflowSpiritStones = spiritStonesGained - spiritStonesToAdd;
             
             if (overflowSpiritStones > 0) {
-                profile.setCultivationPoints(profile.getCultivationPoints() + overflowSpiritStones);
+                long currentCultivationPoints = profile.getCultivationPoints() == null ? 0L : profile.getCultivationPoints();
+                profile.setCultivationPoints(currentCultivationPoints + overflowSpiritStones);
                 log.info("灵石超限，{} 灵石转为修炼点数", overflowSpiritStones);
             }
 
             profile.setExp(profile.getExp() + expGained);
-            profile.setSpiritStones(profile.getSpiritStones() + spiritStonesToAdd);
+            profile.setSpiritStones(currentSpiritStones + spiritStonesToAdd);
+            result.put("expGained", expGained);
+            result.put("spiritStonesGained", spiritStonesGained);
             log.info("修炼收益：时长={}s, 经验+{}, 灵石+{}, 速度倍数=x{}", 
                     actualCultivationTime, expGained, spiritStonesGained, cultivationSpeedMultiplier);
 
@@ -401,6 +451,7 @@ public class PlayerService {
             }
             
             if (profile.getLevel() > oldLevel) {
+                result.put("levelUps", levelUps);
                 log.info("玩家升级：{}级 -> {}级，共升级{}次", oldLevel, profile.getLevel(), levelUps);
             }
 
@@ -419,6 +470,7 @@ public class PlayerService {
         profile.setLastCultivationEnd(now);
         playerProfileMapper.updateById(profile);
         log.info("玩家停止修炼成功：ID={}", profile.getId());
+        return result;
     }
 
     /**
@@ -452,6 +504,21 @@ public class PlayerService {
         log.info("玩家升级无提交：ID={}, 新等级={}, 经验={}, 下一等级所需经验={}", 
                 profile.getId(), profile.getLevel(), profile.getExp(), profile.getExpToNext());
         return true;
+    }
+
+    /**
+     * 对外暴露统一升级结算逻辑，供离线奖励等场景复用。
+     */
+    public int applyLevelUpsWithoutCommit(PlayerProfile profile, int maxLevelUps) {
+        if (profile == null || maxLevelUps <= 0) {
+            return 0;
+        }
+
+        int levelUps = 0;
+        while (levelUps < maxLevelUps && checkLevelUpWithoutCommit(profile)) {
+            levelUps++;
+        }
+        return levelUps;
     }
 
     /**

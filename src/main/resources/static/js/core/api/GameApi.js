@@ -84,12 +84,12 @@ class GameApi extends ApiClient {
         return this.post('/combat/start', {});
     }
 
-    async startEnhancedCombat() {
-        return this.post('/combat/enhanced', {});
+    async startEnhancedCombat(payload = {}) {
+        return this.post('/combat/enhanced', payload);
     }
 
-    async batchCombat(times) {
-        return this.post(`/combat/batch/${times}`, {});
+    async batchCombat(times, payload = {}) {
+        return this.post(`/combat/batch/${times}`, payload);
     }
 
     async getCombatHistory() {
