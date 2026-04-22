@@ -265,6 +265,7 @@ public class PetService {
         int newHunger = Math.min(100, playerPet.getHunger() + 20);
         playerPet.setHunger(newHunger);
         playerPet.setLoyalty(Math.min(100, playerPet.getLoyalty() + 5));
+        playerPet.setLastFeedTime(LocalDateTime.now());
         playerPet.setUpdatedAt(LocalDateTime.now());
         playerPetMapper.updateById(playerPet);
         log.info("喂养宠物: playerPetId={}, newHunger={}", playerPetId, newHunger);

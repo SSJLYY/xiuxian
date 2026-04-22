@@ -517,14 +517,18 @@ window.startBattle = async function() {
         }
         
         const result = combatResponse.data;
+        const isWin = result.result === 'WIN';
+        const expGained = result.expGained ?? result.totalExpGained ?? 0;
+        const spiritStonesGained = result.spiritStonesGained ?? result.totalSpiritStonesGained ?? 0;
+        const droppedEquipment = result.droppedEquipment ?? result.droppedEquipmentId;
         
         // 显示战斗结果
-        let message = `战斗${result.result === 'WIN' ? '胜利' : '失败'}！\n`;
+        let message = `战斗${isWin ? '胜利' : '失败'}！\n`;
         message += `回合数: ${result.rounds}\n`;
-        if (result.result === 'WIN') {
-            message += `获得经验: ${result.expGained}\n`;
-            message += `获得灵石: ${result.spiritStonesGained}\n`;
-            if (result.droppedEquipment) {
+        if (isWin) {
+            message += `获得经验: ${expGained}\n`;
+            message += `获得灵石: ${spiritStonesGained}\n`;
+            if (droppedEquipment) {
                 message += `获得装备掉落!\n`;
             }
         }

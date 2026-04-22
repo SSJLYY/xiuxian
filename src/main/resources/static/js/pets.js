@@ -417,11 +417,15 @@ async function feedPet(petId) {
         hideLoading();
         
         if (response.success) {
+            sessionStorage.setItem('tutorial_pet_fed_once', 'true');
             showToast('🍖 喂食成功！', 'success');
             closePetModal();
             loadMyPets();
             if (currentTab === 'active-pet') {
                 loadActivePet();
+            }
+            if (window.tutorialSystem && typeof window.tutorialSystem.checkProgress === 'function') {
+                window.tutorialSystem.checkProgress();
             }
         } else {
             showToast(response.message || '喂食失败', 'error');

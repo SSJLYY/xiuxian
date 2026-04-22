@@ -14,7 +14,10 @@ class TutorialSystem {
                 icon: '🧘',
                 action: '开始修炼',
                 reward: { desc: '破境丹×1', icon: '💊' },
-                checkFn: (data) => data.totalCultivationTime > 0 || data.isCultivating,
+                checkFn: (ctx) => {
+                    const profile = ctx.profile || {};
+                    return (profile.totalCultivationTime || 0) > 0 || profile.isCultivating;
+                },
                 hint: '在主界面找到修炼区域，点击"开始修炼"按钮',
                 npcTip: '苏玄清: "修炼是修仙者的根基，万里之行始于足下。"'
             },
@@ -25,7 +28,11 @@ class TutorialSystem {
                 icon: '⚔️',
                 action: '前往战斗',
                 reward: { desc: '基础铁剑×1', icon: '🗡️' },
-                checkFn: (data) => (data.totalBattles || 0) >= 1,
+                checkFn: (ctx) => {
+                    const profile = ctx.profile || {};
+                    const totalBattles = Number(profile.totalBattles || profile.total_battles || 0);
+                    return totalBattles >= 1 || (ctx.combatHistoryCount || 0) >= 1;
+                },
                 hint: '点击导航栏的"战斗"进入战斗界面，挑战野外妖兽',
                 npcTip: '剑无痕: "师弟，战场上没有温柔，先活下来再说其他。"'
             },
@@ -36,7 +43,10 @@ class TutorialSystem {
                 icon: '🦊',
                 action: '前往宠物',
                 reward: { desc: '宠物技能书×1', icon: '📖' },
-                checkFn: (data) => (data.petFeedCount || 0) >= 1,
+                checkFn: (ctx) => {
+                    const profile = ctx.profile || {};
+                    return Number(profile.petFeedCount || 0) >= 1 || ctx.anyPetFed === true || ctx.petFeedMarked === true;
+                },
                 hint: '去宠物系统，找到你的宠物，点击"喂食"按钮',
                 npcTip: '白鹿真人: "灵兽有情，以诚相待，方可心意相通。"'
             },
@@ -47,7 +57,10 @@ class TutorialSystem {
                 icon: '✨',
                 action: '前往技能',
                 reward: { desc: '高级修炼丹×3', icon: '💎' },
-                checkFn: (data) => (data.skillCount || 0) >= 1,
+                checkFn: (ctx) => {
+                    const profile = ctx.profile || {};
+                    return Number(profile.skillCount || 0) >= 1 || (ctx.learnedSkillCount || 0) >= 1;
+                },
                 hint: '在技能界面购买并学习一个技能',
                 npcTip: '苏玄清: "天道万千，择一而精，此乃真修之道。"'
             },
@@ -58,7 +71,7 @@ class TutorialSystem {
                 icon: '🌟',
                 action: '继续修炼',
                 reward: { desc: '稀有宠物捕获令×1', icon: '🎫' },
-                checkFn: (data) => (data.level || 1) >= 3,
+                checkFn: (ctx) => ((ctx.profile || {}).level || 1) >= 3,
                 hint: '坚持修炼和战斗，升级至练气期三层',
                 npcTip: '苏玄清: "练气三层，根基已稳。从今日起，你已是正式弟子。"'
             }
@@ -68,7 +81,11 @@ class TutorialSystem {
         this.isCompleted = false;
         this.isVisible = false;
         this.playerData = null;
+        this.progressContext = null;
         this.hasShownExitHook = false;
+        this.isActionProcessing = false;
+        this._highlightTimer = null;
+        this._focusedElement = null;
         this.tutorialKey = 'tutorial_completed';
         this.tutorialStepKey = 'tutorial_step';
         
@@ -78,15 +95,18 @@ class TutorialSystem {
     // 初始化系统
     async init() {
         // 已完成则不展示
-        if (localStorage.getItem(this.tutorialKey) === 'true') {
+        const tutorialState = localStorage.getItem(this.tutorialKey);
+        if (tutorialState === 'true' || tutorialState === 'skipped') {
             this.isCompleted = true;
             this.setupExitHook(); // 仍然挂载退出钩子
             return;
         }
 
         // 恢复进度
-        const savedStep = parseInt(localStorage.getItem(this.tutorialStepKey) || '0');
-        this.currentStep = savedStep;
+        const savedStep = parseInt(localStorage.getItem(this.tutorialStepKey) || '0', 10);
+        this.currentStep = Number.isFinite(savedStep)
+            ? Math.max(0, Math.min(savedStep, this.TUTORIAL_STEPS.length - 1))
+            : 0;
 
         this.createUI();
         await this.checkProgress();
@@ -113,7 +133,7 @@ class TutorialSystem {
                     <span class="tutorial-title">新手引导</span>
                     <div class="tutorial-progress-text" id="tutorialProgress">1/5</div>
                 </div>
-                <button class="tutorial-minimize-btn" id="tutorialMinBtn" onclick="window.tutorialSystem.toggle()" title="最小化">—</button>
+                <button class="tutorial-minimize-btn" id="tutorialMinBtn" title="最小化">—</button>
             </div>
             <div class="tutorial-body" id="tutorialBody">
                 <div class="tutorial-step-indicator" id="tutorialStepIndicator"></div>
@@ -122,7 +142,7 @@ class TutorialSystem {
                 <div class="tutorial-hint" id="tutorialHint"></div>
                 <div class="tutorial-action-row">
                     <button class="tutorial-action-btn" id="tutorialActionBtn">开始修炼</button>
-                    <button class="tutorial-skip-btn" onclick="window.tutorialSystem.skipAll()">跳过引导</button>
+                    <button class="tutorial-skip-btn" id="tutorialSkipBtn">跳过引导</button>
                 </div>
             </div>
         `;
@@ -135,7 +155,7 @@ class TutorialSystem {
         const modal = document.createElement('div');
         modal.id = 'tutorialCompleteModal';
         modal.innerHTML = `
-            <div class="tutorial-complete-overlay" onclick="window.tutorialSystem.closeCompleteModal()"></div>
+            <div class="tutorial-complete-overlay" id="tutorialCompleteOverlay"></div>
             <div class="tutorial-complete-content">
                 <div class="tutorial-complete-firework">🎊</div>
                 <h2 class="tutorial-complete-title">引导完成！</h2>
@@ -145,7 +165,7 @@ class TutorialSystem {
                     <span class="tutorial-complete-npc-avatar">👨‍🦳</span>
                     <p class="tutorial-complete-npc-text">"从今往后，苍玄界的风雨，就由你来见证。" —— 苏玄清</p>
                 </div>
-                <button class="tutorial-complete-btn" onclick="window.tutorialSystem.closeCompleteModal()">
+                <button class="tutorial-complete-btn" id="tutorialCompleteBtn">
                     踏入仙途 →
                 </button>
             </div>
@@ -162,12 +182,70 @@ class TutorialSystem {
                 <h3 class="tutorial-exit-title">你的灵兽在等你回来</h3>
                 <p class="tutorial-exit-desc" id="tutorialExitDesc">你的宠物饱食度将在<strong>约12小时</strong>后耗尽，记得明天回来喂食哦！</p>
                 <div class="tutorial-exit-btn-row">
-                    <button class="tutorial-exit-stay-btn" onclick="window.tutorialSystem.closeExitModal()">继续游戏</button>
+                    <button class="tutorial-exit-stay-btn" id="tutorialExitStayBtn">继续游戏</button>
                     <button class="tutorial-exit-leave-btn" id="tutorialExitLeaveBtn">离开游戏</button>
                 </div>
             </div>
         `;
         document.body.appendChild(exitModal);
+
+        this.bindUIEvents();
+        this.ensureFocusMask();
+    }
+
+    async getProgressContext() {
+        const context = {
+            profile: null,
+            learnedSkillCount: 0,
+            anyPetFed: false,
+            combatHistoryCount: 0,
+            petFeedMarked: sessionStorage.getItem('tutorial_pet_fed_once') === 'true'
+        };
+
+        const [profileRes, petsRes, skillsRes, combatHistoryRes] = await Promise.allSettled([
+            gameAPI.getCurrentPlayerProfile(),
+            gameAPI.getMyPets ? gameAPI.getMyPets() : Promise.resolve(null),
+            gameAPI.getSkills ? gameAPI.getSkills() : Promise.resolve(null),
+            gameAPI.getCombatHistory ? gameAPI.getCombatHistory(1) : Promise.resolve(null)
+        ]);
+
+        if (profileRes.status === 'fulfilled' && profileRes.value?.success) {
+            context.profile = profileRes.value.data || {};
+        }
+
+        if (petsRes.status === 'fulfilled' && petsRes.value?.success) {
+            const pets = Array.isArray(petsRes.value.data) ? petsRes.value.data : [];
+            context.anyPetFed = pets.some(pet => !!pet?.lastFeedTime);
+        }
+
+        if (skillsRes.status === 'fulfilled' && skillsRes.value?.success) {
+            const skills = Array.isArray(skillsRes.value.data) ? skillsRes.value.data : [];
+            context.learnedSkillCount = skills.length;
+        }
+
+        if (combatHistoryRes.status === 'fulfilled' && combatHistoryRes.value?.success) {
+            const logs = Array.isArray(combatHistoryRes.value.data) ? combatHistoryRes.value.data : [];
+            context.combatHistoryCount = logs.length;
+        }
+
+        return context;
+    }
+
+    bindUIEvents() {
+        const minBtn = document.getElementById('tutorialMinBtn');
+        if (minBtn) minBtn.onclick = () => this.toggle();
+
+        const skipBtn = document.getElementById('tutorialSkipBtn');
+        if (skipBtn) skipBtn.onclick = () => this.skipAll();
+
+        const completeOverlay = document.getElementById('tutorialCompleteOverlay');
+        if (completeOverlay) completeOverlay.onclick = () => this.closeCompleteModal();
+
+        const completeBtn = document.getElementById('tutorialCompleteBtn');
+        if (completeBtn) completeBtn.onclick = () => this.closeCompleteModal();
+
+        const exitStayBtn = document.getElementById('tutorialExitStayBtn');
+        if (exitStayBtn) exitStayBtn.onclick = () => this.closeExitModal();
     }
 
     // 注入CSS样式
@@ -239,6 +317,82 @@ class TutorialSystem {
             }
             .tutorial-minimize-btn:hover { color: #fff; border-color: #fff; }
             .tutorial-body { padding: 12px 16px 16px; }
+
+            .tutorial-guide-highlight {
+                position: relative;
+                z-index: 9100;
+                box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.9), 0 0 18px rgba(255, 215, 0, 0.6);
+                animation: tutorialGuidePulse 1.2s ease-in-out infinite;
+            }
+
+            #tutorialFocusMask {
+                position: fixed;
+                inset: 0;
+                pointer-events: none;
+                z-index: 9050;
+                display: none;
+            }
+
+            #tutorialFocusHole {
+                position: fixed;
+                border-radius: 10px;
+                box-shadow: 0 0 0 9999px rgba(5, 8, 20, 0.62);
+                transition: all 0.2s ease;
+                pointer-events: none;
+            }
+
+            #tutorialFocusBubble {
+                position: fixed;
+                max-width: 280px;
+                min-width: 180px;
+                background: linear-gradient(135deg, rgba(20, 26, 50, 0.97), rgba(10, 14, 30, 0.97));
+                border: 1px solid rgba(212, 175, 55, 0.55);
+                border-radius: 10px;
+                padding: 10px 12px;
+                color: #f4f2e6;
+                font-size: 12px;
+                line-height: 1.5;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+                pointer-events: none;
+                z-index: 9060;
+            }
+
+            #tutorialFocusBubble::before {
+                content: '';
+                position: absolute;
+                width: 0;
+                height: 0;
+                border-left: 8px solid transparent;
+                border-right: 8px solid transparent;
+            }
+
+            #tutorialFocusBubble.arrow-up::before {
+                top: -8px;
+                left: 22px;
+                border-bottom: 8px solid rgba(212, 175, 55, 0.8);
+            }
+
+            #tutorialFocusBubble.arrow-down::before {
+                bottom: -8px;
+                left: 22px;
+                border-top: 8px solid rgba(212, 175, 55, 0.8);
+            }
+
+            .tutorial-focus-title {
+                color: #d4af37;
+                font-weight: bold;
+                margin-bottom: 4px;
+            }
+
+            .tutorial-focus-desc {
+                color: rgba(255, 255, 255, 0.9);
+            }
+
+            @keyframes tutorialGuidePulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.03); }
+                100% { transform: scale(1); }
+            }
             
             /* 步骤指示器 */
             .tutorial-step-indicator {
@@ -540,14 +694,15 @@ class TutorialSystem {
     // 检查任务进度
     async checkProgress() {
         try {
-            const res = await gameAPI.getCurrentPlayerProfile();
-            if (!res || !res.success) return;
-            this.playerData = res.data;
+            const progressContext = await this.getProgressContext();
+            if (!progressContext.profile) return;
+            this.progressContext = progressContext;
+            this.playerData = progressContext.profile;
 
             // 逐步推进到当前应有的进度
             let advanced = false;
             for (let i = this.currentStep; i < this.TUTORIAL_STEPS.length; i++) {
-                if (this.TUTORIAL_STEPS[i].checkFn(this.playerData)) {
+                if (this.TUTORIAL_STEPS[i].checkFn(progressContext)) {
                     this.currentStep = i + 1;
                     advanced = true;
                 } else {
@@ -569,6 +724,180 @@ class TutorialSystem {
         } catch (e) {
             console.warn('Tutorial progress check failed:', e);
         }
+    }
+
+    clearStepHighlights() {
+        document.querySelectorAll('.tutorial-guide-highlight').forEach(el => {
+            el.classList.remove('tutorial-guide-highlight');
+        });
+        this.hideFocusMask();
+    }
+
+    ensureFocusMask() {
+        if (document.getElementById('tutorialFocusMask')) return;
+        const mask = document.createElement('div');
+        mask.id = 'tutorialFocusMask';
+        mask.innerHTML = '<div id="tutorialFocusHole"></div><div id="tutorialFocusBubble"></div>';
+        document.body.appendChild(mask);
+    }
+
+    getFocusBubbleText() {
+        const step = this.TUTORIAL_STEPS[this.currentStep];
+        if (!step) return { title: '引导提示', desc: '请按提示完成当前步骤' };
+        return {
+            title: `${step.icon} ${step.action}`,
+            desc: step.hint
+        };
+    }
+
+    updateFocusMask() {
+        if (!this._focusedElement) return;
+        const mask = document.getElementById('tutorialFocusMask');
+        const hole = document.getElementById('tutorialFocusHole');
+        const bubble = document.getElementById('tutorialFocusBubble');
+        if (!mask || !hole || !bubble) return;
+
+        const rect = this._focusedElement.getBoundingClientRect();
+        if (!rect || rect.width <= 0 || rect.height <= 0) {
+            this.hideFocusMask();
+            return;
+        }
+
+        const padding = 8;
+        hole.style.left = `${Math.max(0, rect.left - padding)}px`;
+        hole.style.top = `${Math.max(0, rect.top - padding)}px`;
+        hole.style.width = `${rect.width + padding * 2}px`;
+        hole.style.height = `${rect.height + padding * 2}px`;
+
+        const bubbleText = this.getFocusBubbleText();
+        bubble.innerHTML = `
+            <div class="tutorial-focus-title">${bubbleText.title}</div>
+            <div class="tutorial-focus-desc">${bubbleText.desc}</div>
+        `;
+
+        const margin = 12;
+        const bubbleRect = bubble.getBoundingClientRect();
+        const viewportW = window.innerWidth;
+        const viewportH = window.innerHeight;
+        const preferBelow = rect.bottom + margin + bubbleRect.height < viewportH - 8;
+        let bubbleLeft = rect.left;
+        let bubbleTop;
+
+        if (preferBelow) {
+            bubbleTop = rect.bottom + margin;
+            bubble.classList.add('arrow-up');
+            bubble.classList.remove('arrow-down');
+        } else {
+            bubbleTop = Math.max(8, rect.top - bubbleRect.height - margin);
+            bubble.classList.add('arrow-down');
+            bubble.classList.remove('arrow-up');
+        }
+
+        const maxLeft = Math.max(8, viewportW - bubbleRect.width - 8);
+        bubbleLeft = Math.max(8, Math.min(bubbleLeft, maxLeft));
+        if (bubbleTop + bubbleRect.height > viewportH - 8) {
+            bubbleTop = Math.max(8, viewportH - bubbleRect.height - 8);
+        }
+
+        bubble.style.left = `${bubbleLeft}px`;
+        bubble.style.top = `${bubbleTop}px`;
+        mask.style.display = 'block';
+    }
+
+    showFocusMask(element) {
+        if (!element) {
+            this.hideFocusMask();
+            return;
+        }
+        this.ensureFocusMask();
+        this._focusedElement = element;
+        this.updateFocusMask();
+    }
+
+    hideFocusMask() {
+        const mask = document.getElementById('tutorialFocusMask');
+        if (mask) mask.style.display = 'none';
+        this._focusedElement = null;
+    }
+
+    findButtonByText(containerSelector, keywords) {
+        const buttons = document.querySelectorAll(`${containerSelector} button`);
+        for (const btn of buttons) {
+            const text = (btn.textContent || '').trim();
+            if (keywords.some(k => text.includes(k))) {
+                return btn;
+            }
+        }
+        return null;
+    }
+
+    applyStepHighlight() {
+        const step = this.TUTORIAL_STEPS[this.currentStep];
+        if (!step) return false;
+
+        this.clearStepHighlights();
+
+        const navModuleMap = {
+            1: 'dashboard',
+            2: 'combat',
+            3: 'pets',
+            4: 'skills',
+            5: 'dashboard'
+        };
+
+        const navModule = navModuleMap[step.id];
+        let navBtn = null;
+        if (navModule) {
+            navBtn = document.querySelector(`.nav-item[data-module="${navModule}"] .nav-button`) ||
+                document.querySelector(`.nav-item[data-module="${navModule}"] button`);
+            if (navBtn) {
+                navBtn.classList.add('tutorial-guide-highlight');
+            }
+        }
+
+        let target = null;
+        if (step.id === 1 || step.id === 5) {
+            target = document.querySelector('#cultivation-btn') ||
+                document.querySelector('#startCultivateBtn');
+        } else if (step.id === 2) {
+            target = document.querySelector('#startCombatBtn') ||
+                this.findButtonByText('#combat-module', ['开始挑战', '开始战斗']);
+        } else if (step.id === 3) {
+            target = document.querySelector('#myPetsList button[onclick*="feedPet"]') ||
+                this.findButtonByText('#pets-module', ['喂食']);
+        } else if (step.id === 4) {
+            target = document.querySelector('#skills-module button[onclick*="learnSkill"]') ||
+                document.querySelector('#skills-module button[data-action="learn"]') ||
+                this.findButtonByText('#skills-module', ['学习', '学习技能']);
+        }
+
+        if (target) {
+            target.classList.add('tutorial-guide-highlight');
+            this.showFocusMask(target);
+            return true;
+        }
+        if (navBtn) {
+            this.showFocusMask(navBtn);
+            return true;
+        }
+        this.hideFocusMask();
+        return false;
+    }
+
+    scheduleStepHighlight() {
+        if (this._highlightTimer) {
+            clearInterval(this._highlightTimer);
+        }
+
+        let tries = 0;
+        this._highlightTimer = setInterval(() => {
+            tries += 1;
+            const found = this.applyStepHighlight();
+            if (found || tries >= 12 || this.isCompleted) {
+                clearInterval(this._highlightTimer);
+                this._highlightTimer = null;
+            }
+        }, 300);
     }
 
     // 渲染当前步骤
@@ -617,10 +946,22 @@ class TutorialSystem {
         if (btnEl) {
             btnEl.textContent = step.action;
             btnEl.onclick = () => {
-            console.log('[Tutorial] 行动按钮被点击，步骤:', step.id, step.title);
-            this.handleAction(step);
-        };
+                if (this.isActionProcessing) {
+                    return;
+                }
+                this.isActionProcessing = true;
+                btnEl.disabled = true;
+                console.log('[Tutorial] 行动按钮被点击，步骤:', step.id, step.title);
+                this.handleAction(step);
+                setTimeout(() => {
+                    this.isActionProcessing = false;
+                    const activeBtnEl = document.getElementById('tutorialActionBtn');
+                    if (activeBtnEl) activeBtnEl.disabled = false;
+                }, 1200);
+            };
         }
+
+        this.scheduleStepHighlight();
     }
 
     // 处理行动按钮点击
@@ -630,18 +971,41 @@ class TutorialSystem {
         switch (step.id) {
             case 1: // 开始修炼
                 this.navigateTo('cultivation');
+                setTimeout(() => {
+                    if (typeof window.startCultivation === 'function') {
+                        console.log('[Tutorial] 自动触发开始修炼');
+                        window.startCultivation();
+                    }
+                }, 200);
+                this.scheduleStepHighlight();
                 break;
             case 2: // 前往战斗
                 this.navigateTo('combat');
+                setTimeout(() => {
+                    if (typeof window.startBattle === 'function') {
+                        console.log('[Tutorial] 自动触发开始挑战');
+                        window.startBattle();
+                    }
+                }, 200);
+                this.scheduleStepHighlight();
                 break;
             case 3: // 前往宠物
                 this.navigateTo('pets');
+                this.scheduleStepHighlight();
                 break;
             case 4: // 前往技能
                 this.navigateTo('skills');
+                this.scheduleStepHighlight();
                 break;
             case 5: // 继续修炼
                 this.navigateTo('cultivation');
+                setTimeout(() => {
+                    if (typeof window.startCultivation === 'function') {
+                        console.log('[Tutorial] 自动触发继续修炼');
+                        window.startCultivation();
+                    }
+                }, 200);
+                this.scheduleStepHighlight();
                 break;
         }
         // 3秒后检查是否已完成
@@ -651,23 +1015,28 @@ class TutorialSystem {
     // 导航到对应模块
     navigateTo(module) {
         console.log('[Tutorial] 导航到模块:', module);
+
+        const moduleAliasMap = {
+            cultivation: 'dashboard'
+        };
+        const targetModule = moduleAliasMap[module] || module;
         
         // 直接使用 showModule 函数（如果可用）
         if (window.showModule) {
-            console.log('[Tutorial] 使用 showModule 函数切换模块');
-            window.showModule(module);
+            console.log('[Tutorial] 使用 showModule 函数切换模块:', targetModule);
+            window.showModule(targetModule);
             return;
         }
         
         // 尝试点击侧边栏导航
         const navMap = {
-            cultivation: ['dashboard'],
-            combat: ['.nav-item[data-module="combat"] button', 'a[href="enhanced_combat.html"]'],
-            pets: ['.nav-item[data-module="pets"] button', 'a[href="pets.html"]'],
-            skills: ['.nav-item[data-module="skills"] button', 'a[href="skills.html"]'],
-            inventory: ['.nav-item[data-module="inventory"] button'],
-            shop: ['.nav-item[data-module="shop"] button'],
-            quests: ['.nav-item[data-module="quests"] button']
+            cultivation: ['.nav-item[data-module="dashboard"] .nav-button', '.nav-item[data-module="dashboard"] button'],
+            combat: ['.nav-item[data-module="combat"] .nav-button', '.nav-item[data-module="combat"] button', 'a[href="enhanced_combat.html"]'],
+            pets: ['.nav-item[data-module="pets"] .nav-button', '.nav-item[data-module="pets"] button', 'a[href="pets.html"]'],
+            skills: ['.nav-item[data-module="skills"] .nav-button', '.nav-item[data-module="skills"] button', 'a[href="skills.html"]'],
+            inventory: ['.nav-item[data-module="inventory"] .nav-button', '.nav-item[data-module="inventory"] button'],
+            shop: ['.nav-item[data-module="shop"] .nav-button', '.nav-item[data-module="shop"] button'],
+            quests: ['.nav-item[data-module="quests"] .nav-button', '.nav-item[data-module="quests"] button']
         };
 
         const selectors = navMap[module] || [];
@@ -703,6 +1072,12 @@ class TutorialSystem {
             panel.style.display = 'block';
             this.render();
             this.startPolling();
+
+            if (!this._focusSyncHandler) {
+                this._focusSyncHandler = () => this.updateFocusMask();
+                window.addEventListener('resize', this._focusSyncHandler);
+                window.addEventListener('scroll', this._focusSyncHandler, true);
+            }
         }
     }
 
@@ -720,10 +1095,22 @@ class TutorialSystem {
         this.isCompleted = true;
         localStorage.setItem(this.tutorialKey, 'true');
         localStorage.removeItem(this.tutorialStepKey);
+        sessionStorage.removeItem('tutorial_pet_fed_once');
+        this.clearStepHighlights();
+        if (this._highlightTimer) {
+            clearInterval(this._highlightTimer);
+            this._highlightTimer = null;
+        }
 
         // 隐藏面板
         const panel = document.getElementById('tutorialPanel');
         if (panel) panel.style.display = 'none';
+
+        if (this._focusSyncHandler) {
+            window.removeEventListener('resize', this._focusSyncHandler);
+            window.removeEventListener('scroll', this._focusSyncHandler, true);
+            this._focusSyncHandler = null;
+        }
 
         // 显示完成弹窗
         this.showCompleteModal();
@@ -837,10 +1224,22 @@ class TutorialSystem {
     skipAll() {
         if (confirm('确定跳过新手引导吗？跳过后将无法重新触发引导流程。')) {
             this.isCompleted = true;
-            localStorage.setItem(this.tutorialKey, 'skipped');
+            localStorage.setItem(this.tutorialKey, 'true');
+            localStorage.removeItem(this.tutorialStepKey);
+            sessionStorage.removeItem('tutorial_pet_fed_once');
+            this.clearStepHighlights();
+            if (this._highlightTimer) {
+                clearInterval(this._highlightTimer);
+                this._highlightTimer = null;
+            }
             const panel = document.getElementById('tutorialPanel');
             if (panel) panel.style.display = 'none';
             if (this._pollTimer) clearInterval(this._pollTimer);
+            if (this._focusSyncHandler) {
+                window.removeEventListener('resize', this._focusSyncHandler);
+                window.removeEventListener('scroll', this._focusSyncHandler, true);
+                this._focusSyncHandler = null;
+            }
         }
     }
 
@@ -848,6 +1247,12 @@ class TutorialSystem {
     reset() {
         localStorage.removeItem(this.tutorialKey);
         localStorage.removeItem(this.tutorialStepKey);
+        sessionStorage.removeItem('tutorial_pet_fed_once');
+        this.clearStepHighlights();
+        if (this._highlightTimer) {
+            clearInterval(this._highlightTimer);
+            this._highlightTimer = null;
+        }
         this.currentStep = 0;
         this.isCompleted = false;
         this.init();

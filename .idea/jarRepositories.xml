@@ -12,6 +12,11 @@
       <option name="url" value="https://maven.aliyun.com/repository/public" />
     </remote-repository>
     <remote-repository>
+      <option name="id" value="aliyun-releases" />
+      <option name="name" value="阿里云 Releases" />
+      <option name="url" value="https://maven.aliyun.com/repository/releases" />
+    </remote-repository>
+    <remote-repository>
       <option name="id" value="central-http" />
       <option name="name" value="Central Repository HTTP" />
       <option name="url" value="http://repo.maven.apache.org/maven2" />
@@ -45,6 +50,11 @@
       <option name="id" value="aliyun-central" />
       <option name="name" value="Aliyun Central" />
       <option name="url" value="http://maven.aliyun.com/nexus/content/groups/public" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="aliyun-spring" />
+      <option name="name" value="阿里云 Spring" />
+      <option name="url" value="https://maven.aliyun.com/repository/spring" />
     </remote-repository>
   </component>
 </project>

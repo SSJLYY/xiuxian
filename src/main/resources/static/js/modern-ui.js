@@ -162,15 +162,33 @@ class SimpleUI {
                 <div style="background:linear-gradient(135deg,#f093fb,#f5576c);padding:20px;border-radius:12px;color:white;">
                     <h3>挑战副本</h3>
                     <p>挑战BOSS获得丰厚奖励</p>
-                    <button class="btn btn-primary" style="margin-top:10px;">开始挑战</button>
+                    <button class="btn btn-primary" id="startCombatBtn" style="margin-top:10px;">开始挑战</button>
                 </div>
                 <div style="background:linear-gradient(135deg,#4facfe,#00f2fe);padding:20px;border-radius:12px;color:white;">
                     <h3>PVP对战</h3>
                     <p>与其他玩家一决高下</p>
-                    <button class="btn btn-primary" style="margin-top:10px;">匹配对手</button>
+                    <button class="btn btn-primary" id="matchPvpBtn" style="margin-top:10px;">匹配对手</button>
                 </div>
             </div>
         `;
+
+        const startCombatBtn = module.querySelector('#startCombatBtn');
+        if (startCombatBtn) {
+            startCombatBtn.addEventListener('click', async () => {
+                if (window.startBattle) {
+                    await window.startBattle();
+                } else {
+                    alert('战斗功能正在初始化，请稍后重试');
+                }
+            });
+        }
+
+        const matchPvpBtn = module.querySelector('#matchPvpBtn');
+        if (matchPvpBtn) {
+            matchPvpBtn.addEventListener('click', () => {
+                alert('PVP功能开发中，敬请期待！');
+            });
+        }
     }
 
     async loadInventoryModule() {

@@ -356,6 +356,7 @@ class PetHungerMonitor {
         try {
             const res = await gameAPI.feedPet(this.pet.id);
             if (res && res.success) {
+                sessionStorage.setItem('tutorial_pet_fed_once', 'true');
                 // 喂食成功动画
                 if (emoji) {
                     emoji.classList.add('fed');
@@ -375,6 +376,9 @@ class PetHungerMonitor {
 
                 // 立即刷新数据
                 await this.fetchPetData();
+                if (window.tutorialSystem && typeof window.tutorialSystem.checkProgress === 'function') {
+                    window.tutorialSystem.checkProgress();
+                }
                 this.showToast('🍖 喂食成功！', 'success');
             } else {
                 this.showToast(res?.message || '喂食失败', 'error');

@@ -60,6 +60,11 @@ WHERE TABLE_SCHEMA = DATABASE()
   AND TABLE_NAME = 'player_profiles'
   AND COLUMN_NAME IN ('avatar', 'total_battles', 'max_health', 'max_mana');
 
+
+ALTER TABLE player_profiles ADD COLUMN avatar VARCHAR(255) DEFAULT NULL COMMENT '玩家头像 URL' AFTER nickname;
+ALTER TABLE player_profiles ADD COLUMN total_battles INT DEFAULT 0 COMMENT '总战斗次数' AFTER last_online_time;
+ALTER TABLE player_profiles ADD COLUMN max_health INT DEFAULT 100 COMMENT '最大生命值' AFTER health;
+ALTER TABLE player_profiles ADD COLUMN max_mana INT DEFAULT 50 COMMENT '最大法力值' AFTER mana;
 -- =====================================================
 -- 迁移完成
 -- =====================================================

@@ -16,9 +16,22 @@ logs/
 
 # IDE 文件
 .idea/
+.idea/**
 *.iml
 *.iws
+*.ipr
+.vscode/
+
+# 编辑器临时文件
+*.swp
+*.swo
+*~
 
 # 系统文件
 .DS_Store
-Thumbs.db.env
+Thumbs.db
+
+# 本地环境配置
+.env
+.env.*
+!.env.example

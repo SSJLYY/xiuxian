@@ -1142,8 +1142,12 @@ window.feedPet = async function(playerPetId) {
     try {
         const res = await api.post(`/pets/feed/${playerPetId}`);
         if (!res.success) throw new Error(res.message);
+        sessionStorage.setItem('tutorial_pet_fed_once', 'true');
         moduleManager.showToast('喂食成功！宠物很开心！', 'success');
         await loadMyPets();
+        if (window.tutorialSystem && typeof window.tutorialSystem.checkProgress === 'function') {
+            window.tutorialSystem.checkProgress();
+        }
     } catch (e) {
         moduleManager.showToast('喂食失败: ' + e.message, 'error');
     }
