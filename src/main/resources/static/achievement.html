@@ -409,6 +409,10 @@
 
     <!-- 加载脚本 -->
     <script src="js/api.js"></script>
-    <script src="js/achievement.js"></script>
+    <script type="module">
+        import { mountAchievementGlobals } from './js/modules/achievement/index.js';
+
+        mountAchievementGlobals().init();
+    </script>
 </body>
 </html>

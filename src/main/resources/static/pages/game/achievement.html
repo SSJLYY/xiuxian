@@ -41,11 +41,11 @@
 
     <script type="module">
         import { App } from '/js/App.js';
+        import { mountAchievementGlobals } from '/js/modules/achievement/index.js';
+
         const app = new App();
         app.init();
-        import('/js/modules/achievement/index.js').then(module => {
-            module.achievementUI.init();
-        });
+        mountAchievementGlobals().init();
     </script>
 </body>
 </html>

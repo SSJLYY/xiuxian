@@ -303,7 +303,6 @@ class ModuleManager {
 
     async loadPetsData() {
         console.log('加载宠物数据');
-        // 宠物数据加载逻辑
         if (window.loadMyPets) {
             await window.loadMyPets();
         }
@@ -311,7 +310,6 @@ class ModuleManager {
 
     async loadSkillsData() {
         console.log('加载技能数据');
-        // 技能数据加载逻辑
         if (window.loadMySkills) {
             await window.loadMySkills();
         }
@@ -337,37 +335,30 @@ class ModuleManager {
 
     async loadCombatData() {
         console.log('加载战斗数据');
-        // 战斗数据加载逻辑
+        if (window.combatUI?.init) {
+            window.combatUI.init();
+        }
     }
 
     async loadGuildData() {
         console.log('加载宗门数据');
-        try {
-            // 先检查是否有宗门
-            const myGuildRes = await api.get('/guild/my');
-            if (myGuildRes.success && myGuildRes.data) {
-                renderMyGuild(myGuildRes.data);
-                document.getElementById('guild-my-tab-btn').style.display = '';
-            } else {
-                document.getElementById('guild-my-tab-btn').style.display = 'none';
-                document.getElementById('guild-my-info').style.display = 'none';
-                document.getElementById('guild-actions').style.display = 'none';
-            }
-            // 默认显示宗门列表
-            switchGuildTab('list');
-        } catch (error) {
-            console.error('加载宗门数据失败:', error);
+        if (window.guildUI?.init) {
+            await window.guildUI.init();
         }
     }
 
     async loadRankingData() {
         console.log('加载排行榜数据');
-        // 排行榜数据加载逻辑
+        if (window.rankingUI?.init) {
+            await window.rankingUI.init();
+        }
     }
 
     async loadAchievementsData() {
         console.log('加载成就数据');
-        // 成就数据加载逻辑
+        if (window.achievementUI?.init) {
+            await window.achievementUI.init();
+        }
     }
 
     async loadCombosData() {
@@ -394,8 +385,8 @@ class ModuleManager {
 
     async loadNarrativeData() {
         console.log('加载叙事数据');
-        if (window.NarrativeUI && window.NarrativeUI.instance) {
-            window.NarrativeUI.instance.loadNarratives();
+        if (window.narrativeUI?.init) {
+            await window.narrativeUI.init();
         }
     }
 
@@ -408,8 +399,8 @@ class ModuleManager {
 
     async loadMapData() {
         console.log('加载地图数据');
-        if (window.gameMapSystem) {
-            await window.gameMapSystem.init();
+        if (window.mapUI?.init) {
+            await window.mapUI.init();
         }
     }
 
@@ -422,8 +413,8 @@ class ModuleManager {
 
     async loadAchievementsData() {
         console.log('加载成就数据');
-        if (window.achievementPanel) {
-            await window.achievementPanel.init();
+        if (window.achievementUI?.init) {
+            await window.achievementUI.init();
         }
     }
 
@@ -653,168 +644,7 @@ function updateQuestStats(normalized) {
     if (el3) el3.textContent = total;
 }
 
-// ==================== 宗门系统辅助函数 ====================
-
-window.switchGuildTab = function(tab) {
-    document.querySelectorAll('#guild-module .tab-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.guildTab === tab);
-    });
-    document.getElementById('guild-list-panel').style.display = (tab === 'list') ? '' : 'none';
-    document.getElementById('guild-my-panel').style.display = (tab === 'my') ? '' : 'none';
-    if (tab === 'list') loadGuildList();
-    if (tab === 'my') loadMyGuildDetail();
-};
-
-async function loadGuildList() {
-    const panel = document.getElementById('guild-list-panel');
-    if (!panel) return;
-    panel.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载宗门列表...</p></div>';
-    try {
-        const res = await api.get('/guild/list');
-        if (!res.success) throw new Error(res.message);
-        const { guilds } = res.data;
-        if (!guilds || guilds.length === 0) {
-            panel.innerHTML = '<div class="empty-state">暂无宗门，创建一个吧！</div>';
-        } else {
-            panel.innerHTML = `
-                <div class="guild-create-bar mb-4 p-3 rounded flex items-center justify-between" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
-                    <div class="text-sm text-muted">创建宗门需要 10000 灵石</div>
-                    <button class="btn btn-sm btn-primary" onclick="showCreateGuildForm()"><i class="fa-solid fa-plus"></i> 创建宗门</button>
-                </div>
-                <div class="guild-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:15px;">
-                    ${guilds.map(g => `
-                        <div class="guild-card p-4 rounded" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
-                            <div class="flex items-center justify-between mb-2">
-                                <h4 class="font-bold">${escapeHtml(g.name)}</h4>
-                                <span class="text-xs text-muted">Lv.${g.level || 1}</span>
-                            </div>
-                            <div class="text-sm text-muted mb-2">${escapeHtml(g.description || '暂无描述')}</div>
-                            <div class="flex gap-4 text-xs text-muted mb-3">
-                                <span><i class="fa-solid fa-users"></i> ${g.memberCount || 0}/${g.maxMembers || 50}</span>
-                                <span><i class="fa-solid fa-gem"></i> ${g.treasury || 0}</span>
-                            </div>
-                            <button class="btn btn-sm w-full" onclick="applyToGuild(${g.id})">申请加入</button>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        }
-    } catch (e) {
-        panel.innerHTML = `<div class="empty-state">加载失败: ${e.message}</div>`;
-    }
-}
-
-function renderMyGuild(guild) {
-    const infoEl = document.getElementById('guild-my-info');
-    const actionsEl = document.getElementById('guild-actions');
-    if (!infoEl || !actionsEl) return;
-    infoEl.style.display = '';
-    infoEl.style.cssText += 'background:linear-gradient(135deg,rgba(212,175,55,0.08),rgba(212,175,55,0.03));border:1px solid rgba(212,175,55,0.2);';
-    infoEl.innerHTML = `
-        <div class="flex items-center justify-between mb-2">
-            <h3 class="font-bold" style="color:var(--accent-gold);"><i class="fa-solid fa-chess-rook"></i> ${escapeHtml(guild.name)}</h3>
-            <span class="text-sm text-muted">等级 ${guild.level || 1}</span>
-        </div>
-        <div class="text-sm text-muted mb-2">${escapeHtml(guild.description || '暂无描述')}</div>
-        <div class="flex gap-4 text-xs">
-            <span class="text-muted"><i class="fa-solid fa-users"></i> 成员 ${guild.memberCount || 0}/${guild.maxMembers || 50}</span>
-            <span class="text-muted"><i class="fa-solid fa-gem"></i> 宗门资金 ${guild.treasury || 0}</span>
-            <span class="text-muted"><i class="fa-solid fa-star"></i> 贡献 ${guild.myContribution || 0}</span>
-        </div>
-    `;
-    actionsEl.style.display = '';
-    actionsEl.innerHTML = `
-        <button class="btn btn-sm" onclick="showDonateForm()"><i class="fa-solid fa-donate"></i> 捐献灵石</button>
-        <button class="btn btn-sm" onclick="switchGuildTab('my')"><i class="fa-solid fa-users"></i> 宗门成员</button>
-        <button class="btn btn-sm btn-danger" onclick="leaveGuild()"><i class="fa-solid fa-sign-out-alt"></i> 退出宗门</button>
-    `;
-}
-
-async function loadMyGuildDetail() {
-    const panel = document.getElementById('guild-my-panel');
-    if (!panel) return;
-    panel.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载中...</p></div>';
-    try {
-        const res = await api.get('/guild/my');
-        if (!res.success || !res.data) {
-            panel.innerHTML = '<div class="empty-state">您还没有加入宗门</div>';
-            return;
-        }
-        const guild = res.data;
-        // 获取成员列表
-        const detailRes = await api.get(`/guild/${guild.id}`);
-        const members = detailRes.success ? (detailRes.data?.members || []) : [];
-        panel.innerHTML = `
-            <div class="mb-4">
-                <h4 class="font-bold mb-3"><i class="fa-solid fa-users"></i> 宗门成员</h4>
-                <div style="display:flex;flex-direction:column;gap:8px;">
-                    ${members.map(m => `
-                        <div class="flex items-center justify-between p-3 rounded" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
-                            <div class="flex items-center gap-2">
-                                <div class="font-semibold">${escapeHtml(m.playerName || '成员')}</div>
-                                <span class="text-xs text-muted">Lv.${m.level || '?'}</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-xs text-accent">贡献 ${m.contribution || 0}</span>
-                                <span class="text-xs ${m.role === 'LEADER' ? 'text-yellow-400' : 'text-muted'}">${m.role === 'LEADER' ? '宗主' : m.role === 'ELDER' ? '长老' : '成员'}</span>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-    } catch (e) {
-        panel.innerHTML = `<div class="empty-state">加载失败: ${e.message}</div>`;
-    }
-}
-
-window.applyToGuild = async function(guildId) {
-    try {
-        const res = await api.post(`/guild/apply/${guildId}`);
-        if (!res.success) throw new Error(res.message);
-        moduleManager.showToast('申请已提交，等待宗主审核', 'success');
-    } catch (e) {
-        moduleManager.showToast('申请失败: ' + e.message, 'error');
-    }
-};
-
-window.leaveGuild = async function() {
-    if (!confirm('确定要退出宗门吗？')) return;
-    try {
-        const res = await api.post('/guild/leave');
-        if (!res.success) throw new Error(res.message);
-        moduleManager.showToast('已退出宗门', 'info');
-        document.getElementById('guild-my-info').style.display = 'none';
-        document.getElementById('guild-actions').style.display = 'none';
-        document.getElementById('guild-my-tab-btn').style.display = 'none';
-        switchGuildTab('list');
-    } catch (e) {
-        moduleManager.showToast('退出失败: ' + e.message, 'error');
-    }
-};
-
-window.showCreateGuildForm = function() {
-    const name = prompt('宗门名称:');
-    if (!name) return;
-    const desc = prompt('宗门描述 (可选):') || '';
-    api.post('/guild/create', { guildName: name, description: desc }).then(res => {
-        if (!res.success) throw new Error(res.message);
-        moduleManager.showToast('宗门创建成功！', 'success');
-        moduleManager.loadGuildData();
-        if (window.authManager?.loadPlayerProfile) window.authManager.loadPlayerProfile();
-    }).catch(e => moduleManager.showToast('创建失败: ' + e.message, 'error'));
-};
-
-window.showDonateForm = function() {
-    const amount = prompt('捐献灵石数量:');
-    if (!amount || isNaN(amount) || parseInt(amount) <= 0) return;
-    api.post('/guild/donate', { amount: parseInt(amount) }).then(res => {
-        if (!res.success) throw new Error(res.message);
-        moduleManager.showToast('捐献成功！', 'success');
-        moduleManager.loadGuildData();
-        if (window.authManager?.loadPlayerProfile) window.authManager.loadPlayerProfile();
-    }).catch(e => moduleManager.showToast('捐献失败: ' + e.message, 'error'));
-};
+// ==================== 宗门系统辅助函数（委托到模块化实现） ====================
 
 // ==================== 拍卖行系统辅助函数 ====================
 
@@ -970,195 +800,33 @@ function formatAuctionTime(endTime) {
     return `${s}秒`;
 }
 
-// ==================== 宠物系统辅助函数 ====================
+// ==================== 宠物系统辅助函数（委托到模块化实现） ====================
+
+function getPetsModule() {
+    if (!window.petsUI) {
+        throw new Error('宠物模块尚未初始化');
+    }
+    return window.petsUI;
+}
 
 window.switchPetTab = function(tab) {
-    document.querySelectorAll('#pets-module .tab-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.petTab === tab);
-    });
-    document.getElementById('pets-my-panel').style.display = (tab === 'my') ? '' : 'none';
-    document.getElementById('pets-available-panel').style.display = (tab === 'available') ? '' : 'none';
-    if (tab === 'my') loadMyPets();
-    if (tab === 'available') loadAvailablePets();
+    return getPetsModule().switchTab(tab);
 };
 
 window.loadMyPets = async function() {
-    const container = document.getElementById('myPetsList');
-    if (!container) return;
-    container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载宠物...</p></div>';
-    try {
-        const res = await api.get('/pets/my');
-        if (!res.success) throw new Error(res.message);
-        const pets = res.data || [];
-        renderMyPets(pets);
-        loadActivePetInfo();
-    } catch (e) {
-        container.innerHTML = `<div class="empty-state">加载失败: ${e.message}</div>`;
-    }
+    return getPetsModule().loadMyPets();
 };
 
-function renderMyPets(pets) {
-    const container = document.getElementById('myPetsList');
-    const select = document.getElementById('evolution-pet-select');
-    if (!container) return;
-    
-    // 更新进化下拉框
-    if (select) {
-        const defaultOpt = select.querySelector('option[value=""]');
-        select.innerHTML = defaultOpt ? defaultOpt.outerHTML : '<option value="">-- 请选择宠物 --</option>';
-        pets.forEach(pet => {
-            if (pet.level >= 10) { // 只有10级以上才能进化
-                const opt = document.createElement('option');
-                opt.value = pet.id;
-                opt.textContent = `${pet.name || pet.petName} (Lv.${pet.level || 1})`;
-                select.appendChild(opt);
-            }
-        });
-    }
-    
-    if (pets.length === 0) {
-        container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;text-align:center;padding:2rem;">您还没有宠物，快去捕捉吧！</div>';
-        return;
-    }
-    
-    container.innerHTML = pets.map(pet => {
-        const rarityNames = { 1: '普通', 2: '稀有', 3: '史诗', 4: '传说', 5: '神话' };
-        const qualityColors = { 1: '#aaa', 2: '#5ba85b', 3: '#4a90d9', 4: '#9b59b6', 5: '#f39c12' };
-        const rarity = Number(pet.rarity || 1);
-        const qualityColor = qualityColors[rarity] || '#aaa';
-        const isActive = pet.isActive || false;
-        const isLocked = pet.isLocked || false;
-        const expToNext = pet.expToNext || 100;
-        const trainingCooldownUntil = pet.trainCooldownUntil ? new Date(pet.trainCooldownUntil) : null;
-        const trainingCoolingDown = trainingCooldownUntil && trainingCooldownUntil > new Date();
-        return `
-            <div class="pet-card p-4 rounded" style="background:rgba(255,255,255,0.05);border:1px solid ${isActive ? qualityColor : 'rgba(255,255,255,0.1)'};">
-                <div class="flex items-center justify-between mb-2">
-                    <div class="flex items-center gap-2">
-                        <span class="pet-icon" style="font-size:1.5rem;">${getPetEmoji(pet.type || 'NORMAL')}</span>
-                        <div>
-                            <h4 class="font-semibold">${escapeHtml(pet.nickname || pet.name || pet.petName || '宠物')}</h4>
-                            <span class="text-xs" style="color:${qualityColor};">${rarityNames[rarity] || '普通'}</span>
-                        </div>
-                    </div>
-                    ${isActive ? '<span class="text-xs px-2 py-1 rounded" style="background:rgba(46,204,113,0.2);color:#2ecc71;">出战中</span>' : ''}
-                    ${isLocked ? '<i class="fa-solid fa-lock text-muted"></i>' : ''}
-                </div>
-                <div class="text-xs text-muted mb-2">
-                    等级 ${pet.level || 1} | 经验 ${pet.exp || 0}/${expToNext}
-                </div>
-                <div class="text-xs text-muted mb-2">
-                    攻击 ${pet.attack || 0} | 防御 ${pet.defense || 0} | 生命 ${pet.health || 0}/${pet.maxHealth || 0}
-                </div>
-                <div class="text-xs text-muted mb-2">
-                    忠诚 ${pet.loyalty || 0} | 饱食 ${pet.hunger || 0}
-                </div>
-                <div class="flex gap-2 flex-wrap mt-3">
-                    ${!isActive ? `<button class="btn btn-sm btn-primary" onclick="activatePet(${pet.id})"><i class="fa-solid fa-play"></i> 出战</button>` : ''}
-                    <button class="btn btn-sm" onclick="feedPet(${pet.id})"><i class="fa-solid fa-utensils"></i> 喂食</button>
-                    <button class="btn btn-sm" ${trainingCoolingDown ? 'disabled' : ''} onclick="trainPet(${pet.id})"><i class="fa-solid fa-dumbbell"></i> ${trainingCoolingDown ? '训练冷却中' : '训练'}</button>
-                    <button class="btn btn-sm" onclick="togglePetLock(${pet.id})"><i class="fa-solid fa-${isLocked ? 'unlock' : 'lock'}"></i></button>
-                    ${!isLocked ? `<button class="btn btn-sm btn-danger" onclick="releasePet(${pet.id})"><i class="fa-solid fa-trash"></i></button>` : ''}
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-function getPetEmoji(type) {
-    const emojis = { NORMAL: '🐾', FIRE: '🔥', WATER: '💧', GRASS: '🌿', THUNDER: '⚡', ICE: '❄️', DARK: '🌙', LIGHT: '☀️', DRAGON: '🐉' };
-    return emojis[type] || '🐾';
-}
-
-async function loadActivePetInfo() {
-    const infoEl = document.getElementById('active-pet-info');
-    if (!infoEl) return;
-    try {
-        const res = await api.get('/pets/active');
-        if (res.success && res.data) {
-            const pet = res.data;
-            infoEl.style.display = '';
-            infoEl.innerHTML = `
-                <div class="flex items-center gap-4">
-                    <span style="font-size:2rem;">${getPetEmoji(pet.type || 'NORMAL')}</span>
-                    <div class="flex-1">
-                        <div class="font-bold" style="color:var(--accent-gold);">${escapeHtml(pet.name || pet.petName || '出战宠物')}</div>
-                        <div class="text-sm text-muted">等级 ${pet.level || 1} | 战力评估中...</div>
-                    </div>
-                    <span class="text-sm text-green-400">战斗中...</span>
-                </div>
-            `;
-        } else {
-            infoEl.style.display = 'none';
-        }
-    } catch (e) {
-        infoEl.style.display = 'none';
-    }
-}
-
 window.loadAvailablePets = async function() {
-    const container = document.getElementById('availablePetsList');
-    if (!container) return;
-    container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载可捕获宠物...</p></div>';
-    try {
-        const res = await api.get('/pets/available');
-        if (!res.success) throw new Error(res.message);
-        const pets = res.data || [];
-        if (pets.length === 0) {
-            container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;text-align:center;padding:2rem;">当前没有可捕获的宠物</div>';
-            return;
-        }
-        container.innerHTML = pets.map(pet => {
-            const qualityColors = { NORMAL: '#aaa', GOOD: '#5ba85b', RARE: '#4a90d9', EPIC: '#9b59b6', LEGENDARY: '#f39c12' };
-            const qualityColor = qualityColors[pet.quality] || '#aaa';
-            return `
-                <div class="pet-card p-4 rounded" style="background:rgba(255,255,255,0.05);border:1px solid ${qualityColor};">
-                    <div class="flex items-center gap-2 mb-2">
-                        <span style="font-size:1.5rem;">${getPetEmoji(pet.type || 'NORMAL')}</span>
-                        <div>
-                            <h4 class="font-semibold">${escapeHtml(pet.name || '野生宠物')}</h4>
-                            <span class="text-xs" style="color:${qualityColor};">${pet.quality || '普通'}</span>
-                        </div>
-                    </div>
-                    <div class="text-xs text-muted mb-2">
-                        等级 ${pet.minLevel || 1} - ${pet.maxLevel || 10} | 攻击 ${pet.attack || 0}
-                    </div>
-                    <div class="text-xs text-muted mb-3">${escapeHtml(pet.description || '野生宠物，出没于野外')}</div>
-                    <button class="btn btn-sm w-full btn-primary" onclick="capturePet(${pet.id})">
-                        <i class="fa-solid fa-hand-sparkles"></i> 捕捉
-                    </button>
-                </div>
-            `;
-        }).join('');
-    } catch (e) {
-        container.innerHTML = `<div class="empty-state">加载失败: ${e.message}</div>`;
-    }
+    return getPetsModule().loadAvailablePets();
 };
 
 window.activatePet = async function(playerPetId) {
-    try {
-        const res = await api.post(`/pets/activate/${playerPetId}`);
-        if (!res.success) throw new Error(res.message);
-        moduleManager.showToast('设置出战成功！', 'success');
-        await loadMyPets();
-    } catch (e) {
-        moduleManager.showToast('设置失败: ' + e.message, 'error');
-    }
+    return getPetsModule().activatePet(playerPetId);
 };
 
 window.feedPet = async function(playerPetId) {
-    try {
-        const res = await api.post(`/pets/feed/${playerPetId}`);
-        if (!res.success) throw new Error(res.message);
-        sessionStorage.setItem('tutorial_pet_fed_once', 'true');
-        moduleManager.showToast('喂食成功！宠物很开心！', 'success');
-        await loadMyPets();
-        if (window.tutorialSystem && typeof window.tutorialSystem.checkProgress === 'function') {
-            window.tutorialSystem.checkProgress();
-        }
-    } catch (e) {
-        moduleManager.showToast('喂食失败: ' + e.message, 'error');
-    }
+    return getPetsModule().feedPet(playerPetId);
 };
 
 window.trainPet = async function(playerPetId) {
@@ -1168,307 +836,111 @@ window.trainPet = async function(playerPetId) {
         moduleManager.showToast('无效的训练类型', 'error');
         return;
     }
-    try {
-        const res = await api.post(`/pets/train/${playerPetId}`, { trainingType: type.trim() });
-        if (!res.success) throw new Error(res.message);
-        moduleManager.showToast('训练成功！成长有所提升。', 'success');
-        await loadMyPets();
-    } catch (e) {
-        moduleManager.showToast('训练失败: ' + e.message, 'error');
-    }
+    return getPetsModule().trainPet(playerPetId, type.trim());
 };
 
 window.togglePetLock = async function(playerPetId) {
-    try {
-        const res = await api.post(`/pets/toggle-lock/${playerPetId}`);
-        if (!res.success) throw new Error(res.message);
-        moduleManager.showToast('锁定状态已切换', 'success');
-        await loadMyPets();
-    } catch (e) {
-        moduleManager.showToast('操作失败: ' + e.message, 'error');
-    }
+    return getPetsModule().togglePetLock(playerPetId);
 };
 
 window.releasePet = async function(playerPetId) {
     if (!confirm('确定要放生这只宠物吗？此操作不可撤销！')) return;
-    try {
-        const res = await api.delete(`/pets/release/${playerPetId}`);
-        if (!res.success) throw new Error(res.message);
-        moduleManager.showToast('宠物已放生', 'info');
-        await loadMyPets();
-    } catch (e) {
-        moduleManager.showToast('放生失败: ' + e.message, 'error');
-    }
+    return getPetsModule().releasePet(playerPetId);
 };
 
 window.capturePet = async function(petId) {
-    try {
-        const res = await api.post(`/pets/capture/${petId}`);
-        if (!res.success) throw new Error(res.message);
-        moduleManager.showToast('捕捉成功！获得新宠物！', 'success');
-        await loadMyPets();
-        await loadAvailablePets();
-    } catch (e) {
-        moduleManager.showToast('捕捉失败: ' + e.message, 'error');
-    }
+    return getPetsModule().capturePet(petId);
 };
 
-// ==================== 技能系统辅助函数 ====================
+// ==================== 技能系统辅助函数（委托到模块化实现） ====================
+
+function getSkillsModule() {
+    if (!window.skillsUI) {
+        throw new Error('技能模块尚未初始化');
+    }
+    return window.skillsUI;
+}
 
 window.switchSkillTab = function(tab) {
-    document.querySelectorAll('#skills-module .tab-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.skillTab === tab);
-    });
-    document.getElementById('skills-learned-panel').style.display = (tab === 'learned') ? '' : 'none';
-    document.getElementById('skills-available-panel').style.display = (tab === 'available') ? '' : 'none';
-    if (tab === 'learned') loadMySkills();
-    if (tab === 'available') loadAvailableSkills();
+    return getSkillsModule().switchSkillTab(tab);
 };
 
 window.loadMySkills = async function() {
-    const container = document.getElementById('mySkillsList');
-    if (!container) return;
-    container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载技能...</p></div>';
-    try {
-        const res = await api.get('/skills/player');
-        if (!res.success) throw new Error(res.message);
-        const skills = res.data || [];
-        renderMySkills(skills);
-        updateSkillStats(skills);
-    } catch (e) {
-        container.innerHTML = `<div class="empty-state">加载失败: ${e.message}</div>`;
-    }
+    return getSkillsModule().loadMySkills();
 };
 
-function renderMySkills(skills) {
-    const container = document.getElementById('mySkillsList');
-    if (!container) return;
-    if (skills.length === 0) {
-        container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;text-align:center;padding:2rem;">您还没有学会任何技能</div>';
-        return;
-    }
-    container.innerHTML = skills.map(skill => {
-        const elementColors = { FIRE: '#e74c3c', WATER: '#3498db', GRASS: '#27ae60', THUNDER: '#f1c40f', ICE: '#00bcd4', DARK: '#9b59b6', LIGHT: '#f39c12', PHYSICAL: '#95a5a6' };
-        const elementColor = elementColors[skill.elementType] || '#aaa';
-        const isEquipped = skill.equippedSlot != null;
-        return `
-            <div class="skill-card p-4 rounded" style="background:rgba(255,255,255,0.05);border:1px solid ${isEquipped ? elementColor : 'rgba(255,255,255,0.1)'};">
-                <div class="flex items-center justify-between mb-2">
-                    <div class="flex items-center gap-2">
-                        <span class="skill-icon" style="font-size:1.3rem;">${getSkillEmoji(skill.elementType)}</span>
-                        <div>
-                            <h4 class="font-semibold">${escapeHtml(skill.name)}</h4>
-                            <span class="text-xs" style="color:${elementColor};">${skill.elementTypeName || skill.elementType || '物理'}</span>
-                        </div>
-                    </div>
-                    ${isEquipped ? `<span class="text-xs px-2 py-1 rounded" style="background:rgba(46,204,113,0.2);color:#2ecc71;">已装备 #${skill.equippedSlot + 1}</span>` : ''}
-                </div>
-                <div class="text-sm text-muted mb-2">${escapeHtml(skill.description || '无描述')}</div>
-                <div class="flex gap-2 text-xs text-muted mb-3">
-                    <span>等级 ${skill.level || 1}</span>
-                    <span>|</span>
-                    <span>伤害 ${skill.damage || skill.baseDamage || 0}</span>
-                    <span>|</span>
-                    <span>冷却 ${skill.cooldown || 0}秒</span>
-                </div>
-                <div class="flex gap-2 flex-wrap mt-3">
-                    ${!isEquipped ? `<button class="btn btn-sm btn-primary" onclick="equipSkill(${skill.id || skill.playerSkillId}, 0)"><i class="fa-solid fa-hand-sparkles"></i> 装备</button>` : ''}
-                    ${isEquipped ? `<button class="btn btn-sm" onclick="unequipSkill(${skill.id || skill.playerSkillId})"><i class="fa-solid fa-hand"></i> 卸下</button>` : ''}
-                    <button class="btn btn-sm" onclick="upgradeSkill(${skill.id || skill.playerSkillId})"><i class="fa-solid fa-arrow-up"></i> 升级</button>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-function getSkillEmoji(element) {
-    const emojis = { FIRE: '🔥', WATER: '💧', GRASS: '🌿', THUNDER: '⚡', ICE: '❄️', DARK: '🌙', LIGHT: '☀️', PHYSICAL: '⚔️' };
-    return emojis[element] || '⚔️';
-}
-
-function updateSkillStats(skills) {
-    const el1 = document.getElementById('skill-points-value');
-    const el2 = document.getElementById('equipped-skills-count');
-    if (el1) el1.textContent = skills.filter(s => s.equippedSlot != null).length;
-    if (el2) el2.textContent = skills.filter(s => s.equippedSlot != null).length;
-}
-
 window.loadAvailableSkills = async function() {
-    const container = document.getElementById('skillsAvailableList');
-    if (!container) return;
-    container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载可学习技能...</p></div>';
-    try {
-        const res = await api.get('/skills/available');
-        if (!res.success) throw new Error(res.message);
-        const skills = res.data || [];
-        if (skills.length === 0) {
-            container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;text-align:center;padding:2rem;">当前没有可学习的技能</div>';
-            return;
-        }
-        container.innerHTML = skills.map(skill => {
-            const elementColors = { FIRE: '#e74c3c', WATER: '#3498db', GRASS: '#27ae60', THUNDER: '#f1c40f', ICE: '#00bcd4', DARK: '#9b59b6', LIGHT: '#f39c12', PHYSICAL: '#95a5a6' };
-            const elementColor = elementColors[skill.elementType] || '#aaa';
-            return `
-                <div class="skill-card p-4 rounded" style="background:rgba(255,255,255,0.05);border:1px solid ${elementColor};">
-                    <div class="flex items-center gap-2 mb-2">
-                        <span style="font-size:1.3rem;">${getSkillEmoji(skill.elementType)}</span>
-                        <div>
-                            <h4 class="font-semibold">${escapeHtml(skill.name)}</h4>
-                            <span class="text-xs" style="color:${elementColor};">${skill.elementTypeName || skill.elementType || '物理'}</span>
-                        </div>
-                    </div>
-                    <div class="text-sm text-muted mb-2">${escapeHtml(skill.description || '无描述')}</div>
-                    <div class="text-xs text-muted mb-3">
-                        等级需求 ${skill.requiredLevel || 1} | 伤害 ${skill.damage || skill.baseDamage || 0} | 冷却 ${skill.cooldown || 0}秒
-                    </div>
-                    <div class="text-sm mb-3">
-                        <span class="text-muted">学习费用:</span>
-                        <span class="font-bold" style="color:var(--accent-gold);"><i class="fa-solid fa-gem"></i> ${skill.price || 0}</span>
-                    </div>
-                    <button class="btn btn-sm w-full btn-primary" onclick="learnSkill(${skill.id})">
-                        <i class="fa-solid fa-graduation-cap"></i> 学习技能
-                    </button>
-                </div>
-            `;
-        }).join('');
-    } catch (e) {
-        container.innerHTML = `<div class="empty-state">加载失败: ${e.message}</div>`;
-    }
+    return getSkillsModule().loadAvailableSkills();
 };
 
 window.learnSkill = async function(skillId) {
-    try {
-        const res = await api.post(`/skills/learn/${skillId}`);
-        if (!res.success) throw new Error(res.message);
-        moduleManager.showToast('技能学习成功！', 'success');
-        if (window.authManager?.loadPlayerProfile) await window.authManager.loadPlayerProfile();
-        await loadMySkills();
-        await loadAvailableSkills();
-    } catch (e) {
-        moduleManager.showToast('学习失败: ' + e.message, 'error');
-    }
+    return getSkillsModule().learnSkill(skillId);
 };
 
 window.equipSkill = async function(playerSkillId, slotNumber) {
-    try {
-        const res = await api.post(`/skills/equip/${playerSkillId}/${slotNumber}`);
-        if (!res.success) throw new Error(res.message);
-        moduleManager.showToast('技能装备成功！', 'success');
-        await loadMySkills();
-    } catch (e) {
-        moduleManager.showToast('装备失败: ' + e.message, 'error');
-    }
+    return getSkillsModule().equipSkill(playerSkillId, slotNumber);
 };
 
 window.unequipSkill = async function(playerSkillId) {
-    try {
-        const res = await api.post(`/skills/unequip/${playerSkillId}`);
-        if (!res.success) throw new Error(res.message);
-        moduleManager.showToast('技能已卸下', 'success');
-        await loadMySkills();
-    } catch (e) {
-        moduleManager.showToast('卸下失败: ' + e.message, 'error');
-    }
+    return getSkillsModule().unequipSkill(playerSkillId);
 };
 
 window.upgradeSkill = async function(playerSkillId) {
-    try {
-        const res = await api.post(`/skills/${playerSkillId}/upgrade`);
-        if (!res.success) throw new Error(res.message);
-        moduleManager.showToast('技能升级成功！', 'success');
-        if (window.authManager?.loadPlayerProfile) await window.authManager.loadPlayerProfile();
-        await loadMySkills();
-    } catch (e) {
-        moduleManager.showToast('升级失败: ' + e.message, 'error');
-    }
+    return getSkillsModule().upgradeSkill(playerSkillId);
 };
 
-// ==================== 仙界人物（NPC）辅助函数 ====================
+// ==================== 修炼/挂机辅助函数（委托到模块化实现） ====================
+
+function getCultivateModule() {
+    if (!window.cultivateUI) {
+        throw new Error('修炼模块尚未初始化');
+    }
+    return window.cultivateUI;
+}
+
+window.startCultivation = async function() {
+    return getCultivateModule().startCultivation();
+};
+
+window.stopCultivation = async function() {
+    return getCultivateModule().stopCultivation();
+};
+
+window.toggleCultivation = async function() {
+    return getCultivateModule().toggleCultivation();
+};
+
+window.claimOfflineRewards = async function() {
+    return getCultivateModule().claimOfflineRewards();
+};
+
+window.resetCultivation = async function() {
+    return getCultivateModule().resetCultivation();
+};
+
+// ==================== 仙界人物（NPC）辅助函数（委托到模块化实现） ====================
+
+function getNarrativeModule() {
+    if (!window.narrativeUI) {
+        throw new Error('叙事模块尚未初始化');
+    }
+    return window.narrativeUI;
+}
 
 window.switchNarrativeTab = function(tab) {
-    document.querySelectorAll('#narrative-module .tab-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.narrativeTab === tab);
-    });
-    document.getElementById('narrative-npc-panel').style.display = (tab === 'npc') ? '' : 'none';
-    document.getElementById('narrative-relations-panel').style.display = (tab === 'relations') ? '' : 'none';
-    if (tab === 'npc') loadNpcList();
-    if (tab === 'relations') loadNpcRelations();
+    return getNarrativeModule().switchGameTab(tab);
 };
 
 window.loadNpcList = async function() {
-    const container = document.getElementById('npcList');
-    if (!container) return;
-    container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载NPC...</p></div>';
-    try {
-        const res = await api.get('/npc/list');
-        if (!res.success) throw new Error(res.message);
-        const npcs = res.data || [];
-        if (npcs.length === 0) {
-            container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;text-align:center;padding:2rem;">暂无NPC数据</div>';
-            return;
-        }
-        container.innerHTML = npcs.map(npc => {
-            const typeIcons = { MERCHANT: '💰', QUEST_GIVER: '📜', TRAINER: '⚔️', QUEST: '📜', ELDER: '🧙', BOSS: '👹', NORMAL: '👤' };
-            const icon = typeIcons[npc.npcType] || '👤';
-            return `
-                <div class="npc-card p-4 rounded" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);cursor:pointer;" onclick="showNpcDetail(${npc.id})">
-                    <div class="flex items-center gap-3 mb-2">
-                        <span style="font-size:2rem;">${icon}</span>
-                        <div>
-                            <h4 class="font-semibold">${escapeHtml(npc.name || '神秘人物')}</h4>
-                            <span class="text-xs text-muted">${npc.npcTypeName || npc.npcType || 'NPC'}</span>
-                        </div>
-                    </div>
-                    <div class="text-sm text-muted">${escapeHtml(npc.description || '一位神秘的修仙者')}</div>
-                </div>
-            `;
-        }).join('');
-    } catch (e) {
-        container.innerHTML = `<div class="empty-state">加载失败: ${e.message}</div>`;
-    }
-};
-
-window.showNpcDetail = async function(npcId) {
-    try {
-        const res = await api.get(`/npc/${npcId}`);
-        if (!res.success) throw new Error(res.message);
-        const npc = res.data;
-        alert(`【${npc.name}】\n\n${npc.description || '无描述'}\n\n${npc.dailyDialogue ? '日常对话: ' + npc.dailyDialogue : ''}`);
-    } catch (e) {
-        moduleManager.showToast('加载NPC详情失败: ' + e.message, 'error');
-    }
+    return getNarrativeModule().loadNpcList();
 };
 
 window.loadNpcRelations = async function() {
-    const container = document.getElementById('npcRelationsList');
-    if (!container) return;
-    container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载关系...</p></div>';
-    try {
-        const res = await api.get('/npc/relations');
-        if (!res.success) throw new Error(res.message);
-        const relations = res.data || [];
-        if (relations.length === 0) {
-            container.innerHTML = '<div class="empty-state">您还没有与任何NPC建立关系</div>';
-            return;
-        }
-        container.innerHTML = relations.map(rel => {
-            const relationColors = { HOSTILE: '#e74c3c', NEUTRAL: '#95a5a6', FRIENDLY: '#27ae60', ALLIED: '#3498db' };
-            const color = relationColors[rel.relation] || '#95a5a6';
-            return `
-                <div class="relation-item p-4 rounded" style="background:rgba(255,255,255,0.05);border-left:3px solid ${color};">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <h4 class="font-semibold">${escapeHtml(rel.npcName || '神秘人物')}</h4>
-                            <span class="text-xs px-2 py-1 rounded" style="background:${color}22;color:${color};">${rel.relationName || rel.relation}</span>
-                        </div>
-                        <span class="text-sm text-muted">好感度 ${rel.affinity || 0}</span>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    } catch (e) {
-        container.innerHTML = `<div class="empty-state">加载失败: ${e.message}</div>`;
-    }
+    return getNarrativeModule().loadNpcRelations();
+};
+
+window.showNpcDetail = async function(npcId) {
+    return getNarrativeModule().showNpcDetail(npcId);
 };
 
 // ==================== 传说图鉴辅助函数 ====================
@@ -1533,67 +1005,15 @@ window.loadLoreEntries = async function(filter = 'all') {
     }
 };
 
-// ==================== 技能连招辅助函数 ====================
+// ==================== 技能连招辅助函数（委托到模块化实现） ====================
 
 window.switchComboTab = function(tab) {
-    document.querySelectorAll('#combos-module .tab-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.comboTab === tab);
-    });
-    loadCombos(tab === 'available');
+    return getSkillsModule().switchComboTab(tab);
 };
 
-async function loadCombos(availableOnly = true) {
-    const container = document.getElementById('comboContent');
-    const totalEl = document.getElementById('combo-total-count');
-    const masteredEl = document.getElementById('combo-mastered-count');
-    const rateEl = document.getElementById('combo-use-rate');
-    if (!container) return;
-    
-    container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载连招...</p></div>';
-    try {
-        const endpoint = availableOnly ? '/skills/combos/available' : '/skills/combos/all';
-        const res = await api.get(endpoint);
-        if (!res.success) throw new Error(res.message);
-        const combos = res.data || [];
-        
-        // 获取统计
-        const statsRes = await api.get('/skills/combos/stats');
-        if (statsRes.success && statsRes.data) {
-            const stats = statsRes.data;
-            if (totalEl) totalEl.textContent = stats.totalAvailable || combos.length;
-            if (masteredEl) masteredEl.textContent = stats.masteredCount || 0;
-            if (rateEl) rateEl.textContent = stats.usageRate || '0%';
-        }
-        
-        if (combos.length === 0) {
-            container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;text-align:center;padding:2rem;">暂无连招数据</div>';
-            return;
-        }
-        
-        container.innerHTML = combos.map(combo => {
-            const isActive = combo.isAvailable || combo.isMastered;
-            return `
-                <div class="combo-card p-4 rounded" style="background:rgba(255,255,255,0.05);border:1px solid ${isActive ? 'var(--accent-gold)' : 'rgba(255,255,255,0.1)'};">
-                    <div class="flex items-center justify-between mb-2">
-                        <h4 class="font-semibold">${escapeHtml(combo.name || '连招')}</h4>
-                        <span class="text-xs px-2 py-1 rounded" style="background:${isActive ? 'rgba(212,175,55,0.2)' : 'rgba(255,255,255,0.1)'};color:${isActive ? 'var(--accent-gold)' : 'var(--text-muted)'};">
-                            ${combo.isMastered ? '已掌握' : combo.isAvailable ? '可用' : '未解锁'}
-                        </span>
-                    </div>
-                    <div class="text-sm text-muted mb-2">${escapeHtml(combo.description || '无描述')}</div>
-                    <div class="text-xs text-muted mb-3">
-                        技能序列: ${(combo.skillSequence || []).map(s => escapeHtml(s)).join(' → ')}
-                    </div>
-                    <div class="text-xs text-muted">
-                        伤害加成: ${combo.damageMultiplier ? (combo.damageMultiplier * 100).toFixed(0) : 100}%
-                    </div>
-                </div>
-            `;
-        }).join('');
-    } catch (e) {
-        container.innerHTML = `<div class="empty-state">加载失败: ${e.message}</div>`;
-    }
-}
+window.loadCombos = async function(availableOnly = true) {
+    return getSkillsModule().loadCombos(availableOnly);
+};
 
 // ==================== 宠物进化辅助函数 ====================
 
@@ -1673,131 +1093,33 @@ window.doEvolution = async function(petId) {
     }
 };
 
-// ==================== 世界地图辅助函数 ====================
+// ==================== 世界地图辅助函数（委托到模块化实现） ====================
+
+function getMapModule() {
+    if (!window.mapUI) {
+        throw new Error('地图模块尚未初始化');
+    }
+    return window.mapUI;
+}
 
 window.switchMapTab = function(tab) {
-    document.querySelectorAll('#map-module .tab-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.mapTab === tab);
-    });
-    document.getElementById('map-explore-panel').style.display = (tab === 'explore') ? '' : 'none';
-    document.getElementById('map-list-panel').style.display = (tab === 'list') ? '' : 'none';
-    if (tab === 'explore') loadCurrentMap();
-    if (tab === 'list') loadMapList();
+    return getMapModule().switchGameTab(tab);
 };
 
 window.loadCurrentMap = async function() {
-    const infoEl = document.getElementById('current-map-info');
-    const exploreBtn = document.getElementById('explore-btn');
-    if (!infoEl) return;
-    
-    try {
-        const res = await api.get('/maps/current');
-        if (res.success && res.data) {
-            const map = res.data;
-            infoEl.style.display = '';
-            infoEl.innerHTML = `
-                <div class="flex items-center gap-4">
-                    <span style="font-size:2rem;">${map.icon || '🗺️'}</span>
-                    <div class="flex-1">
-                        <h3 class="font-bold">${escapeHtml(map.name || '未知地图')}</h3>
-                        <div class="text-sm text-muted">${escapeHtml(map.description || '')}</div>
-                    </div>
-                    <span class="text-xs px-3 py-1 rounded" style="background:${map.mapType === 'SAFE' ? 'rgba(46,204,113,0.2)' : 'rgba(231,76,60,0.2)'};color:${map.mapType === 'SAFE' ? '#2ecc71' : '#e74c3c'};">
-                        ${map.mapType === 'SAFE' ? '安全区' : '危险区'}
-                    </span>
-                </div>
-                ${map.monsterLevel ? `<div class="text-xs text-muted mt-2">怪物等级: ${map.monsterLevel}</div>` : ''}
-            `;
-            if (exploreBtn) {
-                exploreBtn.disabled = map.mapType === 'SAFE';
-                if (map.mapType === 'SAFE') {
-                    exploreBtn.innerHTML = '<i class="fa-solid fa-shield-halved"></i> 安全区无法探索';
-                } else {
-                    exploreBtn.disabled = false;
-                    exploreBtn.innerHTML = '<i class="fa-solid fa-compass"></i> 开始探索';
-                }
-            }
-        } else {
-            infoEl.style.display = 'none';
-            if (exploreBtn) {
-                exploreBtn.disabled = true;
-                exploreBtn.innerHTML = '<i class="fa-solid fa-map-location-dot"></i> 请先进入地图';
-            }
-        }
-    } catch (e) {
-        infoEl.style.display = 'none';
-    }
+    return getMapModule().loadCurrentMap();
 };
 
 window.loadMapList = async function() {
-    const container = document.getElementById('mapList');
-    if (!container) return;
-    container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载地图...</p></div>';
-    try {
-        const res = await api.get('/maps');
-        if (!res.success) throw new Error(res.message);
-        const maps = res.data || [];
-        if (maps.length === 0) {
-            container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;text-align:center;padding:2rem;">暂无地图数据</div>';
-            return;
-        }
-        container.innerHTML = maps.map(map => {
-            const isCurrent = map.isCurrent || false;
-            const isLocked = map.isLocked || false;
-            return `
-                <div class="map-card p-4 rounded" style="background:rgba(255,255,255,0.05);border:1px solid ${isCurrent ? 'var(--accent-gold)' : 'rgba(255,255,255,0.1)'};">
-                    <div class="flex items-center gap-2 mb-2">
-                        <span style="font-size:1.5rem;">${map.icon || '🗺️'}</span>
-                        <div class="flex-1">
-                            <h4 class="font-semibold">${escapeHtml(map.name || '未知')}</h4>
-                            <span class="text-xs text-muted">Lv.${map.requiredLevel || 1}+</span>
-                        </div>
-                        ${isCurrent ? '<span class="text-xs px-2 py-1 rounded" style="background:rgba(212,175,55,0.2);color:var(--accent-gold);">当前</span>' : ''}
-                        ${isLocked ? '<i class="fa-solid fa-lock text-muted"></i>' : ''}
-                    </div>
-                    <div class="text-xs text-muted mb-3">${escapeHtml(map.description || '无描述')}</div>
-                    <button class="btn btn-sm w-full ${isCurrent ? '' : 'btn-primary'}" 
-                            onclick="enterMap(${map.id})"
-                            ${isCurrent || isLocked ? 'disabled' : ''}>
-                        ${isCurrent ? '当前所在' : isLocked ? '等级不足' : '进入'}
-                    </button>
-                </div>
-            `;
-        }).join('');
-    } catch (e) {
-        container.innerHTML = `<div class="empty-state">加载失败: ${e.message}</div>`;
-    }
+    return getMapModule().loadMapList();
 };
 
 window.enterMap = async function(mapId) {
-    try {
-        const res = await api.post(`/maps/enter/${mapId}`);
-        if (!res.success) throw new Error(res.message);
-        moduleManager.showToast(`已进入地图！`, 'success');
-        await loadCurrentMap();
-        await loadMapList();
-    } catch (e) {
-        moduleManager.showToast('进入地图失败: ' + e.message, 'error');
-    }
+    return getMapModule().enterMap(mapId);
 };
 
 window.exploreMap = async function() {
-    const btn = document.getElementById('explore-btn');
-    if (btn) { btn.disabled = true; btn.textContent = '探索中...'; }
-    try {
-        const res = await api.get('/maps/explore');
-        if (!res.success) throw new Error(res.message);
-        const encounter = res.data;
-        moduleManager.showToast(`遭遇 ${encounter.monsterName || '怪物'}！`, 'info');
-        // 可以跳转到战斗界面
-        if (confirm(`遭遇了 ${encounter.monsterName || '怪物'}！开始战斗？`)) {
-            showModule('combat');
-        }
-    } catch (e) {
-        moduleManager.showToast('探索失败: ' + e.message, 'error');
-    } finally {
-        await loadCurrentMap();
-    }
+    return getMapModule().exploreMap();
 };
 
 // ==================== 每日签到辅助函数 ====================
@@ -1908,114 +1230,23 @@ window.doCheckIn = async function() {
     }
 };
 
-// ==================== 成就系统辅助函数 ====================
-
-window.achievementPanel = {
-    currentFilter: 'all',
-    
-    init: async function() {
-        await this.loadAchievements();
-        await this.loadProgress();
-    },
-    
-    loadProgress: async function() {
-        try {
-            const res = await api.get('/achievement/progress');
-            if (!res.success) return;
-            const prog = res.data;
-            const el1 = document.getElementById('achievement-completed');
-            const el2 = document.getElementById('achievement-claimed');
-            const el3 = document.getElementById('achievement-total');
-            const el4 = document.getElementById('achievement-rate');
-            if (el1) el1.textContent = prog.completedCount || 0;
-            if (el2) el2.textContent = prog.claimedCount || 0;
-            if (el3) el3.textContent = prog.totalCount || 0;
-            if (el4) el4.textContent = prog.completionRate || '0%';
-        } catch (e) {
-            console.error('加载成就进度失败:', e);
-        }
-    },
-    
-    loadAchievements: async function() {
-        const container = document.getElementById('achievementsList');
-        if (!container) return;
-        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载成就...</p></div>';
-        try {
-            const res = await api.get('/achievement/list');
-            if (!res.success) throw new Error(res.message);
-            let achievements = res.data || [];
-            
-            // 过滤
-            if (this.currentFilter !== 'all') {
-                achievements = achievements.filter(a => 
-                    a.achievementType?.toLowerCase() === this.currentFilter.toLowerCase()
-                );
-            }
-            
-            if (achievements.length === 0) {
-                container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;text-align:center;padding:2rem;">暂无成就数据</div>';
-                return;
-            }
-            
-            container.innerHTML = achievements.map(ach => {
-                const isCompleted = ach.isCompleted;
-                const isClaimed = ach.isClaimed;
-                const progress = ach.progress || 0;
-                const target = ach.conditionValue || 1;
-                const pct = Math.min(100, Math.round(progress / target * 100));
-                const typeColors = { LEVEL: '#3498db', COMBAT: '#e74c3c', CULTIVATION: '#27ae60', COLLECTION: '#9b59b6' };
-                const typeColor = typeColors[ach.achievementType] || '#95a5a6';
-                
-                return `
-                    <div class="achievement-card p-4 rounded ${isCompleted ? 'completed' : ''}" 
-                         style="background:rgba(255,255,255,0.05);border:1px solid ${isCompleted ? '#2ecc71' : 'rgba(255,255,255,0.1)'};">
-                        <div class="flex items-start gap-3 mb-2">
-                            <span style="font-size:1.5rem;${!isCompleted ? 'opacity:0.5;filter:grayscale(1);' : ''}">${ach.icon || '🏆'}</span>
-                            <div class="flex-1">
-                                <h4 class="font-semibold">${escapeHtml(ach.name || '成就')}</h4>
-                                <span class="text-xs px-2 py-1 rounded" style="background:${typeColor}22;color:${typeColor};">${ach.achievementTypeName || ach.achievementType || '其他'}</span>
-                            </div>
-                            ${isCompleted && !isClaimed ? 
-                                `<button class="btn btn-sm" style="background:#2ecc71;color:#fff;" onclick="claimAchievement(${ach.id})">领取</button>` : 
-                                isClaimed ? '<span class="text-xs text-green-400">已领取</span>' : ''}
-                        </div>
-                        <div class="text-sm text-muted mb-2">${escapeHtml(ach.description || '无描述')}</div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <div class="flex-1 bg-white/10 rounded-full h-2">
-                                <div class="h-2 rounded-full" style="width:${pct}%;background:${isCompleted ? '#2ecc71' : 'var(--accent-gold)'};"></div>
-                            </div>
-                            <span class="text-xs text-muted">${progress}/${target}</span>
-                        </div>
-                        <div class="flex gap-3 text-xs text-muted">
-                            ${ach.rewardExp ? `<span>经验 +${ach.rewardExp}</span>` : ''}
-                            ${ach.rewardSpiritStones ? `<span style="color:var(--accent-gold);"><i class="fa-solid fa-gem"></i> +${ach.rewardSpiritStones}</span>` : ''}
-                            ${ach.rewardTitle ? `<span>称号: ${ach.rewardTitle}</span>` : ''}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        } catch (e) {
-            container.innerHTML = `<div class="empty-state">加载失败: ${e.message}</div>`;
-        }
-    }
-};
-
 window.switchAchievementTab = function(tab) {
-    document.querySelectorAll('#achievements-module .tab-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.achievementTab === tab);
-    });
-    achievementPanel.currentFilter = tab;
-    achievementPanel.loadAchievements();
+    if (!window.achievementUI) {
+        throw new Error('成就模块尚未初始化');
+    }
+    return window.achievementUI.switchTab(tab);
 };
 
 window.claimAchievement = async function(id) {
-    try {
-        const res = await api.post(`/achievement/${id}/claim`);
-        if (!res.success) throw new Error(res.message);
-        moduleManager.showToast('奖励领取成功！', 'success');
-        if (window.authManager?.loadPlayerProfile) await window.authManager.loadPlayerProfile();
-        await achievementPanel.init();
-    } catch (e) {
-        moduleManager.showToast('领取失败: ' + e.message, 'error');
+    if (!window.achievementUI) {
+        throw new Error('成就模块尚未初始化');
     }
+    return window.achievementUI.claimAchievement(id);
+};
+
+window.switchRankingTab = function(tab) {
+    if (!window.rankingUI) {
+        throw new Error('排行榜模块尚未初始化');
+    }
+    return window.rankingUI.switchTab(tab);
 };

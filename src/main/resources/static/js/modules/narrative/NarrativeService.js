@@ -1,129 +1,36 @@
-/**
- * 叙事模块 - 业务逻辑层
- */
 import { gameAPI } from '../../core/api/GameApi.js';
-import { toast } from '../../components/Toast.js';
 
 export class NarrativeService {
-    constructor() {
-        this.npcs = [];
-        this.myRelations = [];
-    }
-
     async getNpcList() {
-        try {
-            const response = await gameAPI.getAvailableDialogues();
-            if (response.success) {
-                this.npcs = response.data;
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('加载 NPC 列表失败：' + error.message);
-            throw error;
-        }
+        const response = await gameAPI.get('/npc/list');
+        if (!response?.success) throw new Error(response?.message || '加载NPC列表失败');
+        return response.data || [];
+    }
+
+    async getNpcDetail(npcId) {
+        const response = await gameAPI.get(`/npc/${npcId}`);
+        if (!response?.success) throw new Error(response?.message || '加载NPC详情失败');
+        return response.data || null;
     }
 
     async getNpcRelations() {
-        try {
-            const response = await gameAPI.getCurrentUser();
-            if (response.success) {
-                this.myRelations = response.data;
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('加载 NPC 关系失败：' + error.message);
-            throw error;
-        }
+        const response = await gameAPI.get('/npc/relations');
+        if (!response?.success) throw new Error(response?.message || '加载NPC关系失败');
+        return response.data || [];
     }
 
-    async interactWithNpc(npcId) {
-        try {
-            const response = await gameAPI.startDialogue(npcId);
-            if (response.success) {
-                toast.success('交互成功');
-                await this.getNpcRelations();
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('交互失败：' + error.message);
-            throw error;
-        }
+    async getLoreProgress() {
+        const response = await gameAPI.get('/lore/progress');
+        if (!response?.success) throw new Error(response?.message || '加载图鉴进度失败');
+        return response.data || {};
     }
 
-    async startQuest(npcId, questId) {
-        try {
-            const response = await gameAPI.startDialogue(npcId, questId);
-            if (response.success) {
-                toast.success('任务已开始');
-                await this.getNpcRelations();
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('开始任务失败：' + error.message);
-            throw error;
-        }
-    }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('加载NPC列表失败: ' + error.message);
-            throw error;
-        }
-    }
-
-    async getNpcRelations() {
-        try {
-            const response = await gameAPI.getCurrentMap();
-            if (response.success) {
-                this.myRelations = response.data;
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('加载NPC关系失败: ' + error.message);
-            throw error;
-        }
-    }
-
-    async interactWithNpc(npcId) {
-        try {
-            const response = await gameAPI.startDialogue(npcId);
-            if (response.success) {
-                toast.success('交互成功');
-                await this.getNpcRelations();
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('交互失败: ' + error.message);
-            throw error;
-        }
-    }
-
-    async startQuest(npcId, questId) {
-        try {
-            const response = await gameAPI.startDialogue(npcId, questId);
-            if (response.success) {
-                toast.success('任务已开始');
-                await this.getNpcRelations();
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('开始任务失败: ' + error.message);
-            throw error;
-        }
-    }
-
-    getNpcById(npcId) {
-        return this.npcs.find(npc => npc.id === npcId) || null;
-    }
-
-    getRelationByNpcId(npcId) {
-        return this.myRelations.find(rel => rel.npcId === npcId) || null;
+    async getLoreEntries(filter = 'all') {
+        const endpoint = filter === 'discovered' ? '/lore/discovered' : '/lore/entries';
+        const response = await gameAPI.get(endpoint);
+        if (!response?.success) throw new Error(response?.message || '加载图鉴条目失败');
+        const entries = response.data || [];
+        return filter === 'hidden' ? entries.filter(entry => !entry.isDiscovered) : entries;
     }
 }
 

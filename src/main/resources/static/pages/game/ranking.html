@@ -43,11 +43,11 @@
 
     <script type="module">
         import { App } from '/js/App.js';
+        import { mountRankingGlobals } from '/js/modules/ranking/index.js';
+
         const app = new App();
         app.init();
-        import('/js/modules/ranking/index.js').then(module => {
-            module.rankingUI.init();
-        });
+        mountRankingGlobals().init();
     </script>
 </body>
 </html>

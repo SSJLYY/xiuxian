@@ -31,9 +31,9 @@ class SkillComboSystem {
     }
 
     // 在战斗中使用技能后触发连招检测
-    async onSkillUsed(skillId) {
+    async onSkillUsed(skillId, baseDamage = 0) {
         try {
-            const res = await gameAPI.checkCombo(skillId);
+            const res = await gameAPI.checkCombo(skillId, baseDamage);
             if (res && res.success && res.data?.triggered) {
                 this.showComboTrigger(res.data);
             }

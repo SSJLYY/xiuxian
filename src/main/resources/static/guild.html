@@ -590,7 +590,11 @@
 
     <!-- 加载脚本 -->
     <script src="js/api.js"></script>
-    <script src="js/guild.js"></script>
     <script src="js/guild-boss.js"></script>
+    <script type="module">
+        import { mountGuildGlobals } from './js/modules/guild/index.js';
+
+        mountGuildGlobals().init();
+    </script>
 </body>
 </html>

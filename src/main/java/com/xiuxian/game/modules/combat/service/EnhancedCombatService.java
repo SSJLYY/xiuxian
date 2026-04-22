@@ -15,6 +15,7 @@ import com.xiuxian.game.modules.player.service.PlayerService;
 import com.xiuxian.game.modules.skill.entity.PlayerSkill;
 import com.xiuxian.game.modules.skill.entity.Skill;
 import com.xiuxian.game.modules.skill.service.SkillService;
+import com.xiuxian.game.dto.SkillComboResult;
 import com.xiuxian.game.modules.shop.entity.Item;
 import com.xiuxian.game.modules.shop.service.ItemService;
 import lombok.RequiredArgsConstructor;
@@ -297,7 +298,12 @@ public class EnhancedCombatService {
                 if (skill != null && currentMana >= skill.getManaCost()) {
                     // 计算技能伤害
                     double skillDamage = skill.getBaseDamage() + (skill.getDamagePerLevel() * playerSkill.getLevel());
-                    int damage = combatService.calculateDamage((int) skillDamage, monsterDefense, player.getLevel(), monster.getLevel(), player.getSpeed(), monster.getSpeed(), true, battleLog);
+                    int baseDamage = combatService.calculateDamage((int) skillDamage, monsterDefense, player.getLevel(), monster.getLevel(), player.getSpeed(), monster.getSpeed(), true, battleLog);
+                    SkillComboResult comboResult = skillService.calculateCombatSkillDamageWithCombo(player.getId(), skill.getId(), baseDamage);
+                    int damage = comboResult.getFinalDamage() > 0 ? comboResult.getFinalDamage() : baseDamage;
+                    if (comboResult.isTriggered()) {
+                        battleLog.add("⚡ 触发连招【" + comboResult.getComboName() + "】，额外伤害+" + comboResult.getBonusDamage());
+                    }
 
                     // 检查暴击
                     boolean isCritical = checkCriticalHit(player);

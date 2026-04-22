@@ -43,13 +43,13 @@
     </div>
 
     <script type="module">
+        import { App } from '/js/App.js';
+        import { mountCultivateGlobals } from '/js/modules/cultivate/index.js';
+
         (async () => {
-            import { App } from '/js/App.js';
             const app = new App();
             await app.init();
-            import('/js/modules/cultivate/index.js').then(module => {
-                module.cultivateUI.init();
-            });
+            await mountCultivateGlobals().init();
         })();
     </script>
 </body>

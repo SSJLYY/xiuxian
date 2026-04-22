@@ -209,6 +209,13 @@
     <script src="js/auth.js"></script>
     <script src="js/game.js"></script>
     <script src="js/utils.js"></script>
+    <script type="module">
+        import { mountCultivateGlobals } from './js/modules/cultivate/index.js';
+        import { mountCombatGlobals } from './js/modules/combat/index.js';
+
+        mountCultivateGlobals();
+        mountCombatGlobals();
+    </script>
     <script>
         function switchTab(key){
             ['attributes','skills','inventory','quests'].forEach(k=>{
@@ -218,206 +225,19 @@
         }
         switchTab('attributes');
         
-        // 战斗日志数组，最多保留50条记录
-        let combatLogs = [];
-        
-        // 添加战斗日志
-        function addCombatLog(message) {
-            combatLogs.push({
-                message: message,
-                timestamp: new Date()
-            });
-            
-            // 限制日志数量为50条
-            if (combatLogs.length > 50) {
-                combatLogs.shift();
-            }
-            
-            // 更新战斗日志显示
-            updateCombatLogDisplay();
-        }
-        
-        // 更新战斗日志显示
-        function updateCombatLogDisplay() {
-            const logContainer = document.getElementById('combat-log-container');
-            if (!logContainer) return;
-            
-            if (combatLogs.length === 0) {
-                logContainer.innerHTML = '<p class="text-secondary italic">暂无战斗记录</p>';
-                return;
-            }
-            
-            // 按时间倒序显示（最新的在最上面）
-            const logsHtml = combatLogs.slice().reverse().map(log => {
-                const timeStr = log.timestamp.toLocaleTimeString();
-                return `<p>[${timeStr}] ${log.message}</p>`;
-            }).join('');
-            
-            logContainer.innerHTML = logsHtml;
-            // 滚动到最底部
-            logContainer.scrollTop = logContainer.scrollHeight;
-        }
-        
-        // 生成怪物
-        async function generateMonster() {
-            try {
-                // 获取当前选择的地图
-                const mapSelector = document.getElementById('map-selector');
-                const mapId = mapSelector ? parseInt(mapSelector.value) : 1;
-                
-                const response = await gameAPI.generateMonster(mapId);
-                if (!response || !response.success) {
-                    throw new Error(response?.message || '生成怪物失败');
-                }
-                
-                const monster = response.data;
-                updateMonsterDisplay(monster);
-                return monster;
-            } catch (error) {
-                console.error('生成怪物失败:', error);
-                addCombatLog(`<span class="text-red-600">生成怪物失败: ${error.message}</span>`);
-                return null;
-            }
-        }
-        
-        // 更新怪物显示
-        function updateMonsterDisplay(monster) {
-            if (!monster) return;
-            
-            document.getElementById('combat-monster-name').textContent = monster.name;
-            document.getElementById('combat-monster-level').textContent = `(等级${monster.level})`;
-            document.getElementById('combat-monster-type').textContent = monster.type;
-            document.getElementById('combat-monster-health').textContent = monster.health;
-            document.getElementById('combat-monster-attack').textContent = monster.attack;
-            document.getElementById('combat-monster-defense').textContent = monster.defense;
-            document.getElementById('combat-monster-speed').textContent = monster.speed;
-            
-            // 更新血条（初始为100%）
-            const healthBar = document.getElementById('combat-monster-health-bar');
-            if (healthBar) {
-                healthBar.style.width = '100%';
-            }
-        }
-        
-        // 战斗一次
-        async function fightOnce() {
-            try {
-                // 获取当前选择的地图
-                const mapSelector = document.getElementById('map-selector');
-                const mapId = mapSelector ? parseInt(mapSelector.value) : 1;
-                
-                // 生成怪物
-                const monsterResponse = await gameAPI.generateMonster(mapId);
-                if (!monsterResponse || !monsterResponse.success) {
-                    throw new Error(monsterResponse?.message || '生成怪物失败');
-                }
-                
-                const monster = monsterResponse.data;
-                addCombatLog(`遭遇 ${monster.name} (等级${monster.level} ${monster.type})`);
-                
-                // 开始战斗（直接调用API，不使用确认对话框以提高速度）
-                const combatResponse = monster.id ? 
-                    await gameAPI.startCombatWithMap(monster.id, mapId) : 
-                    await gameAPI.startCombatGenerateWithMap(mapId);
-                    
-                if (!combatResponse || !combatResponse.success) {
-                    throw new Error(combatResponse?.message || '战斗失败');
-                }
-                
-                const result = combatResponse.data;
-                
-                // 显示战斗结果
-                if (result.result === 'WIN') {
-                    addCombatLog(`<span class="text-green-600">战斗胜利！获得经验: ${result.expGained}, 灵石: ${result.spiritStonesGained}</span>`);
-                    if (result.droppedEquipment) {
-                        addCombatLog(`<span class="text-blue-600">获得装备掉落!</span>`);
-                    }
-                } else {
-                    addCombatLog(`<span class="text-red-600">战斗失败!</span>`);
-                }
-                
-                // 刷新玩家数据
-                if (window.authManager && window.authManager.loadPlayerProfile) {
-                    await window.authManager.loadPlayerProfile();
-                }
-                
-            } catch (error) {
-                console.error('战斗失败:', error);
-                addCombatLog(`<span class="text-red-600">战斗失败: ${error.message}</span>`);
-            }
-        }
-        
-        // 战斗50次
-        async function fight50Times() {
-            await batchFight(50);
-        }
-        
-        // 战斗100次
-        async function fight100Times() {
-            await batchFight(100);
-        }
-        
-        // 批量战斗通用函数
-        async function batchFight(times) {
-            const fightButton = document.getElementById('fight-once-btn');
-            const fight50Button = document.getElementById('fight-50-btn');
-            const fight100Button = document.getElementById('fight-100-btn');
-            
-            // 获取当前选择的地图
-            const mapSelector = document.getElementById('map-selector');
-            const mapId = mapSelector ? parseInt(mapSelector.value) : 1;
-            
-            // 禁用所有按钮
-            fightButton.disabled = true;
-            fight50Button.disabled = true;
-            fight100Button.disabled = true;
-            
-            const targetButton = times === 50 ? fight50Button : fight100Button;
-            const originalText = targetButton.innerHTML;
-            targetButton.innerHTML = '<i class="fa fa-spinner fa-spin mr-1"></i> 战斗中...';
-            
-            try {
-                addCombatLog(`<span class="text-blue-600">开始连续战斗${times}次...</span>`);
-                
-                // 使用新的批量战斗API
-                const payload = { mapId: mapId };
-                const response = await gameAPI.batchCombat(times, payload);
-                
-                if (!response || !response.success) {
-                    throw new Error(response?.message || '批量战斗失败');
-                }
-                
-                const result = response.data;
-                
-                // 显示汇总结果
-                addCombatLog(`<span class="text-green-600">连续战斗结束！</span>`);
-                addCombatLog(`总战斗次数: ${result.totalBattles}`);
-                addCombatLog(`胜利: ${result.wins}次，失败: ${result.losses}次`);
-                addCombatLog(`胜率: ${(result.winRate * 100).toFixed(2)}%`);
-                addCombatLog(`获得经验: ${result.totalExpGained}，灵石: ${result.totalSpiritStonesGained}`);
-                addCombatLog(`平均回合数: ${result.averageRounds.toFixed(2)}`);
-                
-            } catch (error) {
-                console.error('连续战斗失败:', error);
-                addCombatLog(`<span class="text-red-600">连续战斗失败: ${error.message}</span>`);
-            } finally {
-                // 启用所有按钮
-                fightButton.disabled = false;
-                fight50Button.disabled = false;
-                fight100Button.disabled = false;
-                targetButton.innerHTML = originalText;
-                
-                // 最后刷新一次玩家数据
-                if (window.authManager && window.authManager.loadPlayerProfile) {
-                    await window.authManager.loadPlayerProfile();
-                }
-            }
-        }
-        
         document.addEventListener('DOMContentLoaded', async()=>{
             if(window.initGameManager){ await window.initGameManager(); }
             if(window.authManager){ await window.authManager.loadGameData(); }
             const attrs = document.querySelectorAll('button[data-attr]');
+            const showLegacyToast = (message, type) => {
+                if (window.authManager?.showToast) {
+                    window.authManager.showToast(message, type);
+                    return;
+                }
+                if (window.gameManager?.showToast) {
+                    window.gameManager.showToast(message, type);
+                }
+            };
             attrs.forEach(btn=>{
                 btn.addEventListener('click', async()=>{
                     const key = btn.getAttribute('data-attr');
@@ -426,30 +246,14 @@
                         const res = await gameAPI.allocateAttributes(payload);
                         if(!res || !res.success) throw new Error(res?.message||'加点失败');
                         await window.authManager.loadPlayerProfile();
-                        window.gameManager.showToast('加点成功','success');
-                    } catch(err){ window.gameManager.showToast('加点失败: '+err.message,'error'); throw err; }
+                        showLegacyToast('加点成功','success');
+                    } catch(err){ showLegacyToast('加点失败: '+err.message,'error'); throw err; }
                 });
             });
             
-            // 绑定战斗按钮事件
-            const fightOnceBtn = document.getElementById('fight-once-btn');
-            const fight50Btn = document.getElementById('fight-50-btn');
-            const fight100Btn = document.getElementById('fight-100-btn');
-            
-            if (fightOnceBtn) {
-                fightOnceBtn.addEventListener('click', fightOnce);
+            if (window.initCombatModule) {
+                window.initCombatModule();
             }
-            
-            if (fight50Btn) {
-                fight50Btn.addEventListener('click', fight50Times);
-            }
-            
-            if (fight100Btn) {
-                fight100Btn.addEventListener('click', fight100Times);
-            }
-            
-            // 初始生成一个怪物
-            await generateMonster();
         });
     </script>
 </body>

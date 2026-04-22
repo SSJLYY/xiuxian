@@ -95,6 +95,10 @@
 
     <!-- 加载脚本 -->
     <script src="js/api.js"></script>
-    <script src="js/ranking.js"></script>
+    <script type="module">
+        import { mountRankingGlobals } from './js/modules/ranking/index.js';
+
+        mountRankingGlobals().init();
+    </script>
 </body>
 </html>

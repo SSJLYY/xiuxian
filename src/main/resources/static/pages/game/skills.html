@@ -7,57 +7,110 @@
     <link rel="stylesheet" href="/css/core/variables.css">
     <link rel="stylesheet" href="/css/core/reset.css">
     <link rel="stylesheet" href="/css/core/base.css">
-    <link rel="stylesheet" href="/css/components/modal.css">
     <link rel="stylesheet" href="/css/components/toast.css">
     <link rel="stylesheet" href="/css/modules/game.css">
-    <link rel="stylesheet" href="/css/modules/skills.css">
 </head>
 <body>
     <div id="app">
         <div class="game-container">
             <nav class="game-nav">
                 <a href="#player" class="nav-link">玩家</a>
-                <a href="#combat" class="nav-link">战斗</a>
-                <a href="#inventory" class="nav-link">背包</a>
-                <a href="#equipment" class="nav-link">装备</a>
                 <a href="#skills" class="nav-link active">技能</a>
-                <a href="#cultivate" class="nav-link">修炼</a>
-                <a href="#map" class="nav-link">地图</a>
+                <a href="#combos" class="nav-link">连招</a>
             </nav>
 
             <main class="game-main">
-                <div class="skills-page">
-                    <h1 class="page-title">技能系统</h1>
-                    
-                    <div class="skills-tabs">
-                        <button class="tab-btn active" data-tab="my-skills">我的技能</button>
-                        <button class="tab-btn" data-tab="learnable">可学习</button>
+                <div id="skills-module" class="module" style="display:block;">
+                    <div class="skills-panel">
+                        <div class="module-header mb-4">
+                            <h2><i class="fa-solid fa-wand-magic-sparkles"></i> 技能系统</h2>
+                        </div>
+                        <div class="skills-tabs mb-4">
+                            <button class="tab-btn active" data-skill-tab="learned" onclick="switchSkillTab('learned')">已学习</button>
+                            <button class="tab-btn" data-skill-tab="available" onclick="switchSkillTab('available')">可学习</button>
+                        </div>
+                        <div class="skills-summary mb-4 p-4 bg-secondary/5 rounded flex items-center justify-between">
+                            <div class="flex items-center gap-4">
+                                <div class="text-sm text-muted">
+                                    <span id="skill-points-label">可用点数</span>
+                                    <span class="text-xl font-bold text-accent" id="skill-points-value">0</span>
+                                </div>
+                                <div class="text-sm text-muted">
+                                    已装备
+                                    <span class="text-lg font-bold text-aqua" id="equipped-skills-count">0</span>/3
+                                </div>
+                            </div>
+                        </div>
+                        <div id="skills-learned-panel">
+                            <div id="mySkillsList" class="skills-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:15px;"></div>
+                        </div>
+                        <div id="skills-available-panel" style="display:none;">
+                            <div id="skillsAvailableList" class="skills-available-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:15px;"></div>
+                        </div>
                     </div>
+                </div>
 
-                    <div class="skills-content">
-                        <div class="tab-pane active" id="my-skills">
-                            <div class="skills-list" id="mySkillsList">
-                                <div class="loading">加载技能中...</div>
+                <div id="combos-module" class="module" style="display:block;margin-top:24px;">
+                    <div class="combos-panel">
+                        <div class="module-header mb-4">
+                            <h2><i class="fa-solid fa-bolt"></i> 技能连招</h2>
+                        </div>
+                        <div class="combos-stats mb-4 p-4 bg-secondary/5 rounded">
+                            <div class="flex items-center justify-around text-center">
+                                <div>
+                                    <div class="text-lg font-bold text-accent" id="combo-total-count">0</div>
+                                    <div class="text-xs text-muted">可用连招</div>
+                                </div>
+                                <div>
+                                    <div class="text-lg font-bold text-green-400" id="combo-mastered-count">0</div>
+                                    <div class="text-xs text-muted">已掌握</div>
+                                </div>
+                                <div>
+                                    <div class="text-lg font-bold text-yellow-400" id="combo-use-rate">0%</div>
+                                    <div class="text-xs text-muted">使用率</div>
+                                </div>
                             </div>
                         </div>
-
-                        <div class="tab-pane" id="learnable">
-                            <div class="skills-list" id="learnableSkillsList">
-                                <div class="loading">加载可学习技能中...</div>
-                            </div>
+                        <div class="combos-tabs mb-4">
+                            <button class="tab-btn active" data-combo-tab="available" onclick="switchComboTab('available')">可用连招</button>
+                            <button class="tab-btn" data-combo-tab="all" onclick="switchComboTab('all')">全部连招</button>
                         </div>
+                        <div id="comboContent" class="combos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:15px;"></div>
                     </div>
                 </div>
             </main>
         </div>
     </div>
 
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/modules.js"></script>
+    <script src="/js/combo-pokedex.js"></script>
     <script type="module">
-        import { App } from '/js/App.js';
-        const app = new App();
-        app.init();
-        import('/js/modules/skills/index.js').then(module => {
-            module.skillsUI.init();
+        import { mountSkillsGlobals } from '/js/modules/skills/index.js';
+
+        mountSkillsGlobals();
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!window.authManager) {
+                window.authManager = new AuthManager();
+            }
+
+            const isAuth = await window.authManager.checkAuthStatus();
+            if (!isAuth) {
+                window.location.href = '/login.html';
+                return;
+            }
+
+            if (window.loadMySkills) {
+                await window.loadMySkills();
+            }
+            if (window.loadCombos) {
+                await window.loadCombos(true);
+            }
+            if (window.switchSkillTab) {
+                window.switchSkillTab('learned');
+            }
         });
     </script>
 </body>

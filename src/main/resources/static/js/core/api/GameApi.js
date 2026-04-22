@@ -307,7 +307,7 @@ class GameApi extends ApiClient {
     }
 
     async createGuild(name, description) {
-        return this.post('/guild/create', { name, description });
+        return this.post('/guild/create', { name, guildName: name, description });
     }
 
     async applyGuild(guildId) {

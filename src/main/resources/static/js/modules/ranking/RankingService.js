@@ -1,16 +1,22 @@
 import { gameAPI } from '../../core/api/GameApi.js';
-import { toast } from '../../components/Toast.js';
 
 export class RankingService {
     async getRanking(type = 'level') {
-        try {
-            const response = await gameAPI.getRanking(type);
-            if (response.success) return response.data;
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('加载排行榜失败: ' + error.message);
-            throw error;
-        }
+        const mapping = {
+            level: () => gameAPI.getLevelRanking(),
+            power: () => gameAPI.getPowerRanking(),
+            wealth: () => gameAPI.getWealthRanking(),
+            pet: () => gameAPI.getPetRanking()
+        };
+        const response = await (mapping[type] || mapping.level)();
+        if (!response?.success) throw new Error(response?.message || '加载排行榜失败');
+        return response.data || [];
+    }
+
+    async getMyRank(type = 'level') {
+        const response = await gameAPI.getMyRanking(type);
+        if (!response?.success) return null;
+        return response.data || null;
     }
 }
 

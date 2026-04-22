@@ -1,259 +1,132 @@
-/**
- * 叙事模块 - UI渲染层
- */
 import { narrativeService } from './NarrativeService.js';
-import { toast } from '../../components/Toast.js';
-import { loading } from '../../components/Loading.js';
-import { modal } from '../../components/Modal.js';
-import { escapeHtml } from '../../core/utils/Security.js';
+
+function escapeText(value) {
+    return window.escapeHtml ? window.escapeHtml(value) : String(value ?? '');
+}
+
+function showToast(message, type = 'info') {
+    if (window.moduleManager?.showToast) {
+        window.moduleManager.showToast(message, type);
+        return;
+    }
+    if (window.authManager?.showToast) {
+        window.authManager.showToast(message, type);
+        return;
+    }
+    console.log(`[${type}] ${message}`);
+}
+
+function hasGameLayout() {
+    return !!document.getElementById('narrative-module');
+}
 
 export class NarrativeUI {
-    init() {
-        this.setupElements();
-        this.bindEvents();
-        this.loadNarrativeData();
+    async init() {
+        return hasGameLayout() ? this.initGameLayout() : this.initStandaloneLayout();
     }
 
-    setupElements() {
-        this.elements = {
-            npcListContainer: document.getElementById('npcListContainer'),
-            relationContainer: document.getElementById('relationContainer'),
-            narrativeTabs: document.querySelectorAll('[data-tab="narrative"]')
-        };
+    async initGameLayout() {
+        await this.switchGameTab('npc');
     }
 
-    bindEvents() {
-        this.elements.narrativeTabs.forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                this.switchTab(e.target.dataset.narrativeTab);
-            });
-        });
-    }
-
-    switchTab(tabName) {
-        this.elements.narrativeTabs.forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.narrativeTab === tabName);
-        });
-
-        if (tabName === 'npcs') {
-            this.elements.npcListContainer.style.display = 'block';
-            this.elements.relationContainer.style.display = 'none';
-        } else {
-            this.elements.npcListContainer.style.display = 'none';
-            this.elements.relationContainer.style.display = 'block';
-        }
-    }
-
-    async loadNarrativeData() {
-        loading.show();
+    async initStandaloneLayout() {
+        const container = document.getElementById('chapterList');
+        if (!container) return;
+        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载剧情中...</p></div>';
         try {
-            await Promise.all([
-                narrativeService.getNpcList(),
-                narrativeService.getNpcRelations()
-            ]);
-            this.renderNpcList();
-            this.renderRelations();
+            const npcs = await narrativeService.getNpcList();
+            container.innerHTML = npcs.length === 0
+                ? '<div class="empty-state">暂无剧情人物</div>'
+                : npcs.map(npc => `
+                    <div class="narrative-card p-4 rounded" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);margin-bottom:12px;">
+                        <div class="font-semibold mb-1">${escapeText(npc.name || '神秘人物')}</div>
+                        <div class="text-sm text-muted mb-2">${escapeText(npc.npcTypeName || npc.npcType || 'NPC')}</div>
+                        <div class="text-sm">${escapeText(npc.description || '暂无描述')}</div>
+                    </div>
+                `).join('');
         } catch (error) {
-            toast.error('加载叙事数据失败');
-        } finally {
-            loading.hide();
+            container.innerHTML = `<div class="empty-state">加载失败: ${escapeText(error.message)}</div>`;
         }
     }
 
-    renderNpcList() {
-        const container = this.elements.npcListContainer;
-        if (!container) return;
-
-        if (narrativeService.npcs.length === 0) {
-            container.innerHTML = '<p>暂无NPC</p>';
-            return;
-        }
-
-        container.innerHTML = `
-            <div class="npc-list">
-                ${narrativeService.npcs.map(npc => {
-                    const relation = narrativeService.getRelationByNpcId(npc.id);
-                    const relationLevel = relation?.relationLevel || 0;
-                    const relationName = relation?.relationName || '陌生人';
-
-                    return `
-                        <div class="npc-card">
-                            <div class="npc-avatar">
-                                <img src="${npc.avatar || '/images/npcs/default.png'}" alt="${escapeHtml(npc.name)}">
-                            </div>
-                            <div class="npc-info">
-                                <h4>${escapeHtml(npc.name)}</h4>
-                                <p class="npc-location">位置: ${escapeHtml(npc.location)}</p>
-                                <p class="npc-desc">${escapeHtml(npc.description)}</p>
-                                <div class="npc-relation">
-                                    <span class="relation-level">关系: ${escapeHtml(relationName)}</span>
-                                    <div class="relation-bar">
-                                        <div class="relation-fill" style="width: ${relationLevel * 10}%"></div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="npc-actions">
-                                <button class="btn btn-primary" data-action="interact" data-npc-id="${npc.id}">对话</button>
-                                ${npc.availableQuests && npc.availableQuests.length > 0 ?
-                                    `<button class="btn btn-info" data-action="quest" data-npc-id="${npc.id}">任务(${npc.availableQuests.length})</button>` : ''}
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-        `;
-
-        // 绑定事件
-        container.querySelectorAll('[data-action="interact"]').forEach(btn => {
-            btn.addEventListener('click', (e) => this.handleInteract(e.target.dataset.npcId));
+    async switchGameTab(tab) {
+        document.querySelectorAll('#narrative-module .tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.narrativeTab === tab);
         });
-
-        container.querySelectorAll('[data-action="quest"]').forEach(btn => {
-            btn.addEventListener('click', (e) => this.showQuestDialog(e.target.dataset.npcId));
-        });
+        const npcPanel = document.getElementById('narrative-npc-panel');
+        const relationPanel = document.getElementById('narrative-relations-panel');
+        if (npcPanel) npcPanel.style.display = tab === 'npc' ? '' : 'none';
+        if (relationPanel) relationPanel.style.display = tab === 'relations' ? '' : 'none';
+        return tab === 'npc' ? this.loadNpcList() : this.loadNpcRelations();
     }
 
-    renderRelations() {
-        const container = this.elements.relationContainer;
+    async loadNpcList() {
+        const container = document.getElementById('npcList');
         if (!container) return;
-
-        if (narrativeService.myRelations.length === 0) {
-            container.innerHTML = '<p>暂无NPC关系</p>';
-            return;
-        }
-
-        container.innerHTML = `
-            <div class="relations-list">
-                ${narrativeService.myRelations.map(rel => {
-                    const npc = narrativeService.getNpcById(rel.npcId);
-                    return `
-                        <div class="relation-card">
-                            <div class="relation-avatar">
-                                <img src="${npc?.avatar || '/images/npcs/default.png'}" alt="${escapeHtml(npc?.name || '')}">
-                            </div>
-                            <div class="relation-info">
-                                <h4>${escapeHtml(npc?.name || '未知NPC')}</h4>
-                                <div class="relation-level">
-                                    <span>${escapeHtml(rel.relationName)}</span>
-                                    <span>等级 ${escapeHtml(rel.relationLevel)}</span>
-                                </div>
-                                <div class="relation-progress">
-                                    <span>亲密度: ${escapeHtml(rel.intimacy)}</span>
-                                    <div class="intimacy-bar">
-                                        <div class="intimacy-fill" style="width: ${rel.intimacy}%"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-        `;
-    }
-
-    async handleInteract(npcId) {
-        loading.show();
+        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载NPC...</p></div>';
         try {
-            const result = await narrativeService.interactWithNpc(npcId);
-
-            if (result.dialogue) {
-                this.showDialogue(result.dialogue, result.npc);
+            const npcs = await narrativeService.getNpcList();
+            if (npcs.length === 0) {
+                container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;text-align:center;padding:2rem;">暂无NPC数据</div>';
+                return;
             }
-        } catch (error) {
-            toast.error('交互失败');
-        } finally {
-            loading.hide();
-        }
-    }
-
-    showDialogue(dialogue, npc) {
-        const dialogueHtml = `
-            <div class="dialogue-container">
-                <div class="dialogue-avatar">
-                    <img src="${npc.avatar}" alt="${escapeHtml(npc.name)}">
-                </div>
-                <div class="dialogue-content">
-                    <div class="dialogue-name">${escapeHtml(npc.name)}</div>
-                    <div class="dialogue-text">${escapeHtml(dialogue.text)}</div>
-                    ${dialogue.options ? `
-                        <div class="dialogue-options">
-                            ${dialogue.options.map((option, index) => `
-                                <button class="btn btn-option" data-option-index="${index}">${escapeHtml(option.text)}</button>
-                            `).join('')}
-                        </div>
-                    ` : ''}
-                </div>
-            </div>
-        `;
-
-        modal.show({
-            title: '对话',
-            content: dialogueHtml,
-            showCancel: false,
-            confirmText: '关闭'
-        });
-
-        if (dialogue.options) {
-            document.querySelectorAll('.btn-option').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const optionIndex = parseInt(e.target.dataset.optionIndex);
-                    const option = dialogue.options[optionIndex];
-                    // 处理选项
-                    modal.hide();
-                    if (option.nextDialogue) {
-                        this.showDialogue(option.nextDialogue, npc);
-                    }
-                });
-            });
-        }
-    }
-
-    showQuestDialog(npcId) {
-        const npc = narrativeService.getNpcById(npcId);
-        if (!npc || !npc.availableQuests) return;
-
-        const questHtml = `
-            <div class="quest-dialog">
-                <h3>可用任务</h3>
-                <div class="quest-list">
-                    ${npc.availableQuests.map(quest => `
-                        <div class="quest-item">
-                            <div class="quest-info">
-                                <h4>${escapeHtml(quest.name)}</h4>
-                                <p>${escapeHtml(quest.description)}</p>
-                                <div class="quest-reward">奖励: ${escapeHtml(quest.rewardDescription)}</div>
+            container.innerHTML = npcs.map(npc => {
+                const typeIcons = { MERCHANT: '💰', QUEST_GIVER: '📜', TRAINER: '⚔️', QUEST: '📜', ELDER: '🧙', BOSS: '👹', NORMAL: '👤' };
+                const icon = typeIcons[npc.npcType] || '👤';
+                return `
+                    <div class="npc-card p-4 rounded" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);cursor:pointer;" onclick="showNpcDetail(${npc.id})">
+                        <div class="flex items-center gap-3 mb-2">
+                            <span style="font-size:2rem;">${icon}</span>
+                            <div>
+                                <h4 class="font-semibold">${escapeText(npc.name || '神秘人物')}</h4>
+                                <span class="text-xs text-muted">${npc.npcTypeName || npc.npcType || 'NPC'}</span>
                             </div>
-                            <button class="btn btn-success" data-action="start-quest" data-quest-id="${quest.id}">接受</button>
                         </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-
-        modal.show({
-            title: `${npc.name} - 任务列表`,
-            content: questHtml,
-            showCancel: false,
-            confirmText: '关闭'
-        });
-
-        document.querySelectorAll('[data-action="start-quest"]').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                this.handleStartQuest(npcId, e.target.dataset.questId);
-                modal.hide();
-            });
-        });
+                        <div class="text-sm text-muted">${escapeText(npc.description || '一位神秘的修仙者')}</div>
+                    </div>
+                `;
+            }).join('');
+        } catch (error) {
+            container.innerHTML = `<div class="empty-state">加载失败: ${escapeText(error.message)}</div>`;
+        }
     }
 
-    async handleStartQuest(npcId, questId) {
-        loading.show();
+    async showNpcDetail(npcId) {
         try {
-            await narrativeService.startQuest(npcId, questId);
-            await this.loadNarrativeData();
+            const npc = await narrativeService.getNpcDetail(npcId);
+            alert(`【${npc?.name || '神秘人物'}】\n\n${npc?.description || '无描述'}\n\n${npc?.dailyDialogue ? '日常对话: ' + npc.dailyDialogue : ''}`);
         } catch (error) {
-            toast.error('接受任务失败');
-        } finally {
-            loading.hide();
+            showToast('加载NPC详情失败: ' + error.message, 'error');
+        }
+    }
+
+    async loadNpcRelations() {
+        const container = document.getElementById('npcRelationsList');
+        if (!container) return;
+        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载关系...</p></div>';
+        try {
+            const relations = await narrativeService.getNpcRelations();
+            if (relations.length === 0) {
+                container.innerHTML = '<div class="empty-state">您还没有与任何NPC建立关系</div>';
+                return;
+            }
+            container.innerHTML = relations.map(rel => {
+                const relationColors = { HOSTILE: '#e74c3c', NEUTRAL: '#95a5a6', FRIENDLY: '#27ae60', ALLIED: '#3498db' };
+                const color = relationColors[rel.relation] || '#95a5a6';
+                return `
+                    <div class="relation-item p-4 rounded" style="background:rgba(255,255,255,0.05);border-left:3px solid ${color};">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <h4 class="font-semibold">${escapeText(rel.npcName || '神秘人物')}</h4>
+                                <span class="text-xs px-2 py-1 rounded" style="background:${color}22;color:${color};">${rel.relationName || rel.relation}</span>
+                            </div>
+                            <span class="text-sm text-muted">好感度 ${rel.affinity || 0}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch (error) {
+            container.innerHTML = `<div class="empty-state">加载失败: ${escapeText(error.message)}</div>`;
         }
     }
 }

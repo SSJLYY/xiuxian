@@ -621,13 +621,30 @@
     <script src="js/modules.js"></script>
     <script src="js/modern-ui.js"></script>
     <script src="js/mobile-interaction.js"></script>
-    <script src="js/narrative.js"></script>
     <script src="js/tutorial.js"></script>
     <script src="js/pet-hunger-monitor.js"></script>
     <script src="js/breakthrough-evolution.js"></script>
     <script src="js/combo-pokedex.js"></script>
-    <script src="js/game-map.js"></script>
     <script src="js/guild-boss.js"></script>
-    <script src="js/achievement-panel.js"></script>
+    <script type="module">
+        import { mountPetsGlobals } from './js/modules/pets/index.js';
+        import { mountSkillsGlobals } from './js/modules/skills/index.js';
+        import { mountCultivateGlobals } from './js/modules/cultivate/index.js';
+        import { mountCombatGlobals } from './js/modules/combat/index.js';
+        import { mountGuildGlobals } from './js/modules/guild/index.js';
+        import { mountNarrativeGlobals } from './js/modules/narrative/index.js';
+        import { mountMapGlobals } from './js/modules/map/index.js';
+        import { mountAchievementGlobals } from './js/modules/achievement/index.js';
+        import { mountRankingGlobals } from './js/modules/ranking/index.js';
+        mountPetsGlobals();
+        mountSkillsGlobals();
+        mountCultivateGlobals();
+        mountCombatGlobals();
+        mountGuildGlobals();
+        mountNarrativeGlobals();
+        mountMapGlobals();
+        mountAchievementGlobals();
+        mountRankingGlobals();
+    </script>
 </body>
 </html>

@@ -1,132 +1,55 @@
-/**
- * 修炼模块 - 业务逻辑层
- */
 import { gameAPI } from '../../core/api/GameApi.js';
-import { toast } from '../../components/Toast.js';
 
 export class CultivateService {
-    constructor() {
-        this.cultivateInfo = null;
+    async getProfile() {
+        const response = await gameAPI.getCurrentPlayerProfile();
+        if (!response.success) throw new Error(response.message || '获取玩家资料失败');
+        return response.data;
     }
 
-    async getCultivateInfo() {
-        try {
-            const response = await gameAPI.getCultivateInfo();
-            if (response.success) {
-                this.cultivateInfo = response.data;
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('获取修炼信息失败：' + error.message);
-            throw error;
+    async startCultivation() {
+        const profile = await this.getProfile();
+        if (profile.isCultivating) {
+            return { alreadyCultivating: true, profile };
         }
+        const response = await gameAPI.startCultivation();
+        if (!response.success) throw new Error(response.message || '开始修炼失败');
+        return { alreadyCultivating: false, data: response.data };
     }
 
-    async startCultivate(type = 'normal') {
-        try {
-            const response = await gameAPI.startCultivate(type);
-            if (response.success) {
-                toast.success('开始修炼!');
-                await this.getCultivateInfo();
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('开始修炼失败：' + error.message);
-            throw error;
+    async stopCultivation() {
+        const profile = await this.getProfile();
+        if (!profile.isCultivating) {
+            return { alreadyStopped: true, profile };
         }
+        const response = await gameAPI.stopCultivation();
+        if (!response.success) throw new Error(response.message || '停止修炼失败');
+        return response.data || {};
     }
 
-    async stopCultivate() {
-        try {
-            const response = await gameAPI.stopCultivate();
-            if (response.success) {
-                toast.success('停止修炼');
-                await this.getCultivateInfo();
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('停止修炼失败：' + error.message);
-            throw error;
+    async claimOfflineRewards() {
+        const response = await gameAPI.claimOfflineRewards();
+        if (!response.success) throw new Error(response.message || '领取离线奖励失败');
+        const reward = response.data;
+        if (!reward?.hasReward) {
+            return reward;
         }
+        if (!reward.rewardId) {
+            throw new Error('离线奖励记录缺失，无法领取');
+        }
+        const claimResponse = await gameAPI.claimOfflineRewardById(reward.rewardId);
+        if (!claimResponse.success) throw new Error(claimResponse.message || '领取离线奖励失败');
+        return { ...reward, claimResult: claimResponse.data || {} };
     }
 
-    async breakthrough() {
-        try {
-            const response = await gameAPI.breakthrough();
-            if (response.success) {
-                toast.success('境界突破成功!');
-                await this.getCultivateInfo();
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('突破失败：' + error.message);
-            throw error;
-        }
-    }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('获取修炼信息失败: ' + error.message);
-            throw error;
-        }
+    async resetCultivation() {
+        const response = await gameAPI.resetCultivation();
+        if (!response.success) throw new Error(response.message || '重置修炼状态失败');
+        return response.data;
     }
 
-    async startCultivate(type = 'normal') {
-        try {
-            const response = await gameAPI.player.startCultivate(type);
-            if (response.success) {
-                toast.success('开始修炼!');
-                await this.getCultivateInfo();
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('开始修炼失败: ' + error.message);
-            throw error;
-        }
-    }
-
-    async stopCultivate() {
-        try {
-            const response = await gameAPI.player.stopCultivate();
-            if (response.success) {
-                toast.success('停止修炼');
-                await this.getCultivateInfo();
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('停止修炼失败: ' + error.message);
-            throw error;
-        }
-    }
-
-    async breakthrough() {
-        try {
-            const response = await gameAPI.player.breakthrough();
-            if (response.success) {
-                toast.success('境界突破成功!');
-                await this.getCultivateInfo();
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('突破失败: ' + error.message);
-            throw error;
-        }
-    }
-
-    getCultivationSpeed(realm) {
-        const realmMultiplier = {
-            '练气': 1.0,
-            '筑基': 1.5,
-            '金丹': 2.5,
-            '元婴': 4.0
-        };
-        return realmMultiplier[realm] || 1.0;
+    formatOutcomeToast(title, core, extra = '') {
+        return extra ? `${title} | ${core} | ${extra}` : `${title} | ${core}`;
     }
 }
 

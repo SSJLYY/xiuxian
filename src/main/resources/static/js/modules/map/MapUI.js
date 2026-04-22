@@ -1,232 +1,163 @@
-/**
- * 地图模块 - UI渲染层
- */
 import { mapService } from './MapService.js';
-import { toast } from '../../components/Toast.js';
-import { loading } from '../../components/Loading.js';
-import { modal } from '../../components/Modal.js';
+
+function escapeText(value) {
+    return window.escapeHtml ? window.escapeHtml(value) : String(value ?? '');
+}
+
+function showToast(message, type = 'info') {
+    if (window.moduleManager?.showToast) {
+        window.moduleManager.showToast(message, type);
+        return;
+    }
+    if (window.authManager?.showToast) {
+        window.authManager.showToast(message, type);
+        return;
+    }
+    console.log(`[${type}] ${message}`);
+}
+
+function hasGameLayout() {
+    return !!document.getElementById('map-module');
+}
 
 export class MapUI {
-    init() {
-        this.setupElements();
-        this.bindEvents();
-        this.loadMapData();
+    async init() {
+        return hasGameLayout() ? this.switchGameTab('explore') : this.loadStandaloneMaps();
     }
 
-    setupElements() {
-        this.elements = {
-            currentMapContainer: document.getElementById('currentMapContainer'),
-            mapListContainer: document.getElementById('mapListContainer'),
-            mapTabs: document.querySelectorAll('[data-tab="map"]')
-        };
-    }
-
-    bindEvents() {
-        this.elements.mapTabs.forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                this.switchTab(e.target.dataset.mapTab);
-            });
+    async switchGameTab(tab) {
+        document.querySelectorAll('#map-module .tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mapTab === tab);
         });
+        const explorePanel = document.getElementById('map-explore-panel');
+        const listPanel = document.getElementById('map-list-panel');
+        if (explorePanel) explorePanel.style.display = tab === 'explore' ? '' : 'none';
+        if (listPanel) listPanel.style.display = tab === 'list' ? '' : 'none';
+        return tab === 'explore' ? this.loadCurrentMap() : this.loadMapList();
     }
 
-    switchTab(tabName) {
-        this.elements.mapTabs.forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.mapTab === tabName);
-        });
-
-        if (tabName === 'current') {
-            this.elements.currentMapContainer.style.display = 'block';
-            this.elements.mapListContainer.style.display = 'none';
-        } else {
-            this.elements.currentMapContainer.style.display = 'none';
-            this.elements.mapListContainer.style.display = 'block';
-        }
-    }
-
-    async loadMapData() {
-        loading.show();
+    async loadCurrentMap() {
+        const infoEl = document.getElementById('current-map-info');
+        const exploreBtn = document.getElementById('explore-btn');
+        if (!infoEl) return;
         try {
-            await Promise.all([
-                mapService.getCurrentMap(),
-                mapService.getMapList(),
-                mapService.getExploredMaps()
-            ]);
-            this.renderCurrentMap();
-            this.renderMapList();
-        } catch (error) {
-            toast.error('加载地图数据失败');
-        } finally {
-            loading.hide();
-        }
-    }
-
-    renderCurrentMap() {
-        const container = this.elements.currentMapContainer;
-        if (!container) return;
-
-        const map = mapService.currentMap;
-        if (!map) {
-            container.innerHTML = '<p>暂无地图信息</p>';
-            return;
-        }
-
-        container.innerHTML = `
-            <div class="current-map">
-                <div class="map-image">
-                    <img src="${map.image || '/images/maps/default.png'}" alt="${map.name}">
-                </div>
-                <div class="map-info">
-                    <h3>${map.name}</h3>
-                    <p class="map-desc">${map.description}</p>
-                    <div class="map-details">
-                        <div class="detail-item">
-                            <span class="label">等级要求:</span>
-                            <span class="value">${map.requiredLevel}级</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="label">怪物等级:</span>
-                            <span class="value">${map.monsterLevel}级</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="label">经验加成:</span>
-                            <span class="value">x${map.expMultiplier}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="label">灵石加成:</span>
-                            <span class="value">x${map.spiritStoneMultiplier}</span>
-                        </div>
+            const map = await mapService.getCurrentMap();
+            if (!map) {
+                infoEl.style.display = 'none';
+                if (exploreBtn) {
+                    exploreBtn.disabled = true;
+                    exploreBtn.innerHTML = '<i class="fa-solid fa-map-location-dot"></i> 请先进入地图';
+                }
+                return;
+            }
+            infoEl.style.display = '';
+            infoEl.innerHTML = `
+                <div class="flex items-center gap-4">
+                    <span style="font-size:2rem;">${map.icon || '🗺️'}</span>
+                    <div class="flex-1">
+                        <h3 class="font-bold">${escapeText(map.name || '未知地图')}</h3>
+                        <div class="text-sm text-muted">${escapeText(map.description || '')}</div>
                     </div>
+                    <span class="text-xs px-3 py-1 rounded" style="background:${map.mapType === 'SAFE' ? 'rgba(46,204,113,0.2)' : 'rgba(231,76,60,0.2)'};color:${map.mapType === 'SAFE' ? '#2ecc71' : '#e74c3c'};">
+                        ${map.mapType === 'SAFE' ? '安全区' : '危险区'}
+                    </span>
                 </div>
-                <div class="map-actions">
-                    <button class="btn btn-primary" id="exploreBtn">探索</button>
-                    <button class="btn btn-info" id="teleportBtn">传送</button>
-                </div>
-            </div>
-        `;
-
-        // 绑定事件
-        document.getElementById('exploreBtn')?.addEventListener('click', () => {
-            this.handleExplore(map.id);
-        });
-
-        document.getElementById('teleportBtn')?.addEventListener('click', () => {
-            this.showTeleportDialog();
-        });
+                ${map.monsterLevel ? `<div class="text-xs text-muted mt-2">怪物等级: ${map.monsterLevel}</div>` : ''}
+            `;
+            if (exploreBtn) {
+                exploreBtn.disabled = map.mapType === 'SAFE';
+                exploreBtn.innerHTML = map.mapType === 'SAFE'
+                    ? '<i class="fa-solid fa-shield-halved"></i> 安全区无法探索'
+                    : '<i class="fa-solid fa-compass"></i> 开始探索';
+            }
+        } catch {
+            infoEl.style.display = 'none';
+        }
     }
 
-    renderMapList() {
-        const container = this.elements.mapListContainer;
+    async loadMapList() {
+        const container = document.getElementById('mapList');
         if (!container) return;
-
-        if (mapService.availableMaps.length === 0) {
-            container.innerHTML = '<p>暂无可用地图</p>';
-            return;
-        }
-
-        container.innerHTML = `
-            <div class="map-list">
-                ${mapService.availableMaps.map(map => {
-                    const isExplored = mapService.exploredMaps.includes(map.id);
-                    const isCurrent = mapService.currentMap?.id === map.id;
-
-                    return `
-                        <div class="map-card ${isCurrent ? 'current' : ''} ${isExplored ? 'explored' : ''}">
-                            <div class="map-image">
-                                <img src="${map.image || '/images/maps/default.png'}" alt="${map.name}">
+        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载地图...</p></div>';
+        try {
+            const maps = await mapService.getMapList();
+            if (maps.length === 0) {
+                container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;text-align:center;padding:2rem;">暂无地图数据</div>';
+                return;
+            }
+            container.innerHTML = maps.map(map => {
+                const isCurrent = !!map.isCurrent;
+                const isLocked = !!map.isLocked;
+                return `
+                    <div class="map-card p-4 rounded" style="background:rgba(255,255,255,0.05);border:1px solid ${isCurrent ? 'var(--accent-gold)' : 'rgba(255,255,255,0.1)'};">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span style="font-size:1.5rem;">${map.icon || '🗺️'}</span>
+                            <div class="flex-1">
+                                <h4 class="font-semibold">${escapeText(map.name || '未知')}</h4>
+                                <span class="text-xs text-muted">Lv.${map.requiredLevel || 1}+</span>
                             </div>
-                            <div class="map-info">
-                                <h4>${map.name}</h4>
-                                <p>${map.description}</p>
-                                <div class="map-stats">
-                                    <span>要求等级: ${map.requiredLevel}</span>
-                                    <span>怪物等级: ${map.monsterLevel}</span>
-                                </div>
-                            </div>
-                            <div class="map-status">
-                                ${isCurrent ? '<span class="status current">当前地图</span>' : ''}
-                                ${isExplored ? '<span class="status explored">已探索</span>' : '<span class="status locked">未探索</span>'}
-                            </div>
-                            <div class="map-actions">
-                                ${!isCurrent ? `
-                                    <button class="btn btn-primary" data-action="teleport" data-map-id="${map.id}">传送</button>
-                                    ${!isExplored ? `
-                                        <button class="btn btn-info" data-action="explore" data-map-id="${map.id}">探索</button>
-                                    ` : ''}
-                                ` : ''}
-                            </div>
+                            ${isCurrent ? '<span class="text-xs px-2 py-1 rounded" style="background:rgba(212,175,55,0.2);color:var(--accent-gold);">当前</span>' : ''}
+                            ${isLocked ? '<i class="fa-solid fa-lock text-muted"></i>' : ''}
                         </div>
-                    `;
-                }).join('')}
-            </div>
-        `;
-
-        // 绑定事件
-        container.querySelectorAll('[data-action="teleport"]').forEach(btn => {
-            btn.addEventListener('click', (e) => this.handleTeleport(e.target.dataset.mapId));
-        });
-
-        container.querySelectorAll('[data-action="explore"]').forEach(btn => {
-            btn.addEventListener('click', (e) => this.handleExplore(e.target.dataset.mapId));
-        });
-    }
-
-    showTeleportDialog() {
-        const currentMap = mapService.currentMap;
-        const availableMaps = mapService.availableMaps.filter(m => m.id !== currentMap?.id);
-
-        if (availableMaps.length === 0) {
-            toast.info('没有可传送的地图');
-            return;
-        }
-
-        const teleportHtml = `
-            <div class="teleport-list">
-                ${availableMaps.map(map => `
-                    <div class="teleport-option" data-map-id="${map.id}">
-                        <div class="map-name">${map.name}</div>
-                        <div class="map-level">要求等级: ${map.requiredLevel}</div>
+                        <div class="text-xs text-muted mb-3">${escapeText(map.description || '无描述')}</div>
+                        <button class="btn btn-sm w-full ${isCurrent ? '' : 'btn-primary'}" onclick="enterMap(${map.id})" ${isCurrent || isLocked ? 'disabled' : ''}>
+                            ${isCurrent ? '当前所在' : isLocked ? '等级不足' : '进入'}
+                        </button>
                     </div>
-                `).join('')}
-            </div>
-        `;
-
-        modal.show({
-            title: '选择传送地图',
-            content: teleportHtml,
-            showCancel: true,
-            confirmText: '取消'
-        });
-
-        document.querySelectorAll('.teleport-option').forEach(option => {
-            option.addEventListener('click', (e) => {
-                const mapId = e.currentTarget.dataset.mapId;
-                this.handleTeleport(mapId);
-                modal.hide();
-            });
-        });
-    }
-
-    async handleTeleport(mapId) {
-        loading.show();
-        try {
-            await mapService.teleportToMap(mapId);
-            await this.loadMapData();
+                `;
+            }).join('');
         } catch (error) {
-            toast.error('传送失败');
-        } finally {
-            loading.hide();
+            container.innerHTML = `<div class="empty-state">加载失败: ${escapeText(error.message)}</div>`;
         }
     }
 
-    async handleExplore(mapId) {
-        loading.show();
+    async enterMap(mapId) {
         try {
-            await mapService.exploreMap(mapId);
-            await this.loadMapData();
+            await mapService.enterMap(mapId);
+            showToast('已进入地图！', 'success');
+            await this.loadCurrentMap();
+            await this.loadMapList();
         } catch (error) {
-            toast.error('探索失败');
+            showToast('进入地图失败: ' + error.message, 'error');
+        }
+    }
+
+    async exploreMap() {
+        const btn = document.getElementById('explore-btn');
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = '探索中...';
+        }
+        try {
+            const encounter = await mapService.exploreMap();
+            showToast(`遭遇 ${encounter?.monsterName || '怪物'}！`, 'info');
+            if (typeof window.showModule === 'function' && confirm(`遭遇了 ${encounter?.monsterName || '怪物'}！开始战斗？`)) {
+                window.showModule('combat');
+            }
+        } catch (error) {
+            showToast('探索失败: ' + error.message, 'error');
         } finally {
-            loading.hide();
+            await this.loadCurrentMap();
+        }
+    }
+
+    async loadStandaloneMaps() {
+        const container = document.getElementById('mapRegions');
+        if (!container) return;
+        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载地图中...</p></div>';
+        try {
+            const maps = await mapService.getMapList();
+            container.innerHTML = maps.length === 0
+                ? '<div class="empty-state">暂无地图</div>'
+                : maps.map(map => `
+                    <div class="map-region-card p-4 rounded" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);margin-bottom:12px;">
+                        <div class="font-semibold mb-1">${escapeText(map.name || '未知区域')}</div>
+                        <div class="text-sm text-muted mb-2">${escapeText(map.description || '暂无描述')}</div>
+                        <div class="text-xs text-muted">等级需求 ${map.requiredLevel || 1}</div>
+                    </div>
+                `).join('');
+        } catch (error) {
+            container.innerHTML = `<div class="empty-state">加载失败: ${escapeText(error.message)}</div>`;
         }
     }
 }

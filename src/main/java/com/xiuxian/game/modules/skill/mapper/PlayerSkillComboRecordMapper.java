@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xiuxian.game.modules.skill.entity.PlayerSkillComboRecord;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Select;
 
 import java.time.LocalDateTime;
@@ -31,6 +32,6 @@ public interface PlayerSkillComboRecordMapper extends BaseMapper<PlayerSkillComb
      * @param playerId   玩家ID
      * @param beforeTime 时间阈值
      */
-    @Select("DELETE FROM player_skill_combo_records WHERE player_id = #{playerId} AND used_at < #{beforeTime}")
+    @Delete("DELETE FROM player_skill_combo_records WHERE player_id = #{playerId} AND used_at < #{beforeTime}")
     void deleteOldRecords(@Param("playerId") Integer playerId, @Param("beforeTime") LocalDateTime beforeTime);
 }

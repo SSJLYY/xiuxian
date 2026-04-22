@@ -1,116 +1,58 @@
-/**
- * 宠物模块 - 业务逻辑层
- */
 import { gameAPI } from '../../core/api/GameApi.js';
-import { toast } from '../../components/Toast.js';
 
 export class PetsService {
-    constructor() {
-        this.myPets = [];
-        this.availablePets = [];
+    async getMyPets() {
+        const res = await gameAPI.getMyPets();
+        if (!res.success) throw new Error(res.message);
+        return res.data || [];
     }
 
-    async loadMyPets() {
-        try {
-            const response = await gameAPI.getMyPets();
-            if (response.success) {
-                this.myPets = response.data;
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('加载宠物失败: ' + error.message);
-            throw error;
-        }
+    async getAvailablePets() {
+        const res = await gameAPI.getAvailablePets();
+        if (!res.success) throw new Error(res.message);
+        return res.data || [];
     }
 
-    async loadAvailablePets() {
-        try {
-            const response = await gameAPI.getAvailablePets();
-            if (response.success) {
-                this.availablePets = response.data;
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('加载可用宠物失败: ' + error.message);
-            throw error;
-        }
-    }
-
-    async capturePet(monsterId) {
-        try {
-            const response = await gameAPI.capturePet(monsterId);
-            if (response.success) {
-                toast.success('捕获成功');
-                await this.loadMyPets();
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('捕获失败: ' + error.message);
-            throw error;
-        }
-    }
-
-    async feedPet(petId) {
-        try {
-            const response = await gameAPI.feedPet(petId);
-            if (response.success) {
-                toast.success('喂养成功');
-                await this.loadMyPets();
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('喂养失败：' + error.message);
-            throw error;
-        }
+    async getActivePet() {
+        const res = await gameAPI.getActivePet();
+        if (!res.success) throw new Error(res.message);
+        return res.data;
     }
 
     async activatePet(playerPetId) {
-        try {
-            const response = await gameAPI.activatePet(playerPetId);
-            if (response.success) {
-                toast.success('激活宠物成功');
-                await this.loadMyPets();
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('激活宠物失败：' + error.message);
-            throw error;
-        }
+        const res = await gameAPI.activatePet(playerPetId);
+        if (!res.success) throw new Error(res.message);
+        return res.data;
     }
 
-    async trainPet(playerPetId) {
-        try {
-            const response = await gameAPI.trainPet(playerPetId);
-            if (response.success) {
-                toast.success('训练宠物成功');
-                await this.loadMyPets();
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('训练宠物失败：' + error.message);
-            throw error;
-        }
+    async feedPet(playerPetId) {
+        const res = await gameAPI.feedPet(playerPetId);
+        if (!res.success) throw new Error(res.message);
+        return res.data;
     }
 
-    async renamePet(playerPetId, newName) {
-        try {
-            const response = await gameAPI.renamePet(playerPetId, newName);
-            if (response.success) {
-                toast.success('宠物改名成功');
-                await this.loadMyPets();
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('宠物改名失败：' + error.message);
-            throw error;
-        }
+    async trainPet(playerPetId, trainingType) {
+        const res = await gameAPI.trainPet(playerPetId, { trainingType });
+        if (!res.success) throw new Error(res.message);
+        return res.data;
+    }
+
+    async toggleLockPet(playerPetId) {
+        const res = await gameAPI.toggleLockPet(playerPetId);
+        if (!res.success) throw new Error(res.message);
+        return res.data;
+    }
+
+    async releasePet(playerPetId) {
+        const res = await gameAPI.releasePet(playerPetId);
+        if (!res.success) throw new Error(res.message);
+        return res.data;
+    }
+
+    async capturePet(petId) {
+        const res = await gameAPI.capturePet(petId);
+        if (!res.success) throw new Error(res.message);
+        return res.data;
     }
 }
 

@@ -1,133 +1,56 @@
-/**
- * 宗门模块 - 业务逻辑层
- */
 import { gameAPI } from '../../core/api/GameApi.js';
-import { toast } from '../../components/Toast.js';
+
+function unwrapGuildList(data) {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.guilds)) return data.guilds;
+    if (Array.isArray(data?.records)) return data.records;
+    return [];
+}
 
 export class GuildService {
-    constructor() {
-        this.myGuild = null;
-        this.guildList = [];
+    async getGuildList() {
+        const response = await gameAPI.getGuildList();
+        if (!response?.success) throw new Error(response?.message || '加载宗门列表失败');
+        return unwrapGuildList(response.data);
     }
 
-    async loadGuildList() {
-        try {
-            const response = await gameAPI.getGuildList();
-            if (response.success) {
-                this.guildList = response.data;
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('加载宗门列表失败: ' + error.message);
-            throw error;
-        }
-    }
-
-    async loadMyGuild() {
-        try {
-            const response = await gameAPI.getMyGuild();
-            if (response.success) {
-                this.myGuild = response.data;
-                return response.data;
-            }
-            return null;
-        } catch (error) {
-            console.error('加载我的宗门失败:', error);
+    async getMyGuild() {
+        const response = await gameAPI.getMyGuild();
+        if (!response?.success) {
+            if (response?.message) throw new Error(response.message);
             return null;
         }
+        return response.data || null;
     }
 
-    async createGuild(name, description) {
-        try {
-            const response = await gameAPI.createGuild(name, description);
-            if (response.success) {
-                toast.success('创建宗门成功');
-                await this.loadMyGuild();
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('创建宗门失败: ' + error.message);
-            throw error;
-        }
+    async getGuildDetail(guildId) {
+        const response = await gameAPI.get(`/guild/${guildId}`);
+        if (!response?.success) throw new Error(response?.message || '加载宗门详情失败');
+        return response.data || {};
     }
 
-    async joinGuild(guildId) {
-        try {
-            const response = await gameAPI.applyGuild(guildId);
-            if (response.success) {
-                toast.success('申请已提交');
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('申请失败: ' + error.message);
-            throw error;
-        }
+    async createGuild(name, description = '') {
+        const response = await gameAPI.createGuild(name, description);
+        if (!response?.success) throw new Error(response?.message || '创建宗门失败');
+        return response.data;
+    }
+
+    async applyGuild(guildId) {
+        const response = await gameAPI.applyGuild(guildId);
+        if (!response?.success) throw new Error(response?.message || '申请加入失败');
+        return response.data;
     }
 
     async leaveGuild() {
-        try {
-            const response = await gameAPI.leaveGuild();
-            if (response.success) {
-                toast.success('已退出宗门');
-                this.myGuild = null;
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('退出失败：' + error.message);
-            throw error;
-        }
+        const response = await gameAPI.leaveGuild();
+        if (!response?.success) throw new Error(response?.message || '退出宗门失败');
+        return response.data;
     }
 
-    async getCurrentGuildBoss() {
-        try {
-            const response = await gameAPI.getCurrentGuildBoss();
-            if (response.success) {
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('获取宗门 Boss 失败：' + error.message);
-            throw error;
-        }
-    }
-
-    async challengeGuildBoss() {
-        try {
-            const response = await gameAPI.challengeGuildBoss();
-            if (response.success) {
-                toast.success('挑战成功');
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('挑战失败：' + error.message);
-            throw error;
-        }
-    }
-
-    async claimGuildBossReward() {
-        try {
-            const response = await gameAPI.claimGuildBossReward();
-            if (response.success) {
-                toast.success('领取奖励成功');
-                return response.data;
-            }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('领取奖励失败：' + error.message);
-            throw error;
-        }
-    }
-}
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('退出失败: ' + error.message);
-            throw error;
-        }
+    async donateGuild(amount) {
+        const response = await gameAPI.donateGuild(amount);
+        if (!response?.success) throw new Error(response?.message || '捐献失败');
+        return response.data;
     }
 }
 

@@ -46,6 +46,8 @@ import com.xiuxian.game.common.exception.ErrorCode;
 @ConditionalOnProperty(value = "app.features.skills.enabled", havingValue = "true")
 public class SkillService {
 
+    private static final int MAX_EQUIP_SKILL_SLOTS = 3;
+
     private final SkillMapper skillMapper;
     private final PlayerSkillMapper playerSkillMapper;
     private final PlayerService playerService;
@@ -366,6 +368,9 @@ public class SkillService {
         if (!playerSkill.getPlayerId().equals(playerId)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INVALID_OPERATION + ": 无权操作该技能");
         }
+        if (slotNumber == null || slotNumber < 0 || slotNumber >= MAX_EQUIP_SKILL_SLOTS) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "无效的技能槽位");
+        }
         List<PlayerSkill> equippedSkills = playerSkillMapper.selectByPlayerIdAndEquipped(playerId, true);
         for (PlayerSkill ps : equippedSkills) {
             if (ps.getSlotNumber() != null && ps.getSlotNumber().equals(slotNumber)) {
@@ -445,7 +450,17 @@ public class SkillService {
         if (player == null) {
             return Collections.emptyList();
         }
-        return skillComboMapper.selectAvailableCombos(player.getLevel());
+        List<PlayerSkill> playerSkills = playerSkillMapper.selectByPlayerId(playerId);
+        Set<Integer> learnedSkillIds = playerSkills.stream()
+                .map(PlayerSkill::getSkillId)
+                .collect(Collectors.toSet());
+
+        return skillComboMapper.selectAvailableCombos(player.getLevel()).stream()
+                .filter(combo -> {
+                    List<Integer> comboSequence = parseSkillSequence(combo.getSkillSequence());
+                    return !comboSequence.isEmpty() && comboSequence.stream().allMatch(learnedSkillIds::contains);
+                })
+                .collect(Collectors.toList());
     }
 
     /**
@@ -477,7 +492,7 @@ public class SkillService {
                 .collect(Collectors.toSet());
 
         // 3. 获取玩家可用的连招
-        List<SkillCombo> availableCombos = skillComboMapper.selectAvailableCombos(player.getLevel());
+        List<SkillCombo> availableCombos = getAvailableCombos(playerId);
         if (availableCombos.isEmpty()) {
             // 记录技能使用
             recordSkillUsage(playerId, skillId, false, null);
@@ -492,7 +507,10 @@ public class SkillService {
         List<Integer> recentSkillSequence = recentRecords.stream()
                 .filter(r -> r.getUsedAt().isAfter(timeThreshold))
                 .map(PlayerSkillComboRecord::getSkillId)
-                .collect(Collectors.toList());
+                .collect(Collectors.collectingAndThen(Collectors.toList(), list -> {
+                    Collections.reverse(list);
+                    return list;
+                }));
 
         // 添加当前技能
         recentSkillSequence.add(skillId);
@@ -612,6 +630,10 @@ public class SkillService {
         List<PlayerSkillComboRecord> allRecords = playerSkillComboRecordMapper.findRecentRecords(playerId, 100);
         if (allRecords.size() > 20) {
             playerSkillComboRecordMapper.deleteOldRecords(playerId, oldThreshold);
+            allRecords = playerSkillComboRecordMapper.findRecentRecords(playerId, 100);
+            for (int i = 20; i < allRecords.size(); i++) {
+                playerSkillComboRecordMapper.deleteById(allRecords.get(i).getId());
+            }
         }
     }
 
@@ -624,6 +646,7 @@ public class SkillService {
         info.put("name", combo.getName());
         info.put("description", combo.getDescription());
         info.put("bonusPercent", combo.getComboBonus());
+        info.put("damageMultiplier", combo.getComboBonus());
         info.put("requiredLevel", combo.getRequiredLevel());
 
         // 解析技能序列并批量获取技能名称（避免N+1）
@@ -673,6 +696,13 @@ public class SkillService {
      */
     public Skill getSkillById(Integer skillId) {
         return skillMapper.selectById(skillId);
+    }
+
+    /**
+     * 战斗用：计算技能伤害并应用连招加成。
+     */
+    public SkillComboResult calculateCombatSkillDamageWithCombo(Integer playerId, Integer skillId, int baseDamage) {
+        return checkAndTriggerCombo(playerId, skillId, baseDamage);
     }
 
     /**

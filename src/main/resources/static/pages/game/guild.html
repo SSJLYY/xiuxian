@@ -52,11 +52,11 @@
 
     <script type="module">
         import { App } from '/js/App.js';
+        import { mountGuildGlobals } from '/js/modules/guild/index.js';
+
         const app = new App();
         app.init();
-        import('/js/modules/guild/index.js').then(module => {
-            module.guildUI.init();
-        });
+        mountGuildGlobals().init();
     </script>
 </body>
 </html>

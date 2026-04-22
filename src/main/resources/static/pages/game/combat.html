@@ -52,15 +52,13 @@
 
     <script type="module">
         import { App } from '/js/App.js';
+        import { mountCombatGlobals } from '/js/modules/combat/index.js';
         
         // 初始化应用
         const app = new App();
         app.init();
-        
-        // 加载战斗模块
-        import('/js/modules/combat/index.js').then(module => {
-            module.combatUI.init();
-        });
+
+        mountCombatGlobals().init();
     </script>
 </body>
 </html>

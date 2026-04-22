@@ -50,7 +50,10 @@
     <script src="js/pet-hunger-monitor.js"></script>
     <script src="js/breakthrough-evolution.js"></script>
     <script src="js/combo-pokedex.js"></script>
-    <script>
+    <script type="module">
+        import { petsUI } from './js/modules/pets/index.js';
+        window.petsUI = petsUI;
+
         document.addEventListener('DOMContentLoaded', async () => {
             if (!window.authManager) {
                 window.authManager = new AuthManager();
@@ -72,9 +75,7 @@
                 console.error('加载玩家信息失败:', error);
             }
 
-            if (window.loadMyPets) {
-                await window.loadMyPets();
-            }
+            await window.loadMyPets();
         });
     </script>
 </body>
