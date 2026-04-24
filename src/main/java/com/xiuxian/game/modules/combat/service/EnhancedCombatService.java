@@ -29,8 +29,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import com.xiuxian.game.common.exception.BusinessException;
 import com.xiuxian.game.common.exception.ErrorCode;
 
@@ -53,10 +51,20 @@ public class EnhancedCombatService {
     private final ObjectMapper objectMapper;
     private final CombatService combatService;
 
-    private static final Pattern NUMBER_PATTERN = Pattern.compile("(\\d+)");
-
     private static ThreadLocalRandom rng() {
         return ThreadLocalRandom.current();
+    }
+
+    private static class TurnOutcome {
+        private final int damage;
+        private final int heal;
+        private final int manaCost;
+
+        private TurnOutcome(int damage, int heal, int manaCost) {
+            this.damage = damage;
+            this.heal = heal;
+            this.manaCost = manaCost;
+        }
     }
 
     /**
@@ -118,21 +126,11 @@ public class EnhancedCombatService {
             if (actionPlan.playerFirst) {
                 // 玩家回合
                 for (int i = 0; i < actionPlan.playerActions && currentMonsterHealth > 0; i++) {
-                    String playerAction = executePlayerTurn(player, skillId, itemId, currentPlayerMana,
+                    TurnOutcome playerAction = executePlayerTurn(player, skillId, itemId, currentPlayerMana,
                             monster, currentMonsterHealth, monsterDefense, battleLog);
-
-                    if (playerAction.startsWith("技能")) {
-                        Skill skill = skillService.getSkillById(skillId);
-                        if (skill != null) {
-                            currentPlayerMana = Math.max(0, currentPlayerMana - skill.getManaCost());
-                        }
-                    }
-
-                    int playerDamage = parseDamageFromLog(playerAction);
-                    currentMonsterHealth -= playerDamage;
-                    if (playerAction.startsWith("恢复生命")) {
-                        currentPlayerHealth = Math.min(playerHealth, currentPlayerHealth + parseHealFromLog(playerAction));
-                    }
+                    currentPlayerMana = Math.max(0, currentPlayerMana - playerAction.manaCost);
+                    currentMonsterHealth -= playerAction.damage;
+                    currentPlayerHealth = Math.min(playerHealth, currentPlayerHealth + playerAction.heal);
                 }
 
                 combatService.applyPetSkillDamage(rounds, petEligible ? petBonus : null, battleLog, damage -> currentMonsterHealth -= damage);
@@ -141,37 +139,25 @@ public class EnhancedCombatService {
 
                 // 怪物回合
                 for (int i = 0; i < actionPlan.monsterActions && currentPlayerHealth > 0; i++) {
-                    String monsterAction = executeMonsterTurn(monster, player, currentPlayerHealth, playerDefense, battleLog);
-                    int monsterDamage = parseDamageFromLog(monsterAction);
-                    currentPlayerHealth -= monsterDamage;
+                    TurnOutcome monsterAction = executeMonsterTurn(monster, player, currentPlayerHealth, playerDefense, battleLog);
+                    currentPlayerHealth -= monsterAction.damage;
                 }
             } else {
                 // 怪物先手
                 for (int i = 0; i < actionPlan.monsterActions && currentPlayerHealth > 0; i++) {
-                    String monsterAction = executeMonsterTurn(monster, player, currentPlayerHealth, playerDefense, battleLog);
-                    int monsterDamage = parseDamageFromLog(monsterAction);
-                    currentPlayerHealth -= monsterDamage;
+                    TurnOutcome monsterAction = executeMonsterTurn(monster, player, currentPlayerHealth, playerDefense, battleLog);
+                    currentPlayerHealth -= monsterAction.damage;
                 }
 
                 if (currentPlayerHealth <= 0) break;
 
                 // 玩家回击
                 for (int i = 0; i < actionPlan.playerActions && currentMonsterHealth > 0; i++) {
-                    String playerAction = executePlayerTurn(player, skillId, itemId, currentPlayerMana,
+                    TurnOutcome playerAction = executePlayerTurn(player, skillId, itemId, currentPlayerMana,
                             monster, currentMonsterHealth, monsterDefense, battleLog);
-
-                    if (playerAction.startsWith("技能")) {
-                        Skill skill = skillService.getSkillById(skillId);
-                        if (skill != null) {
-                            currentPlayerMana = Math.max(0, currentPlayerMana - skill.getManaCost());
-                        }
-                    }
-
-                    int playerDamage = parseDamageFromLog(playerAction);
-                    currentMonsterHealth -= playerDamage;
-                    if (playerAction.startsWith("恢复生命")) {
-                        currentPlayerHealth = Math.min(playerHealth, currentPlayerHealth + parseHealFromLog(playerAction));
-                    }
+                    currentPlayerMana = Math.max(0, currentPlayerMana - playerAction.manaCost);
+                    currentMonsterHealth -= playerAction.damage;
+                    currentPlayerHealth = Math.min(playerHealth, currentPlayerHealth + playerAction.heal);
                 }
 
                 combatService.applyPetSkillDamage(rounds, petEligible ? petBonus : null, battleLog, damage -> currentMonsterHealth -= damage);
@@ -235,6 +221,8 @@ public class EnhancedCombatService {
             }
         }
         // 统一保存 - 使用独立事务方法
+        player.setHealth(Math.max(0, Math.min(currentPlayerHealth, player.getMaxHealth())));
+        player.setMana(Math.max(0, Math.min(currentPlayerMana, player.getMaxMana())));
         saveCombatResult(player, playerId, monster.getId(), result, rounds, expGained, 
                 spiritStonesGained, droppedEquipmentId, battleLog);
 
@@ -287,9 +275,9 @@ public class EnhancedCombatService {
     /**
      * 执行玩家回合（技能/道具/普通攻击）
      */
-    private String executePlayerTurn(PlayerProfile player, Integer skillId, Integer itemId,
-                                   int currentMana, Monster monster, int monsterHealth,
-                                   int monsterDefense, List<String> battleLog) {
+    private TurnOutcome executePlayerTurn(PlayerProfile player, Integer skillId, Integer playerItemId,
+                                    int currentMana, Monster monster, int monsterHealth,
+                                    int monsterDefense, List<String> battleLog) {
         // 检查是否使用技能
         if (skillId != null && skillId > 0) {
             PlayerSkill playerSkill = skillService.getPlayerSkillByPlayerAndSkill(player.getId(), skillId);
@@ -310,29 +298,29 @@ public class EnhancedCombatService {
                     if (isCritical) {
                         damage = (int) (damage * 1.8);
                         battleLog.add(player.getNickname() + "施放技能【" + skill.getName() + "】造成" + damage + "点暴击伤害");
-                        return "技能暴击伤害" + damage;
+                        return new TurnOutcome(damage, 0, skill.getManaCost());
                     } else {
                         battleLog.add(player.getNickname() + "施放技能【" + skill.getName() + "】造成" + damage + "点伤害");
-                        return "技能伤害" + damage;
+                        return new TurnOutcome(damage, 0, skill.getManaCost());
                     }
                 }
             }
         }
 
         // 检查是否使用道具
-        if (itemId != null && itemId > 0) {
-            PlayerItem playerItem = getPlayerItem(player.getId(), itemId);
+        if (playerItemId != null && playerItemId > 0) {
+            PlayerItem playerItem = getPlayerItem(player.getId(), playerItemId);
             if (playerItem != null) {
                 Item item = itemService.getItemById(playerItem.getItemId());
                 if (item != null) {
                     // 消耗道具
-                    consumeItem(player.getId(), itemId);
+                    consumeItem(player.getId(), playerItemId);
 
                     // 应用道具效果
                     if (item.getEffect() != null && item.getEffect().contains("恢复生命")) {
                         int healAmount = 50; // 简化恢复量
                         battleLog.add(player.getNickname() + "使用道具【" + item.getName() + "】恢复了" + healAmount + "点生命");
-                        return "恢复生命" + healAmount;
+                        return new TurnOutcome(0, healAmount, 0);
                     }
                 }
             }
@@ -346,73 +334,25 @@ public class EnhancedCombatService {
         if (isCritical) {
             damage = (int) (damage * 1.8);
             battleLog.add(player.getNickname() + "造成" + damage + "点暴击伤害");
-            return "普攻暴击伤害" + damage;
+            return new TurnOutcome(damage, 0, 0);
         } else {
             battleLog.add(player.getNickname() + "攻击造成" + damage + "点伤害");
-            return "造成" + damage + "伤害";
+            return new TurnOutcome(damage, 0, 0);
         }
     }
 
     /**
      * 执行怪物回合
      */
-    private String executeMonsterTurn(Monster monster, PlayerProfile player, int playerHealth, int playerDefense, List<String> battleLog) {
+    private TurnOutcome executeMonsterTurn(Monster monster, PlayerProfile player, int playerHealth, int playerDefense, List<String> battleLog) {
         // 怪物普通攻击
         int damage = combatService.calculateDamage(monster.getAttack(), playerDefense, monster.getLevel(), player.getLevel(), monster.getSpeed(), player.getSpeed(), false, battleLog);
         battleLog.add(monster.getName() + "攻击造成" + damage + "点伤害");
-        return "造成" + damage + "伤害";
+        return new TurnOutcome(damage, 0, 0);
     }
 
     private boolean checkCriticalHit(PlayerProfile player) {
         return rng().nextInt(100) < 5;
-    }
-
-    /**
-     * 从战斗日志中解析伤害数值
-     */
-    private int parseDamageFromLog(String logEntry) {
-        try {
-            if (logEntry == null || logEntry.startsWith("恢复生命")) {
-                return 0;
-            }
-            String[] parts = logEntry.split("造成");
-            if (parts.length > 1) {
-                String damagePart = parts[1].split("点")[0];
-                return Integer.parseInt(damagePart.trim());
-            }
-
-            if (logEntry.startsWith("技能暴击伤害")) {
-                return Integer.parseInt(logEntry.substring("技能暴击伤害".length()).trim());
-            }
-            if (logEntry.startsWith("技能伤害")) {
-                return Integer.parseInt(logEntry.substring("技能伤害".length()).trim());
-            }
-            if (logEntry.startsWith("普攻暴击伤害")) {
-                return Integer.parseInt(logEntry.substring("普攻暴击伤害".length()).trim());
-            }
-            if (logEntry.startsWith("暴击伤害")) {
-                return Integer.parseInt(logEntry.substring("暴击伤害".length()).trim());
-            }
-
-            Matcher matcher = NUMBER_PATTERN.matcher(logEntry);
-            if (matcher.find()) {
-                return Integer.parseInt(matcher.group(1));
-            }
-        } catch (Exception e) {
-            // 解析失败，返回0
-        }
-        return 0;
-    }
-
-    private int parseHealFromLog(String logEntry) {
-        try {
-            if (logEntry != null && logEntry.startsWith("恢复生命")) {
-                return Integer.parseInt(logEntry.substring("恢复生命".length()).trim());
-            }
-        } catch (Exception e) {
-            // ignore parse error
-        }
-        return 0;
     }
 
     /**

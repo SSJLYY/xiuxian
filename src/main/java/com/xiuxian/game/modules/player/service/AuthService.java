@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -74,12 +75,20 @@ public class AuthService {
 
         PlayerProfile playerProfile = playerService.createNewPlayer(user, request.getNickname());
 
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                user.getUsername(),
+                null,
+                java.util.Collections.emptyList()
+        );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
         String token = tokenProvider.generateToken(user.getUsername());
         return buildLoginResponse(user, playerProfile, token);
     }
 
     public LoginResponse login(LoginRequest request) {
-        if ("admin".equals(request.getUserType())) {
+        String userType = request.getUserType() == null ? "player" : request.getUserType().trim().toLowerCase();
+        if ("admin".equals(userType)) {
             return handleAdminLogin(request);
         } else {
             return handlePlayerLogin(request);
@@ -96,7 +105,8 @@ public class AuthService {
 
     public User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken) {
             throw new BusinessException(ErrorCode.USER_NOT_LOGIN);
         }
         String username = authentication.getName();
@@ -107,7 +117,8 @@ public class AuthService {
         return user;
     }
 
-    public void logout() {
+    public void logout(String token) {
+        tokenProvider.revokeToken(token);
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null) {
             log.info("用户登出: {}", authentication.getName());

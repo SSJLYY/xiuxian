@@ -1,5 +1,6 @@
 package com.xiuxian.game.modules.cultivation.controller;
 
+import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.modules.cultivation.entity.CultivationLog;
 import com.xiuxian.game.modules.cultivation.service.CultivationService;
 import com.xiuxian.game.common.exception.BusinessException;
@@ -7,9 +8,9 @@ import com.xiuxian.game.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -23,49 +24,42 @@ public class CultivationController {
     private final com.xiuxian.game.modules.player.service.PlayerService playerService;
 
     @GetMapping("/logs")
-    public ResponseEntity<Map<String, Object>> getCultivationLogs(
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<CultivationLog>>> getCultivationLogs(
             @RequestParam(defaultValue = "10") int limit) {
         try {
             Integer playerId = getCurrentPlayerId();
             List<CultivationLog> logs = cultivationService.getPlayerCultivationLogs(playerId, limit);
-            
-            Map<String, Object> result = new HashMap<>();
-            result.put("success", true);
-            result.put("data", logs);
-            return ResponseEntity.ok(result);
+
+            return ResponseEntity.ok(ApiResponse.success("获取修炼日志成功", logs));
         } catch (BusinessException e) {
-            Map<String, Object> result = new HashMap<>();
-            result.put("success", false);
-            result.put("message", e.getMessage());
-            return ResponseEntity.status(400).body(result);
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
 
     @GetMapping("/stats")
-    public ResponseEntity<Map<String, Object>> getCultivationStats() {
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getCultivationStats() {
         try {
             Integer playerId = getCurrentPlayerId();
-            
+            com.xiuxian.game.modules.player.entity.PlayerProfile profile = playerService.getPlayerProfileById(playerId);
+
             long totalTime = cultivationService.getTotalCultivationTime(playerId);
             long totalExp = cultivationService.getTotalExpFromCultivation(playerId);
             long totalSpiritStones = cultivationService.getTotalSpiritStonesFromCultivation(playerId);
             CultivationLog latestLog = cultivationService.getLatestCultivationLog(playerId);
-            
-            Map<String, Object> stats = new HashMap<>();
+
+            Map<String, Object> stats = new java.util.HashMap<>();
             stats.put("totalCultivationTime", totalTime);
+            stats.put("totalCultivationTimeMinutes", totalTime / 60000);
+            stats.put("profileTotalCultivationMinutes", profile.getTotalCultivationTime());
             stats.put("totalExp", totalExp);
             stats.put("totalSpiritStones", totalSpiritStones);
             stats.put("latestCultivation", latestLog);
-            
-            Map<String, Object> result = new HashMap<>();
-            result.put("success", true);
-            result.put("data", stats);
-            return ResponseEntity.ok(result);
+
+            return ResponseEntity.ok(ApiResponse.success("获取修炼统计成功", stats));
         } catch (BusinessException e) {
-            Map<String, Object> result = new HashMap<>();
-            result.put("success", false);
-            result.put("message", e.getMessage());
-            return ResponseEntity.status(400).body(result);
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
 

@@ -46,7 +46,7 @@ public class AuthController {
         } catch (Exception e) {
             String clientIp = RequestUtils.getClientIp(httpRequest);
             LogUtils.logSecurity("USER_REGISTER_FAILED", request.getUsername(), "用户注册失败: " + e.getMessage(), clientIp);
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+            return ResponseEntity.badRequest().body(ApiResponse.error(resolveAuthErrorMessage(e)));
         }
     }
 
@@ -72,7 +72,7 @@ public class AuthController {
         } catch (Exception e) {
             String clientIp = RequestUtils.getClientIp(httpRequest);
             LogUtils.logSecurity("USER_LOGIN_FAILED", request.getUsername(), "用户登录失败: " + e.getMessage(), clientIp);
-            return ResponseEntity.badRequest().body(ApiResponse.error("用户名或密码错误"));
+            return ResponseEntity.badRequest().body(ApiResponse.error(resolveLoginErrorMessage(e)));
         }
     }
 
@@ -95,7 +95,9 @@ public class AuthController {
             User currentUser = authService.getCurrentUser();
             String username = currentUser != null ? currentUser.getUsername() : "unknown";
 
-            authService.logout();
+            String authHeader = httpRequest.getHeader("Authorization");
+            String token = extractBearerToken(authHeader);
+            authService.logout(token);
 
             String clientIp = RequestUtils.getClientIp(httpRequest);
             LogUtils.logUserAction(username, "LOGOUT", "用户登出");
@@ -115,6 +117,26 @@ public class AuthController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("Token无效"));
         }
+    }
+
+    private String resolveLoginErrorMessage(Exception e) {
+        String message = resolveAuthErrorMessage(e);
+        return message != null ? message : "用户名或密码错误";
+    }
+
+    private String resolveAuthErrorMessage(Exception e) {
+        if (e instanceof com.xiuxian.game.common.exception.BusinessException) {
+            return e.getMessage();
+        }
+        log.error("认证流程发生未预期异常", e);
+        return "系统繁忙，请稍后再试";
+    }
+
+    private String extractBearerToken(String authHeader) {
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+        return null;
     }
 }
 

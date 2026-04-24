@@ -286,6 +286,7 @@ public class CombatService {
         PlayerProfile player;
         Monster monster;
         int playerAttack, playerDefense, playerSpeed;
+        int playerHealth;
         int monsterHealth, monsterAttack, monsterDefense, monsterSpeed;
         int currentPlayerHealth, currentMonsterHealth;
         int rounds;
@@ -310,6 +311,7 @@ public class CombatService {
         ctx.playerAttack = player.getAttack() + player.getEquipmentAttackBonus();
         ctx.playerDefense = player.getDefense() + player.getEquipmentDefenseBonus();
         ctx.playerSpeed = player.getSpeed() + player.getEquipmentSpeedBonus();
+        ctx.playerHealth = player.getHealth() + player.getEquipmentHealthBonus();
         ctx.monsterHealth = monster.getHealth();
         ctx.monsterAttack = monster.getAttack();
         ctx.monsterDefense = monster.getDefense();
@@ -327,7 +329,7 @@ public class CombatService {
         }
 
         ctx.battleLog.add("⚔️ 战斗开始！" + player.getNickname() + " VS " + monster.getName());
-        ctx.currentPlayerHealth = player.getHealth() + player.getEquipmentHealthBonus();
+        ctx.currentPlayerHealth = ctx.playerHealth;
         ctx.currentMonsterHealth = ctx.monsterHealth;
         ctx.rounds = 0;
 
@@ -485,6 +487,7 @@ public class CombatService {
                 ctx.battleLog.add("损失灵石：" + actualLoss);
             }
         }
+        ctx.player.setHealth(Math.max(0, Math.min(ctx.currentPlayerHealth, ctx.player.getMaxHealth())));
         // 统一保存：累加了 totalBattles，并持久化 if/else 中修改的属性
         playerService.savePlayerProfile(ctx.player);
     }
@@ -665,8 +668,7 @@ public class CombatService {
      * <p>【P1-6 修复】原实现先调用 {@code startCombat()} 写入一次数据库，再用差值修正，
      * 存在两次写入之间发生崩溃导致数据不一致的风险。</p>
      *
-     * <p>新实现：直接在本方法内完成所有计算，只写一次数据库，保证原子性。
-     * 批量战斗基于单次战斗结果推算（胜则等比放大，败则不给奖励），逻辑与原版一致。</p>
+     * <p>新实现：逐次执行战斗并累计结果，只在批次结束后统一落库，避免把单次结果线性放大。</p>
      *
      * @param playerId    玩家ID
      * @param playerLevel 玩家等级（用于生成怪物）
@@ -689,40 +691,45 @@ public class CombatService {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
 
-        Monster monster = generateMonster(playerLevel, mapId);
-        log.debug("生成怪物: {}(Lv.{} {})", monster.getName(), monster.getLevel(), monster.getType());
-
-        SingleCombatOutcome outcome = simulateSingleCombat(player, monster);
-
         int wins = 0;
         long totalExpGained = 0;
         long totalSpiritStonesGained = 0;
-        List<String> battleLog = outcome.battleLog;
+        long totalRounds = 0;
+        List<String> battleLog = new ArrayList<>();
+        Monster lastMonster = null;
 
-        if (outcome.playerWon) {
-            player.setTotalBattles(player.getTotalBattles() + actualTimes);
-            wins = actualTimes;
-            totalExpGained = (long) outcome.expGained * actualTimes;
-            totalSpiritStonesGained = (long) outcome.spiritStonesGained * actualTimes;
+        for (int i = 0; i < actualTimes; i++) {
+            Monster monster = generateMonster(player.getLevel(), mapId);
+            lastMonster = monster;
+            log.debug("第{}场生成怪物: {}(Lv.{} {})", i + 1, monster.getName(), monster.getLevel(), monster.getType());
 
-            player.setExp(player.getExp() + totalExpGained);
-            player.setSpiritStones(player.getSpiritStones() + totalSpiritStonesGained);
+            SingleCombatOutcome outcome = simulateSingleCombat(player, monster);
+            totalRounds += outcome.rounds;
+            player.setTotalBattles((player.getTotalBattles() == null ? 0 : player.getTotalBattles()) + 1);
+            battleLog.add("第" + (i + 1) + "场: " + monster.getName() + "(Lv." + monster.getLevel() + ") -> " + (outcome.playerWon ? "胜利" : "失败"));
 
-            int levelUps = playerService.applyLevelUpsWithoutCommit(player, 200);
-            if (levelUps > 0) {
-                log.debug("玩家升级 {} 次，当前等级: {}", levelUps, player.getLevel());
+            if (outcome.playerWon) {
+                wins++;
+                totalExpGained += outcome.expGained;
+                totalSpiritStonesGained += outcome.spiritStonesDelta;
+                player.setExp(player.getExp() + outcome.expGained);
+                player.setSpiritStones(player.getSpiritStones() + outcome.spiritStonesDelta);
+
+                int levelUps = playerService.applyLevelUpsWithoutCommit(player, 100);
+                if (levelUps > 0) {
+                    battleLog.add("第" + (i + 1) + "场后升级至 Lv." + player.getLevel());
+                }
+            } else {
+                totalSpiritStonesGained += outcome.spiritStonesDelta;
+                long currentSpiritStones = player.getSpiritStones();
+                long actualLoss = Math.min(currentSpiritStones, Math.max(0, -outcome.spiritStonesDelta));
+                if (actualLoss > 0) {
+                    player.setSpiritStones(currentSpiritStones - actualLoss);
+                    battleLog.add("第" + (i + 1) + "场失败，损失灵石：" + actualLoss);
+                }
             }
-        }
-        
-        if (!outcome.playerWon) {
-            player.setTotalBattles(player.getTotalBattles() + actualTimes);
-            long currentSpiritStones = player.getSpiritStones();
-            long lostSpiritStones = Math.max(1, currentSpiritStones / 100) * actualTimes;
-            long actualLoss = Math.min(currentSpiritStones, Math.max(0, lostSpiritStones));
-            if (actualLoss > 0) {
-                player.setSpiritStones(currentSpiritStones - actualLoss);
-                battleLog.add("批量战斗失败，损失灵石：" + actualLoss);
-            }
+
+            player.setHealth(Math.max(0, Math.min(outcome.currentPlayerHealth, player.getMaxHealth())));
         }
 
         PlayerPet activePet = petService.getActivePet(playerId);
@@ -735,8 +742,8 @@ public class CombatService {
             }
         }
 
-        saveBatchCombatResult(player, playerId, monster, outcome.playerWon ? "WIN" : "LOSE",
-                outcome.rounds, totalExpGained, totalSpiritStonesGained, battleLog);
+        saveBatchCombatResult(player, playerId, lastMonster, wins > 0 ? "WIN" : "LOSE",
+                (int) totalRounds, totalExpGained, totalSpiritStonesGained, battleLog);
 
         log.info("批量战斗完成: wins={}/{}, exp={}, stones={}", wins, actualTimes, totalExpGained, totalSpiritStonesGained);
 
@@ -744,14 +751,14 @@ public class CombatService {
                 .totalBattles(actualTimes)
                 .wins(wins)
                 .losses(actualTimes - wins)
-                .winRate(wins > 0 ? 1.0 : 0.0)
-                .averageRounds((double) outcome.rounds)
+                .winRate(actualTimes > 0 ? (double) wins / actualTimes : 0.0)
+                .averageRounds(actualTimes > 0 ? (double) totalRounds / actualTimes : 0.0)
                 .totalExpGained(totalExpGained)
                 .totalSpiritStonesGained(totalSpiritStonesGained)
                 .battleLog(battleLog)
-                .monsterName(monster.getName())
-                .monsterLevel(monster.getLevel())
-                .monsterType(monster.getType())
+                .monsterName(lastMonster != null ? lastMonster.getName() : null)
+                .monsterLevel(lastMonster != null ? lastMonster.getLevel() : null)
+                .monsterType(lastMonster != null ? lastMonster.getType() : null)
                 .playerLevel(player.getLevel())
                 .playerExp(player.getExp())
                 .playerSpiritStones(player.getSpiritStones())
@@ -774,7 +781,8 @@ public class CombatService {
         boolean playerWon;
         int rounds;
         long expGained;
-        long spiritStonesGained;
+        long spiritStonesDelta;
+        int currentPlayerHealth;
         List<String> battleLog;
     }
 
@@ -788,12 +796,18 @@ public class CombatService {
         int playerSpeed = player.getSpeed() + player.getEquipmentSpeedBonus();
         int monsterSpeed = monster.getSpeed();
 
-        PetCombatBonus petBonus = petService.calculatePetCombatBonus(petService.getActivePet(player.getId()));
+        PlayerPet activePet = petService.getActivePet(player.getId());
+        PetCombatBonus petBonus = petService.calculatePetCombatBonus(activePet);
         if (petBonus != null && !petBonus.isEligible()) {
             petBonus = null;
+        } else if (activePet != null && petBonus != null) {
+            playerAttack += activePet.getAttack();
+            playerDefense += activePet.getDefense();
+            playerSpeed += activePet.getSpeed();
         }
 
-        int currentPlayerHealth = player.getHealth() + player.getEquipmentHealthBonus();
+        int currentPlayerHealth = player.getHealth() + player.getEquipmentHealthBonus()
+                + (activePet != null && petBonus != null ? activePet.getHealth() : 0);
         int currentMonsterHealth = monster.getHealth();
 
         List<String> log = new ArrayList<>();
@@ -850,13 +864,16 @@ public class CombatService {
         SingleCombatOutcome result = new SingleCombatOutcome();
         result.playerWon = currentMonsterHealth <= 0;
         result.rounds = rounds;
+        result.currentPlayerHealth = currentPlayerHealth;
         result.battleLog = log;
 
         if (result.playerWon) {
             result.expGained = calculateExpReward(monster, player.getLevel());
-            result.spiritStonesGained = calculateSpiritStonesReward(monster, player.getLevel());
-            log.add("战斗胜利！获得经验：" + result.expGained + "，灵石：" + result.spiritStonesGained);
+            result.spiritStonesDelta = calculateSpiritStonesReward(monster, player.getLevel());
+            log.add("战斗胜利！获得经验：" + result.expGained + "，灵石：" + result.spiritStonesDelta);
         } else {
+            long currentSpiritStones = player.getSpiritStones() == null ? 0L : player.getSpiritStones();
+            result.spiritStonesDelta = -Math.min(currentSpiritStones, Math.max(1, currentSpiritStones / 100));
             log.add("战斗失败...");
         }
 

@@ -100,7 +100,7 @@ public class CombatController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("怪物不存在或不可战斗"));
             }
             Map<String, Object> result = enhancedCombatService.enhancedCombat(
-                    playerId, monster, request.getSkillId(), request.getItemId());
+                    playerId, monster, request.getSkillId(), request.getPlayerItemId());
             return ResponseEntity.ok(ApiResponse.success("战斗完成", result));
         } catch (Exception e) {
             log.error("增强战斗失败: {}", e.getMessage(), e);
@@ -175,7 +175,7 @@ public class CombatController {
         private Integer mapId;
         private Integer monsterId;
         private Integer skillId;
-        private Integer itemId;
+        private Integer playerItemId;
 
         public Integer getMapId() { return mapId; }
         public void setMapId(Integer mapId) { this.mapId = mapId; }
@@ -183,7 +183,7 @@ public class CombatController {
         public void setMonsterId(Integer monsterId) { this.monsterId = monsterId; }
         public Integer getSkillId() { return skillId; }
         public void setSkillId(Integer skillId) { this.skillId = skillId; }
-        public Integer getItemId() { return itemId; }
-        public void setItemId(Integer itemId) { this.itemId = itemId; }
+        public Integer getPlayerItemId() { return playerItemId; }
+        public void setPlayerItemId(Integer playerItemId) { this.playerItemId = playerItemId; }
     }
 }

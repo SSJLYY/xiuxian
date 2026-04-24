@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * JWT Token 工具类
@@ -17,6 +19,8 @@ import java.util.Date;
 @Slf4j
 @Component
 public class JwtTokenProvider {
+
+    private final Set<String> revokedTokens = ConcurrentHashMap.newKeySet();
 
     private final String jwtSecret;
     private final long jwtExpiration;
@@ -56,6 +60,16 @@ public class JwtTokenProvider {
                 .compact();
     }
 
+    public void revokeToken(String token) {
+        if (token != null && !token.trim().isEmpty()) {
+            revokedTokens.add(token);
+        }
+    }
+
+    public boolean isTokenRevoked(String token) {
+        return token != null && revokedTokens.contains(token);
+    }
+
     /**
      * 从Token中解析用户名
      *
@@ -81,6 +95,9 @@ public class JwtTokenProvider {
      */
     public boolean validateToken(String authToken) {
         try {
+            if (isTokenRevoked(authToken)) {
+                return false;
+            }
             Jwts.parserBuilder()
                     .setSigningKey(getSigningKey())
                     .build()

@@ -2,8 +2,6 @@ package com.xiuxian.game.modules.cultivation.service;
 
 import com.xiuxian.game.modules.cultivation.entity.CultivationLog;
 import com.xiuxian.game.modules.cultivation.mapper.CultivationLogMapper;
-import com.xiuxian.game.modules.player.entity.PlayerProfile;
-import com.xiuxian.game.modules.player.service.PlayerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,9 +16,8 @@ import java.util.List;
 public class CultivationService {
 
     private final CultivationLogMapper cultivationLogMapper;
-    private final PlayerService playerService;
 
-    private static final long MAX_CULTIVATION_DURATION_MS = 24 * 60 * 60 * 1000L;
+    public static final long MAX_CULTIVATION_DURATION_MS = 24 * 60 * 60 * 1000L;
 
     @Transactional
     public CultivationLog recordCultivation(Integer playerId, Long expGained, Integer spiritStonesGained, 
@@ -57,21 +54,21 @@ public class CultivationService {
     }
 
     public long getTotalCultivationTime(Integer playerId) {
-        List<CultivationLog> logs = cultivationLogMapper.selectByPlayerId(playerId, Integer.MAX_VALUE);
+        List<CultivationLog> logs = cultivationLogMapper.selectAllByPlayerId(playerId);
         return logs.stream()
                 .mapToLong(log -> log.getCultivationDuration() != null ? log.getCultivationDuration() : 0L)
                 .sum();
     }
 
     public long getTotalExpFromCultivation(Integer playerId) {
-        List<CultivationLog> logs = cultivationLogMapper.selectByPlayerId(playerId, Integer.MAX_VALUE);
+        List<CultivationLog> logs = cultivationLogMapper.selectAllByPlayerId(playerId);
         return logs.stream()
                 .mapToLong(log -> log.getExpGained() != null ? log.getExpGained() : 0L)
                 .sum();
     }
 
     public long getTotalSpiritStonesFromCultivation(Integer playerId) {
-        List<CultivationLog> logs = cultivationLogMapper.selectByPlayerId(playerId, Integer.MAX_VALUE);
+        List<CultivationLog> logs = cultivationLogMapper.selectAllByPlayerId(playerId);
         return logs.stream()
                 .mapToLong(log -> log.getSpiritStonesGained() != null ? log.getSpiritStonesGained() : 0L)
                 .sum();

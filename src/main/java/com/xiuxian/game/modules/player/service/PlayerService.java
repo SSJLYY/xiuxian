@@ -8,6 +8,7 @@ import com.xiuxian.game.common.exception.ErrorCode;
 import com.xiuxian.game.modules.player.mapper.PlayerProfileMapper;
 import com.xiuxian.game.modules.player.mapper.PlayerItemMapper;
 import com.xiuxian.game.modules.player.mapper.UserMapper;
+import com.xiuxian.game.modules.cultivation.service.CultivationService;
 import com.xiuxian.game.modules.skill.service.SkillService;
 import org.springframework.context.annotation.Lazy;
 
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.security.core.Authentication;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 
 /**
  * 玩家服务类
@@ -93,16 +95,18 @@ public class PlayerService {
     private final SkillService skillService;
     private final GameBalanceConfig balance;
     private final GameBalanceUtils balanceUtils;
+    private final CultivationService cultivationService;
 
     public PlayerService(PlayerProfileMapper playerProfileMapper,
                           UserMapper userMapper,
                           PlayerItemMapper playerItemMapper,
-                          com.xiuxian.game.modules.player.mapper.PlayerLoginLogMapper playerLoginLogMapper,
-                          PasswordEncoder passwordEncoder,
-                          QuestProgressService questProgressService,
-                          @Lazy SkillService skillService,
-                          GameBalanceConfig balance,
-                          GameBalanceUtils balanceUtils) {
+                           com.xiuxian.game.modules.player.mapper.PlayerLoginLogMapper playerLoginLogMapper,
+                           PasswordEncoder passwordEncoder,
+                           QuestProgressService questProgressService,
+                           @Lazy SkillService skillService,
+                           GameBalanceConfig balance,
+                           GameBalanceUtils balanceUtils,
+                           CultivationService cultivationService) {
         this.playerProfileMapper = playerProfileMapper;
         this.userMapper = userMapper;
         this.playerItemMapper = playerItemMapper;
@@ -112,6 +116,7 @@ public class PlayerService {
         this.skillService = skillService;
         this.balance = balance;
         this.balanceUtils = balanceUtils;
+        this.cultivationService = cultivationService;
     }
 
     /**
@@ -173,7 +178,9 @@ public class PlayerService {
                 .attack(balance.getPlayerInitial().getAttack())
                 .defense(balance.getPlayerInitial().getDefense())
                 .health(balance.getPlayerInitial().getHealth())
+                .maxHealth(balance.getPlayerInitial().getHealth())
                 .mana(balance.getPlayerInitial().getMana())
+                .maxMana(balance.getPlayerInitial().getMana())
                 .speed(balance.getPlayerInitial().getSpeed())
                 .isCultivating(false)
                 .lastOnlineTime(LocalDateTime.now())
@@ -282,7 +289,8 @@ public class PlayerService {
      */
     public PlayerProfile getCurrentPlayerProfile() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken) {
             throw new BusinessException(ErrorCode.USER_NOT_LOGIN);
         }
 
@@ -394,7 +402,7 @@ public class PlayerService {
                 log.warn("检测到修炼开始时间晚于当前时间，按0秒处理：playerId={}, start={}, now={}", profile.getId(), startTime, now);
                 cultivationTimeSeconds = 0;
             }
-            long maxCultivationTime = 24 * 60 * 60;
+            long maxCultivationTime = CultivationService.MAX_CULTIVATION_DURATION_MS / 1000;
             long actualCultivationTime = Math.min(cultivationTimeSeconds, maxCultivationTime);
 
             long cultivationTimeMinutes = actualCultivationTime / 60;
@@ -429,6 +437,13 @@ public class PlayerService {
 
             profile.setExp(profile.getExp() + expGained);
             profile.setSpiritStones(currentSpiritStones + spiritStonesToAdd);
+            cultivationService.recordCultivation(
+                    profile.getId(),
+                    expGained,
+                    Math.toIntExact(spiritStonesGained),
+                    actualCultivationTime * 1000,
+                    false
+            );
             result.put("expGained", expGained);
             result.put("spiritStonesGained", spiritStonesGained);
             log.info("修炼收益：时长={}s, 经验+{}, 灵石+{}, 速度倍数=x{}", 
@@ -493,7 +508,9 @@ public class PlayerService {
         profile.setAttack(profile.getAttack() + LEVEL_UP_ATTACK_BONUS);
         profile.setDefense(profile.getDefense() + LEVEL_UP_DEFENSE_BONUS);
         profile.setHealth(profile.getHealth() + LEVEL_UP_HEALTH_BONUS);
+        profile.setMaxHealth(profile.getMaxHealth() + LEVEL_UP_HEALTH_BONUS);
         profile.setMana(profile.getMana() + LEVEL_UP_MANA_BONUS);
+        profile.setMaxMana(profile.getMaxMana() + LEVEL_UP_MANA_BONUS);
         profile.setSpeed(profile.getSpeed() + LEVEL_UP_SPEED_BONUS);
         profile.setAttributePoints(profile.getAttributePoints() + REALM_BREAK_ATTRIBUTE_POINTS);
         profile.setSkillPoints(profile.getSkillPoints() + REALM_BREAK_SKILL_POINTS);

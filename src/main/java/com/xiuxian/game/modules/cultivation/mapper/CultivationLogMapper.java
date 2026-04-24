@@ -46,5 +46,8 @@ public interface CultivationLogMapper extends BaseMapper<CultivationLog> {
      */
     @Select("SELECT * FROM cultivation_logs WHERE player_id = #{playerId} ORDER BY created_at DESC LIMIT #{limit}")
     List<CultivationLog> selectByPlayerId(@Param("playerId") Integer playerId, @Param("limit") int limit);
+
+    @Select("SELECT * FROM cultivation_logs WHERE player_id = #{playerId} ORDER BY created_at DESC")
+    List<CultivationLog> selectAllByPlayerId(@Param("playerId") Integer playerId);
 }
 

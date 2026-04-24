@@ -148,6 +148,7 @@ public class AdminAuthService {
         try {
             if (token != null) {
                 adminTokenCache.remove(token);
+                jwtTokenProvider.revokeToken(token);
             }
             return AdminLoginResponse.success("注销成功", null);
         } catch (Exception e) {
