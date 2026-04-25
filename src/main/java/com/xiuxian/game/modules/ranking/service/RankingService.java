@@ -17,7 +17,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import com.xiuxian.game.modules.admin.service.CacheService;
 
@@ -78,6 +77,16 @@ public class RankingService {
         return rankings;
     }
 
+    public List<Ranking> getRankingPage(String rankingType, int page, int size) {
+        int safePage = Math.max(page, 1);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        int limit = safePage * safeSize;
+        List<Ranking> rankings = getRankingList(rankingType, limit);
+        int fromIndex = Math.min((safePage - 1) * safeSize, rankings.size());
+        int toIndex = Math.min(fromIndex + safeSize, rankings.size());
+        return rankings.subList(fromIndex, toIndex);
+    }
+
     /**
      * 获取玩家排名
      */
@@ -125,13 +134,9 @@ public class RankingService {
      */
     private void clearRankingCache() {
         String[] rankingTypes = {"LEVEL", "SPIRIT_STONES", "COMBAT_POWER"};
-        int[] limits = {10, 50, 100};
-        
+
         for (String type : rankingTypes) {
-            for (int limit : limits) {
-                String cacheKey = CacheService.CacheKeys.rankingKey(type + ":" + limit);
-                cacheService.remove(cacheKey);
-            }
+            cacheService.removeByPrefix(CacheService.CacheKeys.rankingKey(type + ":"));
         }
         
         log.debug("排行榜缓存已清除");
@@ -216,7 +221,7 @@ public class RankingService {
         
         // 获取前100名玩家（按综合战力排序）
         // 通过PlayerService查询，遵守模块边界
-        List<PlayerProfile> players = playerService.getTopPlayersByCultivationSpeed(100);
+        List<PlayerProfile> players = playerService.getTopPlayersByCombatPower(100);
         
         // 批量构建排名记录（避免循环insert）
         List<Ranking> rankings = new ArrayList<>(players.size());

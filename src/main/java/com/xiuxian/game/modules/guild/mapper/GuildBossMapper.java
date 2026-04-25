@@ -18,6 +18,9 @@ public interface GuildBossMapper extends BaseMapper<GuildBoss> {
     @Select("SELECT * FROM guild_bosses WHERE guild_id = #{guildId} AND status = 'ALIVE' LIMIT 1")
     GuildBoss findAliveByGuildId(Integer guildId);
 
+    @Select("SELECT * FROM guild_bosses WHERE guild_id = #{guildId} ORDER BY id DESC LIMIT 1")
+    GuildBoss findLatestByGuildId(Integer guildId);
+
     /**
      * 原子扣减BOSS血量，防止并发挑战伤害丢失
      * @return 影响行数；bossId, damage, now(1) 为输入参数

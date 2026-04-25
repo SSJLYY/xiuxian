@@ -33,7 +33,12 @@ public class AchievementService {
      * 获取所有成就
      */
     public List<Achievement> getAllAchievements() {
-        return achievementMapper.selectList(null);
+        return achievementMapper.selectList(
+                new QueryWrapper<Achievement>()
+                        .orderByAsc("achievement_type")
+                        .orderByAsc("sort_order")
+                        .orderByAsc("id")
+        );
     }
 
     /**
@@ -108,6 +113,7 @@ public class AchievementService {
         if (achievement.getRewardExp() != null && achievement.getRewardExp() > 0) {
             profile.setExp(profile.getExp() + achievement.getRewardExp());
         }
+        playerService.applyLevelUpsWithoutCommit(profile, 100);
         playerService.savePlayerProfile(profile);
         
         // 标记为已领取

@@ -87,6 +87,17 @@ public class CacheService {
         log.debug("删除缓存: key={}", key);
     }
 
+    public void removeByPrefix(String prefix) {
+        int removed = 0;
+        for (String key : cache.keySet()) {
+            if (key.startsWith(prefix)) {
+                cache.remove(key);
+                removed++;
+            }
+        }
+        log.debug("按前缀删除缓存: prefix={}, removed={}", prefix, removed);
+    }
+
     /**
      * 判断缓存是否存在
      */

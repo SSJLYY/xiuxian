@@ -762,6 +762,19 @@ public class PlayerService {
     }
 
     /**
+     * 排行榜专用：查询综合战力最高的Top N玩家。
+     */
+    public List<PlayerProfile> getTopPlayersByCombatPower(int limit) {
+        int actualLimit = Math.min(Math.max(limit, 1), 100);
+        com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<PlayerProfile> wrapper =
+                new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<>();
+        wrapper.orderByDesc("attack + defense + health + mana + speed")
+               .orderByDesc("level")
+               .last("LIMIT " + actualLimit);
+        return playerProfileMapper.selectList(wrapper);
+    }
+
+    /**
      * 统计指定时间范围内新增玩家数（供Admin统计服务使用）
      *
      * @param startTime 开始时间
@@ -885,6 +898,17 @@ public class PlayerService {
      */
     public User getUserById(Integer userId) {
         return userMapper.selectById(userId);
+    }
+
+    /**
+     * 根据玩家ID获取关联用户。
+     */
+    public User getUserByPlayerId(Integer playerId) {
+        PlayerProfile profile = playerProfileMapper.selectById(playerId);
+        if (profile == null || profile.getUserId() == null) {
+            return null;
+        }
+        return userMapper.selectById(profile.getUserId());
     }
 
     /**

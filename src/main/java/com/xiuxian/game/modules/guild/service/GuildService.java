@@ -205,6 +205,17 @@ public class GuildService {
     @Transactional(rollbackFor = Exception.class)
     public void applyToGuild(Integer playerId, Long guildId) {
         log.info("玩家申请加入宗门: playerId={}, guildId={}", playerId, guildId);
+
+        GuildMember existingMember = guildMemberMapper.selectOne(
+                new QueryWrapper<GuildMember>().eq("player_id", playerId));
+        if (existingMember != null) {
+            throw new BusinessException(ErrorCode.GUILD_ALREADY_JOINED);
+        }
+
+        Guild guild = guildMapper.selectById(guildId);
+        if (guild == null) {
+            throw new BusinessException(ErrorCode.GUILD_NOT_FOUND);
+        }
         
         // 模块边界：通过PlayerService访问玩家数据
         GuildApplication existingApp = guildApplicationMapper.selectOne(
@@ -283,6 +294,12 @@ public class GuildService {
         }
         
         if (approved) {
+            GuildMember existingMember = guildMemberMapper.selectOne(
+                    new QueryWrapper<GuildMember>().eq("player_id", application.getPlayerId()));
+            if (existingMember != null) {
+                throw new BusinessException(ErrorCode.GUILD_ALREADY_JOINED);
+            }
+
             // 检查成员上限（通过原子操作判断，而非先查后改）
             Guild guild = guildMapper.selectById(application.getGuildId());
             if (guild.getMemberCount() >= guild.getMaxMembers()) {
@@ -379,6 +396,10 @@ public class GuildService {
     @Transactional(rollbackFor = Exception.class)
     public void donate(Integer playerId, Integer amount) {
         log.info("宗门捐献: playerId={}, amount={}", playerId, amount);
+
+        if (amount == null || amount <= 0) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "捐献金额必须大于0");
+        }
         
         GuildMember member = guildMemberMapper.selectOne(
                 new QueryWrapper<GuildMember>().eq("player_id", playerId));

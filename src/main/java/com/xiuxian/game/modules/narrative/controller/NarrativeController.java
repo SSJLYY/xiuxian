@@ -7,6 +7,7 @@ import com.xiuxian.game.modules.player.service.PlayerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,10 +35,14 @@ public class NarrativeController {
      */
     @GetMapping("/offline-events")
     public ResponseEntity<ApiResponse<List<OfflineNarrativeService.OfflineEventResult>>> checkOfflineEvents() {
-        Integer playerId = playerService.getCurrentPlayerId();
-        log.info("检查离线事件: playerId={}", playerId);
-        List<OfflineNarrativeService.OfflineEventResult> events = offlineNarrativeService.checkOfflineEvents(playerId);
-        return ResponseEntity.ok(ApiResponse.success(events));
+        try {
+            Integer playerId = playerService.getCurrentPlayerId();
+            log.info("检查离线事件: playerId={}", playerId);
+            List<OfflineNarrativeService.OfflineEventResult> events = offlineNarrativeService.checkOfflineEvents(playerId);
+            return ResponseEntity.ok(ApiResponse.success(events));
+        } catch (Exception e) {
+            return narrativeError(e);
+        }
     }
 
     /**
@@ -45,10 +50,14 @@ public class NarrativeController {
      */
     @GetMapping("/flags")
     public ResponseEntity<ApiResponse<java.util.Set<String>>> getPlayerFlags() {
-        Integer playerId = playerService.getCurrentPlayerId();
-        log.info("获取玩家flags: playerId={}", playerId);
-        java.util.Set<String> flags = narrativeService.getPlayerFlags(playerId);
-        return ResponseEntity.ok(ApiResponse.success(flags));
+        try {
+            Integer playerId = playerService.getCurrentPlayerId();
+            log.info("获取玩家flags: playerId={}", playerId);
+            java.util.Set<String> flags = narrativeService.getPlayerFlags(playerId);
+            return ResponseEntity.ok(ApiResponse.success(flags));
+        } catch (Exception e) {
+            return narrativeError(e);
+        }
     }
 
     /**
@@ -56,12 +65,24 @@ public class NarrativeController {
      */
     @GetMapping("/flags/{flagKey}")
     public ResponseEntity<ApiResponse<Map<String, Object>>> hasFlag(@PathVariable String flagKey) {
-        Integer playerId = playerService.getCurrentPlayerId();
-        log.info("检查flag: playerId={}, flagKey={}", playerId, flagKey);
-        boolean has = narrativeService.hasFlag(playerId, flagKey);
-        Map<String, Object> result = new HashMap<>();
-        result.put("flagKey", flagKey);
-        result.put("has", has);
-        return ResponseEntity.ok(ApiResponse.success(result));
+        try {
+            Integer playerId = playerService.getCurrentPlayerId();
+            log.info("检查flag: playerId={}, flagKey={}", playerId, flagKey);
+            boolean has = narrativeService.hasFlag(playerId, flagKey);
+            Map<String, Object> result = new HashMap<>();
+            result.put("flagKey", flagKey);
+            result.put("has", has);
+            return ResponseEntity.ok(ApiResponse.success(result));
+        } catch (Exception e) {
+            return narrativeError(e);
+        }
+    }
+
+    private <T> ResponseEntity<ApiResponse<T>> narrativeError(Exception e) {
+        if (e instanceof com.xiuxian.game.common.exception.BusinessException) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+        log.error("叙事接口异常", e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error("系统繁忙，请稍后再试"));
     }
 }

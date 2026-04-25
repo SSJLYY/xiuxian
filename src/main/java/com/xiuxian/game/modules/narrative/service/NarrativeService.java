@@ -16,6 +16,8 @@ import com.xiuxian.game.modules.narrative.mapper.NpcMapper;
 import com.xiuxian.game.modules.narrative.mapper.PlayerDialogueStateMapper;
 import com.xiuxian.game.modules.narrative.mapper.PlayerNarrativeFlagMapper;
 import com.xiuxian.game.modules.narrative.mapper.PlayerNpcRelationMapper;
+import com.xiuxian.game.modules.player.entity.PlayerProfile;
+import com.xiuxian.game.modules.player.service.PlayerService;
 import com.xiuxian.game.common.exception.BusinessException;
 import com.xiuxian.game.common.exception.ErrorCode;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -48,6 +50,7 @@ public class NarrativeService {
     private final NpcMapper npcMapper;
     private final NpcDailyDialogueMapper npcDailyDialogueMapper;
     private final ObjectMapper objectMapper;
+    private final PlayerService playerService;
 
     // ==================== 对话树操作 ====================
 
@@ -83,12 +86,12 @@ public class NarrativeService {
     private DialogueTree validateAndCheckPrerequisites(String dialogueKey, Integer playerId) {
         DialogueTree tree = dialogueTreeMapper.selectActiveByKey(dialogueKey);
         if (tree == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "对话不存在");
+            throw new BusinessException(ErrorCode.DIALOGUE_NOT_FOUND);
         }
 
         Set<String> playerFlags = getPlayerFlags(playerId);
         if (!meetsPrerequisites(tree, playerId, playerFlags)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, "不满足对话前置条件");
+            throw new BusinessException(ErrorCode.DIALOGUE_PREREQUISITES_NOT_MET);
         }
         return tree;
     }
@@ -106,7 +109,7 @@ public class NarrativeService {
             return state;
         }
         if (!tree.getIsRepeatable()) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "该对话已完成");
+            throw new BusinessException(ErrorCode.DIALOGUE_ALREADY_COMPLETED);
         }
         return resetRepeatableDialogue(state, tree);
     }
@@ -154,17 +157,38 @@ public class NarrativeService {
     public DialogueSceneData makeChoice(Integer playerId, String dialogueKey, String choiceNodeKey) {
         DialogueTree tree = dialogueTreeMapper.selectActiveByKey(dialogueKey);
         if (tree == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "对话不存在");
+            throw new BusinessException(ErrorCode.DIALOGUE_NOT_FOUND);
+        }
+
+        Set<String> playerFlags = getPlayerFlags(playerId);
+        if (!meetsPrerequisites(tree, playerId, playerFlags)) {
+            throw new BusinessException(ErrorCode.DIALOGUE_PREREQUISITES_NOT_MET);
         }
 
         PlayerDialogueState state = playerDialogueStateMapper.selectByPlayerAndTree(playerId, tree.getId());
         if (state == null || state.getIsCompleted()) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "对话未在进行中");
+            throw new BusinessException(ErrorCode.DIALOGUE_NOT_IN_PROGRESS);
+        }
+
+        String currentNodeKey = resolveStartingNode(state, tree);
+        DialogueNode currentNode = dialogueNodeMapper.selectByTreeAndKey(tree.getId(), currentNodeKey);
+        if (currentNode == null) {
+            throw new BusinessException(ErrorCode.DIALOGUE_NOT_FOUND, "当前对话节点不存在");
+        }
+        if (!"choice".equals(currentNode.getNodeType())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "当前节点不可进行选择");
         }
 
         DialogueNode chosenNode = dialogueNodeMapper.selectByTreeAndKey(tree.getId(), choiceNodeKey);
         if (chosenNode == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "对话节点不存在");
+            throw new BusinessException(ErrorCode.DIALOGUE_NOT_FOUND, "对话节点不存在");
+        }
+        if (!currentNodeKey.equals(chosenNode.getParentNodeKey()) || !"choice".equals(chosenNode.getNodeType())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "非法的对话选项");
+        }
+        Map<Integer, Integer> npcRelations = getNpcAffinities(playerId);
+        if (!meetsNodeConditions(chosenNode, playerFlags, npcRelations)) {
+            throw new BusinessException(ErrorCode.DIALOGUE_PREREQUISITES_NOT_MET, "未满足该选项前置条件");
         }
 
         // 处理节点效果：flag、好感度
@@ -455,6 +479,20 @@ public class NarrativeService {
     // ==================== 条件检查 ====================
 
     private boolean meetsPrerequisites(DialogueTree tree, Integer playerId, Set<String> playerFlags) {
+        PlayerProfile player = playerService.getPlayerProfileById(playerId);
+
+        if (tree.getMinLevel() != null && player.getLevel() < tree.getMinLevel()) {
+            return false;
+        }
+        if (tree.getMaxLevel() != null && player.getLevel() > tree.getMaxLevel()) {
+            return false;
+        }
+        if (tree.getRequiredRealm() != null && !tree.getRequiredRealm().trim().isEmpty()) {
+            String requiredRealm = tree.getRequiredRealm().trim();
+            if (player.getRealm() == null || !requiredRealm.equals(player.getRealm().trim())) {
+                return false;
+            }
+        }
         // flag检查
         if (tree.getRequiredFlags() != null && !tree.getRequiredFlags().isEmpty()) {
             try {
@@ -514,8 +552,20 @@ public class NarrativeService {
             Map<String, Object> conditions = objectMapper.readValue(dialogue.getConditions(),
                     new TypeReference<Map<String, Object>>() {});
             // has_flag
-            if (conditions.containsKey("has_flag") && !playerFlags.contains(conditions.get("has_flag"))) {
-                return false;
+            if (conditions.containsKey("has_flag")) {
+                String requiredFlag = String.valueOf(conditions.get("has_flag")).trim();
+                if (!requiredFlag.isEmpty() && !playerFlags.contains(requiredFlag)) {
+                    return false;
+                }
+            }
+            if (conditions.containsKey("flags")) {
+                List<String> requiredFlags = objectMapper.convertValue(conditions.get("flags"),
+                        new TypeReference<List<String>>() {});
+                for (String flag : requiredFlags) {
+                    if (flag != null && !playerFlags.contains(flag.trim())) {
+                        return false;
+                    }
+                }
             }
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
             log.warn("解析日常对话条件失败: {}", dialogue.getConditions(), e);

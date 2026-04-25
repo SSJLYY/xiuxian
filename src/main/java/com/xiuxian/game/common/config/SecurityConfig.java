@@ -32,7 +32,7 @@ public class SecurityConfig {
     private final SecurityFilter securityFilter;
     private final AdminSecurityFilter adminSecurityFilter;
 
-    @Value("${cors.allowed-origins:*}")
+    @Value("${app.cors.allowed-origins:*}")
     private String allowedOrigins;
 
     @Bean

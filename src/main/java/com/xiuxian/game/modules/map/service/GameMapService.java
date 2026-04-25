@@ -46,12 +46,26 @@ public class GameMapService {
      */
     public GameMap getMapById(Integer mapId) {
         GameMap map = gameMapMapper.selectById(mapId);
-        if (map != null) {
+        if (map != null && !Boolean.FALSE.equals(map.getActive())) {
             // 加载怪物配置
             List<MapMonster> monsters = combatService.getMapMonsters(mapId);
             map.setMonsters(monsters);
+        } else if (map != null && Boolean.FALSE.equals(map.getActive())) {
+            return null;
         }
         return map;
+    }
+
+    public PlayerMapProgress getCurrentMapProgress(Integer playerId) {
+        return playerMapProgressMapper.selectCurrentMap(playerId);
+    }
+
+    public PlayerMapProgress getOfflineRewardProgress(Integer playerId) {
+        PlayerMapProgress current = playerMapProgressMapper.selectCurrentMap(playerId);
+        if (current != null && current.getOfflineStartAt() != null) {
+            return current;
+        }
+        return playerMapProgressMapper.selectLatestOfflineProgress(playerId);
     }
     
     /**
@@ -120,11 +134,14 @@ public class GameMapService {
         
         // 设置当前地图
         playerMapProgressMapper.setCurrentMap(playerId, mapId);
-        progress.setIsCurrent(true);
         progress.recordEnter();
-        
-        // 更新记录
-        playerMapProgressMapper.updateById(progress);
+
+        PlayerMapProgress latestProgress = playerMapProgressMapper.selectByPlayerAndMap(playerId, mapId);
+        if (latestProgress != null) {
+            latestProgress.recordEnter();
+            playerMapProgressMapper.updateById(latestProgress);
+            progress = latestProgress;
+        }
         
         log.info("玩家 {} 进入地图 {}", playerId, map.getName());
         return progress;
@@ -138,6 +155,7 @@ public class GameMapService {
         PlayerMapProgress current = playerMapProgressMapper.selectCurrentMap(playerId);
         if (current != null) {
             current.recordLeave();
+            current.startOffline();
             playerMapProgressMapper.updateById(current);
             log.info("玩家 {} 离开地图 {}", playerId, current.getMapId());
         }
@@ -186,6 +204,10 @@ public class GameMapService {
         // 根据权重随机选择怪物
         List<MapMonster> candidates = map.getMonsters();
         int totalWeight = candidates.stream().mapToInt(MapMonster::getSpawnWeight).sum();
+        if (totalWeight <= 0) {
+            log.warn("地图遭遇配置无有效权重: mapId={}", mapId);
+            return null;
+        }
         int roll = ThreadLocalRandom.current().nextInt(totalWeight);
         
         MapMonster selected = null;
@@ -234,6 +256,9 @@ public class GameMapService {
      * 计算离线收益
      */
     public OfflineReward calculateOfflineReward(Integer playerId, PlayerMapProgress progress, GameMap map) {
+        if (progress == null || map == null) {
+            return null;
+        }
         int hours = progress.calculateOfflineHours();
         if (hours <= 0) {
             return null;
@@ -263,6 +288,9 @@ public class GameMapService {
         reward.setActualSpiritStones(actualSpiritStones);
         reward.setExp(baseExp);
         reward.setInjuryCount(injuryCount);
+
+        progress.setOfflineStartAt(null);
+        playerMapProgressMapper.updateById(progress);
         
         return reward;
     }

@@ -17,7 +17,7 @@ public interface SkillComboMapper extends BaseMapper<SkillCombo> {
     /**
      * 获取玩家可用的连招（等级满足的激活连招）
      */
-    @Select("SELECT * FROM skill_combos WHERE active = true AND required_level <= #{playerLevel}")
+    @Select("SELECT * FROM skill_combos WHERE active = true AND required_level <= #{playerLevel} ORDER BY LENGTH(skill_sequence) DESC, id ASC")
     List<SkillCombo> selectAvailableCombos(@Param("playerLevel") Integer playerLevel);
 
     /**

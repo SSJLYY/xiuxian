@@ -16,6 +16,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -41,7 +43,7 @@ public class AuthService {
     private String adminUsername;
 
     @Value("${spring.security.user.password:password}")
-    private String adminPasswordPlain;
+    private String adminPasswordValue;
 
     @Transactional
     public LoginResponse register(RegisterRequest request) {
@@ -137,7 +139,7 @@ public class AuthService {
             log.warn("管理员用户不存在，将使用配置文件中的 BCrypt 哈希值创建管理员用户");
             adminUser = User.builder()
                     .username(request.getUsername())
-                    .password(passwordEncoder.encode(adminPasswordPlain))
+                    .password(resolveConfiguredAdminPassword())
                     .email("admin@xiuxian.game")
                     .role("ADMIN")
                     .mustChangePassword(false)
@@ -165,6 +167,10 @@ public class AuthService {
             authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
             );
+        } catch (LockedException e) {
+            throw new BusinessException(ErrorCode.ACCOUNT_LOCKED);
+        } catch (DisabledException e) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "账号已被封禁");
         } catch (BadCredentialsException e) {
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
@@ -174,6 +180,7 @@ public class AuthService {
         if (user == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
+        ensureUserCanLogin(user);
 
         PlayerProfile playerProfile = playerProfileMapper.selectByUserId(user.getId());
 
@@ -211,6 +218,25 @@ public class AuthService {
         }
 
         return builder.build();
+    }
+
+    private String resolveConfiguredAdminPassword() {
+        if (adminPasswordValue != null && adminPasswordValue.matches("^\\$2[aby]\\$.{56}$")) {
+            return adminPasswordValue;
+        }
+        return passwordEncoder.encode(adminPasswordValue);
+    }
+
+    private void ensureUserCanLogin(User user) {
+        if (user == null || user.getStatus() == null) {
+            return;
+        }
+        if ("LOCKED".equalsIgnoreCase(user.getStatus())) {
+            throw new BusinessException(ErrorCode.ACCOUNT_LOCKED);
+        }
+        if ("BANNED".equalsIgnoreCase(user.getStatus())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "账号已被封禁");
+        }
     }
 
     /**

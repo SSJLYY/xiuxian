@@ -8,6 +8,8 @@ import com.xiuxian.game.modules.admin.service.AdminOperationLogService;
 import com.xiuxian.game.modules.player.service.PlayerLoginLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -34,7 +36,7 @@ public class AdminLogController {
      * 查询玩家登录日志（分页）
      */
     @GetMapping("/player-login")
-    public ApiResponse<Page<PlayerLoginLog>> getPlayerLoginLogs(
+    public ResponseEntity<ApiResponse<Page<PlayerLoginLog>>> getPlayerLoginLogs(
             @RequestParam(required = false) Integer playerId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime,
@@ -44,10 +46,10 @@ public class AdminLogController {
         try {
             Page<PlayerLoginLog> result = playerLoginLogService.getLoginLogs(
                     playerId, startTime, endTime, page, size);
-            return ApiResponse.success(result);
+            return ResponseEntity.ok(ApiResponse.success(result));
         } catch (Exception e) {
             log.error("查询玩家登录日志失败", e);
-            return ApiResponse.error("查询失败");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error("查询失败"));
         }
     }
 
@@ -55,17 +57,17 @@ public class AdminLogController {
      * 统计玩家登录次数
      */
     @GetMapping("/player-login/count")
-    public ApiResponse<Long> countPlayerLogins(
+    public ResponseEntity<ApiResponse<Long>> countPlayerLogins(
             @RequestParam Integer playerId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime) {
 
         try {
             Long count = playerLoginLogService.countPlayerLogins(playerId, startTime, endTime);
-            return ApiResponse.success(count);
+            return ResponseEntity.ok(ApiResponse.success(count));
         } catch (Exception e) {
             log.error("统计玩家登录次数失败", e);
-            return ApiResponse.error("查询失败");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error("查询失败"));
         }
     }
 
@@ -73,7 +75,7 @@ public class AdminLogController {
      * 查询管理员操作日志（分页）
      */
     @GetMapping("/admin-operation")
-    public ApiResponse<Page<AdminOperationLog>> getAdminOperationLogs(
+    public ResponseEntity<ApiResponse<Page<AdminOperationLog>>> getAdminOperationLogs(
             @RequestParam(required = false) Integer adminId,
             @RequestParam(required = false) String operationType,
             @RequestParam(required = false) String targetType,
@@ -85,10 +87,10 @@ public class AdminLogController {
         try {
             Page<AdminOperationLog> result = adminOperationLogService.getOperationLogs(
                     adminId, operationType, targetType, startTime, endTime, page, size);
-            return ApiResponse.success(result);
+            return ResponseEntity.ok(ApiResponse.success(result));
         } catch (Exception e) {
             log.error("查询管理员操作日志失败", e);
-            return ApiResponse.error("查询失败");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error("查询失败"));
         }
     }
 
@@ -96,7 +98,7 @@ public class AdminLogController {
      * 统计管理员操作次数
      */
     @GetMapping("/admin-operation/count")
-    public ApiResponse<Long> countAdminOperations(
+    public ResponseEntity<ApiResponse<Long>> countAdminOperations(
             @RequestParam(required = false) Integer adminId,
             @RequestParam(required = false) String operationType,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
@@ -104,10 +106,10 @@ public class AdminLogController {
 
         try {
             Long count = adminOperationLogService.countOperations(adminId, operationType, startTime, endTime);
-            return ApiResponse.success(count);
+            return ResponseEntity.ok(ApiResponse.success(count));
         } catch (Exception e) {
             log.error("统计管理员操作次数失败", e);
-            return ApiResponse.error("查询失败");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error("查询失败"));
         }
     }
 
@@ -115,7 +117,7 @@ public class AdminLogController {
      * 获取所有操作类型列表
      */
     @GetMapping("/operation-types")
-    public ApiResponse<String[]> getOperationTypes() {
+    public ResponseEntity<ApiResponse<String[]>> getOperationTypes() {
         String[] operationTypes = {
             AdminOperationLogService.OperationType.PLAYER_BAN,
             AdminOperationLogService.OperationType.PLAYER_UNBAN,
@@ -133,6 +135,6 @@ public class AdminLogController {
             AdminOperationLogService.OperationType.ACTIVITY_UPDATE,
             AdminOperationLogService.OperationType.CONFIG_UPDATE
         };
-        return ApiResponse.success(operationTypes);
+        return ResponseEntity.ok(ApiResponse.success(operationTypes));
     }
 }

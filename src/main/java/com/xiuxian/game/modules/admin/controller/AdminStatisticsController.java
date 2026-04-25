@@ -4,6 +4,8 @@ import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.modules.admin.entity.DailyStatistics;
 import com.xiuxian.game.modules.admin.service.AdminStatisticsService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,12 +32,12 @@ public class AdminStatisticsController {
      */
     @GetMapping("/overall")
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<Map<String, Object>> getOverallStats() {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getOverallStats() {
         try {
             Map<String, Object> stats = adminStatisticsService.getOverallStats();
-            return ApiResponse.success("获取成功", stats);
+            return ResponseEntity.ok(ApiResponse.success("获取成功", stats));
         } catch (Exception e) {
-            return ApiResponse.error(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(e.getMessage()));
         }
     }
 
@@ -47,13 +49,13 @@ public class AdminStatisticsController {
      */
     @GetMapping("/recent")
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<List<DailyStatistics>> getRecentStats(
+    public ResponseEntity<ApiResponse<List<DailyStatistics>>> getRecentStats(
             @RequestParam(defaultValue = "7") int days) {
         try {
             List<DailyStatistics> stats = adminStatisticsService.getRecentStats(days);
-            return ApiResponse.success("获取成功", stats);
+            return ResponseEntity.ok(ApiResponse.success("获取成功", stats));
         } catch (Exception e) {
-            return ApiResponse.error(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(e.getMessage()));
         }
     }
 
@@ -65,13 +67,13 @@ public class AdminStatisticsController {
      */
     @GetMapping("/revenue")
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<Map<String, Object>> getRevenueStats(
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getRevenueStats(
             @RequestParam(defaultValue = "7") int days) {
         try {
             Map<String, Object> stats = adminStatisticsService.getRevenueStats(days);
-            return ApiResponse.success("获取成功", stats);
+            return ResponseEntity.ok(ApiResponse.success("获取成功", stats));
         } catch (Exception e) {
-            return ApiResponse.error(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(e.getMessage()));
         }
     }
 
@@ -83,13 +85,13 @@ public class AdminStatisticsController {
      */
     @GetMapping("/player-growth")
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<Map<String, Object>> getPlayerGrowthStats(
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getPlayerGrowthStats(
             @RequestParam(defaultValue = "7") int days) {
         try {
             Map<String, Object> stats = adminStatisticsService.getPlayerGrowthStats(days);
-            return ApiResponse.success("获取成功", stats);
+            return ResponseEntity.ok(ApiResponse.success("获取成功", stats));
         } catch (Exception e) {
-            return ApiResponse.error(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(e.getMessage()));
         }
     }
 }

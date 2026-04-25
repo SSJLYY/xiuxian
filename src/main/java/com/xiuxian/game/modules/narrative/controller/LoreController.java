@@ -6,6 +6,7 @@ import com.xiuxian.game.modules.player.service.PlayerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,10 +31,14 @@ public class LoreController {
      */
     @GetMapping("/progress")
     public ResponseEntity<ApiResponse<LoreService.LoreProgressVo>> getLoreProgress() {
-        Integer playerId = playerService.getCurrentPlayerId();
-        log.info("获取传说进度: playerId={}", playerId);
-        LoreService.LoreProgressVo progress = loreService.getLoreProgress(playerId);
-        return ResponseEntity.ok(ApiResponse.success(progress));
+        try {
+            Integer playerId = playerService.getCurrentPlayerId();
+            log.info("获取传说进度: playerId={}", playerId);
+            LoreService.LoreProgressVo progress = loreService.getLoreProgress(playerId);
+            return ResponseEntity.ok(ApiResponse.success(progress));
+        } catch (Exception e) {
+            return narrativeError(e);
+        }
     }
 
     /**
@@ -41,10 +46,14 @@ public class LoreController {
      */
     @GetMapping("/entries")
     public ResponseEntity<ApiResponse<List<LoreService.LoreVo>>> getAllEntries() {
-        Integer playerId = playerService.getCurrentPlayerId();
-        log.info("获取传说条目: playerId={}", playerId);
-        List<LoreService.LoreVo> entries = loreService.getAllLoreEntries(playerId);
-        return ResponseEntity.ok(ApiResponse.success(entries));
+        try {
+            Integer playerId = playerService.getCurrentPlayerId();
+            log.info("获取传说条目: playerId={}", playerId);
+            List<LoreService.LoreVo> entries = loreService.getAllLoreEntries(playerId);
+            return ResponseEntity.ok(ApiResponse.success(entries));
+        } catch (Exception e) {
+            return narrativeError(e);
+        }
     }
 
     /**
@@ -52,10 +61,22 @@ public class LoreController {
      */
     @GetMapping("/discovered")
     public ResponseEntity<ApiResponse<List<LoreService.LoreVo>>> getDiscoveredLore() {
-        Integer playerId = playerService.getCurrentPlayerId();
-        log.info("获取已发现传说: playerId={}", playerId);
-        List<LoreService.LoreVo> entries = loreService.getDiscoveredLore(playerId);
-        return ResponseEntity.ok(ApiResponse.success(entries));
+        try {
+            Integer playerId = playerService.getCurrentPlayerId();
+            log.info("获取已发现传说: playerId={}", playerId);
+            List<LoreService.LoreVo> entries = loreService.getDiscoveredLore(playerId);
+            return ResponseEntity.ok(ApiResponse.success(entries));
+        } catch (Exception e) {
+            return narrativeError(e);
+        }
+    }
+
+    private <T> ResponseEntity<ApiResponse<T>> narrativeError(Exception e) {
+        if (e instanceof com.xiuxian.game.common.exception.BusinessException) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+        log.error("图鉴接口异常", e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error("系统繁忙，请稍后再试"));
     }
 }
 

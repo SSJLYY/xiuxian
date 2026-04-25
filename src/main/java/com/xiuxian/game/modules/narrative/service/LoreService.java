@@ -36,7 +36,6 @@ public class LoreService {
         Set<Integer> discoveredIds = getDiscoveredIds(playerId);
 
         return allEntries.stream()
-                .filter(entry -> entry.getLoreLayer().equals("表面") || discoveredIds.contains(entry.getId()))
                 .map(entry -> toLoreVo(entry, discoveredIds.contains(entry.getId())))
                 .collect(Collectors.toList());
     }
@@ -59,10 +58,12 @@ public class LoreService {
     public LoreProgressVo getLoreProgress(Integer playerId) {
         List<LoreEntry> allEntries = loreEntryMapper.selectAllActive();
         Set<Integer> discoveredIds = getDiscoveredIds(playerId);
+        Set<Integer> activeIds = allEntries.stream().map(LoreEntry::getId).collect(Collectors.toSet());
+        long activeDiscoveredCount = discoveredIds.stream().filter(activeIds::contains).count();
 
         LoreProgressVo progress = new LoreProgressVo();
         progress.setTotalCount(allEntries.size());
-        progress.setDiscoveredCount(discoveredIds.size());
+        progress.setDiscoveredCount((int) activeDiscoveredCount);
 
         // 按层级统计
         long surfaceTotal = allEntries.stream().filter(e -> "表面".equals(e.getLoreLayer())).count();

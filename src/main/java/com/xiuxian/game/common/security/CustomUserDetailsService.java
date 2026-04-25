@@ -4,6 +4,8 @@ import com.xiuxian.game.modules.player.entity.User;
 import com.xiuxian.game.modules.player.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -33,6 +35,13 @@ public class CustomUserDetailsService implements UserDetailsService {
         if (user == null) {
             log.warn("用户名不存在: {}", username);
             throw new UsernameNotFoundException("User not found: " + username);
+        }
+
+        if ("LOCKED".equalsIgnoreCase(user.getStatus())) {
+            throw new LockedException("Account is locked: " + username);
+        }
+        if ("BANNED".equalsIgnoreCase(user.getStatus())) {
+            throw new DisabledException("Account is banned: " + username);
         }
 
         log.debug("用户加载成功: username={}, id={}", user.getUsername(), user.getId());

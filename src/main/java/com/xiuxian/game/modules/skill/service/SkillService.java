@@ -496,7 +496,7 @@ public class SkillService {
         if (availableCombos.isEmpty()) {
             // 记录技能使用
             recordSkillUsage(playerId, skillId, false, null);
-            return SkillComboResult.builder().triggered(false).build();
+            return SkillComboResult.builder().triggered(false).finalDamage(baseDamage).build();
         }
 
         // 4. 获取最近的技能使用记录（时间窗口内）
@@ -515,7 +515,12 @@ public class SkillService {
         // 添加当前技能
         recentSkillSequence.add(skillId);
 
-        // 6. 检查是否匹配任何连招
+        // 6. 优先匹配更长的连招，避免短连招抢先命中
+        availableCombos.sort(Comparator.comparingInt((SkillCombo combo) -> parseSkillSequence(combo.getSkillSequence()).size())
+                .reversed()
+                .thenComparing(SkillCombo::getId));
+
+        // 7. 检查是否匹配任何连招
         for (SkillCombo combo : availableCombos) {
             if (combo.getSkillSequence() == null || combo.getSkillSequence().isEmpty()) {
                 continue;
@@ -671,20 +676,23 @@ public class SkillService {
      * 获取玩家的连招统计
      */
     public Map<String, Object> getPlayerComboStats(Integer playerId) {
-        List<PlayerSkillComboRecord> allRecords = playerSkillComboRecordMapper.findRecentRecords(playerId, 1000);
+        List<PlayerSkillComboRecord> recentRecords = playerSkillComboRecordMapper.findRecentRecords(playerId, 1000);
+        List<PlayerSkillComboRecord> triggeredRecords = playerSkillComboRecordMapper.findTriggeredComboRecords(playerId, 1000);
+        long totalSkillUses = java.util.Optional.ofNullable(playerSkillComboRecordMapper.countByPlayerId(playerId)).orElse(0L);
+        long totalCombos = java.util.Optional.ofNullable(playerSkillComboRecordMapper.countTriggeredCombosByPlayerId(playerId)).orElse(0L);
 
         Map<String, Object> stats = new HashMap<>();
-        stats.put("totalSkillUses", allRecords.size());
+        stats.put("totalSkillUses", totalSkillUses);
+        stats.put("recentSkillUsesSampleSize", recentRecords.size());
+        stats.put("sampleWindowSize", 1000);
 
-        // 统计各连招触发次数
-        Map<Integer, Long> comboTriggerCounts = allRecords.stream()
-                .filter(r -> r.getTriggeredCombo() && r.getComboId() != null)
+        // 统计各连招触发次数（近1000条样本明细）
+        Map<Integer, Long> comboTriggerCounts = triggeredRecords.stream()
                 .collect(Collectors.groupingBy(PlayerSkillComboRecord::getComboId, Collectors.counting()));
         stats.put("comboTriggerCounts", comboTriggerCounts);
 
-        // 计算总连招次数
-        long totalCombos = comboTriggerCounts.values().stream().mapToLong(Long::longValue).sum();
         stats.put("totalCombos", totalCombos);
+        stats.put("comboTriggerCountsSampled", true);
 
         return stats;
     }

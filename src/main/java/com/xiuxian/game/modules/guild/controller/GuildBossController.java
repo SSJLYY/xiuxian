@@ -52,8 +52,7 @@ public class GuildBossController {
             log.info("获取宗门BOSS信息成功, playerId={}, bossId={}", playerId, vo.getId());
             return ApiResponse.success("获取成功", vo);
         } catch (Exception e) {
-            log.error("获取宗门BOSS失败, playerId={}, error={}",
-                    playerService.getCurrentPlayerId(), e.getMessage(), e);
+            log.error("获取宗门BOSS失败, error={}", e.getMessage(), e);
             return ApiResponse.error(e.getMessage());
         }
     }
@@ -77,8 +76,7 @@ public class GuildBossController {
                     playerId, result.getDamage(), result.getBossDefeated());
             return ApiResponse.success(msg, result);
         } catch (Exception e) {
-            log.error("挑战宗门BOSS失败, playerId={}, error={}",
-                    playerService.getCurrentPlayerId(), e.getMessage(), e);
+            log.error("挑战宗门BOSS失败, error={}", e.getMessage(), e);
             return ApiResponse.error(e.getMessage());
         }
     }
@@ -100,8 +98,7 @@ public class GuildBossController {
             log.info("宗门BOSS奖励领取成功, playerId={}", playerId);
             return ApiResponse.success("奖励领取成功", result);
         } catch (Exception e) {
-            log.error("领取BOSS奖励失败, playerId={}, error={}",
-                    playerService.getCurrentPlayerId(), e.getMessage(), e);
+            log.error("领取BOSS奖励失败, error={}", e.getMessage(), e);
             return ApiResponse.error(e.getMessage());
         }
     }

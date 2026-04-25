@@ -6,6 +6,7 @@ import com.xiuxian.game.modules.player.entity.PlayerProfile;
 import com.xiuxian.game.modules.player.entity.User;
 import com.xiuxian.game.modules.player.mapper.PlayerProfileMapper;
 import com.xiuxian.game.modules.player.mapper.UserMapper;
+import com.xiuxian.game.modules.player.service.AccountSecurityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +26,7 @@ public class AdminPlayerService {
 
     private final PlayerProfileMapper playerProfileMapper;
     private final UserMapper userMapper;
+    private final AccountSecurityService accountSecurityService;
 
     /**
      * 分页查询玩家列表，支持按昵称和用户ID过滤
@@ -98,13 +100,15 @@ public class AdminPlayerService {
      * @return 更新后的用户对象
      */
     public User banPlayer(Integer userId, boolean ban, String reason) {
+        if (ban) {
+            accountSecurityService.banAccount(userId, reason);
+        } else {
+            accountSecurityService.unbanAccount(userId);
+        }
         User user = userMapper.selectById(userId);
         if (user == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "用户不存在: userId=" + userId);
         }
-
-        user.setRole(ban ? "BANNED" : "USER");
-        userMapper.updateById(user);
         return user;
     }
 
@@ -171,6 +175,9 @@ public class AdminPlayerService {
         if (u == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "用户不存在: userId=" + userId);
         }
+        if ("admin".equalsIgnoreCase(u.getUsername())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "默认管理员角色不可修改");
+        }
         u.setRole(role);
         userMapper.updateById(u);
         return u;
@@ -188,6 +195,11 @@ public class AdminPlayerService {
         User u = userMapper.selectByUsername(username);
         if (u == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "管理员不存在: username=" + username);
+        }
+        if (newPassword == null || newPassword.length() < 8
+                || !newPassword.matches(".*[a-zA-Z].*")
+                || !newPassword.matches(".*\\d.*")) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "密码必须至少8位，且包含字母和数字");
         }
         u.setPassword(passwordEncoder.encode(newPassword));
         u.setMustChangePassword(false);

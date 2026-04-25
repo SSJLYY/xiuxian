@@ -16,6 +16,7 @@ import com.xiuxian.game.modules.skill.entity.PlayerSkill;
 import com.xiuxian.game.modules.skill.entity.Skill;
 import com.xiuxian.game.modules.skill.service.SkillService;
 import com.xiuxian.game.dto.SkillComboResult;
+import com.xiuxian.game.dto.response.PetCombatBonus;
 import com.xiuxian.game.modules.shop.entity.Item;
 import com.xiuxian.game.modules.shop.service.ItemService;
 import lombok.RequiredArgsConstructor;
@@ -126,26 +127,27 @@ public class EnhancedCombatService {
             if (actionPlan.playerFirst) {
                 // 玩家回合
                 for (int i = 0; i < actionPlan.playerActions && currentMonsterHealth > 0; i++) {
-                    TurnOutcome playerAction = executePlayerTurn(player, skillId, itemId, currentPlayerMana,
-                            monster, currentMonsterHealth, monsterDefense, battleLog);
+                    TurnOutcome playerAction = executePlayerTurn(player, playerAttack, playerSpeed,
+                            skillId, itemId, currentPlayerMana, monster, currentMonsterHealth,
+                            monsterDefense, battleLog);
                     currentPlayerMana = Math.max(0, currentPlayerMana - playerAction.manaCost);
                     currentMonsterHealth -= playerAction.damage;
                     currentPlayerHealth = Math.min(playerHealth, currentPlayerHealth + playerAction.heal);
                 }
 
-                combatService.applyPetSkillDamage(rounds, petEligible ? petBonus : null, battleLog, damage -> currentMonsterHealth -= damage);
+                currentMonsterHealth -= combatService.applyPetSkillDamage(rounds, petEligible ? petBonus : null, battleLog);
 
                 if (currentMonsterHealth <= 0) break;
 
                 // 怪物回合
                 for (int i = 0; i < actionPlan.monsterActions && currentPlayerHealth > 0; i++) {
-                    TurnOutcome monsterAction = executeMonsterTurn(monster, player, currentPlayerHealth, playerDefense, battleLog);
+                    TurnOutcome monsterAction = executeMonsterTurn(monster, player, currentPlayerHealth, playerDefense, playerSpeed, battleLog);
                     currentPlayerHealth -= monsterAction.damage;
                 }
             } else {
                 // 怪物先手
                 for (int i = 0; i < actionPlan.monsterActions && currentPlayerHealth > 0; i++) {
-                    TurnOutcome monsterAction = executeMonsterTurn(monster, player, currentPlayerHealth, playerDefense, battleLog);
+                    TurnOutcome monsterAction = executeMonsterTurn(monster, player, currentPlayerHealth, playerDefense, playerSpeed, battleLog);
                     currentPlayerHealth -= monsterAction.damage;
                 }
 
@@ -153,14 +155,15 @@ public class EnhancedCombatService {
 
                 // 玩家回击
                 for (int i = 0; i < actionPlan.playerActions && currentMonsterHealth > 0; i++) {
-                    TurnOutcome playerAction = executePlayerTurn(player, skillId, itemId, currentPlayerMana,
-                            monster, currentMonsterHealth, monsterDefense, battleLog);
+                    TurnOutcome playerAction = executePlayerTurn(player, playerAttack, playerSpeed,
+                            skillId, itemId, currentPlayerMana, monster, currentMonsterHealth,
+                            monsterDefense, battleLog);
                     currentPlayerMana = Math.max(0, currentPlayerMana - playerAction.manaCost);
                     currentMonsterHealth -= playerAction.damage;
                     currentPlayerHealth = Math.min(playerHealth, currentPlayerHealth + playerAction.heal);
                 }
 
-                combatService.applyPetSkillDamage(rounds, petEligible ? petBonus : null, battleLog, damage -> currentMonsterHealth -= damage);
+                currentMonsterHealth -= combatService.applyPetSkillDamage(rounds, petEligible ? petBonus : null, battleLog);
             }
         }
 
@@ -275,9 +278,10 @@ public class EnhancedCombatService {
     /**
      * 执行玩家回合（技能/道具/普通攻击）
      */
-    private TurnOutcome executePlayerTurn(PlayerProfile player, Integer skillId, Integer playerItemId,
-                                    int currentMana, Monster monster, int monsterHealth,
-                                    int monsterDefense, List<String> battleLog) {
+    private TurnOutcome executePlayerTurn(PlayerProfile player, int playerAttack, int playerSpeed,
+                                    Integer skillId, Integer playerItemId, int currentMana,
+                                    Monster monster, int monsterHealth, int monsterDefense,
+                                    List<String> battleLog) {
         // 检查是否使用技能
         if (skillId != null && skillId > 0) {
             PlayerSkill playerSkill = skillService.getPlayerSkillByPlayerAndSkill(player.getId(), skillId);
@@ -286,7 +290,9 @@ public class EnhancedCombatService {
                 if (skill != null && currentMana >= skill.getManaCost()) {
                     // 计算技能伤害
                     double skillDamage = skill.getBaseDamage() + (skill.getDamagePerLevel() * playerSkill.getLevel());
-                    int baseDamage = combatService.calculateDamage((int) skillDamage, monsterDefense, player.getLevel(), monster.getLevel(), player.getSpeed(), monster.getSpeed(), true, battleLog);
+                    int baseDamage = combatService.calculateDamage((int) skillDamage, monsterDefense,
+                            player.getLevel(), monster.getLevel(), playerSpeed, monster.getSpeed(),
+                            true, battleLog);
                     SkillComboResult comboResult = skillService.calculateCombatSkillDamageWithCombo(player.getId(), skill.getId(), baseDamage);
                     int damage = comboResult.getFinalDamage() > 0 ? comboResult.getFinalDamage() : baseDamage;
                     if (comboResult.isTriggered()) {
@@ -327,7 +333,8 @@ public class EnhancedCombatService {
         }
 
         // 普通攻击
-        int damage = combatService.calculateDamage(player.getAttack(), monsterDefense, player.getLevel(), monster.getLevel(), player.getSpeed(), monster.getSpeed(), true, battleLog);
+        int damage = combatService.calculateDamage(playerAttack, monsterDefense, player.getLevel(),
+                monster.getLevel(), playerSpeed, monster.getSpeed(), true, battleLog);
 
         // 检查暴击
         boolean isCritical = checkCriticalHit(player);
@@ -344,9 +351,11 @@ public class EnhancedCombatService {
     /**
      * 执行怪物回合
      */
-    private TurnOutcome executeMonsterTurn(Monster monster, PlayerProfile player, int playerHealth, int playerDefense, List<String> battleLog) {
+    private TurnOutcome executeMonsterTurn(Monster monster, PlayerProfile player, int playerHealth,
+                                           int playerDefense, int playerSpeed, List<String> battleLog) {
         // 怪物普通攻击
-        int damage = combatService.calculateDamage(monster.getAttack(), playerDefense, monster.getLevel(), player.getLevel(), monster.getSpeed(), player.getSpeed(), false, battleLog);
+        int damage = combatService.calculateDamage(monster.getAttack(), playerDefense, monster.getLevel(),
+                player.getLevel(), monster.getSpeed(), playerSpeed, false, battleLog);
         battleLog.add(monster.getName() + "攻击造成" + damage + "点伤害");
         return new TurnOutcome(damage, 0, 0);
     }

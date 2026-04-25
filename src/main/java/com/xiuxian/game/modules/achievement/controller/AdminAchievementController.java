@@ -14,6 +14,7 @@ import com.xiuxian.game.common.util.LogUtils;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -125,7 +126,7 @@ public class AdminAchievementController {
 
         } catch (Exception e) {
             log.error("管理员创建成就失败: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
         }
     }
 
@@ -157,7 +158,7 @@ public class AdminAchievementController {
 
             Achievement achievement = achievementMapper.selectById(id);
             if (achievement == null) {
-                return ResponseEntity.badRequest().body(ApiResponse.error("成就不存在"));
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error("成就不存在"));
             }
 
             if (request.getName() != null) {
@@ -204,7 +205,7 @@ public class AdminAchievementController {
 
         } catch (Exception e) {
             log.error("管理员更新成就失败: achievementId={}, error={}", id, e.getMessage(), e);
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
         }
     }
 
@@ -234,7 +235,7 @@ public class AdminAchievementController {
 
             Achievement achievement = achievementMapper.selectById(id);
             if (achievement == null) {
-                return ResponseEntity.badRequest().body(ApiResponse.error("成就不存在"));
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error("成就不存在"));
             }
 
             // 删除成就
@@ -255,7 +256,7 @@ public class AdminAchievementController {
 
         } catch (Exception e) {
             log.error("管理员删除成就失败: achievementId={}, error={}", id, e.getMessage(), e);
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
         }
     }
 
@@ -308,7 +309,7 @@ public class AdminAchievementController {
 
         } catch (Exception e) {
             log.error("管理员获取成就列表失败: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(e.getMessage()));
         }
     }
 
@@ -330,7 +331,7 @@ public class AdminAchievementController {
 
             Achievement achievement = achievementMapper.selectById(id);
             if (achievement == null) {
-                return ResponseEntity.badRequest().body(ApiResponse.error("成就不存在"));
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error("成就不存在"));
             }
 
             LogUtils.logUserAction(null, adminId, "ADMIN_GET_ACHIEVEMENT_DETAIL",
@@ -342,7 +343,7 @@ public class AdminAchievementController {
 
         } catch (Exception e) {
             log.error("管理员获取成就详情失败: achievementId={}, error={}", id, e.getMessage(), e);
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(e.getMessage()));
         }
     }
 
@@ -374,7 +375,9 @@ public class AdminAchievementController {
             Long totalCount = achievementMapper.selectCount(null);
 
             // 各类型成就数量
-            List<Achievement> allAchievements = achievementMapper.selectList(null);
+            List<Achievement> allAchievements = achievementMapper.selectList(
+                    new QueryWrapper<Achievement>().orderByAsc("achievement_type", "sort_order", "id")
+            );
             Map<String, Long> typeCount = new HashMap<>();
             for (Achievement achievement : allAchievements) {
                 String type = achievement.getAchievementType();
@@ -406,7 +409,7 @@ public class AdminAchievementController {
 
         } catch (Exception e) {
             log.error("管理员获取成就统计失败: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(e.getMessage()));
         }
     }
 
@@ -446,7 +449,7 @@ public class AdminAchievementController {
 
         } catch (Exception e) {
             log.error("管理员查看玩家成就失败: playerId={}, error={}", playerId, e.getMessage(), e);
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(e.getMessage()));
         }
     }
 

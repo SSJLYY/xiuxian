@@ -189,16 +189,16 @@ public class AntiFraudService {
                 return;
             }
 
-            // 更新用户状态为封禁
-            playerService.banUser(playerId, "BANNED");
-            User user = playerService.getUserById(playerId);
+            // 根据玩家ID找到关联用户后执行封禁
+            User user = playerService.getUserByPlayerId(playerId);
             if (user != null) {
+                playerService.banUser(user.getId(), "BANNED");
                 
                 // 记录管理员操作日志
                 adminOperationLogService.recordOperation(0, "AUTO_BAN", "USER", 
-                        playerId.toString(), "系统自动封禁: " + reason, null);
+                        user.getId().toString(), "系统自动封禁: " + reason, null);
                 
-                log.warn("系统自动封禁用户: playerId={}, reason={}", playerId, reason);
+                log.warn("系统自动封禁用户: playerId={}, userId={}, reason={}", playerId, user.getId(), reason);
             }
             
         } catch (Exception e) {

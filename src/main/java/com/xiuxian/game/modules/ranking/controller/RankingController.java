@@ -42,7 +42,7 @@ public class RankingController {
                 size = 100;
             }
 
-            List<Ranking> rankings = rankingService.getRankingList("LEVEL", size);
+            List<Ranking> rankings = rankingService.getRankingPage("LEVEL", page, size);
             return ApiResponse.success("获取成功", rankings);
         } catch (Exception e) {
             log.error("获取等级排行榜失败", e);
@@ -64,7 +64,7 @@ public class RankingController {
                 size = 100;
             }
 
-            List<Ranking> rankings = rankingService.getRankingList("COMBAT_POWER", size);
+            List<Ranking> rankings = rankingService.getRankingPage("COMBAT_POWER", 1, size);
             return ApiResponse.success("获取成功", rankings);
         } catch (Exception e) {
             log.error("获取战力排行榜失败", e);
@@ -86,7 +86,7 @@ public class RankingController {
                 size = 100;
             }
 
-            List<Ranking> rankings = rankingService.getRankingList("SPIRIT_STONES", size);
+            List<Ranking> rankings = rankingService.getRankingPage("SPIRIT_STONES", 1, size);
             return ApiResponse.success("获取成功", rankings);
         } catch (Exception e) {
             log.error("获取财富排行榜失败", e);
@@ -103,13 +103,7 @@ public class RankingController {
             @RequestParam(defaultValue = "100") int size) {
         try {
             log.info("获取宠物排行榜: size={}", size);
-
-            if (size > 100) {
-                size = 100;
-            }
-
-            List<Ranking> rankings = rankingService.getRankingList("PET", size);
-            return ApiResponse.success("获取成功", rankings);
+            return ApiResponse.error("宠物排行榜暂未开放");
         } catch (Exception e) {
             log.error("获取宠物排行榜失败", e);
             return ApiResponse.error("获取排行榜失败: " + e.getMessage());

@@ -28,10 +28,22 @@ public interface GuildBossChallengeMapper extends BaseMapper<GuildBossChallenge>
      * @param list 已计算好 personalRewardStones 的挑战记录列表
      */
     @Update("<script>" +
-            "<foreach collection='list' item='c' separator=';'>" +
-            "UPDATE guild_boss_challenges SET personal_reward_stones = #{c.personalRewardStones} WHERE id = #{c.id}" +
+            "UPDATE guild_boss_challenges " +
+            "SET personal_reward_stones = CASE id " +
+            "<foreach collection='list' item='c'>" +
+            "WHEN #{c.id} THEN #{c.personalRewardStones} " +
+            "</foreach>" +
+            "END " +
+            "WHERE id IN " +
+            "<foreach collection='list' item='c' open='(' separator=',' close=')'>" +
+            "#{c.id}" +
             "</foreach>" +
             "</script>")
-    void batchUpdateRewardStones(@Param("list") List<GuildBossChallenge> list);
+    int batchUpdateRewardStones(@Param("list") List<GuildBossChallenge> list);
+
+    @Update("UPDATE guild_boss_challenges " +
+            "SET reward_claimed = true, updated_at = NOW(), version = version + 1 " +
+            "WHERE id = #{id} AND reward_claimed = false")
+    int markRewardClaimed(@Param("id") Integer id);
 }
 

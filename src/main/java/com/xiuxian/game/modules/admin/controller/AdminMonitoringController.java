@@ -3,6 +3,8 @@ package com.xiuxian.game.modules.admin.controller;
 import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.modules.admin.service.AdminMonitoringService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,12 +30,12 @@ public class AdminMonitoringController {
      */
     @GetMapping("/system")
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<Map<String, Object>> getSystemInfo() {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getSystemInfo() {
         try {
             Map<String, Object> info = adminMonitoringService.getSystemInfo();
-            return ApiResponse.success("获取成功", info);
+            return ResponseEntity.ok(ApiResponse.success("获取成功", info));
         } catch (Exception e) {
-            return ApiResponse.error(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(e.getMessage()));
         }
     }
 
@@ -42,12 +44,12 @@ public class AdminMonitoringController {
      */
     @GetMapping("/cpu")
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<Map<String, Object>> getCpuInfo() {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getCpuInfo() {
         try {
             Map<String, Object> info = adminMonitoringService.getCpuInfo();
-            return ApiResponse.success("获取成功", info);
+            return ResponseEntity.ok(ApiResponse.success("获取成功", info));
         } catch (Exception e) {
-            return ApiResponse.error(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(e.getMessage()));
         }
     }
 
@@ -56,12 +58,12 @@ public class AdminMonitoringController {
      */
     @GetMapping("/memory")
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<Map<String, Object>> getMemoryInfo() {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getMemoryInfo() {
         try {
             Map<String, Object> info = adminMonitoringService.getMemoryInfo();
-            return ApiResponse.success("获取成功", info);
+            return ResponseEntity.ok(ApiResponse.success("获取成功", info));
         } catch (Exception e) {
-            return ApiResponse.error(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(e.getMessage()));
         }
     }
 
@@ -70,12 +72,12 @@ public class AdminMonitoringController {
      */
     @GetMapping("/disk")
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<Map<String, Object>> getDiskInfo() {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getDiskInfo() {
         try {
             Map<String, Object> info = adminMonitoringService.getDiskInfo();
-            return ApiResponse.success("获取成功", info);
+            return ResponseEntity.ok(ApiResponse.success("获取成功", info));
         } catch (Exception e) {
-            return ApiResponse.error(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(e.getMessage()));
         }
     }
 
@@ -84,7 +86,7 @@ public class AdminMonitoringController {
      */
     @GetMapping("/all")
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<Map<String, Object>> getAllMonitoringInfo() {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getAllMonitoringInfo() {
         try {
             Map<String, Object> allInfo = new java.util.HashMap<>();
 
@@ -93,9 +95,9 @@ public class AdminMonitoringController {
             allInfo.put("memory", adminMonitoringService.getMemoryInfo());
             allInfo.put("disk", adminMonitoringService.getDiskInfo());
 
-            return ApiResponse.success("获取成功", allInfo);
+            return ResponseEntity.ok(ApiResponse.success("获取成功", allInfo));
         } catch (Exception e) {
-            return ApiResponse.error(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(e.getMessage()));
         }
     }
 }

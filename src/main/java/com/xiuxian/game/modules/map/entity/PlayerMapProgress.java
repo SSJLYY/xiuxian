@@ -56,6 +56,7 @@ public class PlayerMapProgress {
      */
     public void recordEnter() {
         this.isCurrent = true;
+        this.offlineStartAt = null;
         this.lastEnterAt = LocalDateTime.now();
         if (this.firstEnterAt == null) {
             this.firstEnterAt = LocalDateTime.now();
@@ -67,6 +68,9 @@ public class PlayerMapProgress {
      */
     public void recordLeave() {
         this.isCurrent = false;
+        if (this.totalTimeSpent == null) {
+            this.totalTimeSpent = 0;
+        }
         if (this.lastEnterAt != null) {
             int minutes = (int) java.time.Duration.between(
                 this.lastEnterAt, LocalDateTime.now()).toMinutes();

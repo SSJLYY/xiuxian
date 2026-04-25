@@ -77,6 +77,17 @@ public class AdminController {
             log.warn("非法的角色值：role={}", role);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "非法的角色值");
         }
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getName() != null) {
+            User currentAdmin = adminPlayerService.listAllUsers().stream()
+                    .filter(user -> auth.getName().equals(user.getUsername()))
+                    .findFirst()
+                    .orElse(null);
+            if (currentAdmin != null && currentAdmin.getId().equals(id)) {
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "不能修改当前登录管理员自己的角色");
+            }
+        }
         
         User u = adminPlayerService.updateUserRole(id, role);
         log.info("管理员更新用户角色成功: userId={}, role={}", id, role);

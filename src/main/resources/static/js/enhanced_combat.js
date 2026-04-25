@@ -6,6 +6,24 @@ let playerSkills = [];
 let playerItems = [];
 let battleInProgress = false;
 
+function buildEnhancedCombatRequest(extra = {}) {
+    if (!currentMonster) {
+        return extra;
+    }
+
+    if (currentMonster.id) {
+        return {
+            monsterId: currentMonster.id,
+            ...extra
+        };
+    }
+
+    return {
+        mapId: 1,
+        ...extra
+    };
+}
+
 // 生成怪物
 async function generateMonster(mapId = 1) {
     showLoading(true);
@@ -47,9 +65,7 @@ async function performNormalAttack() {
     battleInProgress = true;
     
     try {
-        const response = await api.post('/combat/enhanced', {
-            mapId: 1
-        });
+        const response = await api.post('/combat/enhanced', buildEnhancedCombatRequest());
         
         if (response.success) {
             displayCombatResult(response.data);
@@ -78,12 +94,12 @@ async function showSkills() {
     } else {
         skillsList.innerHTML = playerSkills.map(skill => `
             <div class="skill-card p-3 border rounded hover:bg-yellow-50 cursor-pointer" 
-                 onclick="useSkill(${skill.skillId})">
+                 onclick="useSkill(${skill.skill.id})">
                 <h4 class="font-bold">${skill.skill.name}</h4>
-                <p class="text-sm text-gray-600">${skill.skill.description}</p>
+                <p class="text-sm text-gray-600">${skill.skill.description || ''}</p>
                 <div class="flex justify-between mt-2 text-sm">
                     <span>等级: ${skill.level}</span>
-                    <span>消耗: ${skill.skill.manaCost}法力</span>
+                    <span>消耗: ${skill.manaCost || 0}法力</span>
                 </div>
             </div>
         `).join('');
@@ -105,10 +121,9 @@ async function useSkill(skillId) {
     battleInProgress = true;
     
     try {
-        const response = await api.post('/combat/enhanced', {
-            mapId: 1,
+        const response = await api.post('/combat/enhanced', buildEnhancedCombatRequest({
             skillId: skillId
-        });
+        }));
         
         if (response.success) {
             displayCombatResult(response.data);
@@ -135,19 +150,16 @@ async function showItems() {
     if (playerItems.length === 0) {
         itemsList.innerHTML = '<p class="text-center py-4 text-gray-500">暂无可用道具</p>';
     } else {
-        itemsList.innerHTML = playerItems.map(item => {
-            const itemTemplate = getItemTemplate(item.itemId);
-            return `
-                <div class="item-card p-3 border rounded hover:bg-green-50 cursor-pointer" 
-                     onclick="useItem(${item.id})">
-                    <h4 class="font-bold">${escapeHtml(itemTemplate?.name || '未知道具')}</h4>
-                    <p class="text-sm text-gray-600">${escapeHtml(itemTemplate?.description || '')}</p>
-                    <div class="flex justify-between mt-2 text-sm">
-                        <span>数量: ${item.quantity}</span>
-                    </div>
+        itemsList.innerHTML = playerItems.map(item => `
+            <div class="item-card p-3 border rounded hover:bg-green-50 cursor-pointer" 
+                 onclick="useItem(${item.id})">
+                <h4 class="font-bold">${escapeHtml(item.itemName || '未知道具')}</h4>
+                <p class="text-sm text-gray-600">${escapeHtml(item.itemDescription || item.effect || '')}</p>
+                <div class="flex justify-between mt-2 text-sm">
+                    <span>数量: ${item.quantity}</span>
                 </div>
-            `;
-        }).join('');
+            </div>
+        `).join('');
     }
     
     document.getElementById('itemsModal').style.display = 'block';
@@ -166,10 +178,9 @@ async function useItem(itemId) {
     battleInProgress = true;
     
     try {
-        const response = await api.post('/combat/enhanced', {
-            mapId: 1,
-            itemId: itemId
-        });
+        const response = await api.post('/combat/enhanced', buildEnhancedCombatRequest({
+            playerItemId: itemId
+        }));
         
         if (response.success) {
             displayCombatResult(response.data);
@@ -339,7 +350,7 @@ function addToBattleLog(message) {
 // 加载玩家技能
 async function loadPlayerSkills() {
     try {
-        const response = await api.get('/skills/my');
+        const response = await api.get('/skills/player');
         if (response.success) {
             playerSkills = response.data.filter(skill => skill.equipped);
         }
@@ -351,7 +362,7 @@ async function loadPlayerSkills() {
 // 加载玩家道具
 async function loadPlayerItems() {
     try {
-        const response = await api.get('/inventory/items');
+        const response = await api.get('/inventory');
         if (response.success) {
             playerItems = response.data;
         }

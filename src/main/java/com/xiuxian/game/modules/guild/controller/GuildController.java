@@ -64,8 +64,7 @@ public class GuildController {
             log.info("宗门创建成功, playerId={}, guildName={}", playerId, request.getGuildName());
             return ApiResponse.success("宗门创建成功", null);
         } catch (Exception e) {
-            log.error("创建宗门失败, playerId={}, guildName={}, error={}",
-                    playerService.getCurrentPlayerId(), request.getGuildName(), e.getMessage(), e);
+            log.error("创建宗门失败, guildName={}, error={}", request.getGuildName(), e.getMessage(), e);
             return ApiResponse.error(e.getMessage());
         }
     }
@@ -88,8 +87,7 @@ public class GuildController {
             log.info("宗门申请提交成功, playerId={}, guildId={}", playerId, guildId);
             return ApiResponse.success("申请已提交", null);
         } catch (Exception e) {
-            log.error("申请加入宗门失败, playerId={}, guildId={}, error={}",
-                    playerService.getCurrentPlayerId(), guildId, e.getMessage(), e);
+            log.error("申请加入宗门失败, guildId={}, error={}", guildId, e.getMessage(), e);
             return ApiResponse.error(e.getMessage());
         }
     }
@@ -138,8 +136,7 @@ public class GuildController {
             log.info("玩家退出宗门成功, playerId={}", playerId);
             return ApiResponse.success("已退出宗门", null);
         } catch (Exception e) {
-            log.error("退出宗门失败, playerId={}, error={}",
-                    playerService.getCurrentPlayerId(), e.getMessage(), e);
+            log.error("退出宗门失败, error={}", e.getMessage(), e);
             return ApiResponse.error(e.getMessage());
         }
     }
@@ -162,8 +159,7 @@ public class GuildController {
             log.info("宗门捐献成功, playerId={}, amount={}", playerId, request.getAmount());
             return ApiResponse.success("捐献成功", null);
         } catch (Exception e) {
-            log.error("宗门捐献失败, playerId={}, amount={}, error={}",
-                    playerService.getCurrentPlayerId(), request.getAmount(), e.getMessage(), e);
+            log.error("宗门捐献失败, amount={}, error={}", request.getAmount(), e.getMessage(), e);
             return ApiResponse.error(e.getMessage());
         }
     }
@@ -246,8 +242,7 @@ public class GuildController {
             log.info("获取我的宗门成功, playerId={}, guildId={}", playerId, guild != null ? guild.getId() : null);
             return ApiResponse.success("获取成功", guild);
         } catch (Exception e) {
-            log.error("获取我的宗门失败, playerId={}, error={}",
-                    playerService.getCurrentPlayerId(), e.getMessage(), e);
+            log.error("获取我的宗门失败, error={}", e.getMessage(), e);
             return ApiResponse.error(e.getMessage());
         }
     }

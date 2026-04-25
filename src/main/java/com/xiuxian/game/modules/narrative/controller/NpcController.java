@@ -8,6 +8,7 @@ import com.xiuxian.game.modules.player.service.PlayerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,10 +33,15 @@ public class NpcController {
      */
     @GetMapping("/list")
     public ResponseEntity<ApiResponse<List<Npc>>> getNpcList() {
-        Integer playerId = playerService.getCurrentPlayerId();
-        log.info("获取NPC列表: playerId={}", playerId);
-        List<Npc> npcs = npcService.getAllNpcs(null);
-        return ResponseEntity.ok(ApiResponse.success(npcs));
+        try {
+            Integer playerId = playerService.getCurrentPlayerId();
+            Integer playerLevel = playerService.getPlayerProfileById(playerId).getLevel();
+            log.info("获取NPC列表: playerId={}", playerId);
+            List<Npc> npcs = npcService.getAllNpcs(playerLevel);
+            return ResponseEntity.ok(ApiResponse.success(npcs));
+        } catch (Exception e) {
+            return narrativeError(e);
+        }
     }
 
     /**
@@ -43,13 +49,17 @@ public class NpcController {
      */
     @GetMapping("/{npcId}")
     public ResponseEntity<ApiResponse<NpcService.NpcDetailVo>> getNpcDetail(@PathVariable Integer npcId) {
-        Integer playerId = playerService.getCurrentPlayerId();
-        log.info("获取NPC详情: playerId={}, npcId={}", playerId, npcId);
-        NpcService.NpcDetailVo detail = npcService.getNpcDetail(npcId, playerId);
-        if (detail == null) {
-            return ResponseEntity.ok(ApiResponse.error("NPC不存在"));
+        try {
+            Integer playerId = playerService.getCurrentPlayerId();
+            log.info("获取NPC详情: playerId={}, npcId={}", playerId, npcId);
+            NpcService.NpcDetailVo detail = npcService.getNpcDetail(npcId, playerId);
+            if (detail == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error("NPC不存在"));
+            }
+            return ResponseEntity.ok(ApiResponse.success(detail));
+        } catch (Exception e) {
+            return narrativeError(e);
         }
-        return ResponseEntity.ok(ApiResponse.success(detail));
     }
 
     /**
@@ -57,9 +67,21 @@ public class NpcController {
      */
     @GetMapping("/relations")
     public ResponseEntity<ApiResponse<List<NpcService.NpcRelationSummary>>> getNpcRelations() {
-        Integer playerId = playerService.getCurrentPlayerId();
-        log.info("获取NPC关系列表: playerId={}", playerId);
-        List<NpcService.NpcRelationSummary> relations = npcService.getNpcRelationSummaries(playerId);
-        return ResponseEntity.ok(ApiResponse.success(relations));
+        try {
+            Integer playerId = playerService.getCurrentPlayerId();
+            log.info("获取NPC关系列表: playerId={}", playerId);
+            List<NpcService.NpcRelationSummary> relations = npcService.getNpcRelationSummaries(playerId);
+            return ResponseEntity.ok(ApiResponse.success(relations));
+        } catch (Exception e) {
+            return narrativeError(e);
+        }
+    }
+
+    private <T> ResponseEntity<ApiResponse<T>> narrativeError(Exception e) {
+        if (e instanceof com.xiuxian.game.common.exception.BusinessException) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+        log.error("NPC接口异常", e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error("系统繁忙，请稍后再试"));
     }
 }

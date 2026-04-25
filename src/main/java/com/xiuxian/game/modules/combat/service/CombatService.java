@@ -371,14 +371,14 @@ public class CombatService {
 
             if (actionPlan.playerFirst) {
                 executePlayerTurn(ctx, actionPlan.playerActions);
-                applyPetSkillDamage(ctx.rounds, petBonus, ctx.battleLog, damage -> ctx.currentMonsterHealth -= damage);
+                ctx.currentMonsterHealth -= applyPetSkillDamage(ctx.rounds, petBonus, ctx.battleLog);
                 if (ctx.currentMonsterHealth <= 0) break;
                 executeMonsterTurn(ctx, actionPlan.monsterActions);
             } else {
                 executeMonsterTurn(ctx, actionPlan.monsterActions);
                 if (ctx.currentPlayerHealth <= 0) break;
                 executePlayerTurn(ctx, actionPlan.playerActions);
-                applyPetSkillDamage(ctx.rounds, petBonus, ctx.battleLog, damage -> ctx.currentMonsterHealth -= damage);
+                ctx.currentMonsterHealth -= applyPetSkillDamage(ctx.rounds, petBonus, ctx.battleLog);
             }
         }
 
@@ -425,24 +425,21 @@ public class CombatService {
         return new ActionPlan(playerActions, monsterActions, playerSpeed >= monsterSpeed);
     }
 
-    interface DamageSink {
-        void apply(int damage);
-    }
-
-    void applyPetSkillDamage(int round, PetCombatBonus petBonus, List<String> battleLog, DamageSink damageSink) {
+    int applyPetSkillDamage(int round, PetCombatBonus petBonus, List<String> battleLog) {
         if (petBonus == null || round % petBonus.getSkillCooldown() != 0) {
-            return;
+            return 0;
         }
         if (rng().nextDouble() < petBonus.getSkillTriggerChance()) {
             int petDamage = petBonus.getSkillDamage();
             if (petBonus.isResonance()) {
                 petDamage *= 2;
             }
-            damageSink.apply(petDamage);
             String resonanceMsg = petBonus.isResonance() ? "【共鸣迸发】" : "";
             battleLog.add("🐾 " + resonanceMsg + petBonus.getPetName() + "发动灵兽技能！造成了" + petDamage + "点伤害！");
+            return petDamage;
         } else {
             battleLog.add("🐾 " + petBonus.getPetName() + "准备发动技能，但还未准备好...");
+            return 0;
         }
     }
 

@@ -19,6 +19,8 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Admin 仪表板服务（聚合层）
@@ -60,7 +62,11 @@ public class AdminDashboardService {
         // 今日活跃玩家（今日有登录记录）
         QueryWrapper<PlayerLoginLog> activeTodayQuery = new QueryWrapper<>();
         activeTodayQuery.gt("login_at", today);
-        Long activeToday = playerLoginLogMapper.selectCount(activeTodayQuery);
+        Long activeToday = (long) playerLoginLogMapper.selectList(activeTodayQuery).stream()
+                .map(PlayerLoginLog::getPlayerId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet())
+                .size();
 
         // 总收入与今日收入
         QueryWrapper<RechargeRecord> totalIncomeQuery = new QueryWrapper<>();

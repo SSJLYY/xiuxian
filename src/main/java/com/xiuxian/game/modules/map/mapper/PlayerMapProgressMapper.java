@@ -42,6 +42,11 @@ public interface PlayerMapProgressMapper extends BaseMapper<PlayerMapProgress> {
     @Select("SELECT * FROM player_map_progress WHERE player_id = #{playerId} AND map_id = #{mapId}")
     PlayerMapProgress selectByPlayerAndMap(@Param("playerId") Integer playerId, @Param("mapId") Integer mapId);
 
+    @Select("SELECT * FROM player_map_progress " +
+            "WHERE player_id = #{playerId} AND offline_start_at IS NOT NULL " +
+            "ORDER BY offline_start_at DESC LIMIT 1")
+    PlayerMapProgress selectLatestOfflineProgress(@Param("playerId") Integer playerId);
+
     /**
      * 清除玩家的当前地图标记
      */

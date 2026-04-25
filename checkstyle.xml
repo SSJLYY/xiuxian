@@ -17,6 +17,11 @@
         <property name="lineSeparator" value="lf"/>
     </module>
 
+    <module name="LineLength">
+        <property name="max" value="150"/>
+        <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://"/>
+    </module>
+
     <!-- 代码检查 -->
     <module name="TreeWalker">
         <!-- 代码格式 -->
@@ -24,11 +29,6 @@
             <property name="basicOffset" value="4"/>
             <property name="arrayInitIndent" value="4"/>
             <property name="lineWrappingIndentation" value="4"/>
-        </module>
-
-        <module name="LineLength">
-            <property name="max" value="150"/>
-            <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://"/>
         </module>
 
         <!-- 代码质量 -->
@@ -89,6 +89,5 @@
         
         <!-- 注释检查 -->
         <module name="MissingOverride"/>
-        <module name="Deprecated"/>
     </module>
 </module>

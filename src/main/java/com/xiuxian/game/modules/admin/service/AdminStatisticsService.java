@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Admin 统计服务（聚合层）
@@ -67,7 +68,11 @@ public class AdminStatisticsService {
         // 今日活跃玩家
         QueryWrapper<PlayerLoginLog> activeTodayQuery = new QueryWrapper<>();
         activeTodayQuery.gt("login_at", today);
-        long activeToday = playerLoginLogMapper.selectCount(activeTodayQuery);
+        long activeToday = playerLoginLogMapper.selectList(activeTodayQuery).stream()
+                .map(PlayerLoginLog::getPlayerId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet())
+                .size();
 
         // 累计总收入
         QueryWrapper<RechargeRecord> totalIncomeQuery = new QueryWrapper<>();

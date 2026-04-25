@@ -38,7 +38,7 @@ public class NpcService {
      */
     public NpcDetailVo getNpcDetail(Integer npcId, Integer playerId) {
         Npc npc = npcMapper.selectById(npcId);
-        if (npc == null) {
+        if (npc == null || Boolean.FALSE.equals(npc.getActive())) {
             return null;
         }
 
@@ -77,10 +77,13 @@ public class NpcService {
      */
     public List<NpcRelationSummary> getNpcRelationSummaries(Integer playerId) {
         List<PlayerNpcRelation> relations = narrativeService.getAllNpcRelations(playerId);
+        java.util.Map<Integer, Npc> npcMap = npcMapper.selectBatchIds(
+                relations.stream().map(PlayerNpcRelation::getNpcId).distinct().collect(Collectors.toList())
+        ).stream().collect(Collectors.toMap(Npc::getId, npc -> npc, (a, b) -> a));
         return relations.stream().map(r -> {
             NpcRelationSummary summary = new NpcRelationSummary();
             summary.setNpcId(r.getNpcId());
-            Npc npc = npcMapper.selectById(r.getNpcId());
+            Npc npc = npcMap.get(r.getNpcId());
             summary.setNpcName(npc != null ? npc.getName() : "未知");
             summary.setTitle(npc != null ? npc.getTitle() : "");
             summary.setFaction(npc != null ? npc.getFaction() : "");

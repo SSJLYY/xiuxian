@@ -10,6 +10,7 @@ import com.xiuxian.game.modules.map.service.GameMapService;
 import com.xiuxian.game.modules.player.service.PlayerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,6 +26,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/maps")
 @RequiredArgsConstructor
+@PreAuthorize("isAuthenticated()")
 public class GameMapController {
 
     private final GameMapService gameMapService;
@@ -51,12 +53,20 @@ public class GameMapController {
      * 获取地图详情
      */
     @GetMapping("/{mapId}")
-    public ApiResponse<GameMap> getMapDetail(@PathVariable Integer mapId) {
+    public ApiResponse<GameMap> getMapDetail(@PathVariable Integer mapId, Authentication authentication) {
+        Integer playerId = getPlayerId(authentication);
+        PlayerProfile profile = playerService.getCurrentPlayerProfile();
         GameMap map = gameMapService.getMapById(mapId);
         if (map == null) {
             return ApiResponse.error(404, "地图不存在");
         }
-        return ApiResponse.success(map);
+        if (!map.canEnter(profile.getLevel(), profile.getRealm())) {
+            return ApiResponse.error(403, "地图尚未解锁");
+        }
+        List<GameMap> playerMaps = gameMapService.getMapsForPlayer(playerId, profile.getLevel(), profile.getRealm());
+        GameMap playerView = playerMaps.stream().filter(m -> m.getId().equals(mapId)).findFirst().orElse(map);
+        playerView.setMonsters(map.getMonsters());
+        return ApiResponse.success(playerView);
     }
 
     /**
@@ -148,9 +158,7 @@ public class GameMapController {
     public ApiResponse<GameMapService.OfflineReward> getOfflineReward(Authentication authentication) {
         Integer playerId = getPlayerId(authentication);
 
-        PlayerMapProgress progress = gameMapService.getCurrentMap(playerId) != null
-            ? new PlayerMapProgress() // 简化处理，实际需要查询
-            : null;
+        PlayerMapProgress progress = gameMapService.getOfflineRewardProgress(playerId);
 
         if (progress == null) {
             return ApiResponse.error(400, "无法计算离线收益");
@@ -177,6 +185,6 @@ public class GameMapController {
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new BusinessException(ErrorCode.USER_NOT_LOGIN);
         }
-        return Integer.valueOf(authentication.getName());
+        return playerService.getCurrentPlayerId();
     }
 }

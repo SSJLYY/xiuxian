@@ -5,6 +5,8 @@ import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.modules.mail.entity.PlayerMail;
 import com.xiuxian.game.modules.admin.service.AdminFeedbackService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,16 +27,16 @@ public class AdminFeedbackController {
      */
     @GetMapping("/")
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<Page<PlayerMail>> getFeedbackList(
+    public ResponseEntity<ApiResponse<Page<PlayerMail>>> getFeedbackList(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) Integer playerId,
             @RequestParam(required = false) Boolean isRead) {
         try {
             Page<PlayerMail> feedbacks = adminFeedbackService.getFeedbackList(page, size, playerId, isRead);
-            return ApiResponse.success("获取反馈列表成功", feedbacks);
+            return ResponseEntity.ok(ApiResponse.success("获取反馈列表成功", feedbacks));
         } catch (Exception e) {
-            return ApiResponse.error(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(e.getMessage()));
         }
     }
 
@@ -43,15 +45,15 @@ public class AdminFeedbackController {
      */
     @GetMapping("/{feedbackId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<PlayerMail> getFeedbackDetail(@PathVariable Long feedbackId) {
+    public ResponseEntity<ApiResponse<PlayerMail>> getFeedbackDetail(@PathVariable Long feedbackId) {
         try {
             PlayerMail feedback = adminFeedbackService.getFeedbackById(feedbackId);
             if (feedback == null) {
-                return ApiResponse.error("反馈记录不存在");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error("反馈记录不存在"));
             }
-            return ApiResponse.success("获取反馈详情成功", feedback);
+            return ResponseEntity.ok(ApiResponse.success("获取反馈详情成功", feedback));
         } catch (Exception e) {
-            return ApiResponse.error(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(e.getMessage()));
         }
     }
 
@@ -60,12 +62,12 @@ public class AdminFeedbackController {
      */
     @PostMapping("/{feedbackId}/read")
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<PlayerMail> markAsRead(@PathVariable Long feedbackId) {
+    public ResponseEntity<ApiResponse<PlayerMail>> markAsRead(@PathVariable Long feedbackId) {
         try {
             PlayerMail feedback = adminFeedbackService.markAsRead(feedbackId);
-            return ApiResponse.success("已标记为已读", feedback);
+            return ResponseEntity.ok(ApiResponse.success("已标记为已读", feedback));
         } catch (Exception e) {
-            return ApiResponse.error(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(e.getMessage()));
         }
     }
 
@@ -74,16 +76,16 @@ public class AdminFeedbackController {
      */
     @DeleteMapping("/{feedbackId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<Void> deleteFeedback(@PathVariable Long feedbackId) {
+    public ResponseEntity<ApiResponse<Void>> deleteFeedback(@PathVariable Long feedbackId) {
         try {
             boolean result = adminFeedbackService.deleteFeedback(feedbackId);
             if (result) {
-                return ApiResponse.success("删除反馈成功", null);
+                return ResponseEntity.ok(ApiResponse.success("删除反馈成功", null));
             } else {
-                return ApiResponse.error("操作失败");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error("操作失败"));
             }
         } catch (Exception e) {
-            return ApiResponse.error(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(e.getMessage()));
         }
     }
 
@@ -92,19 +94,19 @@ public class AdminFeedbackController {
      */
     @PostMapping("/{feedbackId}/reply")
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<Void> replyToFeedback(
+    public ResponseEntity<ApiResponse<Void>> replyToFeedback(
             @PathVariable Long feedbackId,
             @RequestParam String replyContent,
             @RequestAttribute("playerId") Integer adminId) {
         try {
             boolean result = adminFeedbackService.replyToFeedback(feedbackId, replyContent, adminId);
             if (result) {
-                return ApiResponse.success("回复成功", null);
+                return ResponseEntity.ok(ApiResponse.success("回复成功", null));
             } else {
-                return ApiResponse.error("回复失败");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error("回复失败"));
             }
         } catch (Exception e) {
-            return ApiResponse.error(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(e.getMessage()));
         }
     }
 }

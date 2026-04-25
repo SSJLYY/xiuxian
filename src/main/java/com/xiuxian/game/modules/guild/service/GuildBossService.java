@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -63,6 +64,7 @@ public class GuildBossService {
     private static final int MAX_DAILY_ATTEMPTS = 5;
     /** BOSS复活周期（天） */
     private static final int BOSS_RESPAWN_DAYS = 7;
+    private final Map<Integer, Object> bossSpawnLocks = new ConcurrentHashMap<>();
 
     // ==================== BOSS 模板定义 ====================
     private static final List<BossTemplate> BOSS_TEMPLATES = Arrays.asList(
@@ -83,11 +85,7 @@ public class GuildBossService {
      */
     public GuildBossVO getCurrentBoss(Integer playerId) {
         Integer guildId = getPlayerGuildId(playerId);
-
-        GuildBoss boss = guildBossMapper.findAliveByGuildId(guildId);
-        if (boss == null) {
-            boss = spawnBoss(guildId);
-        }
+        GuildBoss boss = getBossForView(guildId);
 
         GuildBossChallenge myRecord = challengeMapper.findByBossAndPlayer(boss.getId(), playerId);
         List<GuildBossChallenge> allChallenges = challengeMapper.findByBossIdOrderByDamage(boss.getId());
@@ -135,7 +133,11 @@ public class GuildBossService {
 
         // BOSS死亡时分发奖励
         if (bossDefeated) {
-            distributeRewards(boss);
+            GuildBoss latestBoss = guildBossMapper.selectBossById(boss.getId());
+            if (latestBoss != null && latestBoss.getDefeatedAt() != null
+                    && latestBoss.getDefeatedAt().equals(boss.getDefeatedAt())) {
+                distributeRewards(latestBoss);
+            }
         }
 
         log.info("[GuildBoss] 玩家{}挑战BOSS{}造成伤害{}，BOSS剩余血量{}", playerId, boss.getId(), damage, boss.getCurrentHealth());
@@ -146,7 +148,7 @@ public class GuildBossService {
                 .bossDefeated(bossDefeated)
                 .bossRemainingHealth(boss.getCurrentHealth())
                 .bossMaxHealth(boss.getMaxHealth())
-                .remainingAttempts(MAX_DAILY_ATTEMPTS - getTodayAttempts(record) - 1)
+                .remainingAttempts(Math.max(0, MAX_DAILY_ATTEMPTS - getTodayAttempts(record) - 1))
                 .build();
     }
 
@@ -160,14 +162,19 @@ public class GuildBossService {
      * @throws BusinessException 当BOSS已被击败时抛出
      */
     private GuildBoss getOrCreateBoss(Integer guildId) {
-        GuildBoss boss = guildBossMapper.findAliveByGuildId(guildId);
-        if (boss == null) {
-            boss = spawnBoss(guildId);
+        synchronized (getBossLock(guildId)) {
+            GuildBoss boss = guildBossMapper.findAliveByGuildId(guildId);
+            if (boss != null) {
+                return boss;
+            }
+
+            GuildBoss latestBoss = guildBossMapper.findLatestByGuildId(guildId);
+            if (isBossRespawnPending(latestBoss)) {
+                throw new BusinessException(ErrorCode.GUILD_BOSS_ALREADY_DEFEATED, "宗门BOSS尚未刷新");
+            }
+
+            return spawnBoss(guildId);
         }
-        if ("DEFEATED".equals(boss.getStatus())) {
-            throw new BusinessException(ErrorCode.GUILD_BOSS_ALREADY_DEFEATED);
-        }
-        return boss;
     }
 
     /**
@@ -241,6 +248,10 @@ public class GuildBossService {
             throw new BusinessException(ErrorCode.GUILD_BOSS_REWARD_CLAIMED);
         }
 
+        if (challengeMapper.markRewardClaimed(record.getId()) == 0) {
+            throw new BusinessException(ErrorCode.GUILD_BOSS_REWARD_CLAIMED);
+        }
+
         // 发放个人奖励
         int stones = record.getPersonalRewardStones() != null ? record.getPersonalRewardStones() : 0;
         int exp = (int) (boss.getRewardExp() * getDamageRatio(boss.getId(), playerId));
@@ -248,10 +259,8 @@ public class GuildBossService {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         player.setSpiritStones(player.getSpiritStones() + stones);
         player.setExp(player.getExp() + exp);
+        playerService.applyLevelUpsWithoutCommit(player, 100);
         playerService.savePlayerProfile(player);
-
-        record.setRewardClaimed(true);
-        challengeMapper.updateById(record);
 
         log.info("[GuildBoss] 玩家{}领取仙盟BOSS奖励: 灵石+{}, 经验+{}", playerId, stones, exp);
 
@@ -352,9 +361,15 @@ public class GuildBossService {
      * @param boss BOSS实体
      */
     private void distributeRewards(GuildBoss boss) {
+        synchronized (this) {
         List<GuildBossChallenge> all = challengeMapper.findByBossIdOrderByDamage(boss.getId());
+        if (all.isEmpty()) return;
         long totalDamage = all.stream().mapToLong(GuildBossChallenge::getDamageDealt).sum();
         if (totalDamage == 0) return;
+
+        if (all.stream().anyMatch(c -> c.getPersonalRewardStones() != null && c.getPersonalRewardStones() > 0)) {
+            return;
+        }
 
         // 计算各参与者奖励
         for (GuildBossChallenge c : all) {
@@ -364,6 +379,31 @@ public class GuildBossService {
         }
         // 批量更新，替代循环 updateById（避免N次DB往返）
         challengeMapper.batchUpdateRewardStones(all);
+        }
+    }
+
+    private GuildBoss getBossForView(Integer guildId) {
+        synchronized (getBossLock(guildId)) {
+            GuildBoss boss = guildBossMapper.findAliveByGuildId(guildId);
+            if (boss != null) {
+                return boss;
+            }
+
+            GuildBoss latestBoss = guildBossMapper.findLatestByGuildId(guildId);
+            if (isBossRespawnPending(latestBoss)) {
+                return latestBoss;
+            }
+
+            return spawnBoss(guildId);
+        }
+    }
+
+    private boolean isBossRespawnPending(GuildBoss boss) {
+        return boss != null && boss.getNextSpawnAt() != null && boss.getNextSpawnAt().isAfter(LocalDateTime.now());
+    }
+
+    private Object getBossLock(Integer guildId) {
+        return bossSpawnLocks.computeIfAbsent(guildId, id -> new Object());
     }
 
     /**
@@ -520,7 +560,7 @@ public class GuildBossService {
      * @return 排名
      */
     private int calculatePlayerRank(GuildBossChallenge myRecord, List<GuildBossChallenge> all) {
-        if (myRecord == null) return 1;
+        if (myRecord == null) return 0;
         final long myDamage = myRecord.getDamageDealt();
         return (int) all.stream().filter(c -> c.getDamageDealt() > myDamage).count() + 1;
     }

@@ -5,6 +5,7 @@ import com.xiuxian.game.dto.response.AdminLoginResponse;
 import com.xiuxian.game.modules.admin.service.AdminAuthService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -49,8 +50,11 @@ public class AdminAuthController {
     public ResponseEntity<AdminLoginResponse> login(@Valid @RequestBody AdminLoginRequest request) {
         log.info("管理员登录: username={}", request.getUsername());
         AdminLoginResponse response = adminAuthService.login(request);
-        log.info("管理员登录成功: username={}", request.getUsername());
-        return ResponseEntity.ok(response);
+        if (response.isSuccess()) {
+            log.info("管理员登录成功: username={}", request.getUsername());
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
     }
 
     /**
@@ -67,7 +71,7 @@ public class AdminAuthController {
         log.debug("验证管理员token");
         AdminLoginResponse response = adminAuthService.validateToken(token);
         log.debug("验证管理员token完成: valid={}", response.isSuccess());
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(response.isSuccess() ? HttpStatus.OK : HttpStatus.UNAUTHORIZED).body(response);
     }
 
     /**
@@ -84,7 +88,7 @@ public class AdminAuthController {
         log.info("管理员登出");
         AdminLoginResponse response = adminAuthService.logout(token);
         log.info("管理员登出成功");
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST).body(response);
     }
 
     /**
@@ -101,7 +105,7 @@ public class AdminAuthController {
         log.debug("获取当前管理员信息");
         AdminLoginResponse response = adminAuthService.getCurrentAdmin(token);
         log.debug("获取当前管理员信息完成");
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(response.isSuccess() ? HttpStatus.OK : HttpStatus.UNAUTHORIZED).body(response);
     }
 
     /**

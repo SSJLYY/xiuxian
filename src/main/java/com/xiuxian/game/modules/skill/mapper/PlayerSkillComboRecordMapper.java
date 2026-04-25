@@ -34,4 +34,13 @@ public interface PlayerSkillComboRecordMapper extends BaseMapper<PlayerSkillComb
      */
     @Delete("DELETE FROM player_skill_combo_records WHERE player_id = #{playerId} AND used_at < #{beforeTime}")
     void deleteOldRecords(@Param("playerId") Integer playerId, @Param("beforeTime") LocalDateTime beforeTime);
+
+    @Select("SELECT COUNT(*) FROM player_skill_combo_records WHERE player_id = #{playerId}")
+    Long countByPlayerId(@Param("playerId") Integer playerId);
+
+    @Select("SELECT COUNT(*) FROM player_skill_combo_records WHERE player_id = #{playerId} AND triggered_combo = 1")
+    Long countTriggeredCombosByPlayerId(@Param("playerId") Integer playerId);
+
+    @Select("SELECT * FROM player_skill_combo_records WHERE player_id = #{playerId} AND triggered_combo = 1 AND combo_id IS NOT NULL ORDER BY used_at DESC LIMIT #{limit}")
+    List<PlayerSkillComboRecord> findTriggeredComboRecords(@Param("playerId") Integer playerId, @Param("limit") int limit);
 }

@@ -8,6 +8,7 @@ import com.xiuxian.game.common.util.LogUtils;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -106,7 +107,7 @@ public class AdminMailController {
             
         } catch (Exception e) {
             log.error("管理员发送邮件失败: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
         }
     }
 
@@ -168,7 +169,7 @@ public class AdminMailController {
             
         } catch (Exception e) {
             log.error("管理员批量发送邮件失败: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
         }
     }
 
