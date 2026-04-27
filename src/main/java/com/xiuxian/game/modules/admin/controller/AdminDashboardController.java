@@ -17,7 +17,6 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/admin/dashboard")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class AdminDashboardController {
 

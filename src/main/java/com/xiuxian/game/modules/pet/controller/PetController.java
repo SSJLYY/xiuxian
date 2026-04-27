@@ -1,36 +1,38 @@
 package com.xiuxian.game.modules.pet.controller;
 
-import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.dto.PetEvolutionResult;
+import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.modules.pet.entity.Pet;
-import com.xiuxian.game.modules.pet.entity.PlayerPet;
 import com.xiuxian.game.modules.pet.entity.PetTrainingLog;
+import com.xiuxian.game.modules.pet.entity.PlayerPet;
 import com.xiuxian.game.modules.pet.service.PetService;
 import com.xiuxian.game.modules.player.service.PlayerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
 
-/**
- * 宠物控制器
- * 处理宠物相关的HTTP请求
- */
 @RestController
 @RequestMapping("/api/pets")
 @RequiredArgsConstructor
 @PreAuthorize("isAuthenticated()")
 public class PetController {
 
+    private static final String DEFAULT_TRAINING_TYPE = "普通训练";
+
     private final PetService petService;
     private final PlayerService playerService;
 
-    /**
-     * 获取所有宠物模板
-     */
     @GetMapping
     public ResponseEntity<ApiResponse<List<Pet>>> getAllPets() {
         try {
@@ -41,9 +43,6 @@ public class PetController {
         }
     }
 
-    /**
-     * 获取可捕获的宠物列表
-     */
     @GetMapping("/available")
     public ResponseEntity<ApiResponse<List<Pet>>> getAvailablePets() {
         try {
@@ -55,9 +54,6 @@ public class PetController {
         }
     }
 
-    /**
-     * 获取玩家的所有宠物
-     */
     @GetMapping("/my")
     public ResponseEntity<ApiResponse<List<PlayerPet>>> getMyPets() {
         try {
@@ -69,9 +65,6 @@ public class PetController {
         }
     }
 
-    /**
-     * 获取出战宠物
-     */
     @GetMapping("/active")
     public ResponseEntity<ApiResponse<PlayerPet>> getActivePet() {
         try {
@@ -83,9 +76,6 @@ public class PetController {
         }
     }
 
-    /**
-     * 捕获宠物
-     */
     @PostMapping("/capture/{petId}")
     public ResponseEntity<ApiResponse<PlayerPet>> capturePet(@PathVariable Integer petId) {
         try {
@@ -97,9 +87,6 @@ public class PetController {
         }
     }
 
-    /**
-     * 设置出战宠物
-     */
     @PostMapping("/activate/{playerPetId}")
     public ResponseEntity<ApiResponse<Void>> setActivePet(@PathVariable Integer playerPetId) {
         try {
@@ -111,9 +98,6 @@ public class PetController {
         }
     }
 
-    /**
-     * 喂食宠物
-     */
     @PostMapping("/feed/{playerPetId}")
     public ResponseEntity<ApiResponse<Void>> feedPet(@PathVariable Integer playerPetId) {
         try {
@@ -125,18 +109,15 @@ public class PetController {
         }
     }
 
-    /**
-     * 训练宠物
-     */
     @PostMapping("/train/{playerPetId}")
     public ResponseEntity<ApiResponse<Void>> trainPet(
             @PathVariable Integer playerPetId,
-            @RequestBody Map<String, String> request) {
+            @RequestBody(required = false) Map<String, String> request) {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
-            String trainingType = request.get("trainingType");
+            String trainingType = request != null ? request.get("trainingType") : null;
             if (trainingType == null || trainingType.trim().isEmpty()) {
-                return ResponseEntity.badRequest().body(ApiResponse.error("训练类型不能为空"));
+                trainingType = DEFAULT_TRAINING_TYPE;
             }
             petService.trainPet(playerId, playerPetId, trainingType);
             return ResponseEntity.ok(ApiResponse.success("训练成功", null));
@@ -145,9 +126,6 @@ public class PetController {
         }
     }
 
-    /**
-     * 重命名宠物
-     */
     @PostMapping("/rename/{playerPetId}")
     public ResponseEntity<ApiResponse<Void>> renamePet(
             @PathVariable Integer playerPetId,
@@ -155,6 +133,9 @@ public class PetController {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
             String newNickname = request.get("nickname");
+            if (newNickname == null || newNickname.trim().isEmpty()) {
+                newNickname = request.get("newName");
+            }
             petService.renamePet(playerId, playerPetId, newNickname);
             return ResponseEntity.ok(ApiResponse.success("重命名成功", null));
         } catch (Exception e) {
@@ -162,9 +143,6 @@ public class PetController {
         }
     }
 
-    /**
-     * 释放宠物
-     */
     @DeleteMapping("/release/{playerPetId}")
     public ResponseEntity<ApiResponse<Void>> releasePet(@PathVariable Integer playerPetId) {
         try {
@@ -176,9 +154,6 @@ public class PetController {
         }
     }
 
-    /**
-     * 锁定/解锁宠物
-     */
     @PostMapping("/toggle-lock/{playerPetId}")
     public ResponseEntity<ApiResponse<Void>> toggleLockPet(@PathVariable Integer playerPetId) {
         try {
@@ -190,9 +165,6 @@ public class PetController {
         }
     }
 
-    /**
-     * 获取宠物训练记录
-     */
     @GetMapping("/training-logs/{playerPetId}")
     public ResponseEntity<ApiResponse<List<PetTrainingLog>>> getTrainingLogs(
             @PathVariable Integer playerPetId,
@@ -206,39 +178,30 @@ public class PetController {
         }
     }
 
-    // ==================== 宠物进化相关API ====================
-
-    /**
-     * 检查宠物是否可以进化
-     */
-        @GetMapping("/evolution/check/{playerPetId}")
-        public ResponseEntity<ApiResponse<PetEvolutionResult>> checkEvolution(@PathVariable Integer playerPetId) {
+    @GetMapping("/evolution/check/{playerPetId}")
+    public ResponseEntity<ApiResponse<PetEvolutionResult>> checkEvolution(@PathVariable Integer playerPetId) {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
             PetEvolutionResult result = petService.checkEvolution(playerId, playerPetId);
-            return ResponseEntity.ok(ApiResponse.success(result.isSuccess() ? "可以进化" : "不可进化", result));
+            String message = result.isSuccess() ? "可以进化" : "不可进化";
+            return ResponseEntity.ok(ApiResponse.success(message, result));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
 
-    /**
-     * 执行宠物进化
-     */
     @PostMapping("/evolution/evolve/{playerPetId}")
     public ResponseEntity<ApiResponse<PetEvolutionResult>> evolvePet(@PathVariable Integer playerPetId) {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
             PetEvolutionResult result = petService.evolvePet(playerId, playerPetId);
-            return ResponseEntity.ok(ApiResponse.success(result.isSuccess() ? "进化成功！" : "进化失败", result));
+            String message = result.isSuccess() ? "进化成功" : "进化失败";
+            return ResponseEntity.ok(ApiResponse.success(message, result));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
 
-    /**
-     * 获取宠物进化信息
-     */
     @GetMapping("/evolution/info/{playerPetId}")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getEvolutionInfo(@PathVariable Integer playerPetId) {
         try {

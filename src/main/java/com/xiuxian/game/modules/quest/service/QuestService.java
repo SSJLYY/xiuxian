@@ -341,6 +341,19 @@ public class QuestService {
     public PlayerQuest updateQuestProgress(Integer playerId, Integer questId, Integer progress) {
         return updateQuestProgressInternal(playerId, questId, progress);
     }
+
+    public PlayerQuest acceptQuest(Integer playerId, Integer questId) {
+        PlayerQuest playerQuest = playerQuestMapper.selectByPlayerIdAndQuestId(playerId, questId);
+        if (playerQuest == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "任务不存在");
+        }
+        return playerQuest;
+    }
+
+    @Transactional
+    public void completeQuest(Integer playerId, Integer playerQuestId) {
+        claimQuestRewardByPlayerQuestId(playerId, playerQuestId);
+    }
     
     private PlayerQuest updateQuestProgressInternal(Integer playerId, Integer questId, Integer progress) {
         PlayerQuest playerQuest = playerQuestMapper.selectByPlayerIdAndQuestId(playerId, questId);
@@ -349,13 +362,17 @@ public class QuestService {
         }
 
         Quest quest = questMapper.selectById(questId);
+        LocalDateTime now = LocalDateTime.now();
         playerQuest.setCurrentProgress(playerQuest.getCurrentProgress() + progress);
         
         if (playerQuest.getCurrentProgress() >= quest.getRequiredAmount()) {
+            if (!Boolean.TRUE.equals(playerQuest.getCompleted()) && playerQuest.getCompletedAt() == null) {
+                playerQuest.setCompletedAt(now);
+            }
             playerQuest.setCompleted(true);
         }
         
-        playerQuest.setUpdatedAt(LocalDateTime.now());
+        playerQuest.setUpdatedAt(now);
         playerQuestMapper.updateById(playerQuest);
         return playerQuest;
     }

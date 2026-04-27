@@ -94,13 +94,13 @@ public class AdminStatisticsService {
         // 拍卖行统计
         long totalAuctions = auctionItemMapper.selectCount(null);
         QueryWrapper<AuctionItem> activeAuctionsQuery = new QueryWrapper<>();
-        activeAuctionsQuery.eq("status", "ACTIVE");
+        activeAuctionsQuery.eq("status", "ON_SALE");
         long activeAuctions = auctionItemMapper.selectCount(activeAuctionsQuery);
 
         // 邮件统计
         long totalMails = playerMailMapper.selectCount(null);
         QueryWrapper<PlayerMail> unreadMailsQuery = new QueryWrapper<>();
-        unreadMailsQuery.eq("status", "UNREAD");
+        unreadMailsQuery.eq("is_read", false);
         long unreadMails = playerMailMapper.selectCount(unreadMailsQuery);
 
         stats.put("totalPlayers", totalPlayers);

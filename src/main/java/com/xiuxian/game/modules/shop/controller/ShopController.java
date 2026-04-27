@@ -2,14 +2,21 @@ package com.xiuxian.game.modules.shop.controller;
 
 import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.modules.shop.entity.ShopItem;
-import com.xiuxian.game.modules.skill.entity.SkillShopItem;
 import com.xiuxian.game.modules.shop.service.ShopService;
+import com.xiuxian.game.modules.skill.entity.SkillShopItem;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/shop")
@@ -30,9 +37,19 @@ public class ShopController {
 
     @PostMapping("/items/{id}/buy")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Void>> buyItem(@PathVariable Integer id, @RequestParam(defaultValue = "1") int quantity) {
+    public ResponseEntity<ApiResponse<Void>> buyItem(@PathVariable Integer id,
+                                                     @RequestParam(required = false) Integer quantity,
+                                                     @RequestBody(required = false) Map<String, Integer> request) {
         try {
-            shopService.buyItem(id, quantity);
+            int resolvedQuantity = quantity != null ? quantity : 1;
+            if (quantity == null && request != null) {
+                if (request.get("quantity") != null) {
+                    resolvedQuantity = request.get("quantity");
+                } else if (request.get("count") != null) {
+                    resolvedQuantity = request.get("count");
+                }
+            }
+            shopService.buyItem(id, resolvedQuantity);
             return ResponseEntity.ok(ApiResponse.success("购买成功", null));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
@@ -60,4 +77,3 @@ public class ShopController {
         }
     }
 }
-

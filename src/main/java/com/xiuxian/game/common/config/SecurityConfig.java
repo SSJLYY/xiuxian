@@ -115,6 +115,7 @@ public class SecurityConfig {
 
                         // 公开数据API放行
                         .antMatchers(
+                                "/api/public/**",
                                 "/api/players/public/**",
                                 "/api/skills/public/**",
                                 "/api/quests/public/**",

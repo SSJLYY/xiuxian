@@ -220,12 +220,22 @@ class GameApi extends ApiClient {
         return this.post(`/pets/feed/${playerPetId}`, {});
     }
 
-    async trainPet(playerPetId) {
-        return this.post(`/pets/train/${playerPetId}`, {});
+    async trainPet(playerPetId, trainingType = '普通训练') {
+        const resolvedTrainingType =
+            typeof trainingType === 'string'
+                ? trainingType
+                : trainingType?.trainingType;
+        return this.post(`/pets/train/${playerPetId}`, {
+            trainingType: resolvedTrainingType || '普通训练'
+        });
     }
 
     async renamePet(playerPetId, newName) {
-        return this.post(`/pets/rename/${playerPetId}`, { newName });
+        const nickname =
+            typeof newName === 'string'
+                ? newName
+                : newName?.nickname || newName?.newName;
+        return this.post(`/pets/rename/${playerPetId}`, { nickname });
     }
 
     // ========== 任务相关 ==========
@@ -257,7 +267,7 @@ class GameApi extends ApiClient {
     }
 
     async completeQuest(playerQuestId) {
-        return this.post(`/quests/complete/${playerQuestId}`, {});
+        return this.post(`/quests/${playerQuestId}/claim`, {});
     }
 
     async claimQuestReward(playerQuestId) {
@@ -265,7 +275,7 @@ class GameApi extends ApiClient {
     }
 
     async updateQuestProgress(questId, progress) {
-        return this.post(`/quests/${questId}/progress`, { progress });
+        return this.post(`/quests/${questId}/progress?progress=${progress}`, {});
     }
 
     async refreshDailyQuests() {
@@ -290,7 +300,7 @@ class GameApi extends ApiClient {
     }
 
     async buyShopItem(itemId, count = 1) {
-        return this.post(`/shop/items/${itemId}/buy`, { count });
+        return this.post(`/shop/items/${itemId}/buy?quantity=${count}`, {});
     }
 
     async buySkill(skillId) {

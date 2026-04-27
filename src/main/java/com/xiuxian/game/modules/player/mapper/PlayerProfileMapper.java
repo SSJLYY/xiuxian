@@ -20,4 +20,6 @@ public interface PlayerProfileMapper extends BaseMapper<PlayerProfile> {
      */
     @Select("SELECT * FROM player_profiles WHERE nickname = #{nickname}")
     PlayerProfile selectByNickname(@Param("nickname") String nickname);
+    @Select("SELECT * FROM player_profiles WHERE id = #{playerId} FOR UPDATE")
+    PlayerProfile selectByIdForUpdate(@Param("playerId") Integer playerId);
 }
