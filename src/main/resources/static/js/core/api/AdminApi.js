@@ -23,13 +23,16 @@ class AdminApi extends ApiClient {
     }
 
     async getAdminInfo() {
-        return this.get('/auth/info');
+        return this.get('/auth/me');
     }
 
     // ========== 玩家管理 ==========
     async getPlayers(page = 1, size = 20, keyword = '') {
-        const params = new URLSearchParams({ page, size, keyword }).toString();
-        return this.get(`/players?${params}`);
+        const params = new URLSearchParams({ page, size });
+        if (keyword) {
+            params.set('nickname', keyword);
+        }
+        return this.get(`/players?${params.toString()}`);
     }
 
     async getPlayerDetail(playerId) {
@@ -50,11 +53,31 @@ class AdminApi extends ApiClient {
 
     // ========== 系统邮件 ==========
     async sendSystemMail(title, content, reward = null, recipients = null) {
-        return this.post('/mail/system', {
+        const attachments = Array.isArray(reward)
+            ? reward
+            : reward?.attachments ?? (reward ? [reward] : []);
+        const recipientList = Array.isArray(recipients)
+            ? recipients.filter(recipient => recipient != null)
+            : recipients != null
+                ? [recipients]
+                : [];
+        const basePayload = {
             title,
             content,
-            reward,
-            recipients
+            mailType: 'SYSTEM',
+            attachments
+        };
+
+        if (recipientList.length > 1) {
+            return this.post('/mail/send-batch', {
+                ...basePayload,
+                playerIds: recipientList
+            });
+        }
+
+        return this.post('/mail/send', {
+            ...basePayload,
+            playerId: recipientList[0]
         });
     }
 
@@ -127,24 +150,40 @@ class AdminApi extends ApiClient {
     }
 
     // ========== 公告管理 ==========
-    async getAnnouncements() {
-        return this.get('/announcements');
+    async getAnnouncements(page = 1, size = 20, status = '') {
+        const params = new URLSearchParams({ page, size });
+        if (status) {
+            params.set('status', status);
+        }
+        return this.get(`/announcement/list?${params.toString()}`);
     }
 
     async createAnnouncement(announcement) {
-        return this.post('/announcements', announcement);
+        return this.post('/announcement', announcement);
     }
 
     async updateAnnouncement(id, announcement) {
-        return this.put(`/announcements/${id}`, announcement);
+        return this.put(`/announcement/${id}`, announcement);
     }
 
     async deleteAnnouncement(id) {
-        return this.delete(`/announcements/${id}`);
+        return this.delete(`/announcement/${id}`);
     }
 
     async publishAnnouncement(id) {
-        return this.post(`/announcements/${id}/publish`, {});
+        return this.post(`/announcement/${id}/publish`, {});
+    }
+
+    async revokeAnnouncement(id) {
+        return this.post(`/announcement/${id}/revoke`, {});
+    }
+
+    async getAnnouncementDetail(id) {
+        return this.get(`/announcement/${id}`);
+    }
+
+    async getAnnouncementStats() {
+        return this.get('/announcement/stats');
     }
 
     // ========== 活动管理 ==========
@@ -205,15 +244,31 @@ class AdminApi extends ApiClient {
 
     // ========== 统计数据 ==========
     async getStatistics() {
-        return this.get('/statistics');
+        return this.get('/statistics/overall');
     }
 
     async getPlayerStatistics() {
-        return this.get('/statistics/players');
+        return this.get('/statistics/player-growth');
     }
 
     async getEconomyStatistics() {
-        return this.get('/statistics/economy');
+        return this.get('/statistics/revenue');
+    }
+
+    async getSystemStats() {
+        const response = await this.get('/dashboard/stats');
+        if (!response?.success) {
+            throw new Error(response?.message || '加载系统统计失败');
+        }
+        return response.data || {};
+    }
+
+    async getRecentPlayers(limit = 10) {
+        const response = await this.getPlayers(1, limit);
+        if (!response?.success) {
+            throw new Error(response?.message || '加载最新玩家失败');
+        }
+        return response.data?.records || [];
     }
 
     // ========== 日志管理 ==========
@@ -230,6 +285,8 @@ class AdminApi extends ApiClient {
 
 // 创建全局管理API实例
 const adminAPI = new AdminApi();
+
+export { AdminApi, adminAPI };
 
 // 导出API客户端
 if (typeof module !== 'undefined' && module.exports) {

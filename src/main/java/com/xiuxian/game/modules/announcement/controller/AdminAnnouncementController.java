@@ -2,9 +2,9 @@ package com.xiuxian.game.modules.announcement.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xiuxian.game.dto.response.ApiResponse;
+import com.xiuxian.game.modules.admin.service.AdminAuthService;
 import com.xiuxian.game.modules.announcement.entity.Announcement;
 import com.xiuxian.game.modules.announcement.service.AnnouncementService;
-import com.xiuxian.game.modules.player.service.PlayerService;
 import com.xiuxian.game.common.util.LogUtils;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -51,7 +51,11 @@ import java.util.Map;
 public class AdminAnnouncementController {
 
     private final AnnouncementService announcementService;
-    private final PlayerService playerService;
+    private final AdminAuthService adminAuthService;
+
+    private Integer getCurrentAdminId() {
+        return adminAuthService.getCurrentAdminId();
+    }
 
     /**
      * 创建公告
@@ -88,7 +92,7 @@ public class AdminAnnouncementController {
     public ResponseEntity<ApiResponse<Announcement>> createAnnouncement(
             @Valid @RequestBody CreateAnnouncementRequest request) {
         try {
-            Integer adminId = playerService.getCurrentPlayerId();
+            Integer adminId = getCurrentAdminId();
 
             log.info("管理员创建公告: adminId={}, title={}", adminId, request.getTitle());
 
@@ -139,7 +143,7 @@ public class AdminAnnouncementController {
             @PathVariable Long id,
             @Valid @RequestBody UpdateAnnouncementRequest request) {
         try {
-            Integer adminId = playerService.getCurrentPlayerId();
+            Integer adminId = getCurrentAdminId();
 
             log.info("管理员更新公告: adminId={}, announcementId={}", adminId, id);
 
@@ -188,7 +192,7 @@ public class AdminAnnouncementController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteAnnouncement(@PathVariable Long id) {
         try {
-            Integer adminId = playerService.getCurrentPlayerId();
+            Integer adminId = getCurrentAdminId();
 
             log.info("管理员删除公告: adminId={}, announcementId={}", adminId, id);
 
@@ -228,7 +232,7 @@ public class AdminAnnouncementController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> publishAnnouncement(@PathVariable Integer id) {
         try {
-            Integer adminId = playerService.getCurrentPlayerId();
+            Integer adminId = getCurrentAdminId();
 
             log.info("管理员发布公告: adminId={}, announcementId={}", adminId, id);
 
@@ -268,7 +272,7 @@ public class AdminAnnouncementController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> revokeAnnouncement(@PathVariable Integer id) {
         try {
-            Integer adminId = playerService.getCurrentPlayerId();
+            Integer adminId = getCurrentAdminId();
 
             log.info("管理员撤回公告: adminId={}, announcementId={}", adminId, id);
 
@@ -313,7 +317,7 @@ public class AdminAnnouncementController {
             @RequestParam(defaultValue = "20") @Min(1) int size,
             @RequestParam(required = false) String status) {
         try {
-            Integer adminId = playerService.getCurrentPlayerId();
+            Integer adminId = getCurrentAdminId();
 
             log.debug("管理员获取公告列表: adminId={}, page={}, size={}, status={}",
                     adminId, page, size, status);
@@ -345,12 +349,12 @@ public class AdminAnnouncementController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Announcement>> getAnnouncementDetail(@PathVariable Long id) {
         try {
-            Integer adminId = playerService.getCurrentPlayerId();
+            Integer adminId = getCurrentAdminId();
 
             log.debug("管理员获取公告详情: adminId={}, announcementId={}", adminId, id);
 
             // 管理员可以查看任何状态的公告，包括草稿和已撤回的
-            Announcement announcement = announcementService.getAnnouncementById(id);
+            Announcement announcement = announcementService.getAnnouncementByIdForAdmin(id);
 
             LogUtils.logUserAction(null, adminId, "ADMIN_GET_ANNOUNCEMENT_DETAIL",
                     "管理员查看公告详情: announcementId=" + id);
@@ -385,7 +389,7 @@ public class AdminAnnouncementController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Map<String, Long>>> getAnnouncementStats() {
         try {
-            Integer adminId = playerService.getCurrentPlayerId();
+            Integer adminId = getCurrentAdminId();
 
             log.debug("管理员获取公告统计: adminId={}", adminId);
 

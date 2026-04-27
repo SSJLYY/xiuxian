@@ -13,17 +13,11 @@ export class ActivityService {
     async getActivities() {
         try {
             const response = await gameAPI.getAllActivities();
-            if (response.success) {
-                this.activities = response.data;
-                return response.data;
+            if (!response?.success) {
+                throw new Error(response?.message || '加载活动列表失败');
             }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('加载活动列表失败：' + error.message);
-            throw error;
-        }
-    }
-            throw new Error(response.message);
+            this.activities = response.data || [];
+            return this.activities;
         } catch (error) {
             toast.error('加载活动列表失败: ' + error.message);
             throw error;
@@ -33,11 +27,11 @@ export class ActivityService {
     async getMyActivities() {
         try {
             const response = await gameAPI.getMyActivityProgress();
-            if (response.success) {
-                this.myActivities = response.data;
-                return response.data;
+            if (!response?.success) {
+                throw new Error(response?.message || '加载我的活动失败');
             }
-            throw new Error(response.message);
+            this.myActivities = response.data || [];
+            return this.myActivities;
         } catch (error) {
             toast.error('加载我的活动失败: ' + error.message);
             throw error;
@@ -47,13 +41,12 @@ export class ActivityService {
     async participateActivity(activityId) {
         try {
             const response = await gameAPI.participateActivity(activityId);
-            if (response.success) {
-                toast.success('参与活动成功!');
-                await this.getActivities();
-                await this.getMyActivities();
-                return response.data;
+            if (!response?.success) {
+                throw new Error(response?.message || '参与活动失败');
             }
-            throw new Error(response.message);
+            toast.success('参与活动成功');
+            await Promise.all([this.getActivities(), this.getMyActivities()]);
+            return response.data;
         } catch (error) {
             toast.error('参与活动失败: ' + error.message);
             throw error;
@@ -63,19 +56,12 @@ export class ActivityService {
     async claimReward(activityId) {
         try {
             const response = await gameAPI.submitActivityScore(activityId, 100);
-            if (response.success) {
-                toast.success('领取奖励成功!');
-                await this.getActivities();
-                await this.getMyActivities();
-                return response.data;
+            if (!response?.success) {
+                throw new Error(response?.message || '领取活动奖励失败');
             }
-            throw new Error(response.message);
-        } catch (error) {
-            toast.error('领取奖励失败：' + error.message);
-            throw error;
-        }
-    }
-            throw new Error(response.message);
+            toast.success('领取奖励成功');
+            await Promise.all([this.getActivities(), this.getMyActivities()]);
+            return response.data;
         } catch (error) {
             toast.error('领取奖励失败: ' + error.message);
             throw error;
@@ -83,7 +69,7 @@ export class ActivityService {
     }
 
     getActivityById(activityId) {
-        return this.activities.find(a => a.id === activityId) || null;
+        return this.activities.find(activity => activity.id === activityId) || null;
     }
 }
 

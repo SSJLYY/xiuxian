@@ -94,6 +94,8 @@ class AuthStorage {
     }
 }
 
+export { AuthStorage };
+
 // 导出工具类
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = AuthStorage;

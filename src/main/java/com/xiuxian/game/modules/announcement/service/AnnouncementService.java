@@ -58,6 +58,14 @@ public class AnnouncementService {
         return announcement;
     }
 
+    public Announcement getAnnouncementByIdForAdmin(Long id) {
+        Announcement announcement = announcementMapper.selectById(id);
+        if (announcement == null) {
+            throw new BusinessException(ErrorCode.ANNOUNCEMENT_NOT_FOUND);
+        }
+        return announcement;
+    }
+
     /**
      * 创建公告（简化版本，用于管理员控制器）
      */

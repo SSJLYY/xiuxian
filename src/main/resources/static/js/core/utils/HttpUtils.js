@@ -186,6 +186,8 @@ class HttpUtils {
     }
 }
 
+export { HttpUtils };
+
 // 导出工具类
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = HttpUtils;

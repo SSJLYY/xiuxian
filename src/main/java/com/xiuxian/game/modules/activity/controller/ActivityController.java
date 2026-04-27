@@ -232,14 +232,26 @@ public class ActivityController {
      * 更新进度请求DTO
      */
     public static class UpdateProgressRequest {
-        private int increment;
+        private Integer increment;
+        private Integer progress;
 
         public int getIncrement() {
-            return increment;
+            if (increment != null) {
+                return increment;
+            }
+            return progress != null ? progress : 0;
         }
 
-        public void setIncrement(int increment) {
+        public void setIncrement(Integer increment) {
             this.increment = increment;
+        }
+
+        public Integer getProgress() {
+            return progress;
+        }
+
+        public void setProgress(Integer progress) {
+            this.progress = progress;
         }
     }
 

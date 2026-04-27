@@ -1,9 +1,9 @@
 package com.xiuxian.game.modules.admin.controller;
 
 import com.xiuxian.game.dto.response.ApiResponse;
+import com.xiuxian.game.modules.admin.service.AdminAuthService;
 import com.xiuxian.game.modules.mail.entity.MailAttachment;
 import com.xiuxian.game.modules.mail.service.MailService;
-import com.xiuxian.game.modules.player.service.PlayerService;
 import com.xiuxian.game.common.util.LogUtils;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -46,7 +46,11 @@ import java.util.List;
 public class AdminMailController {
 
     private final MailService mailService;
-    private final PlayerService playerService;
+    private final AdminAuthService adminAuthService;
+
+    private Integer getCurrentAdminId() {
+        return adminAuthService.getCurrentAdminId();
+    }
 
     /**
      * 向单个玩家发送系统邮件
@@ -73,7 +77,7 @@ public class AdminMailController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> sendMail(@Valid @RequestBody SendMailRequest request) {
         try {
-            Integer adminId = playerService.getCurrentPlayerId();
+            Integer adminId = getCurrentAdminId();
             
             log.info("管理员发送单封邮件: adminId={}, playerId={}, title={}", 
                     adminId, request.getPlayerId(), request.getTitle());
@@ -136,7 +140,7 @@ public class AdminMailController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> sendBatchMail(@Valid @RequestBody SendBatchMailRequest request) {
         try {
-            Integer adminId = playerService.getCurrentPlayerId();
+            Integer adminId = getCurrentAdminId();
             
             log.info("管理员批量发送邮件: adminId={}, playerCount={}, title={}", 
                     adminId, request.getPlayerIds().size(), request.getTitle());

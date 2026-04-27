@@ -50,7 +50,7 @@ public class DialogueController {
     public ResponseEntity<ApiResponse<NarrativeService.DialogueSceneData>> startDialogue(
             @RequestBody Map<String, String> request) {
         Integer playerId = playerService.getCurrentPlayerId();
-        String dialogueKey = request.get("dialogueKey");
+        String dialogueKey = firstNonBlank(request.get("dialogueKey"), request.get("dialogueId"));
         if (dialogueKey == null || dialogueKey.isEmpty()) {
             return ResponseEntity.badRequest().body(ApiResponse.error("dialogueKey不能为空"));
         }
@@ -70,8 +70,8 @@ public class DialogueController {
     public ResponseEntity<ApiResponse<NarrativeService.DialogueSceneData>> makeChoice(
             @RequestBody Map<String, String> request) {
         Integer playerId = playerService.getCurrentPlayerId();
-        String dialogueKey = request.get("dialogueKey");
-        String choiceNodeKey = request.get("choiceNodeKey");
+        String dialogueKey = firstNonBlank(request.get("dialogueKey"), request.get("dialogueId"));
+        String choiceNodeKey = firstNonBlank(request.get("choiceNodeKey"), request.get("choiceId"));
         if (dialogueKey == null || choiceNodeKey == null) {
             return ResponseEntity.badRequest().body(ApiResponse.error("参数不完整"));
         }
@@ -98,6 +98,15 @@ public class DialogueController {
         }
         log.error("叙事接口异常", e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error("系统繁忙，请稍后再试"));
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.trim().isEmpty()) {
+                return value;
+            }
+        }
+        return null;
     }
 }
 

@@ -15,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import com.xiuxian.game.common.exception.BusinessException;
 import com.xiuxian.game.common.exception.ErrorCode;
 
@@ -38,6 +40,9 @@ import com.xiuxian.game.common.exception.ErrorCode;
 @Service
 @RequiredArgsConstructor
 public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
+
+    private static final Pattern VALUE_PATTERN = Pattern.compile("\"value\"\\s*:\\s*(-?\\d+)");
+    private static final Pattern SCORE_PATTERN = Pattern.compile("\"score\"\\s*:\\s*(-?\\d+)");
 
     private final ActivityMapper activityMapper;
     private final PlayerActivityProgressMapper playerActivityProgressMapper;
@@ -136,7 +141,7 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
             progress = new PlayerActivityProgress();
             progress.setActivityId(activityId);
             progress.setPlayerId(playerId);
-            progress.setProgress("{\"value\": 0}"); // JSON格式的进度数据
+            progress.setProgress(buildProgressJson(0, 0));
             progress.setCompleted(false);
             progress.setRewarded(false);
             playerActivityProgressMapper.insert(progress);
@@ -173,8 +178,9 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
 
         // 解析JSON进度并更新
         int currentValue = parseProgressValue(progress.getProgress());
+        int currentScore = parseScoreFromProgress(progress.getProgress());
         currentValue += increment;
-        progress.setProgress("{\"value\": " + currentValue + "}");
+        progress.setProgress(buildProgressJson(currentValue, currentScore));
         progress.setUpdatedAt(LocalDateTime.now());
         playerActivityProgressMapper.updateById(progress);
 
@@ -191,8 +197,12 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         }
         try {
             // 简单解析 {"value": 100}
-            String numeric = progressJson.replaceAll("[^0-9-]", "");
-            return numeric.isEmpty() ? 0 : Integer.parseInt(numeric);
+            Integer value = extractFieldValue(progressJson, VALUE_PATTERN);
+            if (value != null) {
+                return value;
+            }
+            String trimmed = progressJson.trim();
+            return trimmed.matches("-?\\d+") ? Integer.parseInt(trimmed) : 0;
         } catch (NumberFormatException e) {
             log.warn("解析进度失败: {}", progressJson);
             return 0;
@@ -225,13 +235,12 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
 
         // 解析现有progress JSON，更新score字段
         String currentProgress = progress.getProgress();
-        int currentScore = parseScoreFromProgress(currentProgress);
-        currentScore = score; // 使用传入的积分值
-        progress.setProgress("{\"value\": " + parseProgressValue(currentProgress) + ", \"score\": " + currentScore + "}");
+        int currentValue = parseProgressValue(currentProgress);
+        progress.setProgress(buildProgressJson(currentValue, score));
         progress.setUpdatedAt(LocalDateTime.now());
         playerActivityProgressMapper.updateById(progress);
 
-        log.info("更新活动积分成功: playerId={}, activityId={}, newScore={}", playerId, activityId, currentScore);
+        log.info("更新活动积分成功: playerId={}, activityId={}, newScore={}", playerId, activityId, score);
         return progress;
     }
 
@@ -243,18 +252,27 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
             return 0;
         }
         try {
-            // 尝试解析包含score的JSON: {"value": 100, "score": 50}
-            int scoreIndex = progressJson.indexOf("\"score\"");
-            if (scoreIndex >= 0) {
-                String scoreStr = progressJson.substring(scoreIndex + 7);
-                scoreStr = scoreStr.replaceAll("[^0-9-]", "");
-                return scoreStr.isEmpty() ? 0 : Integer.parseInt(scoreStr);
+            Integer score = extractFieldValue(progressJson, SCORE_PATTERN);
+            if (score != null) {
+                return score;
             }
             return 0;
-        } catch (Exception e) {
+        } catch (NumberFormatException e) {
             log.warn("解析积分失败: {}", progressJson);
             return 0;
         }
+    }
+
+    private Integer extractFieldValue(String json, Pattern pattern) {
+        Matcher matcher = pattern.matcher(json);
+        if (!matcher.find()) {
+            return null;
+        }
+        return Integer.parseInt(matcher.group(1));
+    }
+
+    private String buildProgressJson(int value, int score) {
+        return String.format("{\"value\": %d, \"score\": %d}", value, score);
     }
 
     /**

@@ -2,6 +2,7 @@ package com.xiuxian.game.modules.admin.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xiuxian.game.dto.response.ApiResponse;
+import com.xiuxian.game.modules.admin.service.AdminAuthService;
 import com.xiuxian.game.modules.mail.entity.PlayerMail;
 import com.xiuxian.game.modules.admin.service.AdminFeedbackService;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 public class AdminFeedbackController {
 
     private final AdminFeedbackService adminFeedbackService;
+    private final AdminAuthService adminAuthService;
 
     /**
      * 获取反馈列表（分页）
@@ -96,9 +98,9 @@ public class AdminFeedbackController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> replyToFeedback(
             @PathVariable Long feedbackId,
-            @RequestParam String replyContent,
-            @RequestAttribute("playerId") Integer adminId) {
+            @RequestParam String replyContent) {
         try {
+            Integer adminId = adminAuthService.getCurrentAdminId();
             boolean result = adminFeedbackService.replyToFeedback(feedbackId, replyContent, adminId);
             if (result) {
                 return ResponseEntity.ok(ApiResponse.success("回复成功", null));

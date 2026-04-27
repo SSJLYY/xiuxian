@@ -389,7 +389,7 @@ class GameApi extends ApiClient {
     }
 
     async deleteMail(mailId) {
-        return this.post(`/mail/${mailId}/delete`, {}); // 使用 POST 而非 DELETE
+        return this.delete(`/mail/${mailId}`);
     }
 
     // ========== 排行榜相关 ==========
@@ -413,8 +413,8 @@ class GameApi extends ApiClient {
         return this.get('/ranking/pet');
     }
 
-    async getMyRanking() {
-        return this.get('/ranking/my-rank');
+    async getMyRanking(type = 'level') {
+        return this.get(`/ranking/my-rank?type=${encodeURIComponent(type)}`);
     }
 
     // ========== 成就相关 ==========
@@ -510,8 +510,12 @@ class GameApi extends ApiClient {
         return this.post(`/activities/${activityId}/participate`, {});
     }
 
-    async updateActivityProgress(activityId, progress) {
-        return this.post(`/activities/${activityId}/progress`, { progress });
+    async updateActivityProgress(activityId, increment) {
+        const resolvedIncrement =
+            typeof increment === 'number'
+                ? increment
+                : increment?.increment ?? increment?.progress ?? 0;
+        return this.post(`/activities/${activityId}/progress`, { increment: resolvedIncrement });
     }
 
     async submitActivityScore(activityId, score) {
@@ -532,12 +536,45 @@ class GameApi extends ApiClient {
         return this.get(`/dialogue/available/${npcId}`);
     }
 
-    async startDialogue(npcId, dialogueId) {
-        return this.post('/dialogue/start', { npcId, dialogueId });
+    async startDialogue(dialogueKeyOrPayload, legacyDialogueId = null) {
+        const payload = typeof dialogueKeyOrPayload === 'object' && dialogueKeyOrPayload !== null
+            ? { ...dialogueKeyOrPayload }
+            : legacyDialogueId == null
+                ? { dialogueKey: dialogueKeyOrPayload }
+                : {
+                    npcId: dialogueKeyOrPayload,
+                    dialogueKey: legacyDialogueId,
+                    dialogueId: legacyDialogueId
+                };
+        const dialogueKey = payload.dialogueKey ?? payload.dialogueId;
+        return this.post('/dialogue/start', {
+            ...payload,
+            dialogueKey,
+            dialogueId: payload.dialogueId ?? dialogueKey
+        });
     }
 
-    async chooseDialogueChoice(choiceId) {
-        return this.post('/dialogue/choice', { choiceId });
+    async chooseDialogueChoice(dialogueKeyOrPayload, choiceNodeKey = null) {
+        const payload = typeof dialogueKeyOrPayload === 'object' && dialogueKeyOrPayload !== null
+            ? { ...dialogueKeyOrPayload }
+            : choiceNodeKey == null
+                ? {
+                    choiceNodeKey: dialogueKeyOrPayload,
+                    choiceId: dialogueKeyOrPayload
+                }
+                : {
+                    dialogueKey: dialogueKeyOrPayload,
+                    choiceNodeKey,
+                    choiceId: choiceNodeKey
+                };
+        const resolvedDialogueKey = payload.dialogueKey ?? payload.dialogueId;
+        const resolvedChoiceNodeKey = payload.choiceNodeKey ?? payload.choiceId;
+        return this.post('/dialogue/choice', {
+            ...payload,
+            dialogueKey: resolvedDialogueKey,
+            choiceNodeKey: resolvedChoiceNodeKey,
+            choiceId: payload.choiceId ?? resolvedChoiceNodeKey
+        });
     }
 
     // ========== 地图相关 ==========
@@ -570,17 +607,32 @@ class GameApi extends ApiClient {
     }
 
     // ========== 离线奖励 ==========
-    async claimOfflineReward() {
-        return this.post('/offline-reward/claim', {});
+    async claimOfflineReward(rewardId) {
+        let resolvedRewardId =
+            typeof rewardId === 'object' && rewardId !== null ? rewardId.rewardId : rewardId;
+        if (resolvedRewardId == null) {
+            const rewardInfo = await this.getOfflineRewardInfo();
+            resolvedRewardId = rewardInfo?.data?.[0]?.id;
+        }
+        if (resolvedRewardId == null) {
+            return {
+                success: false,
+                message: '没有可领取的离线奖励',
+                data: null
+            };
+        }
+        return this.post(`/offline-reward/claim/${resolvedRewardId}`, {});
     }
 
     async getOfflineRewardInfo() {
-        return this.get('/offline-reward/info');
+        return this.get('/offline-reward/unclaimed');
     }
 }
 
 // 创建全局游戏 API 实例
 const gameAPI = new GameApi();
+
+export { GameApi, gameAPI };
 
 // 导出 API 客户端
 if (typeof module !== 'undefined' && module.exports) {

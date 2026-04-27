@@ -154,6 +154,8 @@ class Toast {
 // 创建全局Toast实例
 const toast = new Toast();
 
+export { Toast, toast };
+
 // 导出Toast组件
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { Toast, toast };

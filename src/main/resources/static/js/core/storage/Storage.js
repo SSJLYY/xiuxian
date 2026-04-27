@@ -184,6 +184,8 @@ class Storage {
 // 创建全局存储实例
 const storage = new Storage();
 
+export { Storage, storage };
+
 // 导出工具类
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { Storage, storage };

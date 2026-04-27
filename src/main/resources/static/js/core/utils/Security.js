@@ -55,6 +55,13 @@ function safeSetHtml(element, html, isTrusted = false) {
     }
 }
 
+export {
+    escapeHtml,
+    escapeUrl,
+    safeSetText,
+    safeSetHtml
+};
+
 // 导出工具函数(如果使用模块化)
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {

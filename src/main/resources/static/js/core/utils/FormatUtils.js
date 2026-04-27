@@ -160,6 +160,10 @@ class FormatUtils {
     }
 }
 
+const formatUtils = FormatUtils;
+
+export { FormatUtils, formatUtils };
+
 // 导出工具类
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = FormatUtils;

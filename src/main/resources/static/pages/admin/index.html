@@ -91,18 +91,78 @@
         import { toast } from '/js/components/Toast.js';
         
         const adminApi = new AdminApi();
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
+        function formatDateTime(value) {
+            if (!value) return '--';
+            const date = new Date(value);
+            return Number.isNaN(date.getTime()) ? '--' : date.toLocaleString('zh-CN');
+        }
+
+        function renderRecentPlayers(players) {
+            const tbody = document.querySelector('#recentPlayers tbody');
+            if (!tbody) return;
+
+            if (!players.length) {
+                tbody.innerHTML = '<tr><td colspan="5" class="loading">暂无数据</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = players.map(player => `
+                <tr>
+                    <td>${escapeHtml(player.id)}</td>
+                    <td>${escapeHtml(player.nickname || player.playerName || '--')}</td>
+                    <td>${escapeHtml(player.level ?? '--')}</td>
+                    <td>${escapeHtml(player.realm || '--')}</td>
+                    <td>${escapeHtml(formatDateTime(player.createdAt))}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderAnnouncements(announcements) {
+            const container = document.getElementById('announcementList');
+            if (!container) return;
+
+            if (!announcements.length) {
+                container.innerHTML = '<div class="loading">暂无公告</div>';
+                return;
+            }
+
+            container.innerHTML = announcements.map(announcement => `
+                <div class="announcement-item">
+                    <h3>${escapeHtml(announcement.title || '--')}</h3>
+                    <p>${escapeHtml(announcement.content || '')}</p>
+                </div>
+            `).join('');
+        }
         
         // 加载仪表板数据
         async function loadDashboard() {
             try {
                 const stats = await adminApi.getSystemStats();
-                document.getElementById('totalPlayers').textContent = stats.totalPlayers;
-                document.getElementById('onlinePlayers').textContent = stats.onlinePlayers;
-                document.getElementById('todayRegister').textContent = stats.todayRegister;
+                document.getElementById('totalPlayers').textContent = stats.totalPlayers ?? 0;
+                document.getElementById('onlinePlayers').textContent = stats.onlinePlayers ?? 0;
+                document.getElementById('todayRegister').textContent =
+                    stats.todayRegister ?? stats.newUsersToday ?? 0;
                 
                 // 加载最新玩家
                 const players = await adminApi.getRecentPlayers(10);
-                // 渲染玩家列表...
+                renderRecentPlayers(players);
+
+                const announcementResponse = await adminApi.getAnnouncements(1, 5);
+                if (announcementResponse?.success) {
+                    renderAnnouncements(announcementResponse.data?.records || []);
+                } else {
+                    renderAnnouncements([]);
+                }
                 
             } catch (error) {
                 toast.error('加载失败: ' + error.message);

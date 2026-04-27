@@ -242,6 +242,8 @@ class Loading {
 // 创建全局Loading实例
 const loading = new Loading();
 
+export { Loading, loading };
+
 // 导出Loading组件
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { Loading, loading };

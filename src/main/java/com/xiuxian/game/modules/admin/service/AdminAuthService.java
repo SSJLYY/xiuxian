@@ -6,6 +6,8 @@ import com.xiuxian.game.common.security.JwtTokenProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -181,6 +183,21 @@ public class AdminAuthService {
             log.error("获取当前管理员信息异常", e);
             return AdminLoginResponse.error("获取失败: " + e.getMessage());
         }
+    }
+
+    public Integer getCurrentAdminId() {
+        return Math.toIntExact(adminFixedId);
+    }
+
+    public String getCurrentAdminUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            String name = authentication.getName();
+            if (name != null && name.startsWith("admin_")) {
+                return name.substring("admin_".length());
+            }
+        }
+        return adminUsername;
     }
 
     /**

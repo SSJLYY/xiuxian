@@ -131,6 +131,8 @@ class ApiClient {
     }
 }
 
+export { ApiClient };
+
 // 导出基础API客户端
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = ApiClient;
