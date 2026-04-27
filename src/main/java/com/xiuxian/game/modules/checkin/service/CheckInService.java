@@ -6,6 +6,7 @@ import com.xiuxian.game.modules.player.entity.PlayerProfile;
 import com.xiuxian.game.common.exception.BusinessException;
 import com.xiuxian.game.common.exception.ErrorCode;
 import com.xiuxian.game.modules.checkin.mapper.PlayerCheckInMapper;
+import com.xiuxian.game.modules.player.mapper.PlayerProfileMapper;
 import com.xiuxian.game.modules.player.service.PlayerService;
 import com.xiuxian.game.common.util.LogUtils;
 import lombok.Data;
@@ -29,6 +30,7 @@ import java.util.*;
 public class CheckInService {
 
     private final PlayerCheckInMapper checkInMapper;
+    private final PlayerProfileMapper playerProfileMapper;
     private final PlayerService playerService; // 模块边界：通过PlayerService访问玩家数据
 
     // ==================== 连续签到奖励配置 ====================
@@ -64,6 +66,10 @@ public class CheckInService {
     @Transactional
     public CheckInResult checkIn(Integer playerId) {
         LocalDate today = LocalDate.now();
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
+        if (player == null) {
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
+        }
 
         // 判断今天是否已签到
         PlayerCheckIn existing = checkInMapper.findByPlayerAndDate(playerId, today);
@@ -94,7 +100,6 @@ public class CheckInService {
         checkInMapper.insert(record);
 
         // 发放奖励
-        PlayerProfile player = playerService.getPlayerProfileById(playerId);
         player.setSpiritStones(player.getSpiritStones() + stones);
         player.setExp(player.getExp() + exp);
         playerService.savePlayerProfile(player);

@@ -8,6 +8,7 @@ import com.xiuxian.game.modules.player.service.PlayerService;
 import com.xiuxian.game.modules.vip.service.RechargeService;
 import com.xiuxian.game.modules.vip.service.VipService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +24,9 @@ public class VipController {
     private final VipService vipService;
     private final RechargeService rechargeService;
     private final PlayerService playerService;
+
+    @Value("${app.features.test-recharge-enabled:false}")
+    private boolean testRechargeEnabled;
     
     /**
      * 获取玩家VIP信息
@@ -101,6 +105,9 @@ public class VipController {
             @PathVariable Integer amount,
             @RequestParam(defaultValue = "false") boolean confirm) {
         try {
+            if (!testRechargeEnabled) {
+                return ApiResponse.error("测试充值接口未启用");
+            }
             // 金额校验：最小1元，最大10000元
             if (amount == null || amount < 1 || amount > 10000) {
                 return ApiResponse.error("充值金额必须在1-10000之间");

@@ -8,6 +8,7 @@ import com.xiuxian.game.common.exception.BusinessException;
 import com.xiuxian.game.common.exception.ErrorCode;
 import com.xiuxian.game.modules.achievement.mapper.AchievementMapper;
 import com.xiuxian.game.modules.achievement.mapper.PlayerAchievementMapper;
+import com.xiuxian.game.modules.player.mapper.PlayerProfileMapper;
 import com.xiuxian.game.modules.player.service.PlayerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,7 @@ public class AchievementService {
 
     private final AchievementMapper achievementMapper;
     private final PlayerAchievementMapper playerAchievementMapper;
+    private final PlayerProfileMapper playerProfileMapper;
     private final PlayerService playerService; // 模块边界：通过PlayerService访问玩家数据
 
     /**
@@ -87,6 +89,11 @@ public class AchievementService {
      */
     @Transactional
     public void claimAchievementReward(Integer playerId, Long achievementId) {
+        PlayerProfile profile = playerProfileMapper.selectByIdForUpdate(playerId);
+        if (profile == null) {
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
+        }
+
         PlayerAchievement playerAchievement = playerAchievementMapper.selectOne(
                 new QueryWrapper<PlayerAchievement>()
                         .eq("player_id", playerId)
@@ -105,8 +112,13 @@ public class AchievementService {
             throw new BusinessException(ErrorCode.ACHIEVEMENT_NOT_FOUND);
         }
         
+        int claimedRows = playerAchievementMapper.claimAchievementIfUnclaimed(
+                playerAchievement.getId(), LocalDateTime.now());
+        if (claimedRows == 0) {
+            throw new BusinessException(ErrorCode.ACHIEVEMENT_ALREADY_CLAIMED);
+        }
+
         // 发放奖励
-        PlayerProfile profile = playerService.getPlayerProfileById(playerId);
         if (achievement.getRewardSpiritStones() != null && achievement.getRewardSpiritStones() > 0) {
             profile.setSpiritStones(profile.getSpiritStones() + achievement.getRewardSpiritStones());
         }
@@ -115,11 +127,6 @@ public class AchievementService {
         }
         playerService.applyLevelUpsWithoutCommit(profile, 100);
         playerService.savePlayerProfile(profile);
-        
-        // 标记为已领取
-        playerAchievement.setIsClaimed(true);
-        playerAchievement.setClaimedAt(LocalDateTime.now());
-        playerAchievementMapper.updateById(playerAchievement);
         
         log.info("玩家领取成就奖励: playerId={}, achievementId={}", playerId, achievementId);
     }

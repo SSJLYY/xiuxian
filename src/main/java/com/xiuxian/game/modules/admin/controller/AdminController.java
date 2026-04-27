@@ -110,7 +110,11 @@ public class AdminController {
             throw new BusinessException(ErrorCode.USER_NOT_LOGIN);
         }
         log.info("管理员修改密码: adminId={}", auth.getName());
-        adminPlayerService.changeAdminPassword(auth.getName(), newPassword, passwordEncoder);
+        String adminUsername = auth.getName();
+        if (adminUsername != null && adminUsername.startsWith("admin_")) {
+            adminUsername = adminUsername.substring("admin_".length());
+        }
+        adminPlayerService.changeAdminPassword(adminUsername, newPassword, passwordEncoder);
         log.info("管理员修改密码成功: adminId={}", auth.getName());
         return ResponseEntity.ok(ApiResponse.success("密码修改成功", null));
     }

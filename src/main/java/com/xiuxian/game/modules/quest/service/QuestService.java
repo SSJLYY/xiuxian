@@ -6,6 +6,7 @@ import com.xiuxian.game.modules.quest.entity.PlayerQuest;
 import com.xiuxian.game.modules.quest.entity.Quest;
 import com.xiuxian.game.dto.response.PlayerQuestDetailResponse;
 import com.xiuxian.game.dto.response.QuestResponse;
+import com.xiuxian.game.modules.player.mapper.PlayerProfileMapper;
 import com.xiuxian.game.modules.quest.mapper.PlayerQuestMapper;
 import com.xiuxian.game.modules.quest.mapper.QuestMapper;
 import com.xiuxian.game.modules.player.service.PlayerService;
@@ -47,6 +48,7 @@ public class QuestService {
 
     private final QuestMapper questMapper;
     private final PlayerQuestMapper playerQuestMapper;
+    private final PlayerProfileMapper playerProfileMapper;
     private final PlayerService playerService;  // 模块边界：通过PlayerService访问玩家数据
     private final GameCalculator gameCalculator;
 
@@ -383,35 +385,7 @@ public class QuestService {
         if (playerQuest == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "任务不存在");
         }
-
-        if (!playerQuest.getCompleted()) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "任务未完成");
-        }
-
-        if (playerQuest.getRewardClaimed()) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "奖励已领取");
-        }
-
-        Quest quest = questMapper.selectById(questId);
-        PlayerProfile player = playerService.getPlayerProfileById(playerId);
-
-        // 发放奖励
-        player.setExp(player.getExp() + quest.getRewardExp());
-        player.setSpiritStones(player.getSpiritStones() + quest.getRewardSpiritStones());
-        player.setContributionPoints(player.getContributionPoints() + quest.getRewardContributionPoints());
-        
-        // 增加属性点奖励（每100经验奖励1属性点）
-        int attributePointsReward = quest.getRewardExp() / 100;
-        if (attributePointsReward > 0) {
-            player.setAttributePoints(player.getAttributePoints() + attributePointsReward);
-        }
-        
-        playerService.savePlayerProfile(player);
-
-        // 标记奖励已领取
-        playerQuest.setRewardClaimed(true);
-        playerQuest.setUpdatedAt(LocalDateTime.now());
-        playerQuestMapper.updateById(playerQuest);
+        claimQuestRewardInternal(playerId, playerQuest.getId());
     }
 
     @Transactional
@@ -423,7 +397,49 @@ public class QuestService {
         if (!playerQuest.getPlayerId().equals(playerId)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "无权操作其他玩家的任务");
         }
-        claimQuestReward(playerId, playerQuest.getQuestId());
+        claimQuestRewardInternal(playerId, playerQuestId);
+    }
+
+    private void claimQuestRewardInternal(Integer playerId, Integer playerQuestId) {
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
+        if (player == null) {
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
+        }
+
+        PlayerQuest playerQuest = playerQuestMapper.selectById(playerQuestId);
+        if (playerQuest == null || !playerQuest.getPlayerId().equals(playerId)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "任务不存在");
+        }
+        if (!Boolean.TRUE.equals(playerQuest.getCompleted())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "任务未完成");
+        }
+        if (Boolean.TRUE.equals(playerQuest.getRewardClaimed())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "奖励已领取");
+        }
+
+        Quest quest = questMapper.selectById(playerQuest.getQuestId());
+        if (quest == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "任务不存在");
+        }
+
+        int claimedRows = playerQuestMapper.claimRewardIfUnclaimed(playerQuestId, playerId, LocalDateTime.now());
+        if (claimedRows == 0) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "奖励已领取");
+        }
+
+        applyQuestReward(player, quest);
+        playerService.savePlayerProfile(player);
+    }
+
+    private void applyQuestReward(PlayerProfile player, Quest quest) {
+        player.setExp(player.getExp() + quest.getRewardExp());
+        player.setSpiritStones(player.getSpiritStones() + quest.getRewardSpiritStones());
+        player.setContributionPoints(player.getContributionPoints() + quest.getRewardContributionPoints());
+
+        int attributePointsReward = quest.getRewardExp() / 100;
+        if (attributePointsReward > 0) {
+            player.setAttributePoints(player.getAttributePoints() + attributePointsReward);
+        }
     }
 
     // 根据类型获取玩家任务（利用DB侧过滤，避免N+1）
@@ -454,6 +470,11 @@ public class QuestService {
     // 批量领取所有已完成任务奖励（内联逻辑，避免嵌套事务 + N+1）
     @Transactional
     public int claimAllCompletedQuestRewards(Integer playerId) {
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
+        if (player == null) {
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
+        }
+
         List<PlayerQuest> allQuests = playerQuestMapper.selectByPlayerId(playerId);
         List<PlayerQuest> claimable = allQuests.stream()
                 .filter(pq -> pq.getCompleted() && !pq.getRewardClaimed())
@@ -465,31 +486,24 @@ public class QuestService {
         Map<Integer, Quest> questMap = questMapper.selectBatchIds(questIds)
                 .stream().collect(Collectors.toMap(Quest::getId, q -> q, (a, b) -> a));
 
-        // 一次性加载玩家信息
-        PlayerProfile player = playerService.getPlayerProfileById(playerId);
-
         LocalDateTime now = LocalDateTime.now();
+        int claimedCount = 0;
         for (PlayerQuest pq : claimable) {
             Quest quest = questMap.get(pq.getQuestId());
             if (quest == null) continue;
 
-            // 累加奖励
-            player.setExp(player.getExp() + quest.getRewardExp());
-            player.setSpiritStones(player.getSpiritStones() + quest.getRewardSpiritStones());
-            player.setContributionPoints(player.getContributionPoints() + quest.getRewardContributionPoints());
-            int attrReward = quest.getRewardExp() / 100;
-            if (attrReward > 0) {
-                player.setAttributePoints(player.getAttributePoints() + attrReward);
+            int updatedRows = playerQuestMapper.claimRewardIfUnclaimed(pq.getId(), playerId, now);
+            if (updatedRows == 0) {
+                continue;
             }
 
-            // 标记已领取
-            pq.setRewardClaimed(true);
-            pq.setUpdatedAt(now);
-            playerQuestMapper.updateById(pq);
+            applyQuestReward(player, quest);
+            claimedCount++;
         }
-        // 一次性保存玩家信息
-        playerService.savePlayerProfile(player);
-        return claimable.size();
+        if (claimedCount > 0) {
+            playerService.savePlayerProfile(player);
+        }
+        return claimedCount;
     }
 
     // 检查是否有未完成的任务

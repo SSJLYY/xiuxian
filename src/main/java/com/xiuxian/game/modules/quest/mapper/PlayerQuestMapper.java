@@ -3,7 +3,9 @@ package com.xiuxian.game.modules.quest.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xiuxian.game.modules.quest.entity.PlayerQuest;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
 
@@ -21,5 +23,12 @@ public interface PlayerQuestMapper extends BaseMapper<PlayerQuest> {
 
     @Select("SELECT * FROM player_quests WHERE player_id = #{playerId} AND quest_id = #{questId} LIMIT 1")
     PlayerQuest selectByPlayerIdAndQuestId(Integer playerId, Integer questId);
+
+    @Update("UPDATE player_quests " +
+            "SET reward_claimed = 1, updated_at = #{updatedAt} " +
+            "WHERE id = #{playerQuestId} AND player_id = #{playerId} AND completed = 1 AND reward_claimed = 0")
+    int claimRewardIfUnclaimed(@Param("playerQuestId") Integer playerQuestId,
+                               @Param("playerId") Integer playerId,
+                               @Param("updatedAt") java.time.LocalDateTime updatedAt);
 }
 

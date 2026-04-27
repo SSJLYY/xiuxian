@@ -3,6 +3,10 @@ package com.xiuxian.game.modules.achievement.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xiuxian.game.modules.achievement.entity.PlayerAchievement;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Update;
+
+import java.time.LocalDateTime;
 
 /**
  * 玩家成就数据访问层
@@ -15,5 +19,11 @@ import org.apache.ibatis.annotations.Mapper;
  */
 @Mapper
 public interface PlayerAchievementMapper extends BaseMapper<PlayerAchievement> {
+
+    @Update("UPDATE player_achievements " +
+            "SET is_claimed = 1, claimed_at = #{claimedAt} " +
+            "WHERE id = #{playerAchievementId} AND is_claimed = 0")
+    int claimAchievementIfUnclaimed(@Param("playerAchievementId") Long playerAchievementId,
+                                    @Param("claimedAt") LocalDateTime claimedAt);
 }
 

@@ -3,6 +3,10 @@ package com.xiuxian.game.modules.giftcode.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xiuxian.game.modules.giftcode.entity.GiftCode;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Update;
+
+import java.time.LocalDateTime;
 
 /**
  * 礼包码数据访问层
@@ -16,5 +20,15 @@ import org.apache.ibatis.annotations.Mapper;
  */
 @Mapper
 public interface GiftCodeMapper extends BaseMapper<GiftCode> {
+
+    @Update("UPDATE gift_codes " +
+            "SET used_count = used_count + 1, " +
+            "status = CASE WHEN max_usage IS NOT NULL AND used_count >= max_usage - 1 THEN 'DISABLED' ELSE status END " +
+            "WHERE id = #{giftCodeId} " +
+            "AND status = 'ACTIVE' " +
+            "AND (expire_at IS NULL OR expire_at > #{now}) " +
+            "AND (max_usage IS NULL OR used_count < max_usage)")
+    int consumeUsageIfAvailable(@Param("giftCodeId") Long giftCodeId,
+                                @Param("now") LocalDateTime now);
 }
 

@@ -191,9 +191,19 @@ public class AdminAuthService {
      */
     public String getAdminUsernameByToken(String token) {
         if (token == null || !jwtTokenProvider.validateToken(token)) {
+            adminTokenCache.remove(token);
             return null;
         }
-        return adminTokenCache.get(token);
+        String cachedUsername = adminTokenCache.get(token);
+        if (cachedUsername == null) {
+            return null;
+        }
+        String tokenUsername = jwtTokenProvider.getUsernameFromToken(token);
+        if (!("admin_" + cachedUsername).equals(tokenUsername)) {
+            adminTokenCache.remove(token);
+            return null;
+        }
+        return cachedUsername;
     }
 
     /**
@@ -203,15 +213,26 @@ public class AdminAuthService {
      * @return true 表示有效
      */
     public boolean isValidAdminToken(String token) {
-        if (token == null) {
+        if (token == null || token.trim().isEmpty()) {
             return false;
         }
-        
+
+        if (!jwtTokenProvider.validateToken(token)) {
+            adminTokenCache.remove(token);
+            return false;
+        }
+
         String cachedUsername = adminTokenCache.get(token);
         if (cachedUsername == null) {
             return false;
         }
 
-        return adminUsername.equals(cachedUsername);
+        String tokenUsername = jwtTokenProvider.getUsernameFromToken(token);
+        boolean valid = adminUsername.equals(cachedUsername)
+                && ("admin_" + cachedUsername).equals(tokenUsername);
+        if (!valid) {
+            adminTokenCache.remove(token);
+        }
+        return valid;
     }
 }

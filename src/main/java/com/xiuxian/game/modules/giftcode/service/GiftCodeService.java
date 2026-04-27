@@ -9,6 +9,7 @@ import com.xiuxian.game.modules.giftcode.entity.GiftCodeUsage;
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
 import com.xiuxian.game.modules.giftcode.mapper.GiftCodeMapper;
 import com.xiuxian.game.modules.giftcode.mapper.GiftCodeUsageMapper;
+import com.xiuxian.game.modules.player.mapper.PlayerProfileMapper;
 import com.xiuxian.game.modules.player.service.PlayerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,6 +52,7 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
 
     private final GiftCodeMapper giftCodeMapper;
     private final GiftCodeUsageMapper giftCodeUsageMapper;
+    private final PlayerProfileMapper playerProfileMapper;
     private final PlayerService playerService; // 模块边界：通过PlayerService访问玩家数据
     private final MailService mailService;
     private final ObjectMapper objectMapper;
@@ -83,6 +85,12 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
         QueryWrapper<GiftCode> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("code", code);
         GiftCode giftCode = giftCodeMapper.selectOne(queryWrapper);
+        LocalDateTime now = LocalDateTime.now();
+        PlayerProfile lockedPlayer = playerProfileMapper.selectByIdForUpdate(playerId);
+        if (lockedPlayer == null) {
+            log.warn("玩家不存在, playerId={}", playerId);
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
+        }
 
         // 检查礼包码是否存在
         if (giftCode == null) {
@@ -97,23 +105,16 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
         }
 
         // 检查过期时间 - 使用isAfter确保包含过期当天
-        if (giftCode.getExpireAt() != null && !giftCode.getExpireAt().isAfter(LocalDateTime.now())) {
+        if (giftCode.getExpireAt() != null && !giftCode.getExpireAt().isAfter(now)) {
             giftCode.setStatus("EXPIRED");
             giftCodeMapper.updateById(giftCode);
             log.warn("礼包码已过期, code={}, expireAt={}", code, giftCode.getExpireAt());
             throw new BusinessException(ErrorCode.PARAM_ERROR, "礼包码已过期");
         }
 
-        // 模块边界：通过PlayerService访问玩家数据
-        PlayerProfile player = playerService.getPlayerProfileById(playerId);
-        if (player == null) {
-            log.warn("玩家不存在, playerId={}", playerId);
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
-        }
-
-        if (player.getLevel() < giftCode.getMinLevel()) {
+        if (lockedPlayer.getLevel() < giftCode.getMinLevel()) {
             log.warn("玩家等级不足, playerId={}, playerLevel={}, minLevel={}",
-                    playerId, player.getLevel(), giftCode.getMinLevel());
+                    playerId, lockedPlayer.getLevel(), giftCode.getMinLevel());
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家等级不足，需要达到" + giftCode.getMinLevel() + "级");
         }
 
@@ -128,12 +129,22 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
             }
         }
 
-        // 模块边界：通过PlayerService访问玩家数据
-        if (giftCode.getUsedCount() >= giftCode.getMaxUsage()) {
-            giftCode.setStatus("DISABLED");
-            giftCodeMapper.updateById(giftCode);
-            log.warn("礼包码已被使用完, code={}, usedCount={}, maxUsage={}",
-                    code, giftCode.getUsedCount(), giftCode.getMaxUsage());
+        int consumedRows = giftCodeMapper.consumeUsageIfAvailable(giftCode.getId(), now);
+        if (consumedRows == 0) {
+            GiftCode latestGiftCode = giftCodeMapper.selectById(giftCode.getId());
+            if (latestGiftCode != null
+                    && latestGiftCode.getExpireAt() != null
+                    && !latestGiftCode.getExpireAt().isAfter(now)) {
+                latestGiftCode.setStatus("EXPIRED");
+                giftCodeMapper.updateById(latestGiftCode);
+                log.warn("礼包码已过期, code={}, expireAt={}", code, latestGiftCode.getExpireAt());
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "礼包码已过期");
+            }
+            if (latestGiftCode != null && !"ACTIVE".equals(latestGiftCode.getStatus())) {
+                log.warn("礼包码已失效, code={}, status={}", code, latestGiftCode.getStatus());
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "礼包码已失效");
+            }
+            log.warn("礼包码已被使用完, code={}", code);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "礼包码已被使用完");
         }
 
@@ -144,18 +155,8 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
         giftCodeUsageMapper.insert(usage);
         log.info("记录礼包码使用情况, giftCodeId={}, playerId={}", giftCode.getId(), playerId);
 
-        // 增加使用次数
-        giftCode.setUsedCount(giftCode.getUsedCount() + 1);
-        // 模块边界：通过PlayerService访问玩家数据
-        if (giftCode.getUsedCount() >= giftCode.getMaxUsage()) {
-            giftCode.setStatus("DISABLED");
-            log.info("礼包码使用次数已满，状态更新为DISABLED, code={}", code);
-        }
-        giftCodeMapper.updateById(giftCode);
-        log.info("礼包码使用次数增加, code={}, usedCount={}", code, giftCode.getUsedCount());
-
         // 发放奖励
-        distributeRewards(playerId, giftCode.getRewards());
+        distributeRewards(lockedPlayer, giftCode.getRewards());
         
         log.info("礼包码兑换成功, playerId={}, code={}", playerId, code);
         return true;
@@ -177,16 +178,10 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
      * @param playerId 玩家ID
      * @param rewards  奖励内容（JSON格式）
      */
-    private void distributeRewards(Integer playerId, String rewards) {
+    private void distributeRewards(PlayerProfile player, String rewards) {
+        Integer playerId = player.getId();
         log.info("开始发放礼包码奖励, playerId={}", playerId);
         try {
-            // 检查玩家是否存在
-            PlayerProfile player = playerService.getPlayerProfileById(playerId);
-            if (player == null) {
-                log.error("玩家不存在，无法发放奖励, playerId={}", playerId);
-                throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
-            }
-
             List<Map<String, Object>> rewardList = objectMapper.readValue(rewards, new TypeReference<List<Map<String, Object>>>() {});
             log.debug("解析奖励列表, rewardCount={}", rewardList.size());
             

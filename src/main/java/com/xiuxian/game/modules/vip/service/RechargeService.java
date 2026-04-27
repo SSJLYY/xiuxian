@@ -77,13 +77,16 @@ public class RechargeService extends ServiceImpl<RechargeRecordMapper, RechargeR
             throw new BusinessException(ErrorCode.RECHARGE_ORDER_STATUS_INVALID);
         }
         
-        // 再次检查状态（使用乐观锁模式，防止并发更新）
-        // 通过版本号或其他方式确保只有一个请求能成功更新
-        RechargeRecord currentRecord = rechargeRecordMapper.selectById(orderId);
-        if (!"PENDING".equals(currentRecord.getStatus())) {
-            log.info("充值订单状态已变更，忽略重复回调: orderId={}, status={}", 
-                    orderId, currentRecord.getStatus());
-            return currentRecord;
+        LocalDateTime completedAt = LocalDateTime.now();
+        int markedRows = rechargeRecordMapper.markRechargeSuccessIfPending(orderId, completedAt);
+        if (markedRows == 0) {
+            RechargeRecord latestRecord = rechargeRecordMapper.selectById(orderId);
+            if (latestRecord != null && "SUCCESS".equals(latestRecord.getStatus())) {
+                log.info("充值订单状态已变更，忽略重复回调: orderId={}, status={}",
+                        orderId, latestRecord.getStatus());
+                return latestRecord;
+            }
+            throw new BusinessException(ErrorCode.RECHARGE_ORDER_STATUS_INVALID);
         }
         
         // 更新VIP信息（元宝已在VipService.updateVipInfo中发放到PlayerVip.yuanbao）
@@ -102,14 +105,8 @@ public class RechargeService extends ServiceImpl<RechargeRecordMapper, RechargeR
         
         // 更新充值记录状态
         record.setStatus("SUCCESS");
-        record.setCompletedAt(LocalDateTime.now());
-        int updated = rechargeRecordMapper.updateById(record);
-        
-        if (updated == 0) {
-            // 更新失败，可能是并发问题
-            log.warn("充值订单更新失败，可能是并发回调: orderId={}", orderId);
-            throw new BusinessException(ErrorCode.RECHARGE_ORDER_STATUS_INVALID);
-        }
+        record.setCompletedAt(completedAt);
+        rechargeRecordMapper.updateById(record);
         
         log.info("充值处理成功: playerId={}, amount={}, yuanbao={}, isFirstRecharge={}", 
                 record.getPlayerId(), record.getAmount(), yuanbaoToAdd, isFirstRecharge);

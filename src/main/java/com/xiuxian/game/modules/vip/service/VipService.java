@@ -2,7 +2,10 @@ package com.xiuxian.game.modules.vip.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.xiuxian.game.common.exception.BusinessException;
+import com.xiuxian.game.common.exception.ErrorCode;
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
+import com.xiuxian.game.modules.player.mapper.PlayerProfileMapper;
 import com.xiuxian.game.modules.vip.entity.PlayerVip;
 import com.xiuxian.game.modules.vip.entity.VipLevel;
 import com.xiuxian.game.modules.player.service.PlayerService;
@@ -22,6 +25,7 @@ public class VipService extends ServiceImpl<PlayerVipMapper, PlayerVip> {
     
     private final PlayerVipMapper playerVipMapper;
     private final VipLevelMapper vipLevelMapper;
+    private final PlayerProfileMapper playerProfileMapper;
     private final PlayerService playerService; // 模块边界：通过PlayerService访问玩家数据
     private final MailService mailService;
     
@@ -83,6 +87,11 @@ public class VipService extends ServiceImpl<PlayerVipMapper, PlayerVip> {
      */
     @Transactional(rollbackFor = Exception.class)
     public PlayerVip updateVipInfo(Integer playerId, Integer rechargeAmount) {
+        PlayerProfile lockedPlayer = playerProfileMapper.selectByIdForUpdate(playerId);
+        if (lockedPlayer == null) {
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
+        }
+
         PlayerVip playerVip = getPlayerVip(playerId);
         
         // 模块边界：通过PlayerService访问玩家数据
@@ -140,6 +149,11 @@ public class VipService extends ServiceImpl<PlayerVipMapper, PlayerVip> {
      */
     @Transactional(rollbackFor = Exception.class)
     public boolean claimDailyReward(Integer playerId) {
+        PlayerProfile lockedPlayer = playerProfileMapper.selectByIdForUpdate(playerId);
+        if (lockedPlayer == null) {
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
+        }
+
         PlayerVip playerVip = getPlayerVip(playerId);
         
         // 检查今天是否已经领取过
@@ -147,25 +161,25 @@ public class VipService extends ServiceImpl<PlayerVipMapper, PlayerVip> {
         LocalDateTime now = LocalDateTime.now();
         
         // 模块边界：通过PlayerService访问玩家数据
-        if (lastRewardTime.toLocalDate().equals(now.toLocalDate())) {
+        if (lastRewardTime != null && lastRewardTime.toLocalDate().equals(now.toLocalDate())) {
             return false;
         }
         
         // 模块边界：通过PlayerService访问玩家数据
         VipLevel currentVipLevel = getVipLevelConfig(playerVip.getVipLevel());
         if (currentVipLevel != null && currentVipLevel.getDailySpiritStones() > 0) {
+            playerVip.setLastDailyRewardAt(now);
+            playerVipMapper.updateById(playerVip);
             // 模块边界：通过PlayerService访问玩家数据
             String subject = "VIP每日奖励";
             String content = String.format("VIP%d每日奖励已发放，包括%d灵石。", 
                                          playerVip.getVipLevel(), 
                                          currentVipLevel.getDailySpiritStones());
             
-            mailService.sendSystemMail(playerId, subject, content, "ITEM", 6, currentVipLevel.getDailySpiritStones());
+            mailService.sendSystemMail(playerId, subject, content, "SPIRIT_STONES", null,
+                    currentVipLevel.getDailySpiritStones());
             
             // 模块边界：通过PlayerService访问玩家数据
-            playerVip.setLastDailyRewardAt(now);
-            playerVipMapper.updateById(playerVip);
-            
             return true;
         }
         

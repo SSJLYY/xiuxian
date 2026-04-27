@@ -55,12 +55,16 @@ public class MailService {
                 request.getPlayerId(), request.getTitle(), request.getItemType(), request.getItemId(), request.getQuantity());
         
         List<MailAttachment> attachments = new ArrayList<>();
-        if (request.getItemType() != null && request.getItemId() != null && request.getQuantity() != null) {
-            MailAttachment attachment = new MailAttachment();
-            attachment.setItemType(request.getItemType());
-            attachment.setItemId(request.getItemId());
-            attachment.setQuantity(request.getQuantity());
-            attachments.add(attachment);
+        if (request.getItemType() != null && request.getQuantity() != null) {
+            boolean requiresItemId = !"SPIRIT_STONES".equalsIgnoreCase(request.getItemType())
+                    && !"EXP".equalsIgnoreCase(request.getItemType());
+            if (!requiresItemId || request.getItemId() != null) {
+                MailAttachment attachment = new MailAttachment();
+                attachment.setItemType(request.getItemType());
+                attachment.setItemId(request.getItemId());
+                attachment.setQuantity(request.getQuantity());
+                attachments.add(attachment);
+            }
         }
         
         sendMail(request.getPlayerId(), request.getTitle(), request.getContent(), "SYSTEM", attachments, LocalDateTime.now().plusDays(30));
