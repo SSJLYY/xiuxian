@@ -55,6 +55,9 @@ class Modal {
             this.removeModal();
             document.body.classList.remove('modal-open');
             this.isShown = false;
+            if (this.options.onHidden) {
+                this.options.onHidden(this);
+            }
         }, 300);
 
         return this;
@@ -289,6 +292,78 @@ class Modal {
 }
 
 // 导出Modal组件
+const modal = {
+    current: null,
+
+    show(options = {}) {
+        if (this.current?.isShown) {
+            this.current.removeModal();
+            document.body.classList.remove('modal-open');
+            this.current.isShown = false;
+        }
+
+        const buttons = [];
+        const showCancel = options.showCancel ?? Boolean(options.onConfirm);
+        const shouldShowPrimary = options.showFooter !== false &&
+            (options.onConfirm || options.confirmText || showCancel === false);
+
+        if (showCancel) {
+            buttons.push({
+                text: options.cancelText || '取消',
+                type: 'default',
+                action: 'cancel',
+                onClick: (event, instance) => {
+                    if (options.onCancel) {
+                        options.onCancel(event, instance);
+                    } else {
+                        instance.hide();
+                    }
+                }
+            });
+        }
+
+        if (shouldShowPrimary) {
+            buttons.push({
+                text: options.confirmText || '确定',
+                type: options.confirmType || 'primary',
+                action: 'confirm',
+                onClick: (event, instance) => {
+                    if (options.onConfirm) {
+                        options.onConfirm(event, instance);
+                    } else {
+                        instance.hide();
+                    }
+                }
+            });
+        }
+
+        const instance = new Modal({
+            ...options,
+            buttons,
+            showFooter: buttons.length > 0 && options.showFooter !== false,
+            onHidden: (modalInstance) => {
+                if (this.current === modalInstance) {
+                    this.current = null;
+                }
+                if (options.onHidden) {
+                    options.onHidden(modalInstance);
+                }
+            }
+        });
+
+        this.current = instance.show();
+        return this.current;
+    },
+
+    hide() {
+        this.current?.hide();
+        return this;
+    }
+};
+
+export { Modal, modal };
+export default Modal;
+
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = Modal;
+    module.exports = { Modal, modal, default: Modal };
 }

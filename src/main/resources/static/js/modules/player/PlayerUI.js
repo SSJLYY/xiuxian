@@ -247,6 +247,9 @@ class PlayerUI {
 const playerUI = new PlayerUI();
 
 // 导出UI类
+export { PlayerUI, playerUI };
+export default playerUI;
+
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { PlayerUI, playerUI };
+    module.exports = { PlayerUI, playerUI, default: playerUI };
 }

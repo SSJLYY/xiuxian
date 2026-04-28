@@ -267,7 +267,7 @@ class GameApi extends ApiClient {
     }
 
     async completeQuest(playerQuestId) {
-        return this.post(`/quests/${playerQuestId}/claim`, {});
+        return this.post(`/quests/complete/${playerQuestId}`, {});
     }
 
     async claimQuestReward(playerQuestId) {
@@ -531,6 +531,14 @@ class GameApi extends ApiClient {
         return this.post('/giftcode/redeem', { code });
     }
 
+    async getMyGiftcodes() {
+        return this.get('/giftcode/my');
+    }
+
+    async getAvailableGiftcodes() {
+        return this.get('/giftcode/available');
+    }
+
     // ========== 叙事相关 ==========
     async getAvailableDialogues(npcId) {
         return this.get(`/dialogue/available/${npcId}`);
@@ -636,5 +644,5 @@ export { GameApi, gameAPI };
 
 // 导出 API 客户端
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { GameApi, gameAPI };
+    module.exports = { GameApi, gameAPI, default: gameAPI };
 }

@@ -51,7 +51,7 @@ export class InventoryUI {
     }
 
     handleFilterChange() {
-        inventoryService.setFilter({
+        this.currentItems = inventoryService.setFilter({
             type: this.elements.typeFilter.value,
             searchTerm: this.elements.searchInput.value,
             sortBy: this.elements.sortSelect.value,
@@ -186,7 +186,7 @@ export class InventoryUI {
     }
 
     bindItemActionButtons() {
-        const modalContainer = document.querySelector('.modal-container');
+        const modalContainer = document.querySelector('.modal');
         if (!modalContainer) return;
 
         modalContainer.querySelectorAll('.btn').forEach(btn => {

@@ -4,12 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xiuxian.game.dto.response.ApiResponse;
+import com.xiuxian.game.modules.admin.service.AdminAuthService;
 import com.xiuxian.game.modules.achievement.entity.Achievement;
 import com.xiuxian.game.modules.achievement.entity.PlayerAchievement;
 import com.xiuxian.game.modules.achievement.mapper.AchievementMapper;
 import com.xiuxian.game.modules.achievement.mapper.PlayerAchievementMapper;
 import com.xiuxian.game.modules.achievement.service.AchievementService;
-import com.xiuxian.game.modules.player.service.PlayerService;
 import com.xiuxian.game.common.util.LogUtils;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -57,7 +57,11 @@ public class AdminAchievementController {
     private final AchievementService achievementService;
     private final AchievementMapper achievementMapper;
     private final PlayerAchievementMapper playerAchievementMapper;
-    private final PlayerService playerService;
+    private final AdminAuthService adminAuthService;
+
+    private Integer getCurrentAdminId() {
+        return adminAuthService.getCurrentAdminId();
+    }
 
     /**
      * 创建成就
@@ -96,7 +100,7 @@ public class AdminAchievementController {
     public ResponseEntity<ApiResponse<Achievement>> createAchievement(
             @Valid @RequestBody CreateAchievementRequest request) {
         try {
-            Integer adminId = playerService.getCurrentPlayerId();
+            Integer adminId = getCurrentAdminId();
 
             log.info("管理员创建成就: adminId={}, name={}", adminId, request.getName());
 
@@ -152,7 +156,7 @@ public class AdminAchievementController {
             @PathVariable Integer id,
             @Valid @RequestBody UpdateAchievementRequest request) {
         try {
-            Integer adminId = playerService.getCurrentPlayerId();
+            Integer adminId = getCurrentAdminId();
 
             log.info("管理员更新成就: adminId={}, achievementId={}", adminId, id);
 
@@ -229,7 +233,7 @@ public class AdminAchievementController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteAchievement(@PathVariable Integer id) {
         try {
-            Integer adminId = playerService.getCurrentPlayerId();
+            Integer adminId = getCurrentAdminId();
 
             log.info("管理员删除成就: adminId={}, achievementId={}", adminId, id);
 
@@ -284,7 +288,7 @@ public class AdminAchievementController {
             @RequestParam(defaultValue = "20") @Min(1) int size,
             @RequestParam(required = false) String type) {
         try {
-            Integer adminId = playerService.getCurrentPlayerId();
+            Integer adminId = getCurrentAdminId();
 
             log.debug("管理员获取成就列表: adminId={}, page={}, size={}, type={}",
                     adminId, page, size, type);
@@ -325,7 +329,7 @@ public class AdminAchievementController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Achievement>> getAchievementDetail(@PathVariable Integer id) {
         try {
-            Integer adminId = playerService.getCurrentPlayerId();
+            Integer adminId = getCurrentAdminId();
 
             log.debug("管理员获取成就详情: adminId={}, achievementId={}", adminId, id);
 
@@ -367,7 +371,7 @@ public class AdminAchievementController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getAchievementStats() {
         try {
-            Integer adminId = playerService.getCurrentPlayerId();
+            Integer adminId = getCurrentAdminId();
 
             log.debug("管理员获取成就统计: adminId={}", adminId);
 
@@ -433,7 +437,7 @@ public class AdminAchievementController {
     public ResponseEntity<ApiResponse<List<PlayerAchievement>>> getPlayerAchievements(
             @PathVariable Integer playerId) {
         try {
-            Integer adminId = playerService.getCurrentPlayerId();
+            Integer adminId = getCurrentAdminId();
 
             log.debug("管理员查看玩家成就: adminId={}, playerId={}", adminId, playerId);
 

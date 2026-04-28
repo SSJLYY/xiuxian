@@ -288,9 +288,6 @@ public class GameMapService {
         reward.setActualSpiritStones(actualSpiritStones);
         reward.setExp(baseExp);
         reward.setInjuryCount(injuryCount);
-
-        progress.setOfflineStartAt(null);
-        playerMapProgressMapper.updateById(progress);
         
         return reward;
     }

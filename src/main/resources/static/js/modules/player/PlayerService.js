@@ -173,6 +173,9 @@ class PlayerService {
 const playerService = new PlayerService();
 
 // 导出服务
+export { PlayerService, playerService };
+export default playerService;
+
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { PlayerService, playerService };
+    module.exports = { PlayerService, playerService, default: playerService };
 }

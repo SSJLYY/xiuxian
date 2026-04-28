@@ -1,8 +1,12 @@
 package com.xiuxian.game.modules.admin.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.modules.admin.service.AdminAuthService;
 import com.xiuxian.game.modules.mail.entity.MailAttachment;
+import com.xiuxian.game.modules.mail.entity.PlayerMail;
+import com.xiuxian.game.modules.mail.mapper.PlayerMailMapper;
 import com.xiuxian.game.modules.mail.service.MailService;
 import com.xiuxian.game.common.util.LogUtils;
 import lombok.Data;
@@ -47,6 +51,7 @@ public class AdminMailController {
 
     private final MailService mailService;
     private final AdminAuthService adminAuthService;
+    private final PlayerMailMapper playerMailMapper;
 
     private Integer getCurrentAdminId() {
         return adminAuthService.getCurrentAdminId();
@@ -173,6 +178,31 @@ public class AdminMailController {
             
         } catch (Exception e) {
             log.error("管理员批量发送邮件失败: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/system")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Page<PlayerMail>>> getSystemMailList(
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "20") Integer size) {
+        try {
+            Integer adminId = getCurrentAdminId();
+            Page<PlayerMail> pageRequest = new Page<>(page, size);
+            Page<PlayerMail> result = playerMailMapper.selectPage(
+                    pageRequest,
+                    new QueryWrapper<PlayerMail>()
+                            .eq("mail_type", "SYSTEM")
+                            .orderByDesc("created_at")
+            );
+
+            LogUtils.logUserAction(null, adminId, "ADMIN_GET_SYSTEM_MAIL_LIST",
+                    "管理员查看系统邮件列表: page=" + page + ", size=" + size);
+
+            return ResponseEntity.ok(ApiResponse.success("获取成功", result));
+        } catch (Exception e) {
+            log.error("获取系统邮件列表失败", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
         }
     }

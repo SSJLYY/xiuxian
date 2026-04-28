@@ -207,15 +207,15 @@ class AdminApi extends ApiClient {
     // ========== 兑换码管理 ==========
     async getGiftCodes(page = 1, size = 20) {
         const params = new URLSearchParams({ page, size }).toString();
-        return this.get(`/gift-codes?${params}`);
+        return this.get(`/giftcode/?${params}`);
     }
 
     async createGiftCode(code, reward, expiry) {
-        return this.post('/gift-codes', { code, reward, expiry });
+        return this.post('/giftcode/', { code, reward, expiry });
     }
 
     async deleteGiftCode(codeId) {
-        return this.delete(`/gift-codes/${codeId}`);
+        return this.delete(`/giftcode/${codeId}`);
     }
 
     // ========== 宗门管理 ==========
@@ -290,5 +290,5 @@ export { AdminApi, adminAPI };
 
 // 导出API客户端
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { AdminApi, adminAPI };
+    module.exports = { AdminApi, adminAPI, default: adminAPI };
 }
