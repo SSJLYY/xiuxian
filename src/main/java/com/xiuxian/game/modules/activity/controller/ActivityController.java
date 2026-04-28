@@ -209,6 +209,23 @@ public class ActivityController {
      * @param limit 返回数量限制，默认100
      * @return 排名列表
      */
+    @PostMapping("/{activityId}/claim")
+    @PreAuthorize("isAuthenticated()")
+    public ApiResponse<Map<String, Object>> claimActivityReward(@PathVariable Integer activityId) {
+        try {
+            Integer playerId = playerService.getCurrentPlayerId();
+            log.info("棰嗗彇娲诲姩濂栧姳: playerId={}, activityId={}", playerId, activityId);
+
+            Map<String, Object> result = activityService.claimActivityReward(playerId, activityId);
+
+            log.info("棰嗗彇娲诲姩濂栧姳鎴愬姛: playerId={}, activityId={}", playerId, activityId);
+            return ApiResponse.success("棰嗗彇鎴愬姛", result);
+        } catch (Exception e) {
+            log.error("棰嗗彇娲诲姩濂栧姳澶辫触: activityId={}, error={}", activityId, e.getMessage(), e);
+            return ApiResponse.error(e.getMessage());
+        }
+    }
+
     @GetMapping("/{activityId}/ranking")
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<List<PlayerActivityProgress>> getActivityRanking(

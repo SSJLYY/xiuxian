@@ -1,11 +1,17 @@
 package com.xiuxian.game.modules.activity.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.xiuxian.game.common.exception.BusinessException;
+import com.xiuxian.game.common.exception.ErrorCode;
 import com.xiuxian.game.modules.activity.entity.Activity;
 import com.xiuxian.game.modules.activity.entity.PlayerActivityProgress;
 import com.xiuxian.game.modules.activity.mapper.ActivityMapper;
 import com.xiuxian.game.modules.activity.mapper.PlayerActivityProgressMapper;
+import com.xiuxian.game.modules.mail.entity.MailAttachment;
 import com.xiuxian.game.modules.mail.service.MailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,11 +20,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import com.xiuxian.game.common.exception.BusinessException;
-import com.xiuxian.game.common.exception.ErrorCode;
 
 /**
  * 活动服务类
@@ -43,10 +51,16 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
 
     private static final Pattern VALUE_PATTERN = Pattern.compile("\"value\"\\s*:\\s*(-?\\d+)");
     private static final Pattern SCORE_PATTERN = Pattern.compile("\"score\"\\s*:\\s*(-?\\d+)");
+    private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<Map<String, Object>>() {
+    };
+    private static final TypeReference<List<Map<String, Object>>> LIST_TYPE =
+            new TypeReference<List<Map<String, Object>>>() {
+    };
 
     private final ActivityMapper activityMapper;
     private final PlayerActivityProgressMapper playerActivityProgressMapper;
     private final MailService mailService;
+    private final ObjectMapper objectMapper;
 
     /**
      * 获取所有正在进行的活动
@@ -164,6 +178,7 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
      */
     @Transactional
     public PlayerActivityProgress updateActivityProgress(Integer playerId, Integer activityId, int increment) {
+        Activity activity = requireActivity(activityId);
         log.info("更新活动进度: playerId={}, activityId={}, increment={}", playerId, activityId, increment);
         
         QueryWrapper<PlayerActivityProgress> queryWrapper = new QueryWrapper<>();
@@ -181,6 +196,7 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         int currentScore = parseScoreFromProgress(progress.getProgress());
         currentValue += increment;
         progress.setProgress(buildProgressJson(currentValue, currentScore));
+        updateCompletionState(activity, progress, currentValue, currentScore);
         progress.setUpdatedAt(LocalDateTime.now());
         playerActivityProgressMapper.updateById(progress);
 
@@ -221,6 +237,7 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
      */
     @Transactional
     public PlayerActivityProgress updateActivityScore(Integer playerId, Integer activityId, int score) {
+        Activity activity = requireActivity(activityId);
         log.info("更新活动积分: playerId={}, activityId={}, score={}", playerId, activityId, score);
         
         QueryWrapper<PlayerActivityProgress> queryWrapper = new QueryWrapper<>();
@@ -237,6 +254,7 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         String currentProgress = progress.getProgress();
         int currentValue = parseProgressValue(currentProgress);
         progress.setProgress(buildProgressJson(currentValue, score));
+        updateCompletionState(activity, progress, currentValue, score);
         progress.setUpdatedAt(LocalDateTime.now());
         playerActivityProgressMapper.updateById(progress);
 
@@ -273,6 +291,243 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
 
     private String buildProgressJson(int value, int score) {
         return String.format("{\"value\": %d, \"score\": %d}", value, score);
+    }
+
+    @Transactional
+    public Map<String, Object> claimActivityReward(Integer playerId, Integer activityId) {
+        Activity activity = requireActivity(activityId);
+
+        QueryWrapper<PlayerActivityProgress> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("player_id", playerId);
+        queryWrapper.eq("activity_id", activityId);
+        PlayerActivityProgress progress = playerActivityProgressMapper.selectOne(queryWrapper);
+
+        if (progress == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "Player has not joined this activity");
+        }
+        if (Boolean.TRUE.equals(progress.getRewarded())) {
+            throw new BusinessException(ErrorCode.ACTIVITY_REWARD_CLAIMED);
+        }
+
+        int progressValue = parseProgressValue(progress.getProgress());
+        int scoreValue = parseScoreFromProgress(progress.getProgress());
+        boolean completed = isCompleted(activity, progress, progressValue, scoreValue);
+        if (!completed) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "Activity progress does not meet reward conditions");
+        }
+
+        List<MailAttachment> attachments = parseRewardAttachments(activity.getRewards());
+        if (attachments.isEmpty()) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "Activity reward is not configured");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        int updatedRows = playerActivityProgressMapper.update(
+                null,
+                new UpdateWrapper<PlayerActivityProgress>()
+                        .set("is_completed", true)
+                        .set("completed_at", progress.getCompletedAt() == null ? now : progress.getCompletedAt())
+                        .set("is_rewarded", true)
+                        .set("rewarded_at", now)
+                        .eq("id", progress.getId())
+                        .eq("player_id", playerId)
+                        .eq("is_rewarded", false));
+        if (updatedRows == 0) {
+            throw new BusinessException(ErrorCode.ACTIVITY_REWARD_CLAIMED);
+        }
+
+        String rewardDescription = buildRewardSummary(attachments);
+        mailService.sendMail(
+                playerId,
+                activity.getName() + " reward",
+                "Activity reward delivered: " + rewardDescription,
+                "SYSTEM",
+                attachments,
+                now.plusDays(30));
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("activityId", activityId);
+        result.put("rewardDescription", rewardDescription);
+        result.put("rewardedAt", now);
+        return result;
+    }
+
+    private void updateCompletionState(Activity activity, PlayerActivityProgress progress, int progressValue, int scoreValue) {
+        if (Boolean.TRUE.equals(progress.getCompleted())) {
+            return;
+        }
+        if (!isCompleted(activity, progress, progressValue, scoreValue)) {
+            return;
+        }
+        progress.setCompleted(true);
+        if (progress.getCompletedAt() == null) {
+            progress.setCompletedAt(LocalDateTime.now());
+        }
+    }
+
+    private boolean isCompleted(Activity activity, PlayerActivityProgress progress, int progressValue, int scoreValue) {
+        if (Boolean.TRUE.equals(progress.getCompleted())) {
+            return true;
+        }
+
+        Integer scoreTarget = extractNumericRule(activity, "scoreTarget", "requiredScore", "targetScore", "maxScore");
+        if (scoreTarget != null && scoreTarget > 0 && scoreValue >= scoreTarget) {
+            return true;
+        }
+
+        Integer progressTarget = extractNumericRule(activity, "target", "requiredValue", "requiredProgress", "goal", "progressTarget");
+        return progressTarget != null && progressTarget > 0 && progressValue >= progressTarget;
+    }
+
+    private Activity requireActivity(Integer activityId) {
+        Activity activity = activityMapper.selectById(activityId);
+        if (activity == null) {
+            throw new BusinessException(ErrorCode.ACTIVITY_NOT_FOUND);
+        }
+        return activity;
+    }
+
+    private Integer extractNumericRule(Activity activity, String... keys) {
+        if (activity == null || activity.getRules() == null || activity.getRules().trim().isEmpty()) {
+            return null;
+        }
+        try {
+            Map<String, Object> rules = objectMapper.readValue(activity.getRules(), MAP_TYPE);
+            for (String key : keys) {
+                Integer value = toInteger(rules.get(key));
+                if (value != null) {
+                    return value;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("瑙ｆ瀽娲诲姩瑙勫垯澶辫触: activityId={}, rules={}", activity.getId(), activity.getRules(), e);
+        }
+        return null;
+    }
+
+    private List<MailAttachment> parseRewardAttachments(String rewardsJson) {
+        if (rewardsJson == null || rewardsJson.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        try {
+            List<Map<String, Object>> rewardConfigs = readRewardConfigs(rewardsJson);
+            if (rewardConfigs.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            List<MailAttachment> attachments = new ArrayList<>(rewardConfigs.size());
+            for (Map<String, Object> rewardConfig : rewardConfigs) {
+                String itemType = normalizeRewardType(stringValue(rewardConfig, "itemType", "type", "rewardType"));
+                Integer quantity = firstInteger(rewardConfig, "quantity", "amount", "count", "value");
+                if (itemType == null || quantity == null || quantity <= 0) {
+                    continue;
+                }
+
+                MailAttachment attachment = new MailAttachment();
+                attachment.setItemType(itemType);
+                if ("ITEM".equals(itemType) || "EQUIPMENT".equals(itemType)) {
+                    attachment.setItemId(firstInteger(rewardConfig, "itemId", "id", "rewardId"));
+                    if (attachment.getItemId() == null) {
+                        continue;
+                    }
+                }
+                attachment.setQuantity(quantity);
+                attachments.add(attachment);
+            }
+            return attachments;
+        } catch (Exception e) {
+            log.error("瑙ｆ瀽娲诲姩濂栧姳澶辫触: rewards={}", rewardsJson, e);
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR);
+        }
+    }
+
+    private List<Map<String, Object>> readRewardConfigs(String rewardsJson) throws Exception {
+        String trimmed = rewardsJson.trim();
+        if (trimmed.startsWith("[")) {
+            return objectMapper.readValue(trimmed, LIST_TYPE);
+        }
+        if (!trimmed.startsWith("{")) {
+            return Collections.emptyList();
+        }
+
+        Map<String, Object> rewardConfig = objectMapper.readValue(trimmed, MAP_TYPE);
+        Object nestedRewards = rewardConfig.get("rewards");
+        if (nestedRewards instanceof List<?>) {
+            return objectMapper.convertValue(nestedRewards, LIST_TYPE);
+        }
+        return Collections.singletonList(rewardConfig);
+    }
+
+    private String buildRewardSummary(List<MailAttachment> attachments) {
+        if (attachments.isEmpty()) {
+            return "No rewards";
+        }
+
+        List<String> rewardTexts = new ArrayList<>(attachments.size());
+        for (MailAttachment attachment : attachments) {
+            String itemType = attachment.getItemType();
+            Integer quantity = attachment.getQuantity();
+            Integer itemId = attachment.getItemId();
+
+            if ("SPIRIT_STONES".equals(itemType)) {
+                rewardTexts.add("Spirit Stones x" + quantity);
+            } else if ("EXP".equals(itemType)) {
+                rewardTexts.add("EXP x" + quantity);
+            } else if ("ITEM".equals(itemType)) {
+                rewardTexts.add((itemId == null ? "Item" : "Item#" + itemId) + " x" + quantity);
+            } else if ("EQUIPMENT".equals(itemType)) {
+                rewardTexts.add((itemId == null ? "Equipment" : "Equipment#" + itemId) + " x" + quantity);
+            } else {
+                rewardTexts.add(itemType + " x" + quantity);
+            }
+        }
+        return String.join(", ", rewardTexts);
+    }
+
+    private String normalizeRewardType(String rawType) {
+        if (rawType == null || rawType.trim().isEmpty()) {
+            return null;
+        }
+        String normalized = rawType.trim().toUpperCase();
+        if ("SPIRIT_STONE".equals(normalized) || "STONE".equals(normalized) || "STONES".equals(normalized)) {
+            return "SPIRIT_STONES";
+        }
+        return normalized;
+    }
+
+    private Integer firstInteger(Map<String, Object> source, String... keys) {
+        for (String key : keys) {
+            Integer value = toInteger(source.get(key));
+            if (value != null) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    private String stringValue(Map<String, Object> source, String... keys) {
+        for (String key : keys) {
+            Object value = source.get(key);
+            if (value != null) {
+                return String.valueOf(value);
+            }
+        }
+        return null;
+    }
+
+    private Integer toInteger(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        try {
+            return Integer.parseInt(String.valueOf(value));
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     /**

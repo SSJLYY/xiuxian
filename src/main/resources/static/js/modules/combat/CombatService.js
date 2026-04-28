@@ -9,9 +9,9 @@ export class CombatService {
 
     async fightOnce(mapId = 1) {
         const monster = await this.generateMonster(mapId);
-        const response = monster.id
-            ? await gameAPI.startCombatWithMap(monster.id, mapId)
-            : await gameAPI.startCombatGenerateWithMap(mapId);
+        const response = monster?.id
+            ? await gameAPI.startCombat(monster.id)
+            : await gameAPI.startCombat({ mapId });
         if (!response?.success) throw new Error(response?.message || '战斗失败');
         return { monster, result: response.data };
     }

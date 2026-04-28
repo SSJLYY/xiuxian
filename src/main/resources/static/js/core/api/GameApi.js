@@ -39,6 +39,10 @@ class GameApi extends ApiClient {
         return this.get('/player/profile');
     }
 
+    async getCurrentPlayerProfile() {
+        return this.getPlayerProfile();
+    }
+
     async updatePlayerProfile(data) {
         return this.post('/player/profile/update', data);
     }
@@ -60,8 +64,20 @@ class GameApi extends ApiClient {
         return this.post('/player/cultivate', { type });
     }
 
+    async startCultivation(type = 'normal') {
+        return this.startCultivate(type);
+    }
+
     async stopCultivate() {
         return this.post('/player/cultivate/stop', {});
+    }
+
+    async stopCultivation() {
+        return this.stopCultivate();
+    }
+
+    async resetCultivation() {
+        return this.post('/player/reset-cultivation', {});
     }
 
     async canBreakthrough() {
@@ -73,13 +89,21 @@ class GameApi extends ApiClient {
     }
 
     // ========== 战斗相关 ==========
-    async generateMonster() {
-        return this.get('/combat/generate-monster');
+    async generateMonster(mapId = null) {
+        const params = new URLSearchParams();
+        if (mapId != null) {
+            params.set('mapId', mapId);
+        }
+        const query = params.toString();
+        return this.get(`/combat/generate-monster${query ? `?${query}` : ''}`);
     }
 
-    async startCombat(monsterId = null) {
-        if (monsterId) {
-            return this.post(`/combat/start/${monsterId}`, {});
+    async startCombat(monsterIdOrPayload = null) {
+        if (monsterIdOrPayload != null && typeof monsterIdOrPayload === 'object') {
+            return this.post('/combat/start', monsterIdOrPayload);
+        }
+        if (monsterIdOrPayload != null) {
+            return this.post(`/combat/start/${monsterIdOrPayload}`, {});
         }
         return this.post('/combat/start', {});
     }
@@ -191,6 +215,10 @@ class GameApi extends ApiClient {
         return this.post(`/skills/${playerSkillId}/use`, {});
     }
 
+    async getComboStats() {
+        return this.get('/skills/combos/stats');
+    }
+
     // ========== 宠物相关 ==========
     async getPets() {
         return this.get('/pets');
@@ -236,6 +264,14 @@ class GameApi extends ApiClient {
                 ? newName
                 : newName?.nickname || newName?.newName;
         return this.post(`/pets/rename/${playerPetId}`, { nickname });
+    }
+
+    async toggleLockPet(playerPetId) {
+        return this.post(`/pets/toggle-lock/${playerPetId}`, {});
+    }
+
+    async releasePet(playerPetId) {
+        return this.delete(`/pets/release/${playerPetId}`);
     }
 
     // ========== 任务相关 ==========
@@ -522,6 +558,10 @@ class GameApi extends ApiClient {
         return this.post(`/activities/${activityId}/score`, { score });
     }
 
+    async claimActivityReward(activityId) {
+        return this.post(`/activities/${activityId}/claim`, {});
+    }
+
     async getActivityRanking(activityId) {
         return this.get(`/activities/${activityId}/ranking`);
     }
@@ -615,6 +655,10 @@ class GameApi extends ApiClient {
     }
 
     // ========== 离线奖励 ==========
+    async claimOfflineRewards() {
+        return this.post('/offline-reward/calculate', {});
+    }
+
     async claimOfflineReward(rewardId) {
         let resolvedRewardId =
             typeof rewardId === 'object' && rewardId !== null ? rewardId.rewardId : rewardId;
@@ -630,6 +674,10 @@ class GameApi extends ApiClient {
             };
         }
         return this.post(`/offline-reward/claim/${resolvedRewardId}`, {});
+    }
+
+    async claimOfflineRewardById(rewardId) {
+        return this.claimOfflineReward(rewardId);
     }
 
     async getOfflineRewardInfo() {

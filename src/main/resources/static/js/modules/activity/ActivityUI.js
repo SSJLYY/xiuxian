@@ -1,11 +1,29 @@
-/**
- * 活动模块 - UI渲染层
- */
 import { activityService } from './ActivityService.js';
 import { toast } from '../../components/Toast.js';
 import { loading } from '../../components/Loading.js';
 import { formatUtils } from '../../core/utils/FormatUtils.js';
 import { escapeHtml } from '../../core/utils/Security.js';
+
+function resolveStatus(activity) {
+    const now = Date.now();
+    const startTime = new Date(activity.startTime).getTime();
+    const endTime = new Date(activity.endTime).getTime();
+
+    if (Number.isFinite(startTime) && now < startTime) {
+        return { className: 'not-started', text: 'Not started', ongoing: false };
+    }
+    if (Number.isFinite(endTime) && now > endTime) {
+        return { className: 'ended', text: 'Ended', ongoing: false };
+    }
+    return { className: 'ongoing', text: 'Ongoing', ongoing: true };
+}
+
+function buildProgressText(activity) {
+    if (activity.target > 0) {
+        return activity.progressDisplay;
+    }
+    return activity.participated ? `${activity.progress}` : '0';
+}
 
 export class ActivityUI {
     init() {
@@ -23,10 +41,9 @@ export class ActivityUI {
     }
 
     bindEvents() {
-        // 标签页切换
         this.elements.activityTabs.forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                this.switchTab(e.target.dataset.activityTab);
+            tab.addEventListener('click', event => {
+                this.switchTab(event.target.dataset.activityTab);
             });
         });
     }
@@ -36,26 +53,22 @@ export class ActivityUI {
             tab.classList.toggle('active', tab.dataset.activityTab === tabName);
         });
 
-        if (tabName === 'all') {
-            this.elements.activitiesContainer.style.display = 'block';
-            this.elements.myActivitiesContainer.style.display = 'none';
-        } else {
-            this.elements.activitiesContainer.style.display = 'none';
-            this.elements.myActivitiesContainer.style.display = 'block';
+        if (this.elements.activitiesContainer) {
+            this.elements.activitiesContainer.style.display = tabName === 'all' ? 'block' : 'none';
+        }
+        if (this.elements.myActivitiesContainer) {
+            this.elements.myActivitiesContainer.style.display = tabName === 'all' ? 'none' : 'block';
         }
     }
 
     async loadActivities() {
         loading.show();
         try {
-            await Promise.all([
-                activityService.getActivities(),
-                activityService.getMyActivities()
-            ]);
+            await activityService.refreshData();
             this.renderActivities();
             this.renderMyActivities();
-        } catch (error) {
-            toast.error('加载活动数据失败');
+        } catch {
+            toast.error('Failed to load activities');
         } finally {
             loading.hide();
         }
@@ -63,10 +76,12 @@ export class ActivityUI {
 
     renderActivities() {
         const container = this.elements.activitiesContainer;
-        if (!container) return;
+        if (!container) {
+            return;
+        }
 
         if (activityService.activities.length === 0) {
-            container.innerHTML = '<p>暂无活动</p>';
+            container.innerHTML = '<p>No activities</p>';
             return;
         }
 
@@ -76,66 +91,43 @@ export class ActivityUI {
             </div>
         `;
 
-        // 绑定事件
-        container.querySelectorAll('[data-action="participate"]').forEach(btn => {
-            btn.addEventListener('click', (e) => this.handleParticipate(e.target.dataset.activityId));
-        });
-
-        container.querySelectorAll('[data-action="claim"]').forEach(btn => {
-            btn.addEventListener('click', (e) => this.handleClaim(e.target.dataset.activityId));
-        });
+        this.bindActionButtons(container);
     }
 
     renderActivityCard(activity) {
-        const now = new Date();
-        const startTime = new Date(activity.startTime);
-        const endTime = new Date(activity.endTime);
-        const isOngoing = now >= startTime && now <= endTime;
-        const isEnded = now > endTime;
-        const isNotStarted = now < startTime;
-
-        let statusClass = 'not-started';
-        let statusText = '未开始';
-        if (isOngoing) {
-            statusClass = 'ongoing';
-            statusText = '进行中';
-        } else if (isEnded) {
-            statusClass = 'ended';
-            statusText = '已结束';
-        }
+        const status = resolveStatus(activity);
+        const progressText = buildProgressText(activity);
+        const progressWidth = activity.progressPercent ?? 0;
+        const startText = formatUtils.formatDateTime(activity.startTime);
+        const endText = formatUtils.formatDateTime(activity.endTime);
 
         return `
-            <div class="activity-card ${statusClass}">
+            <div class="activity-card ${status.className}">
                 <div class="activity-header">
-                    <h4>${escapeHtml(activity.name)}</h4>
-                    <span class="activity-status ${statusClass}">${escapeHtml(statusText)}</span>
+                    <h4>${escapeHtml(activity.name || '')}</h4>
+                    <span class="activity-status ${status.className}">${escapeHtml(status.text)}</span>
                 </div>
                 <div class="activity-body">
-                    <p class="activity-desc">${escapeHtml(activity.description)}</p>
+                    <p class="activity-desc">${escapeHtml(activity.description || '')}</p>
                     <div class="activity-time">
-                        <span>开始: ${formatUtils.formatDateTime(startTime)}</span>
-                        <span>结束: ${formatUtils.formatDateTime(endTime)}</span>
+                        <span>Start: ${escapeHtml(startText)}</span>
+                        <span>End: ${escapeHtml(endText)}</span>
                     </div>
                     <div class="activity-progress">
                         <div class="progress-info">
-                            <span>进度: ${escapeHtml(activity.progress)}/${escapeHtml(activity.target)}</span>
+                            <span>Progress: ${escapeHtml(progressText)}</span>
                         </div>
                         <div class="progress-bar">
-                            <div class="progress-fill" style="width: ${(activity.progress / activity.target) * 100}%"></div>
+                            <div class="progress-fill" style="width: ${progressWidth}%"></div>
                         </div>
                     </div>
                 </div>
                 <div class="activity-footer">
                     <div class="activity-reward">
-                        <span>奖励: ${escapeHtml(activity.rewardDescription)}</span>
+                        <span>Reward: ${escapeHtml(activity.rewardDescription || 'No rewards')}</span>
                     </div>
                     <div class="activity-actions">
-                        ${isOngoing && !activity.participated ?
-                            `<button class="btn btn-primary" data-action="participate" data-activity-id="${activity.id}">参与</button>` : ''}
-                        ${activity.canClaim ?
-                            `<button class="btn btn-success" data-action="claim" data-activity-id="${activity.id}">领取奖励</button>` : ''}
-                        ${activity.claimed ?
-                            `<button class="btn btn-disabled" disabled>已领取</button>` : ''}
+                        ${this.renderActionButtons(activity, status.ongoing)}
                     </div>
                 </div>
             </div>
@@ -144,10 +136,12 @@ export class ActivityUI {
 
     renderMyActivities() {
         const container = this.elements.myActivitiesContainer;
-        if (!container) return;
+        if (!container) {
+            return;
+        }
 
         if (activityService.myActivities.length === 0) {
-            container.innerHTML = '<p>暂无参与的活动</p>';
+            container.innerHTML = '<p>No joined activities</p>';
             return;
         }
 
@@ -156,29 +150,60 @@ export class ActivityUI {
                 ${activityService.myActivities.map(activity => this.renderMyActivityCard(activity)).join('')}
             </div>
         `;
+
+        this.bindActionButtons(container);
     }
 
     renderMyActivityCard(activity) {
+        const progressText = buildProgressText(activity);
+
         return `
             <div class="my-activity-card">
                 <div class="activity-info">
-                    <h4>${escapeHtml(activity.name)}</h4>
-                    <p>${escapeHtml(activity.description)}</p>
+                    <h4>${escapeHtml(activity.name || '')}</h4>
+                    <p>${escapeHtml(activity.description || '')}</p>
                     <div class="activity-stats">
-                        <span>进度: ${escapeHtml(activity.progress)}/${escapeHtml(activity.target)}</span>
-                        <span>奖励: ${escapeHtml(activity.rewardDescription)}</span>
+                        <span>Progress: ${escapeHtml(progressText)}</span>
+                        <span>Reward: ${escapeHtml(activity.rewardDescription || 'No rewards')}</span>
                     </div>
                 </div>
                 <div class="activity-status">
-                    ${activity.claimed ?
-                        '<span class="status claimed">已领取</span>' :
-                        activity.canClaim ?
-                        `<button class="btn btn-sm btn-success" data-action="claim" data-activity-id="${activity.id}">领取奖励</button>` :
-                        '<span class="status in-progress">进行中</span>'
-                    }
+                    ${activity.claimed
+                        ? '<span class="status claimed">Claimed</span>'
+                        : activity.canClaim
+                            ? `<button class="btn btn-sm btn-success" data-action="claim" data-activity-id="${activity.id}">Claim reward</button>`
+                            : activity.completed
+                                ? '<span class="status completed">Ready</span>'
+                                : '<span class="status in-progress">In progress</span>'}
                 </div>
             </div>
         `;
+    }
+
+    renderActionButtons(activity, isOngoing) {
+        if (activity.claimed) {
+            return '<button class="btn btn-disabled" disabled>Claimed</button>';
+        }
+        if (activity.canClaim) {
+            return `<button class="btn btn-success" data-action="claim" data-activity-id="${activity.id}">Claim reward</button>`;
+        }
+        if (isOngoing && !activity.participated) {
+            return `<button class="btn btn-primary" data-action="participate" data-activity-id="${activity.id}">Join</button>`;
+        }
+        if (activity.participated) {
+            return '<button class="btn btn-disabled" disabled>Joined</button>';
+        }
+        return '';
+    }
+
+    bindActionButtons(container) {
+        container.querySelectorAll('[data-action="participate"]').forEach(button => {
+            button.addEventListener('click', event => this.handleParticipate(event.currentTarget.dataset.activityId));
+        });
+
+        container.querySelectorAll('[data-action="claim"]').forEach(button => {
+            button.addEventListener('click', event => this.handleClaim(event.currentTarget.dataset.activityId));
+        });
     }
 
     async handleParticipate(activityId) {
@@ -186,8 +211,8 @@ export class ActivityUI {
         try {
             await activityService.participateActivity(activityId);
             await this.loadActivities();
-        } catch (error) {
-            toast.error('参与失败');
+        } catch {
+            toast.error('Failed to join activity');
         } finally {
             loading.hide();
         }
@@ -198,8 +223,8 @@ export class ActivityUI {
         try {
             await activityService.claimReward(activityId);
             await this.loadActivities();
-        } catch (error) {
-            toast.error('领取失败');
+        } catch {
+            toast.error('Failed to claim reward');
         } finally {
             loading.hide();
         }

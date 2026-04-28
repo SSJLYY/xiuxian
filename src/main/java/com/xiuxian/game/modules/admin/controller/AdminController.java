@@ -80,8 +80,12 @@ public class AdminController {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getName() != null) {
+            String authName = auth.getName();
+            final String currentAdminUsername = authName.startsWith("admin_")
+                    ? authName.substring("admin_".length())
+                    : authName;
             User currentAdmin = adminPlayerService.listAllUsers().stream()
-                    .filter(user -> auth.getName().equals(user.getUsername()))
+                    .filter(user -> currentAdminUsername.equals(user.getUsername()))
                     .findFirst()
                     .orElse(null);
             if (currentAdmin != null && currentAdmin.getId().equals(id)) {
