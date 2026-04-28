@@ -8,10 +8,6 @@ import { toast } from '../../components/Toast.js';
 import { FormatUtils } from '../../core/utils/FormatUtils.js';
 
 class PlayerService {
-    /**
-     * 获取当前玩家信息
-     * @returns {Promise<Object>} 玩家信息
-     */
     async getCurrentPlayer() {
         try {
             const response = await gameAPI.getCurrentPlayer();
@@ -26,10 +22,6 @@ class PlayerService {
         }
     }
 
-    /**
-     * 获取玩家详细资料
-     * @returns {Promise<Object>} 玩家资料
-     */
     async getPlayerProfile() {
         try {
             const response = await gameAPI.getPlayerProfile();
@@ -44,11 +36,6 @@ class PlayerService {
         }
     }
 
-    /**
-     * 更新玩家资料
-     * @param {Object} data - 更新数据
-     * @returns {Promise<boolean>} 是否成功
-     */
     async updateProfile(data) {
         try {
             const response = await gameAPI.updatePlayerProfile(data);
@@ -64,10 +51,6 @@ class PlayerService {
         }
     }
 
-    /**
-     * 获取玩家统计信息
-     * @returns {Promise<Object>} 统计信息
-     */
     async getPlayerStats() {
         try {
             const response = await gameAPI.getPlayerStats();
@@ -82,10 +65,6 @@ class PlayerService {
         }
     }
 
-    /**
-     * 刷新玩家信息并更新UI
-     * @param {Function} callback - 更新UI的回调函数
-     */
     async refreshPlayerInfo(callback) {
         try {
             const player = await this.getCurrentPlayer();
@@ -99,16 +78,11 @@ class PlayerService {
         }
     }
 
-    /**
-     * 格式化玩家信息用于显示
-     * @param {Object} player - 玩家信息对象
-     * @returns {Object} 格式化后的显示数据
-     */
     formatPlayerInfo(player) {
         if (!player) return null;
 
         return {
-            name: player.username || '未知玩家',
+            name: player.nickname || player.username || '未知玩家',
             level: player.level || 1,
             realm: this.getRealmName(player.realm) || '练气期',
             exp: FormatUtils.formatExp(player.exp || 0),
@@ -126,11 +100,6 @@ class PlayerService {
         };
     }
 
-    /**
-     * 获取境界名称
-     * @param {number} realm - 境界等级
-     * @returns {string} 境界名称
-     */
     getRealmName(realm) {
         const realmMap = {
             1: '练气期',
@@ -147,11 +116,6 @@ class PlayerService {
         return realmMap[realm] || '练气期';
     }
 
-    /**
-     * 检查玩家状态
-     * @param {Object} player - 玩家信息
-     * @returns {Object} 状态检查结果
-     */
     checkPlayerStatus(player) {
         const checks = {
             isDead: player.health <= 0,
@@ -160,7 +124,6 @@ class PlayerService {
             needsRest: false
         };
 
-        // 检查是否可以突破
         if (player.exp >= player.expToNext && player.realm < 10) {
             checks.canBreakthrough = true;
         }
@@ -169,10 +132,8 @@ class PlayerService {
     }
 }
 
-// 创建全局PlayerService实例
 const playerService = new PlayerService();
 
-// 导出服务
 export { PlayerService, playerService };
 export default playerService;
 

@@ -84,7 +84,7 @@ export class EquipmentUI {
         if (item) {
             // 显示已装备物品详情
             if (confirm(`要卸下 ${item.itemName} 吗?`)) {
-                await equipmentService.unequipItem(slot);
+                await equipmentService.unequipItem(item.id);
                 this.renderEquipment();
             }
         } else {

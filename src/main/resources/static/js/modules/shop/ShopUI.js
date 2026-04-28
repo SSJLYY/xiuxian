@@ -143,8 +143,8 @@ export class ShopUI {
         }
 
         const filtered = shopService.shopItems.filter(item =>
-            item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.description.toLowerCase().includes(searchTerm.toLowerCase())
+            String(item.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            String(item.description || '').toLowerCase().includes(searchTerm.toLowerCase())
         );
         this.renderShopItems(filtered);
     }

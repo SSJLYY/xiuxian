@@ -1,6 +1,3 @@
-/**
- * 背包模块 - UI渲染层
- */
 import { inventoryService } from './InventoryService.js';
 import { toast } from '../../components/Toast.js';
 import { loading } from '../../components/Loading.js';
@@ -32,7 +29,6 @@ export class InventoryUI {
     }
 
     bindEvents() {
-        // 过滤器事件
         if (this.elements.typeFilter) {
             this.elements.typeFilter.addEventListener('change', () => this.handleFilterChange());
         }
@@ -52,10 +48,10 @@ export class InventoryUI {
 
     handleFilterChange() {
         this.currentItems = inventoryService.setFilter({
-            type: this.elements.typeFilter.value,
-            searchTerm: this.elements.searchInput.value,
-            sortBy: this.elements.sortSelect.value,
-            order: this.elements.orderSelect.value
+            type: this.elements.typeFilter?.value || '',
+            searchTerm: this.elements.searchInput?.value || '',
+            sortBy: this.elements.sortSelect?.value || 'quality',
+            order: this.elements.orderSelect?.value || 'desc'
         });
 
         this.renderItems();
@@ -94,7 +90,7 @@ export class InventoryUI {
                 </div>
                 <div class="item-info">
                     <div class="item-name">${item.itemName}</div>
-                    <div class="item-type">${item.itemType}</div>
+                    <div class="item-type">${item.itemType || item.itemTypeCode || ''}</div>
                     <div class="item-quantity">x${item.quantity}</div>
                 </div>
                 <div class="item-actions">
@@ -103,9 +99,8 @@ export class InventoryUI {
             </div>
         `).join('');
 
-        // 绑定物品点击事件
         this.elements.itemsContainer.querySelectorAll('.inventory-item').forEach(el => {
-            el.addEventListener('click', (e) => {
+            el.addEventListener('click', e => {
                 if (e.target.closest('.item-actions')) return;
                 this.showItemDetail(el.dataset.itemId);
             });
@@ -115,9 +110,9 @@ export class InventoryUI {
     renderItemActions(item) {
         const actions = [];
 
-        if (item.itemType === '消耗品') {
+        if (item.usable || item.itemTypeCode === 'CONSUMABLE' || item.itemType === '消耗品') {
             actions.push(`<button class="btn btn-sm btn-primary" data-action="use" data-item-id="${item.itemId}">使用</button>`);
-        } else if (item.itemType === '装备') {
+        } else if (item.itemTypeCode === 'EQUIPMENT' || item.itemType === '装备') {
             actions.push(`<button class="btn btn-sm btn-success" data-action="equip" data-item-id="${item.itemId}">装备</button>`);
         }
 
@@ -138,7 +133,7 @@ export class InventoryUI {
                     <h3>${item.itemName}</h3>
                 </div>
                 <div class="item-detail-body">
-                    <p><strong>类型:</strong> ${item.itemType}</p>
+                    <p><strong>类型:</strong> ${item.itemType || item.itemTypeCode || ''}</p>
                     <p><strong>品质:</strong> ${item.itemQuality}</p>
                     <p><strong>数量:</strong> ${item.quantity}</p>
                     <p><strong>描述:</strong> ${item.itemDescription}</p>
@@ -156,14 +151,13 @@ export class InventoryUI {
             onConfirm: () => modal.hide()
         });
 
-        // 绑定操作按钮事件
         this.bindItemActionButtons();
     }
 
     renderItemStats(stats) {
         return `
             <div class="item-stats">
-                <h4>属性加成:</h4>
+                <h4>属性加成</h4>
                 ${Object.entries(stats).map(([key, value]) => `
                     <div class="stat-item">
                         <span>${this.translateStat(key)}:</span>
@@ -176,11 +170,11 @@ export class InventoryUI {
 
     translateStat(key) {
         const statMap = {
-            'attack': '攻击力',
-            'defense': '防御力',
-            'health': '生命值',
-            'mana': '法力值',
-            'speed': '速度'
+            attack: '攻击力',
+            defense: '防御力',
+            health: '生命值',
+            mana: '法力值',
+            speed: '速度'
         };
         return statMap[key] || key;
     }
@@ -190,9 +184,9 @@ export class InventoryUI {
         if (!modalContainer) return;
 
         modalContainer.querySelectorAll('.btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
+            btn.addEventListener('click', async e => {
                 const action = e.target.dataset.action;
-                const itemId = parseInt(e.target.dataset.itemId);
+                const itemId = parseInt(e.target.dataset.itemId, 10);
                 await this.handleItemAction(action, itemId);
             });
         });
@@ -214,6 +208,8 @@ export class InventoryUI {
                 case 'discard':
                     await inventoryService.discardItem(itemId);
                     break;
+                default:
+                    break;
             }
             modal.hide();
             await this.loadItems();
@@ -232,7 +228,6 @@ export class InventoryUI {
         }
 
         if (this.elements.capacity) {
-            // 假设背包容量为100
             this.elements.capacity.textContent = `${stats.totalItems}/100`;
         }
 
@@ -262,11 +257,11 @@ export class InventoryUI {
 
     translateQuality(quality) {
         const qualityMap = {
-            'common': '普通',
-            'uncommon': '优秀',
-            'rare': '稀有',
-            'epic': '史诗',
-            'legendary': '传说'
+            common: '普通',
+            uncommon: '优秀',
+            rare: '稀有',
+            epic: '史诗',
+            legendary: '传说'
         };
         return qualityMap[quality] || quality;
     }

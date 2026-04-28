@@ -122,23 +122,27 @@ class GameApi extends ApiClient {
 
     // ========== 背包相关 ==========
     async getInventoryItems() {
-        return this.get('/equipment/items'); // 背包物品在 equipment 模块
+        return this.get('/inventory');
     }
 
     async getInventoryCategorized() {
-        return this.get('/equipment/categorized');
+        return this.get('/inventory/categorized');
     }
 
-    async useItem(itemId) {
-        return this.post(`/equipment/use/${itemId}`, {});
+    async useItem(itemId, quantity = 1) {
+        return this.post(`/inventory/use/${itemId}?quantity=${quantity}`, {});
     }
 
     async sellItem(itemId, quantity = 1) {
-        return this.post(`/equipment/sell/${itemId}`, { quantity });
+        return this.post(`/inventory/sell/${itemId}?quantity=${quantity}`, {});
     }
 
-    async discardItem(itemId, quantity = 1) {
-        return this.post(`/equipment/discard/${itemId}`, { quantity });
+    async discardItem() {
+        return {
+            success: false,
+            message: '褰撳墠鍚庣鏈彁渚涗涪寮冪墿鍝佹帴鍙?',
+            data: null
+        };
     }
 
     // ========== 装备相关 ==========
@@ -166,16 +170,25 @@ class GameApi extends ApiClient {
         return this.get('/equipment/all');
     }
 
-    async equipItem(itemId) {
-        return this.post('/equipment/equip', { itemId });
+    async equipItem(playerEquipmentId, slot = null) {
+        const params = new URLSearchParams();
+        if (playerEquipmentId != null) {
+            params.set('playerEquipmentId', playerEquipmentId);
+        }
+        if (slot) {
+            params.set('slot', slot);
+        }
+        return this.post(`/equipment/equip?${params.toString()}`, {});
     }
 
-    async unequipItem(slot) {
-        return this.post('/equipment/unequip', { slot });
+    async unequipItem(playerEquipmentId) {
+        return this.post(`/equipment/unequip?playerEquipmentId=${playerEquipmentId}`, {});
     }
 
     async acquireEquipment(data) {
-        return this.post('/equipment/acquire', data);
+        const equipmentId =
+            typeof data === 'object' && data !== null ? data.equipmentId : data;
+        return this.post(`/equipment/acquire?equipmentId=${equipmentId}`, {});
     }
 
     // ========== 技能相关 ==========
@@ -328,7 +341,8 @@ class GameApi extends ApiClient {
 
     // ========== 商城相关 ==========
     async getShopItems(type = 'general') {
-        return this.get(`/shop/items?type=${type}`);
+        const resolvedType = type === 'all' ? '' : type;
+        return this.get(`/shop/items${resolvedType ? `?type=${encodeURIComponent(resolvedType)}` : ''}`);
     }
 
     async getSkillShop() {
@@ -383,8 +397,14 @@ class GameApi extends ApiClient {
 
     // ========== 拍卖行相关 ==========
     async getAuctionItems(filters = {}) {
-        const params = new URLSearchParams(filters).toString();
-        return this.get(`/auction/items?${params}`);
+        const params = new URLSearchParams();
+        Object.entries(filters || {}).forEach(([key, value]) => {
+            if (value !== null && value !== undefined && value !== '') {
+                params.set(key, value);
+            }
+        });
+        const query = params.toString();
+        return this.get(`/auction/items${query ? `?${query}` : ''}`);
     }
 
     async getMyAuctionItems() {
@@ -514,6 +534,10 @@ class GameApi extends ApiClient {
     }
 
     async getDailyVipReward() {
+        return this.post('/vip/daily-reward', {});
+    }
+
+    async claimDailyVipReward() {
         return this.post('/vip/daily-reward', {});
     }
 
@@ -682,6 +706,24 @@ class GameApi extends ApiClient {
 
     async getOfflineRewardInfo() {
         return this.get('/offline-reward/unclaimed');
+    }
+
+    async discardItem() {
+        return {
+            success: false,
+            message: '当前后端未提供丢弃物品接口',
+            data: null
+        };
+    }
+
+    async trainPet(playerPetId, trainingType = '普通训练') {
+        const resolvedTrainingType =
+            typeof trainingType === 'string'
+                ? trainingType
+                : trainingType?.trainingType;
+        return this.post(`/pets/train/${playerPetId}`, {
+            trainingType: resolvedTrainingType || '普通训练'
+        });
     }
 }
 

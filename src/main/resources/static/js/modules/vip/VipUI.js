@@ -40,11 +40,9 @@ export class VipUI {
     async loadVipData() {
         loading.show();
         try {
-            await Promise.all([
-                vipService.getVipInfo(),
-                vipService.getVipLevels(),
-                vipService.getVipBenefits()
-            ]);
+            await vipService.getVipInfo();
+            await vipService.getVipLevels();
+            await vipService.getVipBenefits();
 
             this.renderVipInfo();
             this.renderVipLevels();
@@ -72,14 +70,14 @@ export class VipUI {
 
         // 下一级所需经验
         if (this.elements.expToNextLevel) {
-            const nextLevelExp = info.nextLevelExp || 0;
+            const nextLevelExp = info.nextLevelExp || info.currentExp || 0;
             const currentExp = info.currentExp || 0;
             this.elements.expToNextLevel.textContent = `${currentExp}/${nextLevelExp}`;
         }
 
         // 经验进度条
         if (this.elements.expProgressBar) {
-            const nextLevelExp = info.nextLevelExp || 1;
+            const nextLevelExp = info.nextLevelExp || info.currentExp || 1;
             const currentExp = info.currentExp || 0;
             const progress = Math.min((currentExp / nextLevelExp) * 100, 100);
             this.elements.expProgressBar.style.width = `${progress}%`;

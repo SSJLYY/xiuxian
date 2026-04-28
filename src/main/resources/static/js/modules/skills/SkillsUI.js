@@ -49,6 +49,7 @@ export class SkillsUI {
         container.innerHTML = skills.map(skill => {
             const elementColor = { FIRE: '#e74c3c', WATER: '#3498db', GRASS: '#27ae60', THUNDER: '#f1c40f', ICE: '#00bcd4', DARK: '#9b59b6', LIGHT: '#f39c12', PHYSICAL: '#95a5a6' }[skill.elementType] || '#aaa';
             const isEquipped = skill.equippedSlot != null;
+            const playerSkillId = skill.playerSkillId || skill.id;
             return `
                 <div class="skill-card p-4 rounded" style="background:rgba(255,255,255,0.05);border:1px solid ${isEquipped ? elementColor : 'rgba(255,255,255,0.1)'};">
                     <div class="flex items-center justify-between mb-2">
@@ -70,9 +71,9 @@ export class SkillsUI {
                         <span>冷却 ${skill.cooldown || 0}秒</span>
                     </div>
                     <div class="flex gap-2 flex-wrap mt-3">
-                        ${!isEquipped ? `<button class="btn btn-sm btn-primary" onclick="equipSkill(${skill.id || skill.playerSkillId}, 0)"><i class="fa-solid fa-hand-sparkles"></i> 装备</button>` : ''}
-                        ${isEquipped ? `<button class="btn btn-sm" onclick="unequipSkill(${skill.id || skill.playerSkillId})"><i class="fa-solid fa-hand"></i> 卸下</button>` : ''}
-                        <button class="btn btn-sm" onclick="upgradeSkill(${skill.id || skill.playerSkillId})"><i class="fa-solid fa-arrow-up"></i> 升级</button>
+                        ${!isEquipped ? `<button class="btn btn-sm btn-primary" onclick="equipSkill(${playerSkillId}, 0)"><i class="fa-solid fa-hand-sparkles"></i> 装备</button>` : ''}
+                        ${isEquipped ? `<button class="btn btn-sm" onclick="unequipSkill(${playerSkillId})"><i class="fa-solid fa-hand"></i> 卸下</button>` : ''}
+                        <button class="btn btn-sm" onclick="upgradeSkill(${playerSkillId})"><i class="fa-solid fa-arrow-up"></i> 升级</button>
                     </div>
                 </div>
             `;

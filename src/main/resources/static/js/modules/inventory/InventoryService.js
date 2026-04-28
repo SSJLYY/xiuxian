@@ -13,13 +13,69 @@ export class InventoryService {
         };
     }
 
+    normalizeQualityLabel(quality) {
+        const mapping = {
+            1: 'common',
+            2: 'uncommon',
+            3: 'rare',
+            4: 'epic',
+            5: 'legendary'
+        };
+        return mapping[Number(quality)] || 'common';
+    }
+
+    normalizeItemType(rawType, fallbackType = '') {
+        const source = String(rawType || fallbackType || '').trim();
+        const upper = source.toUpperCase();
+        const mappings = {
+            EQUIPMENT: { code: 'EQUIPMENT', name: '装备' },
+            CONSUMABLE: { code: 'CONSUMABLE', name: '消耗品' },
+            MATERIAL: { code: 'MATERIAL', name: '材料' },
+            QUEST: { code: 'QUEST', name: '任务物品' },
+            QUEST_ITEM: { code: 'QUEST', name: '任务物品' },
+            SKILL: { code: 'SKILL', name: '技能' },
+            PET: { code: 'PET', name: '宠物' },
+            装备: { code: 'EQUIPMENT', name: '装备' },
+            消耗品: { code: 'CONSUMABLE', name: '消耗品' },
+            材料: { code: 'MATERIAL', name: '材料' },
+            任务物品: { code: 'QUEST', name: '任务物品' },
+            技能: { code: 'SKILL', name: '技能' },
+            宠物: { code: 'PET', name: '宠物' }
+        };
+        return mappings[upper] || mappings[source] || {
+            code: upper || source || 'UNKNOWN',
+            name: source || '未知'
+        };
+    }
+
+    normalizeItem(item, category = '') {
+        const itemType = this.normalizeItemType(item?.itemType, category);
+        return {
+            ...item,
+            id: item?.id,
+            playerItemId: item?.id,
+            itemId: item?.itemId ?? item?.id,
+            itemName: item?.itemName || '未知物品',
+            itemDescription: item?.itemDescription || '',
+            itemType: itemType.name,
+            itemTypeCode: itemType.code,
+            itemQualityLevel: Number(item?.itemQuality ?? 1),
+            itemQuality: this.normalizeQualityLabel(item?.itemQuality),
+            itemIcon: '/images/items/default.png',
+            itemStats: null
+        };
+    }
+
     async loadInventoryItems() {
         try {
             const response = await gameAPI.getInventoryCategorized();
             if (!response?.success) {
                 throw new Error(response?.message || '获取背包物品失败');
             }
-            this.categorizedItems = response.data || {};
+            this.categorizedItems = Object.entries(response.data || {}).reduce((acc, [key, items]) => {
+                acc[key] = (items || []).map(item => this.normalizeItem(item, key));
+                return acc;
+            }, {});
             this.currentItems = this.applyFilter();
             return this.categorizedItems;
         } catch (error) {
@@ -35,7 +91,11 @@ export class InventoryService {
         }
 
         if (this.filter.type) {
-            allItems = allItems.filter(item => item.itemType === this.filter.type);
+            const normalizedFilter = this.normalizeItemType(this.filter.type);
+            allItems = allItems.filter(item =>
+                item.itemType === this.filter.type ||
+                item.itemTypeCode === normalizedFilter.code
+            );
         }
 
         if (this.filter.searchTerm) {
@@ -61,9 +121,9 @@ export class InventoryService {
                     comparison = new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
                     break;
                 default: {
-                    const typeOrder = { '装备': 1, '消耗品': 2, '材料': 3, '任务物品': 4 };
-                    const aTypeOrder = typeOrder[a.itemType] || 5;
-                    const bTypeOrder = typeOrder[b.itemType] || 5;
+                    const typeOrder = { EQUIPMENT: 1, CONSUMABLE: 2, MATERIAL: 3, QUEST: 4, SKILL: 5, PET: 6 };
+                    const aTypeOrder = typeOrder[a.itemTypeCode] || 99;
+                    const bTypeOrder = typeOrder[b.itemTypeCode] || 99;
                     comparison = aTypeOrder - bTypeOrder;
                 }
             }
@@ -90,24 +150,14 @@ export class InventoryService {
         }
     }
 
-    async equipItem(itemId) {
-        try {
-            const response = await gameAPI.equipItem(itemId);
-            if (!response?.success) {
-                throw new Error(response?.message || '装备失败');
-            }
-            toast.success('装备成功');
-            await this.loadInventoryItems();
-            return response.data;
-        } catch (error) {
-            toast.error('装备失败: ' + error.message);
-            throw error;
-        }
+    async equipItem() {
+        toast.error('当前版本请转到装备页面进行穿戴');
+        throw new Error('请转到装备页面进行穿戴');
     }
 
-    async unequipItem(slot) {
+    async unequipItem(playerEquipmentId) {
         try {
-            const response = await gameAPI.unequipItem(slot);
+            const response = await gameAPI.unequipItem(playerEquipmentId);
             if (!response?.success) {
                 throw new Error(response?.message || '卸下失败');
             }
@@ -122,7 +172,7 @@ export class InventoryService {
 
     async sellItem(itemId, quantity = 1) {
         if (!itemId || quantity < 1) {
-            toast.error('参数错误');
+            toast.error('参数无效');
             return null;
         }
 
@@ -142,11 +192,11 @@ export class InventoryService {
 
     async discardItem(itemId, quantity = 1) {
         if (!itemId || quantity < 1) {
-            toast.error('参数错误');
+            toast.error('参数无效');
             return null;
         }
 
-        if (!confirm('确定要丢弃这个物品吗？此操作不可恢复。')) {
+        if (!confirm('确定要丢弃该物品吗？此操作不可恢复。')) {
             return null;
         }
 

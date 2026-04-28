@@ -7,13 +7,27 @@ export class ShopService {
         this.myOrders = [];
     }
 
+    normalizeShopItem(item) {
+        return {
+            ...item,
+            id: item?.id,
+            name: item?.itemName || item?.equipmentName || item?.name || '未知商品',
+            description: item?.itemDescription || item?.equipmentDescription || item?.description || '',
+            category: item?.itemType || item?.equipmentType || item?.shopType || 'general',
+            quality: item?.itemQuality || item?.equipmentQuality || item?.quality || 'common',
+            price: item?.priceSpiritStones ?? item?.price ?? 0,
+            stock: item?.stock ?? -1,
+            image: '/images/items/default.png'
+        };
+    }
+
     async getShopItems(category = 'all') {
         try {
             const response = await gameAPI.getShopItems(category);
             if (!response?.success) {
                 throw new Error(response?.message || '加载商品列表失败');
             }
-            this.shopItems = response.data || [];
+            this.shopItems = (response.data || []).map(item => this.normalizeShopItem(item));
             return this.shopItems;
         } catch (error) {
             toast.error('加载商品列表失败: ' + error.message);
@@ -36,7 +50,6 @@ export class ShopService {
     }
 
     async getMyOrders() {
-        // 当前后端尚未提供商城订单查询接口，返回空列表以避免把商品数据误当订单渲染。
         this.myOrders = [];
         return this.myOrders;
     }
