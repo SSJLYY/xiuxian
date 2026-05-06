@@ -236,7 +236,6 @@ public class TypeStandardizationService {
     }
     
     private TypeStandardizationRecommendation analyzeNumericTypeStandardization(ColumnInfo column) {
-        String dbType = column.getDataType().toLowerCase();
         Class<?> currentRecommendedType = columnTypeMapper.mapToJavaType(column);
         Class<?> standardizedType = dataTypeRegistry.getStandardizedNumericType(column);
         

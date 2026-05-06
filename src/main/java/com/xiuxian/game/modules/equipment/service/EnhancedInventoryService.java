@@ -327,7 +327,7 @@ public class EnhancedInventoryService {
         }
         
         // 增加玩家灵石
-        player.setSpiritStones(player.getSpiritStones() + totalEarned);
+        player.setSpiritStones(defaultLong(player.getSpiritStones()) + totalEarned);
         playerService.savePlayerProfile(player);
         
         result.put("sold", totalSold);
@@ -479,5 +479,8 @@ public class EnhancedInventoryService {
         public void setQuantity(Integer quantity) {
             this.quantity = quantity;
         }
+    }
+    private long defaultLong(Long value) {
+        return value == null ? 0L : value;
     }
 }

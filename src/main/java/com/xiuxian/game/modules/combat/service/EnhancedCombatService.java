@@ -79,10 +79,10 @@ public class EnhancedCombatService {
         }
 
         // 获取玩家属性（含装备加成）
-        int playerHealth = player.getHealth() + player.getEquipmentHealthBonus();
-        int playerAttack = player.getAttack() + player.getEquipmentAttackBonus();
-        int playerDefense = player.getDefense() + player.getEquipmentDefenseBonus();
-        int playerSpeed = player.getSpeed() + player.getEquipmentSpeedBonus();
+        int playerHealth = player.getTotalHealth();
+        int playerAttack = player.getTotalAttack();
+        int playerDefense = player.getTotalDefense();
+        int playerSpeed = player.getTotalSpeed();
         int playerMana = player.getMana() == null ? 0 : player.getMana();
 
         // 获取宠物加成
@@ -97,7 +97,6 @@ public class EnhancedCombatService {
         }
 
         int monsterHealth = monster.getHealth();
-        int monsterAttack = monster.getAttack();
         int monsterDefense = monster.getDefense();
         int monsterSpeed = monster.getSpeed();
 
@@ -180,7 +179,7 @@ public class EnhancedCombatService {
         Integer droppedEquipmentId = null;
 
         // 累加 totalBattles（无论输赢）
-        player.setTotalBattles(player.getTotalBattles() + 1);
+        player.setTotalBattles(defaultInt(player.getTotalBattles()) + 1);
 
         if (playerWon) {
             battleLog.add("战斗胜利！");
@@ -201,8 +200,8 @@ public class EnhancedCombatService {
             }
 
             // 更新玩家数据
-            player.setExp(player.getExp() + expGained);
-            player.setSpiritStones(player.getSpiritStones() + spiritStonesGained);
+            player.setExp(defaultLong(player.getExp()) + expGained);
+            player.setSpiritStones(defaultLong(player.getSpiritStones()) + spiritStonesGained);
 
             int oldLevel = player.getLevel();
             int levelUps = playerService.applyLevelUpsWithoutCommit(player, 100);
@@ -421,5 +420,13 @@ public class EnhancedCombatService {
         }
 
         return Math.max(1, baseReward);
+    }
+
+    private int defaultInt(Integer value) {
+        return value == null ? 0 : value;
+    }
+
+    private long defaultLong(Long value) {
+        return value == null ? 0L : value;
     }
 }

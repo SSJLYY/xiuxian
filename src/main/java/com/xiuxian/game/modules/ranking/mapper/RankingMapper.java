@@ -18,7 +18,7 @@ public interface RankingMapper extends BaseMapper<Ranking> {
      * @param rankings 排行榜列表
      */
     @Insert("<script>" +
-            "INSERT INTO rankings (player_id, ranking_type, rank, score, updated_at) VALUES " +
+            "INSERT INTO rankings (player_id, ranking_type, `rank`, score, updated_at) VALUES " +
             "<foreach collection='list' item='r' separator=','>" +
             "(#{r.playerId}, #{r.rankingType}, #{r.rank}, #{r.score}, #{r.updatedAt})" +
             "</foreach>" +

@@ -242,6 +242,7 @@ public class PlayerService {
                     "灵石不足，需要" + BREAKTHROUGH_COST + "灵石进行境界突破");
         }
         long currentSpiritStones = profile.getSpiritStones();
+        profile.setSpiritStones(currentSpiritStones - BREAKTHROUGH_COST);
         // 消耗灵石
         profile.setSpiritStones(currentSpiritStones - BREAKTHROUGH_COST);
         // 成功率判断
@@ -435,7 +436,7 @@ public class PlayerService {
                 log.info("灵石超限，{} 灵石转为修炼点数", overflowSpiritStones);
             }
 
-            profile.setExp(profile.getExp() + expGained);
+            profile.setExp(defaultLong(profile.getExp()) + expGained);
             profile.setSpiritStones(currentSpiritStones + spiritStonesToAdd);
             cultivationService.recordCultivation(
                     profile.getId(),
@@ -450,7 +451,7 @@ public class PlayerService {
                     actualCultivationTime, expGained, spiritStonesGained, cultivationSpeedMultiplier);
 
             // 【2026-04-17 优化】限制单次最多升级 5 次，防止批量修炼导致超时
-            int oldLevel = profile.getLevel();
+            int oldLevel = defaultInt(profile.getLevel(), 1);
             int maxLevelUps = 5;
             int levelUps = 0;
             long remainingExp = 0;
@@ -459,13 +460,13 @@ public class PlayerService {
                 levelUps++;
             }
             
-            if (profile.getExp() >= profile.getExpToNext()) {
-                remainingExp = profile.getExp() - profile.getExpToNext();
-                profile.setExp(profile.getExpToNext());
+            if (defaultLong(profile.getExp()) >= defaultLong(profile.getExpToNext())) {
+                remainingExp = defaultLong(profile.getExp()) - defaultLong(profile.getExpToNext());
+                profile.setExp(defaultLong(profile.getExpToNext()));
                 log.info("升级次数达到上限{}次，剩余{}经验存入缓冲区", maxLevelUps, remainingExp);
             }
             
-            if (profile.getLevel() > oldLevel) {
+            if (defaultInt(profile.getLevel(), 1) > oldLevel) {
                 result.put("levelUps", levelUps);
                 log.info("玩家升级：{}级 -> {}级，共升级{}次", oldLevel, profile.getLevel(), levelUps);
             }
@@ -492,28 +493,28 @@ public class PlayerService {
      * 检查升级但不提交事务（用于循环检查）
      */
     private boolean checkLevelUpWithoutCommit(PlayerProfile profile) {
-        if (profile.getExp() < profile.getExpToNext()) {
+        if (defaultLong(profile.getExp()) < defaultLong(profile.getExpToNext())) {
             return false;
         }
 
-        if (profile.getLevel() >= MAX_LEVEL) {
+        if (defaultInt(profile.getLevel(), 1) >= MAX_LEVEL) {
             log.warn("玩家已达到最大等级：ID={}, level={}", profile.getId(), profile.getLevel());
             return false;
         }
 
-        profile.setExp(profile.getExp() - profile.getExpToNext());
-        profile.setLevel(profile.getLevel() + 1);
-        profile.setExpToNext(balanceUtils.calculateExpToNext(profile.getLevel()));
+        profile.setExp(defaultLong(profile.getExp()) - defaultLong(profile.getExpToNext()));
+        profile.setLevel(defaultInt(profile.getLevel(), 1) + 1);
+        profile.setExpToNext(balanceUtils.calculateExpToNext(defaultInt(profile.getLevel(), 1)));
 
-        profile.setAttack(profile.getAttack() + LEVEL_UP_ATTACK_BONUS);
-        profile.setDefense(profile.getDefense() + LEVEL_UP_DEFENSE_BONUS);
-        profile.setHealth(profile.getHealth() + LEVEL_UP_HEALTH_BONUS);
-        profile.setMaxHealth(profile.getMaxHealth() + LEVEL_UP_HEALTH_BONUS);
-        profile.setMana(profile.getMana() + LEVEL_UP_MANA_BONUS);
-        profile.setMaxMana(profile.getMaxMana() + LEVEL_UP_MANA_BONUS);
-        profile.setSpeed(profile.getSpeed() + LEVEL_UP_SPEED_BONUS);
-        profile.setAttributePoints(profile.getAttributePoints() + REALM_BREAK_ATTRIBUTE_POINTS);
-        profile.setSkillPoints(profile.getSkillPoints() + REALM_BREAK_SKILL_POINTS);
+        profile.setAttack(defaultInt(profile.getAttack(), 0) + LEVEL_UP_ATTACK_BONUS);
+        profile.setDefense(defaultInt(profile.getDefense(), 0) + LEVEL_UP_DEFENSE_BONUS);
+        profile.setHealth(defaultInt(profile.getHealth(), 0) + LEVEL_UP_HEALTH_BONUS);
+        profile.setMaxHealth(defaultInt(profile.getMaxHealth(), 0) + LEVEL_UP_HEALTH_BONUS);
+        profile.setMana(defaultInt(profile.getMana(), 0) + LEVEL_UP_MANA_BONUS);
+        profile.setMaxMana(defaultInt(profile.getMaxMana(), 0) + LEVEL_UP_MANA_BONUS);
+        profile.setSpeed(defaultInt(profile.getSpeed(), 0) + LEVEL_UP_SPEED_BONUS);
+        profile.setAttributePoints(defaultInt(profile.getAttributePoints(), 0) + REALM_BREAK_ATTRIBUTE_POINTS);
+        profile.setSkillPoints(defaultInt(profile.getSkillPoints(), 0) + REALM_BREAK_SKILL_POINTS);
 
         profile.setHealth(profile.getMaxHealth());
         profile.setMana(profile.getMaxMana());
@@ -562,23 +563,23 @@ public class PlayerService {
         log.debug("开始检查升级: 当前等级={}, 当前经验={}, 升级所需={}", 
                 profile.getLevel(), profile.getExp(), profile.getExpToNext());
         
-        while (profile.getExp() >= profile.getExpToNext()
+        while (defaultLong(profile.getExp()) >= defaultLong(profile.getExpToNext())
                 && levelUps < MAX_LEVEL_UPS_PER_CHECK
-                && profile.getLevel() < MAX_LEVEL) {
+                && defaultInt(profile.getLevel(), 1) < MAX_LEVEL) {
             String oldRealm = profile.getRealm();
-            int oldLevel = profile.getLevel();
+            int oldLevel = defaultInt(profile.getLevel(), 1);
             
             // 1. 升级
-            profile.setLevel(profile.getLevel() + 1);
-            profile.setExp(profile.getExp() - profile.getExpToNext());
-            profile.setExpToNext(profile.getExpToNext() * 2); // 下一级所需经验翻倍
+            profile.setLevel(defaultInt(profile.getLevel(), 1) + 1);
+            profile.setExp(defaultLong(profile.getExp()) - defaultLong(profile.getExpToNext()));
+            profile.setExpToNext(Math.max(1L, defaultLong(profile.getExpToNext()) * 2)); // 下一级所需经验翻倍
             
             // 2. 升级属性提升
-            profile.setAttack(profile.getAttack() + LEVEL_UP_ATTACK_BONUS);
-            profile.setDefense(profile.getDefense() + LEVEL_UP_DEFENSE_BONUS);
-            profile.setHealth(profile.getHealth() + LEVEL_UP_HEALTH_BONUS);
-            profile.setMana(profile.getMana() + LEVEL_UP_MANA_BONUS);
-            profile.setSpeed(profile.getSpeed() + LEVEL_UP_SPEED_BONUS);
+            profile.setAttack(defaultInt(profile.getAttack(), 0) + LEVEL_UP_ATTACK_BONUS);
+            profile.setDefense(defaultInt(profile.getDefense(), 0) + LEVEL_UP_DEFENSE_BONUS);
+            profile.setHealth(defaultInt(profile.getHealth(), 0) + LEVEL_UP_HEALTH_BONUS);
+            profile.setMana(defaultInt(profile.getMana(), 0) + LEVEL_UP_MANA_BONUS);
+            profile.setSpeed(defaultInt(profile.getSpeed(), 0) + LEVEL_UP_SPEED_BONUS);
             
             log.info("玩家升级: {}级 -> {}级, 属性提升: 攻击+{}, 防御+{}, 生命+{}, 法力+{}, 速度+{}",
                     oldLevel, profile.getLevel(),
@@ -630,7 +631,7 @@ public class PlayerService {
      * @param profile 玩家档案
      */
     private void updateRealm(PlayerProfile profile) {
-        int level = profile.getLevel();
+        int level = defaultInt(profile.getLevel(), 1);
         String newRealm;
         
         if (level >= 2001) {
@@ -838,9 +839,17 @@ public class PlayerService {
      * 保存（插入或更新）背包条目（供InventoryService使用）
      */
     public void savePlayerItem(PlayerItem playerItem) {
+        LocalDateTime now = LocalDateTime.now();
         if (playerItem.getId() == null) {
+            if (playerItem.getCreatedAt() == null) {
+                playerItem.setCreatedAt(now);
+            }
+            if (playerItem.getUpdatedAt() == null) {
+                playerItem.setUpdatedAt(now);
+            }
             playerItemMapper.insert(playerItem);
         } else {
+            playerItem.setUpdatedAt(now);
             playerItemMapper.updateById(playerItem);
         }
     }
@@ -856,6 +865,7 @@ public class PlayerService {
      * 根据ID获取背包条目后更新（供InventoryService使用）
      */
     public void updatePlayerItem(PlayerItem playerItem) {
+        playerItem.setUpdatedAt(LocalDateTime.now());
         playerItemMapper.updateById(playerItem);
     }
 
@@ -925,5 +935,13 @@ public class PlayerService {
         List<PlayerProfile> profiles = playerProfileMapper.selectBatchIds(playerIds);
         return profiles.stream()
                 .collect(java.util.stream.Collectors.toMap(PlayerProfile::getId, p -> p, (a, b) -> a));
+    }
+
+    private int defaultInt(Integer value, int defaultValue) {
+        return value == null ? defaultValue : value;
+    }
+
+    private long defaultLong(Long value) {
+        return value == null ? 0L : value;
     }
 }

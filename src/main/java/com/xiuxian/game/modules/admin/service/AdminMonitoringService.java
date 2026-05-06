@@ -72,7 +72,6 @@ public class AdminMonitoringService {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        long[] ticks = processor.getSystemCpuLoadTicks();
         double cpuUsage = processor.getSystemCpuLoadBetweenTicks(prevTicks) * 100;
         info.put("cpuUsage", String.format("%.2f%%", cpuUsage));
 

@@ -257,8 +257,8 @@ public class GuildBossService {
         int exp = (int) (boss.getRewardExp() * getDamageRatio(boss.getId(), playerId));
 
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
-        player.setSpiritStones(player.getSpiritStones() + stones);
-        player.setExp(player.getExp() + exp);
+        player.setSpiritStones(defaultLong(player.getSpiritStones()) + stones);
+        player.setExp(defaultLong(player.getExp()) + exp);
         playerService.applyLevelUpsWithoutCommit(player, 100);
         playerService.savePlayerProfile(player);
 
@@ -651,5 +651,8 @@ public class GuildBossService {
             name = n; description = d; level = lv; maxHealth = hp;
             attack = atk; defense = def; rewardStones = stones; rewardExp = exp;
         }
+    }
+    private long defaultLong(Long value) {
+        return value == null ? 0L : value;
     }
 }

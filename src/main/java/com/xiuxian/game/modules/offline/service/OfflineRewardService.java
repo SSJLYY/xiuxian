@@ -59,8 +59,9 @@ public class OfflineRewardService {
         }
 
         long effectiveMinutes = Math.min(offlineMinutes, MAX_OFFLINE_HOURS * 60L);
-        int expPerHour = BASE_EXP_PER_HOUR + player.getLevel() * 5;
-        int spiritStonesPerHour = BASE_SPIRIT_STONES_PER_HOUR + player.getLevel() * 2;
+        int playerLevel = defaultInt(player.getLevel(), 1);
+        int expPerHour = BASE_EXP_PER_HOUR + playerLevel * 5;
+        int spiritStonesPerHour = BASE_SPIRIT_STONES_PER_HOUR + playerLevel * 2;
         int totalExp = (int) (expPerHour * effectiveMinutes / 60.0);
         int totalSpiritStones = (int) (spiritStonesPerHour * effectiveMinutes / 60.0);
 
@@ -101,10 +102,10 @@ public class OfflineRewardService {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "奖励已被领取");
         }
 
-        player.setExp(player.getExp() + reward.getExpGained());
-        player.setSpiritStones(player.getSpiritStones() + reward.getSpiritStonesGained());
+        player.setExp(defaultLong(player.getExp()) + defaultInt(reward.getExpGained(), 0));
+        player.setSpiritStones(defaultLong(player.getSpiritStones()) + defaultInt(reward.getSpiritStonesGained(), 0));
 
-        int oldLevel = player.getLevel();
+        int oldLevel = defaultInt(player.getLevel(), 1);
         int levelUps = playerService.applyLevelUpsWithoutCommit(player, MAX_OFFLINE_LEVEL_UPS);
         boolean leveledUp = levelUps > 0;
 
@@ -139,5 +140,13 @@ public class OfflineRewardService {
         result.put("message", "离线" + (reward.getOfflineMinutes() / 60) + "小时" +
                 (reward.getOfflineMinutes() % 60) + "分钟");
         return result;
+    }
+
+    private int defaultInt(Integer value, int defaultValue) {
+        return value == null ? defaultValue : value;
+    }
+
+    private long defaultLong(Long value) {
+        return value == null ? 0L : value;
     }
 }

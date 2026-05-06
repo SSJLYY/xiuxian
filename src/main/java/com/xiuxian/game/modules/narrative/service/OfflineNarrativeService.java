@@ -85,7 +85,7 @@ public class OfflineNarrativeService {
         }
 
         // 等级检查
-        if (event.getMinLevel() != null && player.getLevel() < event.getMinLevel()) {
+        if (event.getMinLevel() != null && defaultInt(player.getLevel(), 1) < event.getMinLevel()) {
             return false;
         }
 
@@ -147,5 +147,8 @@ public class OfflineNarrativeService {
         private String title;
         private String narrative;
         private List<String> rewards;
+    }
+    private int defaultInt(Integer value, int defaultValue) {
+        return value == null ? defaultValue : value;
     }
 }

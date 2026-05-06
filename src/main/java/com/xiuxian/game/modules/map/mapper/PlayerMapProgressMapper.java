@@ -39,7 +39,7 @@ public interface PlayerMapProgressMapper extends BaseMapper<PlayerMapProgress> {
     /**
      * 查询特定地图的进度
      */
-    @Select("SELECT * FROM player_map_progress WHERE player_id = #{playerId} AND map_id = #{mapId}")
+    @Select("SELECT * FROM player_map_progress WHERE player_id = #{playerId} AND map_id = #{mapId} ORDER BY id DESC LIMIT 1")
     PlayerMapProgress selectByPlayerAndMap(@Param("playerId") Integer playerId, @Param("mapId") Integer mapId);
 
     @Select("SELECT * FROM player_map_progress " +

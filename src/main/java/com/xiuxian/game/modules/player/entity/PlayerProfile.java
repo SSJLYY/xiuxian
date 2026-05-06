@@ -219,35 +219,39 @@ public class PlayerProfile {
      * 获取总攻击力（基础 + 装备加成）
      */
     public Integer getTotalAttack() {
-        return this.attack + (this.equipmentAttackBonus != null ? this.equipmentAttackBonus : 0);
+        return defaultInt(this.attack) + defaultInt(this.equipmentAttackBonus);
     }
     
     /**
      * 获取总防御力（基础 + 装备加成）
      */
     public Integer getTotalDefense() {
-        return this.defense + (this.equipmentDefenseBonus != null ? this.equipmentDefenseBonus : 0);
+        return defaultInt(this.defense) + defaultInt(this.equipmentDefenseBonus);
     }
     
     /**
      * 获取总生命值（基础 + 装备加成）
      */
     public Integer getTotalHealth() {
-        return this.health + (this.equipmentHealthBonus != null ? this.equipmentHealthBonus : 0);
+        return defaultInt(this.health) + defaultInt(this.equipmentHealthBonus);
     }
     
     /**
      * 获取总法力值（基础 + 装备加成）
      */
     public Integer getTotalMana() {
-        return this.mana + (this.equipmentManaBonus != null ? this.equipmentManaBonus : 0);
+        return defaultInt(this.mana) + defaultInt(this.equipmentManaBonus);
     }
     
     /**
      * 获取总速度（基础 + 装备加成）
      */
     public Integer getTotalSpeed() {
-        return this.speed + (this.equipmentSpeedBonus != null ? this.equipmentSpeedBonus : 0);
+        return defaultInt(this.speed) + defaultInt(this.equipmentSpeedBonus);
+    }
+
+    private int defaultInt(Integer value) {
+        return value == null ? 0 : value;
     }
     
     // 新增：技能加成的setter和getter方法

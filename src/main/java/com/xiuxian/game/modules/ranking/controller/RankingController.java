@@ -131,22 +131,25 @@ public class RankingController {
             result.put("rank", rank != null ? rank : "未上榜");
             result.put("type", type);
             result.put("playerId", playerId);
-            result.put("playerName", player != null ? player.getNickname() : "");
-            result.put("realm", player != null ? player.getRealm() : "");
+            result.put("playerName", player.getNickname());
+            result.put("realm", player.getRealm());
 
             // 根据类型添加对应的分数
-            if (player != null && rank != null) {
+            if (rank != null) {
                 switch (rankingType) {
                     case "LEVEL":
                         result.put("score", player.getLevel());
                         break;
                     case "COMBAT_POWER":
-                        long combatPower = player.getAttack() + player.getDefense() +
-                                          player.getHealth() + player.getMana() + player.getSpeed();
+                        long combatPower = player.getTotalAttack() + player.getTotalDefense() +
+                                player.getTotalHealth() + player.getTotalMana() + player.getTotalSpeed();
                         result.put("score", combatPower);
                         break;
                     case "SPIRIT_STONES":
                         result.put("score", player.getSpiritStones());
+                        break;
+                    default:
+                        result.put("score", null);
                         break;
                 }
             }

@@ -481,10 +481,10 @@ public class NarrativeService {
     private boolean meetsPrerequisites(DialogueTree tree, Integer playerId, Set<String> playerFlags) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
 
-        if (tree.getMinLevel() != null && player.getLevel() < tree.getMinLevel()) {
+        if (tree.getMinLevel() != null && defaultInt(player.getLevel(), 1) < tree.getMinLevel()) {
             return false;
         }
-        if (tree.getMaxLevel() != null && player.getLevel() > tree.getMaxLevel()) {
+        if (tree.getMaxLevel() != null && defaultInt(player.getLevel(), 1) > tree.getMaxLevel()) {
             return false;
         }
         if (tree.getRequiredRealm() != null && !tree.getRequiredRealm().trim().isEmpty()) {
@@ -605,6 +605,10 @@ public class NarrativeService {
             private String text;
             private String tag;
         }
+    }
+
+    private int defaultInt(Integer value, int defaultValue) {
+        return value == null ? defaultValue : value;
     }
 }
 

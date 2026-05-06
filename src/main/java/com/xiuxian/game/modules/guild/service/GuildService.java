@@ -77,7 +77,7 @@ public class GuildService {
         validateGuildCreation(playerId, guildName, description);
         
         // 校验玩家状态 + 扣费
-        PlayerProfile profile = validatePlayerAndDeductFee(playerId);
+        validatePlayerAndDeductFee(playerId);
         
         // 创建宗门实体
         Guild guild = buildGuildEntity(guildName, description, playerId);
@@ -132,21 +132,20 @@ public class GuildService {
      * @return 玩家档案
      * @throws BusinessException 当玩家不存在、等级不足或灵石不足时抛出
      */
-    private PlayerProfile validatePlayerAndDeductFee(Integer playerId) {
+    private void validatePlayerAndDeductFee(Integer playerId) {
         PlayerProfile profile = playerService.getPlayerProfileById(playerId);
         if (profile == null) {
             throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
         }
-        if (profile.getLevel() < 20) {
+        if (defaultInt(profile.getLevel(), 1) < 20) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "需要达到20级才能创建宗门");
         }
         final long CREATE_COST = 10000L;
-        if (profile.getSpiritStones() < CREATE_COST) {
+        if (defaultLong(profile.getSpiritStones()) < CREATE_COST) {
             throw new BusinessException(ErrorCode.INSUFFICIENT_SPIRIT_STONES, "创建宗门需要" + CREATE_COST + "灵石");
         }
-        profile.setSpiritStones(profile.getSpiritStones() - CREATE_COST);
+        profile.setSpiritStones(defaultLong(profile.getSpiritStones()) - CREATE_COST);
         playerService.savePlayerProfile(profile);
-        return profile;
     }
     
     /**
@@ -233,7 +232,7 @@ public class GuildService {
             throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
         }
         
-        if (profile.getLevel() < 10) {
+        if (defaultInt(profile.getLevel(), 1) < 10) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "需要达到10级才能加入宗门");
         }
         
@@ -410,11 +409,11 @@ public class GuildService {
         
         // 扣除玩家灵石
         PlayerProfile profile = playerService.getPlayerProfileById(playerId);
-        if (profile.getSpiritStones() < amount) {
+        if (defaultLong(profile.getSpiritStones()) < amount) {
             throw new BusinessException(ErrorCode.INSUFFICIENT_SPIRIT_STONES);
         }
         
-        profile.setSpiritStones(profile.getSpiritStones() - amount);
+        profile.setSpiritStones(defaultLong(profile.getSpiritStones()) - amount);
         playerService.savePlayerProfile(profile);
         
         // 原子增加宗门资金（防止并发捐献导致资金不一致）
@@ -493,6 +492,13 @@ public class GuildService {
         }
         
         return guildMapper.selectById(member.getGuildId());
+    }
+    private int defaultInt(Integer value, int defaultValue) {
+        return value == null ? defaultValue : value;
+    }
+
+    private long defaultLong(Long value) {
+        return value == null ? 0L : value;
     }
 }
 

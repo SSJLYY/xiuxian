@@ -363,7 +363,7 @@ public class InventoryService {
         long sellPrice = ((long) item.getPrice() * quantity) / 2;
 
         // 增加玩家灵石
-        player.setSpiritStones(player.getSpiritStones() + sellPrice);
+        player.setSpiritStones(defaultLong(player.getSpiritStones()) + sellPrice);
         playerService.savePlayerProfile(player);
 
         // 减少物品数量
@@ -417,5 +417,8 @@ public class InventoryService {
         }
 
         return response;
+    }
+    private long defaultLong(Long value) {
+        return value == null ? 0L : value;
     }
 }

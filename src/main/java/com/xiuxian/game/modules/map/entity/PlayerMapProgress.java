@@ -74,7 +74,7 @@ public class PlayerMapProgress {
         if (this.lastEnterAt != null) {
             int minutes = (int) java.time.Duration.between(
                 this.lastEnterAt, LocalDateTime.now()).toMinutes();
-            this.totalTimeSpent += minutes;
+            this.totalTimeSpent += Math.max(minutes, 0);
         }
     }
 
@@ -100,6 +100,6 @@ public class PlayerMapProgress {
      * 增加击杀数
      */
     public void addKill() {
-        this.totalKills++;
+        this.totalKills = this.totalKills == null ? 1 : this.totalKills + 1;
     }
 }

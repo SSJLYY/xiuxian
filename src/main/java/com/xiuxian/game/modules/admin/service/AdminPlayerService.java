@@ -142,11 +142,11 @@ public class AdminPlayerService {
         }
 
         if (spiritStones != null && spiritStones > 0) {
-            profile.setSpiritStones(profile.getSpiritStones() + spiritStones);
+            profile.setSpiritStones(defaultLong(profile.getSpiritStones()) + spiritStones);
         }
 
         if (exp != null && exp > 0) {
-            profile.setExp(profile.getExp() + exp);
+            profile.setExp(defaultLong(profile.getExp()) + exp);
         }
 
         profile.setUpdatedAt(LocalDateTime.now());
@@ -204,5 +204,8 @@ public class AdminPlayerService {
         u.setPassword(passwordEncoder.encode(newPassword));
         u.setMustChangePassword(false);
         userMapper.updateById(u);
+    }
+    private long defaultLong(Long value) {
+        return value == null ? 0L : value;
     }
 }

@@ -48,17 +48,17 @@ public class GameCalculator {
     }
 
     public void checkLevelUp(PlayerProfile player) {
-        long expNeeded = player.getLevel() * 100L;
-        while (player.getExp() >= expNeeded) {
-            player.setExp(player.getExp() - expNeeded);
-            player.setLevel(player.getLevel() + 1);
+        long expNeeded = defaultInt(player.getLevel(), 1) * 100L;
+        while (defaultLong(player.getExp()) >= expNeeded) {
+            player.setExp(defaultLong(player.getExp()) - expNeeded);
+            player.setLevel(defaultInt(player.getLevel(), 1) + 1);
             updateRealm(player);
-            expNeeded = player.getLevel() * 100L;
+            expNeeded = defaultInt(player.getLevel(), 1) * 100L;
         }
     }
 
     private void updateRealm(PlayerProfile player) {
-        int level = player.getLevel();
+        int level = defaultInt(player.getLevel(), 1);
         if (level >= 2001) player.setRealm("渡劫境界");
         else if (level >= 1501) player.setRealm("大乘境界");
         else if (level >= 1001) player.setRealm("合体境界");
@@ -135,5 +135,12 @@ public class GameCalculator {
         // 高境界可以略微减少技能冷却时间
         BigDecimal bonus = REALM_BONUS.getOrDefault(realm, BigDecimal.ZERO);
         return Math.min(bonus.doubleValue() * 0.1, 0.5); // 最大减少50%冻结时间
+    }
+    private int defaultInt(Integer value, int defaultValue) {
+        return value == null ? defaultValue : value;
+    }
+
+    private long defaultLong(Long value) {
+        return value == null ? 0L : value;
     }
 }

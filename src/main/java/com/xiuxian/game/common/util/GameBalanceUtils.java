@@ -113,8 +113,10 @@ public class GameBalanceUtils {
      * @return 获得的灵石
      */
     public long calculateCultivationSpiritStones(PlayerProfile player, double hours) {
-        int level = player.getLevel();
-        double cultivationSpeed = player.getCultivationSpeed().doubleValue();
+        int level = player.getLevel() == null ? 1 : player.getLevel();
+        double cultivationSpeed = player.getCultivationSpeed() == null
+                ? 1.0
+                : player.getCultivationSpeed().doubleValue();
         double realmBonus = getRealmBonus(player.getRealm());
 
         double baseSpiritStones = balance.getCultivation().getBaseSpiritStonesPerHour() + level * 5;

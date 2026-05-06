@@ -265,7 +265,7 @@ public class EquipmentService {
             }
 
             // 检查等级要求
-            if (player.getLevel() < equipment.getRequiredLevel()) {
+            if (defaultInt(player.getLevel(), 1) < equipment.getRequiredLevel()) {
                 throw new BusinessException(ErrorCode.PARAM_ERROR, "等级不足，无法获取此装备");
             }
 
@@ -329,7 +329,7 @@ public class EquipmentService {
         Equipment equipment = equipmentMapper.selectById(playerEquipment.getEquipmentId());
         
         // 检查等级要求
-        if (player.getLevel() < equipment.getRequiredLevel()) {
+        if (defaultInt(player.getLevel(), 1) < equipment.getRequiredLevel()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "等级不足，无法装备此物品");
         }
 
@@ -440,22 +440,22 @@ public class EquipmentService {
      * 添加装备属性加成到玩家
      */
     private void addEquipmentBonuses(PlayerProfile player, Equipment equipment) {
-        player.setEquipmentAttackBonus(player.getEquipmentAttackBonus() + equipment.getAttackBonus());
-        player.setEquipmentDefenseBonus(player.getEquipmentDefenseBonus() + equipment.getDefenseBonus());
-        player.setEquipmentHealthBonus(player.getEquipmentHealthBonus() + equipment.getHealthBonus());
-        player.setEquipmentManaBonus(player.getEquipmentManaBonus() + equipment.getManaBonus());
-        player.setEquipmentSpeedBonus(player.getEquipmentSpeedBonus() + equipment.getSpeedBonus());
+        player.setEquipmentAttackBonus(defaultInt(player.getEquipmentAttackBonus(), 0) + defaultInt(equipment.getAttackBonus(), 0));
+        player.setEquipmentDefenseBonus(defaultInt(player.getEquipmentDefenseBonus(), 0) + defaultInt(equipment.getDefenseBonus(), 0));
+        player.setEquipmentHealthBonus(defaultInt(player.getEquipmentHealthBonus(), 0) + defaultInt(equipment.getHealthBonus(), 0));
+        player.setEquipmentManaBonus(defaultInt(player.getEquipmentManaBonus(), 0) + defaultInt(equipment.getManaBonus(), 0));
+        player.setEquipmentSpeedBonus(defaultInt(player.getEquipmentSpeedBonus(), 0) + defaultInt(equipment.getSpeedBonus(), 0));
     }
 
     /**
      * 移除装备属性加成从玩家
      */
     private void removeEquipmentBonuses(PlayerProfile player, Equipment equipment) {
-        player.setEquipmentAttackBonus(player.getEquipmentAttackBonus() - equipment.getAttackBonus());
-        player.setEquipmentDefenseBonus(player.getEquipmentDefenseBonus() - equipment.getDefenseBonus());
-        player.setEquipmentHealthBonus(player.getEquipmentHealthBonus() - equipment.getHealthBonus());
-        player.setEquipmentManaBonus(player.getEquipmentManaBonus() - equipment.getManaBonus());
-        player.setEquipmentSpeedBonus(player.getEquipmentSpeedBonus() - equipment.getSpeedBonus());
+        player.setEquipmentAttackBonus(defaultInt(player.getEquipmentAttackBonus(), 0) - defaultInt(equipment.getAttackBonus(), 0));
+        player.setEquipmentDefenseBonus(defaultInt(player.getEquipmentDefenseBonus(), 0) - defaultInt(equipment.getDefenseBonus(), 0));
+        player.setEquipmentHealthBonus(defaultInt(player.getEquipmentHealthBonus(), 0) - defaultInt(equipment.getHealthBonus(), 0));
+        player.setEquipmentManaBonus(defaultInt(player.getEquipmentManaBonus(), 0) - defaultInt(equipment.getManaBonus(), 0));
+        player.setEquipmentSpeedBonus(defaultInt(player.getEquipmentSpeedBonus(), 0) - defaultInt(equipment.getSpeedBonus(), 0));
     }
 
     /**
@@ -550,7 +550,7 @@ public class EquipmentService {
         // 计算强化所需灵石：基础100 + 等级*50 + 品质*100
         int enhanceCost = 100 + currentLevel * 50 + equipment.getQuality() * 100;
         
-        if (player.getSpiritStones() < enhanceCost) {
+        if (defaultLong(player.getSpiritStones()) < enhanceCost) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "灵石不足，需要 " + enhanceCost + " 灵石");
         }
 
@@ -559,7 +559,7 @@ public class EquipmentService {
         boolean success = rng().nextInt(100) < successRate;
 
         // 扣除灵石
-        player.setSpiritStones(player.getSpiritStones() - enhanceCost);
+        player.setSpiritStones(defaultLong(player.getSpiritStones()) - enhanceCost);
         playerService.savePlayerProfile(player);
 
         if (success) {
@@ -580,9 +580,9 @@ public class EquipmentService {
             
             // 如果装备已装备，更新玩家属性
             if (playerEquipment.getEquipped()) {
-                player.setEquipmentAttackBonus(player.getEquipmentAttackBonus() + attackBonus);
-                player.setEquipmentDefenseBonus(player.getEquipmentDefenseBonus() + defenseBonus);
-                player.setEquipmentHealthBonus(player.getEquipmentHealthBonus() + healthBonus);
+                player.setEquipmentAttackBonus(defaultInt(player.getEquipmentAttackBonus(), 0) + attackBonus);
+                player.setEquipmentDefenseBonus(defaultInt(player.getEquipmentDefenseBonus(), 0) + defenseBonus);
+                player.setEquipmentHealthBonus(defaultInt(player.getEquipmentHealthBonus(), 0) + healthBonus);
                 playerService.savePlayerProfile(player);
             }
         } else {
@@ -680,5 +680,13 @@ public class EquipmentService {
     @Transactional
     public void deletePlayerEquipment(Long playerEquipmentId) {
         playerEquipmentMapper.deleteById(playerEquipmentId);
+    }
+
+    private int defaultInt(Integer value, int defaultValue) {
+        return value == null ? defaultValue : value;
+    }
+
+    private long defaultLong(Long value) {
+        return value == null ? 0L : value;
     }
 }

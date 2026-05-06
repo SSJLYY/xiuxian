@@ -2,7 +2,9 @@ package com.xiuxian.game.modules.guild.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xiuxian.game.modules.guild.entity.GuildApplication;
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 /**
  * 宗门申请数据访问层
@@ -21,5 +23,15 @@ import org.apache.ibatis.annotations.Mapper;
  */
 @Mapper
 public interface GuildApplicationMapper extends BaseMapper<GuildApplication> {
+
+    @Insert("INSERT INTO guild_applications (guild_id, player_id, status, applied_at) " +
+            "SELECT #{guildId}, #{playerId}, 'PENDING', #{appliedAt} FROM DUAL " +
+            "WHERE NOT EXISTS (" +
+            "SELECT 1 FROM guild_applications " +
+            "WHERE guild_id = #{guildId} AND player_id = #{playerId} AND status = 'PENDING'" +
+            ")")
+    int insertPendingIfAbsent(@Param("guildId") Integer guildId,
+                              @Param("playerId") Integer playerId,
+                              @Param("appliedAt") java.time.LocalDateTime appliedAt);
 }
 

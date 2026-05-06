@@ -253,13 +253,13 @@ public class MailService {
         
         switch (itemType.toUpperCase()) {
             case "SPIRIT_STONES":
-                profile.setSpiritStones(profile.getSpiritStones() + quantity);
+                profile.setSpiritStones(defaultLong(profile.getSpiritStones()) + quantity);
                 playerService.savePlayerProfile(profile);
                 log.debug("发放灵石: playerId={}, quantity={}", profile.getId(), quantity);
                 break;
                 
             case "EXP":
-                profile.setExp(profile.getExp() + quantity);
+                profile.setExp(defaultLong(profile.getExp()) + quantity);
                 playerService.savePlayerProfile(profile);
                 log.debug("发放经验: playerId={}, quantity={}", profile.getId(), quantity);
                 break;
@@ -432,6 +432,9 @@ public class MailService {
         orig.setIsRead(true);
         mailMapper.updateById(orig);
         return true;
+    }
+    private long defaultLong(Long value) {
+        return value == null ? 0L : value;
     }
 }
 

@@ -69,16 +69,16 @@ public class ShopService {
         long needContribution = (long) item.getPriceContributionPoints() * quantity;
 
         if (needSpirit > 0) {
-            if (profile.getSpiritStones() < needSpirit) {
+            if (defaultLong(profile.getSpiritStones()) < needSpirit) {
                 throw new BusinessException(ErrorCode.SHOP_INSUFFICIENT_SPIRIT_STONES);
             }
-            profile.setSpiritStones(profile.getSpiritStones() - needSpirit);
+            profile.setSpiritStones(defaultLong(profile.getSpiritStones()) - needSpirit);
         }
         if (needContribution > 0) {
-            if (profile.getContributionPoints() < needContribution) {
+            if (defaultLong(profile.getContributionPoints()) < needContribution) {
                 throw new BusinessException(ErrorCode.SHOP_INSUFFICIENT_CONTRIBUTION);
             }
-            profile.setContributionPoints(profile.getContributionPoints() - needContribution);
+            profile.setContributionPoints(defaultLong(profile.getContributionPoints()) - needContribution);
         }
 
         // 扣除货币 — 通过PlayerService，遵守模块边界
@@ -104,15 +104,15 @@ public class ShopService {
         if (ssi == null || !Boolean.TRUE.equals(ssi.getAvailable())) {
             throw new BusinessException(ErrorCode.SHOP_ITEM_NOT_AVAILABLE);
         }
-        if (profile.getLevel() < ssi.getRequiredLevel()) {
+        if (defaultInt(profile.getLevel(), 1) < ssi.getRequiredLevel()) {
             throw new BusinessException(ErrorCode.SHOP_SKILL_LEVEL_NOT_ENOUGH);
         }
-        if (profile.getSpiritStones() < ssi.getPrice()) {
+        if (defaultLong(profile.getSpiritStones()) < ssi.getPrice()) {
             throw new BusinessException(ErrorCode.SHOP_INSUFFICIENT_SPIRIT_STONES);
         }
 
         // 扣除灵石
-        profile.setSpiritStones(profile.getSpiritStones() - ssi.getPrice());
+        profile.setSpiritStones(defaultLong(profile.getSpiritStones()) - ssi.getPrice());
         playerService.savePlayerProfile(profile);
 
         // 学习技能 — 通过SkillService，遵守模块边界
@@ -128,5 +128,12 @@ public class ShopService {
         } else {
             shopItemMapper.updateById(item);
         }
+    }
+    private int defaultInt(Integer value, int defaultValue) {
+        return value == null ? defaultValue : value;
+    }
+
+    private long defaultLong(Long value) {
+        return value == null ? 0L : value;
     }
 }

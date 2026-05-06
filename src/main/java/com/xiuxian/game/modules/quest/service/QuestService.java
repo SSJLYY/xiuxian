@@ -365,7 +365,7 @@ public class QuestService {
 
         Quest quest = questMapper.selectById(questId);
         LocalDateTime now = LocalDateTime.now();
-        playerQuest.setCurrentProgress(playerQuest.getCurrentProgress() + progress);
+        playerQuest.setCurrentProgress(defaultInt(playerQuest.getCurrentProgress()) + defaultInt(progress));
         
         if (playerQuest.getCurrentProgress() >= quest.getRequiredAmount()) {
             if (!Boolean.TRUE.equals(playerQuest.getCompleted()) && playerQuest.getCompletedAt() == null) {
@@ -432,13 +432,13 @@ public class QuestService {
     }
 
     private void applyQuestReward(PlayerProfile player, Quest quest) {
-        player.setExp(player.getExp() + quest.getRewardExp());
-        player.setSpiritStones(player.getSpiritStones() + quest.getRewardSpiritStones());
-        player.setContributionPoints(player.getContributionPoints() + quest.getRewardContributionPoints());
+        player.setExp(defaultLong(player.getExp()) + defaultInt(quest.getRewardExp()));
+        player.setSpiritStones(defaultLong(player.getSpiritStones()) + defaultInt(quest.getRewardSpiritStones()));
+        player.setContributionPoints(defaultLong(player.getContributionPoints()) + defaultInt(quest.getRewardContributionPoints()));
 
-        int attributePointsReward = quest.getRewardExp() / 100;
+        int attributePointsReward = defaultInt(quest.getRewardExp()) / 100;
         if (attributePointsReward > 0) {
-            player.setAttributePoints(player.getAttributePoints() + attributePointsReward);
+            player.setAttributePoints(defaultInt(player.getAttributePoints()) + attributePointsReward);
         }
     }
 
@@ -528,6 +528,14 @@ public class QuestService {
                 updateQuestProgressInternal(playerId, pq.getQuestId(), progress);
             }
         }
+    }
+
+    private int defaultInt(Integer value) {
+        return value == null ? 0 : value;
+    }
+
+    private long defaultLong(Long value) {
+        return value == null ? 0L : value;
     }
 
     private PlayerQuestDetailResponse toDetail(PlayerQuest pq, Quest q) {

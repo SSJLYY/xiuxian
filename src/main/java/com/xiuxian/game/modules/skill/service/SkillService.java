@@ -115,9 +115,9 @@ public class SkillService {
                     .equipped(ps.getEquipped())
                     .slotNumber(ps.getSlotNumber())
                     .cooldown(s.getCooldown() != null
-                            ? Math.max(1, s.getCooldown() - (ps.getLevel() - 1) / 2) : 0)
+                            ? Math.max(1, s.getCooldown() - (defaultInt(ps.getLevel(), 1) - 1) / 2) : 0)
                     .manaCost(s.getManaCost() != null
-                            ? s.getManaCost() + (ps.getLevel() - 1) : 0)
+                            ? s.getManaCost() + (defaultInt(ps.getLevel(), 1) - 1) : 0)
                     .skill(summary)
                     .build();
             res.add(sr);
@@ -162,7 +162,7 @@ public class SkillService {
                 skill.getName(), skill.getUnlockLevel(), skill.getRequiredSpiritStones());
 
         // 3. 检查等级要求
-        if (skill.getUnlockLevel() > player.getLevel()) {
+        if (skill.getUnlockLevel() > defaultInt(player.getLevel(), 1)) {
             log.warn("等级不足: 玩家等级={}, 需要等级={}", player.getLevel(), skill.getUnlockLevel());
             throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_REQUIREMENTS_NOT_MET +
                     ": 角色等级不足，需要" + skill.getUnlockLevel() + "级");
@@ -177,13 +177,13 @@ public class SkillService {
 
         // 5. 检查并扣除灵石
         if (skill.getRequiredSpiritStones() != null && skill.getRequiredSpiritStones() > 0) {
-            if (player.getSpiritStones() < skill.getRequiredSpiritStones()) {
+            if (defaultLong(player.getSpiritStones()) < skill.getRequiredSpiritStones()) {
                 log.warn("灵石不足: 拥有={}, 需要={}",
                         player.getSpiritStones(), skill.getRequiredSpiritStones());
                 throw new BusinessException(ErrorCode.PARAM_ERROR, "灵石不足，需要" + skill.getRequiredSpiritStones() + " 灵石");
             }
 
-            long oldSpiritStones = player.getSpiritStones();
+            long oldSpiritStones = defaultLong(player.getSpiritStones());
             player.setSpiritStones(oldSpiritStones - skill.getRequiredSpiritStones());
             playerService.savePlayerProfile(player);
             log.info("扣除灵石: {} -> {} (-{})",
@@ -258,7 +258,7 @@ public class SkillService {
             log.warn("技能不存在: playerSkillId={}, skillId={}", playerSkill.getId(), playerSkill.getSkillId());
             return 0;
         }
-        int skillLevel = playerSkill.getLevel();
+        int skillLevel = defaultInt(playerSkill.getLevel(), 1);
         double damage = (skill.getBaseDamage() != null ? skill.getBaseDamage() : 0) 
                 + (skillLevel - 1) * (skill.getDamagePerLevel() != null ? skill.getDamagePerLevel() : 0);
         String type = skill.getSkillType();
@@ -276,7 +276,7 @@ public class SkillService {
             return 0;
         }
         int baseCooldown = skill.getCooldown();
-        int skillLevel = playerSkill.getLevel();
+        int skillLevel = defaultInt(playerSkill.getLevel(), 1);
         int reducedCooldown = Math.max(1, baseCooldown - (skillLevel - 1) / 2);
         return reducedCooldown;
     }
@@ -290,7 +290,7 @@ public class SkillService {
             return 0;
         }
         int baseCost = skill.getManaCost();
-        int skillLevel = playerSkill.getLevel();
+        int skillLevel = defaultInt(playerSkill.getLevel(), 1);
         return baseCost + (skillLevel - 1);
     }
 
@@ -305,13 +305,13 @@ public class SkillService {
         if (!playerSkill.getPlayerId().equals(playerId)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "无权操作该技能");
         }
-        playerSkill.setExperience(playerSkill.getExperience() + expGain);
+        playerSkill.setExperience(defaultInt(playerSkill.getExperience(), 0) + expGain);
         Skill skill = skillMapper.selectById(playerSkill.getSkillId());
-        while (playerSkill.getExperience() >= calculateSkillUpgradeExp(playerSkill.getLevel())
-                && playerSkill.getLevel() < skill.getMaxLevel()) {
-            int requiredExp = calculateSkillUpgradeExp(playerSkill.getLevel());
-            playerSkill.setExperience(playerSkill.getExperience() - requiredExp);
-            playerSkill.setLevel(playerSkill.getLevel() + 1);
+        while (defaultInt(playerSkill.getExperience(), 0) >= calculateSkillUpgradeExp(defaultInt(playerSkill.getLevel(), 1))
+                && defaultInt(playerSkill.getLevel(), 1) < skill.getMaxLevel()) {
+            int requiredExp = calculateSkillUpgradeExp(defaultInt(playerSkill.getLevel(), 1));
+            playerSkill.setExperience(defaultInt(playerSkill.getExperience(), 0) - requiredExp);
+            playerSkill.setLevel(defaultInt(playerSkill.getLevel(), 1) + 1);
         }
         playerSkillMapper.updateById(playerSkill);
     }
@@ -324,15 +324,15 @@ public class SkillService {
             throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INVALID_OPERATION + ": 无权操作该技能");
         }
         Skill skill = skillMapper.selectById(playerSkill.getSkillId());
-        if (playerSkill.getLevel() >= skill.getMaxLevel()) {
+        if (defaultInt(playerSkill.getLevel(), 1) >= skill.getMaxLevel()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INVALID_OPERATION + ": 技能已达到最大等级");
         }
-        int currentLevel = playerSkill.getLevel();
+        int currentLevel = defaultInt(playerSkill.getLevel(), 1);
         int requiredExp = calculateSkillUpgradeExp(currentLevel);
-        if (playerSkill.getExperience() < requiredExp) {
+        if (defaultInt(playerSkill.getExperience(), 0) < requiredExp) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INSUFFICIENT_RESOURCES + ": 技能经验不足，无法升级技能");
         }
-        playerSkill.setExperience(playerSkill.getExperience() - requiredExp);
+        playerSkill.setExperience(defaultInt(playerSkill.getExperience(), 0) - requiredExp);
         playerSkill.setLevel(currentLevel + 1);
         playerSkillMapper.updateById(playerSkill);
         return playerSkillMapper.selectById(playerSkillId);
@@ -346,7 +346,7 @@ public class SkillService {
             throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INVALID_OPERATION + ": 无权操作该技能");
         }
         Skill skill = skillMapper.selectById(playerSkill.getSkillId());
-        if (playerSkill.getLevel() >= skill.getMaxLevel()) {
+        if (defaultInt(playerSkill.getLevel(), 1) >= skill.getMaxLevel()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INVALID_OPERATION + ": 技能已达到最大等级");
         }
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
@@ -356,7 +356,7 @@ public class SkillService {
         }
         player.setSkillPoints(points - 1);
         playerService.savePlayerProfile(player);
-        playerSkill.setLevel(playerSkill.getLevel() + 1);
+        playerSkill.setLevel(defaultInt(playerSkill.getLevel(), 1) + 1);
         playerSkillMapper.updateById(playerSkill);
         return playerSkillMapper.selectById(playerSkillId);
     }
@@ -718,5 +718,13 @@ public class SkillService {
      */
     public PlayerSkill getPlayerSkillByPlayerAndSkill(Integer playerId, Integer skillId) {
         return playerSkillMapper.selectByPlayerIdAndSkillId(playerId, skillId);
+    }
+
+    private int defaultInt(Integer value, int defaultValue) {
+        return value == null ? defaultValue : value;
+    }
+
+    private long defaultLong(Long value) {
+        return value == null ? 0L : value;
     }
 }

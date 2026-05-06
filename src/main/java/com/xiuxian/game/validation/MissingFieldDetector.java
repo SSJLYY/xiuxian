@@ -42,7 +42,6 @@ public class MissingFieldDetector {
             
             // Create maps for easier lookup
             Map<String, ColumnInfo> columnMap = createColumnMap(columns);
-            Map<String, Field> fieldMap = createFieldMap(entityFields);
             
             // Find entity fields without corresponding database columns
             for (Field field : entityFields) {

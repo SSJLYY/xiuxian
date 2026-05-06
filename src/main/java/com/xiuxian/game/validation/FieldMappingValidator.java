@@ -123,8 +123,9 @@ public class FieldMappingValidator {
             Map<String, ColumnInfo> columnMap = getColumnMap(columns);
             
             // Fields missing in database
-            for (String fieldName : entityFieldMap.keySet()) {
-                String columnName = getColumnName(entityFieldMap.get(fieldName));
+            for (Map.Entry<String, Field> entry : entityFieldMap.entrySet()) {
+                String fieldName = entry.getKey();
+                String columnName = getColumnName(entry.getValue());
                 if (!columnMap.containsKey(columnName)) {
                     missingFields.add(MissingField.builder()
                             .fieldName(fieldName)

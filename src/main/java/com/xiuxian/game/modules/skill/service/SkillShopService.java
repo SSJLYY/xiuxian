@@ -76,14 +76,14 @@ public class SkillShopService {
         }
         Skill skill = skillMapper.selectById(item.getSkillId());
         if (skill == null) throw new BusinessException(ErrorCode.PARAM_ERROR, "技能不存在");
-        if (player.getLevel() < item.getRequiredLevel()) {
+        if (defaultInt(player.getLevel(), 1) < item.getRequiredLevel()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_REQUIREMENTS_NOT_MET + ": 等级不足");
         }
-        if (player.getSpiritStones() < item.getPrice()) {
+        if (defaultLong(player.getSpiritStones()) < item.getPrice()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INSUFFICIENT_RESOURCES + ": 灵石不足");
         }
         // 扣除灵石
-        player.setSpiritStones(player.getSpiritStones() - item.getPrice());
+        player.setSpiritStones(defaultLong(player.getSpiritStones()) - item.getPrice());
         playerService.savePlayerProfile(player);
         // 学习技能（若未学习过）
         PlayerSkill existing = playerSkillMapper.selectByPlayerIdAndSkillId(player.getId(), skill.getId());
@@ -116,7 +116,7 @@ public class SkillShopService {
                         .last("LIMIT 1")
         ).stream().findFirst().orElse(null);
         long refund = item != null ? Math.max(1, (long) item.getPrice() / 2) : 100;
-        player.setSpiritStones(player.getSpiritStones() + refund);
+        player.setSpiritStones(defaultLong(player.getSpiritStones()) + refund);
         playerService.savePlayerProfile(player);
         playerSkillMapper.deleteById(playerSkillId);
     }
@@ -130,5 +130,12 @@ public class SkillShopService {
         } else {
             skillShopMapper.updateById(item);
         }
+    }
+    private int defaultInt(Integer value, int defaultValue) {
+        return value == null ? defaultValue : value;
+    }
+
+    private long defaultLong(Long value) {
+        return value == null ? 0L : value;
     }
 }

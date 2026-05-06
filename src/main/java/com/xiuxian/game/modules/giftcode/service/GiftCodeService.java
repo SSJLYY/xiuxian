@@ -2,6 +2,7 @@ package com.xiuxian.game.modules.giftcode.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiuxian.game.common.exception.BusinessException;
@@ -62,9 +63,8 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
             giftCodeMapper.updateById(giftCode);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "礼包码已过期");
         }
-        if (giftCode.getMinLevel() != null && lockedPlayer.getLevel() < giftCode.getMinLevel()) {
-            throw new BusinessException(
-                    ErrorCode.PARAM_ERROR,
+        if (giftCode.getMinLevel() != null && defaultInt(lockedPlayer.getLevel(), 1) < giftCode.getMinLevel()) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR,
                     "玩家等级不足，需要达到" + giftCode.getMinLevel() + "级");
         }
 
@@ -88,10 +88,17 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "礼包码已被使用完");
         }
 
-        GiftCodeUsage usage = new GiftCodeUsage();
-        usage.setGiftCodeId(giftCode.getId());
-        usage.setPlayerId(playerId);
-        giftCodeUsageMapper.insert(usage);
+        if ("UNIQUE".equalsIgnoreCase(giftCode.getCodeType())) {
+            int insertedRows = giftCodeUsageMapper.insertIfAbsent(giftCode.getId(), playerId);
+            if (insertedRows == 0) {
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "鎮ㄥ凡缁忎娇鐢ㄨ繃姝ょぜ鍖呯爜");
+            }
+        } else {
+            GiftCodeUsage usage = new GiftCodeUsage();
+            usage.setGiftCodeId(giftCode.getId());
+            usage.setPlayerId(playerId);
+            giftCodeUsageMapper.insert(usage);
+        }
 
         distributeRewards(lockedPlayer, giftCode.getRewards());
         return true;
@@ -106,56 +113,50 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
 
     private void distributeRewards(PlayerProfile player, String rewardsJson) {
         Integer playerId = player.getId();
+        List<Map<String, Object>> rewardList = parseRewardPayload(playerId, rewardsJson);
+
+        for (Map<String, Object> reward : rewardList) {
+            String type = reward.get("type") == null ? "" : String.valueOf(reward.get("type"));
+            Integer id = toInteger(reward.get("id"));
+            Integer quantity = toInteger(reward.get("quantity"));
+            int resolvedQuantity = quantity == null ? 0 : quantity;
+
+            switch (type.toUpperCase()) {
+                case "SPIRIT_STONES":
+                    player.setSpiritStones(defaultLong(player.getSpiritStones()) + resolvedQuantity);
+                    playerService.savePlayerProfile(player);
+                    break;
+                case "ITEM":
+                    sendGiftCodeRewardMail(playerId, "ITEM", id, resolvedQuantity,
+                            "礼包码奖励", "您通过礼包码获得了物品奖励");
+                    break;
+                case "EQUIPMENT":
+                    sendGiftCodeRewardMail(playerId, "EQUIPMENT", id, resolvedQuantity,
+                            "礼包码奖励", "您通过礼包码获得了装备奖励");
+                    break;
+                default:
+                    sendGiftCodeRewardMail(playerId, type, id, resolvedQuantity,
+                            "礼包码奖励", "您通过礼包码获得了奖励");
+                    break;
+            }
+        }
+    }
+
+    private List<Map<String, Object>> parseRewardPayload(Integer playerId, String rewardsJson) {
         try {
-            List<Map<String, Object>> rewardList = objectMapper.readValue(
+            return objectMapper.readValue(
                     rewardsJson,
                     new TypeReference<List<Map<String, Object>>>() {
                     });
-
-            for (Map<String, Object> reward : rewardList) {
-                String type = reward.get("type") == null ? "" : String.valueOf(reward.get("type"));
-                Integer id = toInteger(reward.get("id"));
-                Integer quantity = toInteger(reward.get("quantity"));
-                int resolvedQuantity = quantity == null ? 0 : quantity;
-
-                switch (type.toUpperCase()) {
-                    case "SPIRIT_STONES":
-                        player.setSpiritStones(player.getSpiritStones() + resolvedQuantity);
-                        playerService.savePlayerProfile(player);
-                        break;
-                    case "ITEM":
-                        mailService.sendSystemMail(
-                                playerId,
-                                "礼包码奖励",
-                                "您通过礼包码获得了物品奖励",
-                                "ITEM",
-                                id,
-                                resolvedQuantity);
-                        break;
-                    case "EQUIPMENT":
-                        mailService.sendSystemMail(
-                                playerId,
-                                "礼包码奖励",
-                                "您通过礼包码获得了装备奖励",
-                                "EQUIPMENT",
-                                id,
-                                resolvedQuantity);
-                        break;
-                    default:
-                        mailService.sendSystemMail(
-                                playerId,
-                                "礼包码奖励",
-                                "您通过礼包码获得了奖励",
-                                type,
-                                id,
-                                resolvedQuantity);
-                        break;
-                }
-            }
-        } catch (Exception e) {
+        } catch (JsonProcessingException e) {
             log.error("发放礼包码奖励失败: playerId={}, error={}", playerId, e.getMessage(), e);
             throw new BusinessException(ErrorCode.SYSTEM_ERROR);
         }
+    }
+
+    private void sendGiftCodeRewardMail(Integer playerId, String type, Integer id, int quantity,
+                                        String subject, String content) {
+        mailService.sendSystemMail(playerId, subject, content, type, id, quantity);
     }
 
     @Transactional
@@ -330,8 +331,8 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
 
     private String buildAvailableDescription(GiftCode giftCode) {
         StringBuilder builder = new StringBuilder();
-        builder.append("礼包码类型：");
-        builder.append("UNIQUE".equalsIgnoreCase(giftCode.getCodeType()) ? "唯一码" : "通用码");
+        builder.append("礼包码类型：")
+                .append("UNIQUE".equalsIgnoreCase(giftCode.getCodeType()) ? "唯一码" : "通用码");
 
         if (giftCode.getMinLevel() != null && giftCode.getMinLevel() > 0) {
             builder.append("，最低等级：").append(giftCode.getMinLevel());
@@ -375,5 +376,13 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
         private String description;
         private String rewardDescription;
         private LocalDateTime expiryDate;
+    }
+
+    private int defaultInt(Integer value, int defaultValue) {
+        return value == null ? defaultValue : value;
+    }
+
+    private long defaultLong(Long value) {
+        return value == null ? 0L : value;
     }
 }

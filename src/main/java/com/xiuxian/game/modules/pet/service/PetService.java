@@ -162,7 +162,7 @@ public class PetService {
         int loyalty = activePet.getLoyalty() != null ? activePet.getLoyalty() : 0;
         double hungerFactor = hunger < 20 ? 0.5 : 1.0;
         double loyaltyFactor = loyalty >= 80 ? 1.2 : (loyalty >= 50 ? 1.0 : 0.7);
-        double levelFactor = 1.0 + activePet.getLevel() * 0.05;
+        double levelFactor = 1.0 + defaultInt(activePet.getLevel(), 1) * 0.05;
 
         Pet pet = petMapper.selectById(activePet.getPetId());
         if (pet == null) {
@@ -205,7 +205,7 @@ public class PetService {
         List<PlayerPet> toUpdate = new ArrayList<>();
         for (PlayerPet pet : pets) {
             if (pet.getHunger() != null && pet.getHunger() > 0) {
-                int newHunger = Math.max(0, pet.getHunger() - 5);
+                int newHunger = Math.max(0, defaultInt(pet.getHunger(), 0) - 5);
                 pet.setHunger(newHunger);
                 toUpdate.add(pet);
                 log.debug("宠物饱食度衰减: petId={}, hunger={}", pet.getId(), newHunger);
@@ -295,9 +295,9 @@ public class PetService {
         PlayerPet playerPet = getOwnedPlayerPet(playerId, playerPetId);
 
         // 消耗食物道具（简化处理，直接增加饱食度）
-        int newHunger = Math.min(100, playerPet.getHunger() + 20);
+        int newHunger = Math.min(100, defaultInt(playerPet.getHunger(), 0) + 20);
         playerPet.setHunger(newHunger);
-        playerPet.setLoyalty(Math.min(100, playerPet.getLoyalty() + 5));
+        playerPet.setLoyalty(Math.min(100, defaultInt(playerPet.getLoyalty(), 0) + 5));
         playerPet.setLastFeedTime(LocalDateTime.now());
         playerPet.setUpdatedAt(LocalDateTime.now());
         playerPetMapper.updateById(playerPet);
@@ -340,12 +340,12 @@ public class PetService {
         }
 
         // 忠诚度不足无法训练
-        if (playerPet.getLoyalty() < loyaltyCost) {
+        if (defaultInt(playerPet.getLoyalty(), 0) < loyaltyCost) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "忠诚度不足，无法进行训练");
         }
 
-        playerPet.setExp(playerPet.getExp() + expGain);
-        playerPet.setLoyalty(Math.max(0, playerPet.getLoyalty() - loyaltyCost));
+        playerPet.setExp(defaultLong(playerPet.getExp()) + expGain);
+        playerPet.setLoyalty(Math.max(0, defaultInt(playerPet.getLoyalty(), 0) - loyaltyCost));
         playerPet.setLastTrainTime(LocalDateTime.now());
         playerPet.setUpdatedAt(LocalDateTime.now());
 
@@ -369,15 +369,15 @@ public class PetService {
      */
     private void checkPetLevelUp(PlayerPet playerPet) {
         int levelUps = 0;
-        while (playerPet.getExp() >= playerPet.getExpToNext()) {
-            playerPet.setExp(playerPet.getExp() - playerPet.getExpToNext());
-            playerPet.setLevel(playerPet.getLevel() + 1);
-            playerPet.setExpToNext(PET_BASE_EXP_TO_NEXT + (playerPet.getLevel() - 1L) * 20L);
-            playerPet.setAttack(playerPet.getAttack() + 2);
-            playerPet.setDefense(playerPet.getDefense() + 1);
-            playerPet.setHealth(playerPet.getHealth() + 10);
-            playerPet.setMaxHealth(playerPet.getMaxHealth() + 10);
-            playerPet.setSpeed(playerPet.getSpeed() + 1);
+        while (defaultLong(playerPet.getExp()) >= defaultLong(playerPet.getExpToNext())) {
+            playerPet.setExp(defaultLong(playerPet.getExp()) - defaultLong(playerPet.getExpToNext()));
+            playerPet.setLevel(defaultInt(playerPet.getLevel(), 1) + 1);
+            playerPet.setExpToNext(PET_BASE_EXP_TO_NEXT + (defaultInt(playerPet.getLevel(), 1) - 1L) * 20L);
+            playerPet.setAttack(defaultInt(playerPet.getAttack(), 0) + 2);
+            playerPet.setDefense(defaultInt(playerPet.getDefense(), 0) + 1);
+            playerPet.setHealth(defaultInt(playerPet.getHealth(), 0) + 10);
+            playerPet.setMaxHealth(defaultInt(playerPet.getMaxHealth(), 0) + 10);
+            playerPet.setSpeed(defaultInt(playerPet.getSpeed(), 0) + 1);
             levelUps++;
         }
         if (levelUps > 0) {
@@ -456,8 +456,8 @@ public class PetService {
         }
         PetEvolution evolution = evolutions.get(0);
 
-        boolean levelOk = playerPet.getLevel() >= (evolution.getRequiredLevel() != null ? evolution.getRequiredLevel() : 1);
-        boolean loyaltyOk = evolution.getRequiredLoyalty() == null || playerPet.getLoyalty() >= evolution.getRequiredLoyalty();
+        boolean levelOk = defaultInt(playerPet.getLevel(), 1) >= (evolution.getRequiredLevel() != null ? evolution.getRequiredLevel() : 1);
+        boolean loyaltyOk = evolution.getRequiredLoyalty() == null || defaultInt(playerPet.getLoyalty(), 0) >= evolution.getRequiredLoyalty();
 
         if (levelOk && loyaltyOk) {
             return PetEvolutionResult.success("满足进化条件", evolution);
@@ -508,7 +508,7 @@ public class PetService {
 
         // 更新玩家宠物记录
         playerPet.setPetId(newPet.getId());
-        playerPet.setLoyalty(Math.min(100, playerPet.getLoyalty() + 20));
+        playerPet.setLoyalty(Math.min(100, defaultInt(playerPet.getLoyalty(), 0) + 20));
         playerPet.setUpdatedAt(LocalDateTime.now());
         playerPetMapper.updateById(playerPet);
 
@@ -542,8 +542,8 @@ public class PetService {
         result.put("requiredLevel", evolution.getRequiredLevel());
         result.put("currentLoyalty", playerPet.getLoyalty());
         result.put("requiredLoyalty", evolution.getRequiredLoyalty());
-        result.put("canEvolve", playerPet.getLevel() >= (evolution.getRequiredLevel() != null ? evolution.getRequiredLevel() : 1)
-                && (evolution.getRequiredLoyalty() == null || playerPet.getLoyalty() >= evolution.getRequiredLoyalty()));
+        result.put("canEvolve", defaultInt(playerPet.getLevel(), 1) >= (evolution.getRequiredLevel() != null ? evolution.getRequiredLevel() : 1)
+                && (evolution.getRequiredLoyalty() == null || defaultInt(playerPet.getLoyalty(), 0) >= evolution.getRequiredLoyalty()));
         result.put("evolvedPetId", evolution.getEvolvedPetId());
         Integer requiredItemId = evolution.getRequiredItemId();
         int requiredItemQuantity = evolution.getRequiredItemQuantity() == null || evolution.getRequiredItemQuantity() <= 0
@@ -612,5 +612,12 @@ public class PetService {
     public void deletePlayerPet(Long playerPetId) {
         playerPetMapper.deleteById(playerPetId);
         log.info("后台删除玩家宠物: playerPetId={}", playerPetId);
+    }
+    private int defaultInt(Integer value, int defaultValue) {
+        return value == null ? defaultValue : value;
+    }
+
+    private long defaultLong(Long value) {
+        return value == null ? 0L : value;
     }
 }

@@ -120,15 +120,18 @@ public class AchievementService {
 
         // 发放奖励
         if (achievement.getRewardSpiritStones() != null && achievement.getRewardSpiritStones() > 0) {
-            profile.setSpiritStones(profile.getSpiritStones() + achievement.getRewardSpiritStones());
+            profile.setSpiritStones(defaultLong(profile.getSpiritStones()) + achievement.getRewardSpiritStones());
         }
         if (achievement.getRewardExp() != null && achievement.getRewardExp() > 0) {
-            profile.setExp(profile.getExp() + achievement.getRewardExp());
+            profile.setExp(defaultLong(profile.getExp()) + achievement.getRewardExp());
         }
         playerService.applyLevelUpsWithoutCommit(profile, 100);
         playerService.savePlayerProfile(profile);
         
         log.info("玩家领取成就奖励: playerId={}, achievementId={}", playerId, achievementId);
+    }
+    private long defaultLong(Long value) {
+        return value == null ? 0L : value;
     }
 }
 

@@ -4,6 +4,7 @@ import com.xiuxian.game.modules.admin.service.RedisCacheService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -46,8 +47,11 @@ public class GameHealthIndicator implements HealthIndicator {
 
     private Boolean checkRedis() {
         try {
-            return redisTemplate.getConnectionFactory() != null &&
-                    redisTemplate.getConnectionFactory().getConnection().ping() != null;
+            RedisConnectionFactory connectionFactory = redisTemplate.getConnectionFactory();
+            if (connectionFactory == null) {
+                return false;
+            }
+            return connectionFactory.getConnection().ping() != null;
         } catch (Exception e) {
             return false;
         }

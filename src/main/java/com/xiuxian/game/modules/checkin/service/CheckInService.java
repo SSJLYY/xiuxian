@@ -100,8 +100,8 @@ public class CheckInService {
         checkInMapper.insert(record);
 
         // 发放奖励
-        player.setSpiritStones(player.getSpiritStones() + stones);
-        player.setExp(player.getExp() + exp);
+        player.setSpiritStones(defaultLong(player.getSpiritStones()) + stones);
+        player.setExp(defaultLong(player.getExp()) + exp);
         playerService.savePlayerProfile(player);
 
         log.info("[CheckIn] 玩家{}签到成功: 连续{}天, 灵石+{}, 经验+{}", playerId, consecutiveDays, stones, exp);
@@ -251,5 +251,9 @@ public class CheckInService {
         private Integer todayRewardStones;
         private Integer todayRewardExp;
         private List<Map<String, Object>> calendar;
+    }
+
+    private long defaultLong(Long value) {
+        return value == null ? 0L : value;
     }
 }

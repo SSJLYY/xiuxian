@@ -43,6 +43,13 @@ public class DegradeConfig {
     }
 
     /**
+     * Defensive copy prevents external mutable maps from changing runtime degrade switches.
+     */
+    public void setStrategies(Map<String, Boolean> strategies) {
+        this.strategies = strategies == null ? new HashMap<>() : new HashMap<>(strategies);
+    }
+
+    /**
      * 战斗掉落降级开关
      */
     public boolean isCombatDropReduced() {

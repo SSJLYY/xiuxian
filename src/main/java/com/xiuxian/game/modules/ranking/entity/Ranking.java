@@ -21,6 +21,7 @@ public class Ranking {
     @TableField(exist = false)
     private String playerName;
     
+    @TableField(value = "`rank`")
     private Integer rank;
     
     private Long score;

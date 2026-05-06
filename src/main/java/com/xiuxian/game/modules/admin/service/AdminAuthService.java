@@ -208,7 +208,9 @@ public class AdminAuthService {
      */
     public String getAdminUsernameByToken(String token) {
         if (token == null || !jwtTokenProvider.validateToken(token)) {
-            adminTokenCache.remove(token);
+            if (token != null) {
+                adminTokenCache.remove(token);
+            }
             return null;
         }
         String cachedUsername = adminTokenCache.get(token);

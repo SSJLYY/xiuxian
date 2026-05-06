@@ -96,10 +96,10 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
     private void validateAndDeductListingFee(Integer playerId, int price) {
         long fee = Math.max(1, Math.round(price * 0.05));
         PlayerProfile playerProfile = playerService.getPlayerProfileById(playerId);
-        if (playerProfile.getSpiritStones() < fee) {
+        if (defaultLong(playerProfile.getSpiritStones()) < fee) {
             throw new BusinessException(ErrorCode.INSUFFICIENT_SPIRIT_STONES);
         }
-        playerProfile.setSpiritStones(playerProfile.getSpiritStones() - fee);
+        playerProfile.setSpiritStones(defaultLong(playerProfile.getSpiritStones()) - fee);
         playerService.savePlayerProfile(playerProfile);
     }
     
@@ -217,10 +217,10 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
         if (buyerProfile == null) {
             throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
         }
-        if (buyerProfile.getSpiritStones() < auctionItem.getPrice()) {
+        if (defaultLong(buyerProfile.getSpiritStones()) < auctionItem.getPrice()) {
             throw new BusinessException(ErrorCode.INSUFFICIENT_SPIRIT_STONES);
         }
-        buyerProfile.setSpiritStones(buyerProfile.getSpiritStones() - auctionItem.getPrice());
+        buyerProfile.setSpiritStones(defaultLong(buyerProfile.getSpiritStones()) - auctionItem.getPrice());
         playerService.savePlayerProfile(buyerProfile);
     }
     
@@ -234,7 +234,7 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
         }
         long price = auctionItem.getPrice().longValue();
         long sellerProceeds = price * 9 / 10;
-        sellerProfile.setSpiritStones(sellerProfile.getSpiritStones() + sellerProceeds);
+        sellerProfile.setSpiritStones(defaultLong(sellerProfile.getSpiritStones()) + sellerProceeds);
         playerService.savePlayerProfile(sellerProfile);
     }
     
@@ -264,7 +264,7 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
         long cancelFee = originalFee / 2;
         
         PlayerProfile playerProfile = playerService.getPlayerProfileById(playerId);
-        if (playerProfile.getSpiritStones() < cancelFee) {
+        if (defaultLong(playerProfile.getSpiritStones()) < cancelFee) {
             throw new BusinessException(ErrorCode.INSUFFICIENT_SPIRIT_STONES);
         }
         
@@ -276,7 +276,7 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
         }
         
         // 状态更新成功后再扣除取消手续费，任一后续步骤失败均由事务统一回滚
-        playerProfile.setSpiritStones(playerProfile.getSpiritStones() - cancelFee);
+        playerProfile.setSpiritStones(defaultLong(playerProfile.getSpiritStones()) - cancelFee);
         playerService.savePlayerProfile(playerProfile);
         
         auctionItem.setStatus("CANCELLED");
@@ -405,6 +405,8 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
                 // 直接授予宠物到买家
                 petService.grantPetDirectly(buyerId, auctionItem.getItemId());
                 break;
+            default:
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "涓嶆敮鎸佺殑鐗╁搧绫诲瀷: " + auctionItem.getItemType());
         }
     }
     
@@ -444,6 +446,8 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
                 // 直接退还宠物到卖家
                 petService.grantPetDirectly(playerId, auctionItem.getItemId());
                 break;
+            default:
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "涓嶆敮鎸佺殑鐗╁搧绫诲瀷: " + auctionItem.getItemType());
         }
     }
     
@@ -502,6 +506,9 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
             default:
                 return "物品[" + itemId + "]";
         }
+    }
+    private long defaultLong(Long value) {
+        return value == null ? 0L : value;
     }
 }
 

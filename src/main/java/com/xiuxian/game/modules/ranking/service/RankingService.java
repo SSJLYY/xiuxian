@@ -1,6 +1,7 @@
 package com.xiuxian.game.modules.ranking.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
 import com.xiuxian.game.modules.ranking.entity.Ranking;
@@ -47,9 +48,9 @@ public class RankingService {
         }
         
         // 缓存未命中，从数据库查询
-        QueryWrapper<Ranking> wrapper = new QueryWrapper<>();
-        wrapper.eq("ranking_type", rankingType)
-               .orderByAsc("rank")
+        LambdaQueryWrapper<Ranking> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Ranking::getRankingType, rankingType)
+               .orderByAsc(Ranking::getRank)
                .last("LIMIT " + limit);
         
         List<Ranking> rankings = rankingMapper.selectList(wrapper);
@@ -228,8 +229,8 @@ public class RankingService {
         LocalDateTime now = LocalDateTime.now();
         for (int i = 0; i < players.size(); i++) {
             PlayerProfile player = players.get(i);
-            long combatPower = player.getAttack() + player.getDefense() + 
-                              player.getHealth() + player.getMana() + player.getSpeed();
+            long combatPower = player.getTotalAttack() + player.getTotalDefense()
+                    + player.getTotalHealth() + player.getTotalMana() + player.getTotalSpeed();
             
             Ranking ranking = new Ranking();
             ranking.setPlayerId(player.getId());
