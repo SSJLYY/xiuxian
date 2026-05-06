@@ -2,6 +2,7 @@ package com.xiuxian.game.modules.guild.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xiuxian.game.modules.guild.entity.GuildMember;
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Update;
@@ -36,5 +37,16 @@ public interface GuildMemberMapper extends BaseMapper<GuildMember> {
      */
     @Update("UPDATE guild_members SET contribution = contribution + #{amount} WHERE id = #{memberId}")
     int addContribution(@Param("memberId") Long memberId, @Param("amount") int amount);
+
+    @Insert("INSERT INTO guild_members (guild_id, player_id, role, contribution, joined_at) " +
+            "SELECT #{guildId}, #{playerId}, #{role}, #{contribution}, #{joinedAt} FROM DUAL " +
+            "WHERE NOT EXISTS (" +
+            "SELECT 1 FROM guild_members WHERE player_id = #{playerId}" +
+            ")")
+    int insertIfAbsent(@Param("guildId") Integer guildId,
+                       @Param("playerId") Integer playerId,
+                       @Param("role") String role,
+                       @Param("contribution") Integer contribution,
+                       @Param("joinedAt") java.time.LocalDateTime joinedAt);
 }
 

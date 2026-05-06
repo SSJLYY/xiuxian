@@ -2,6 +2,7 @@ package com.xiuxian.game.modules.skill.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
+import com.xiuxian.game.modules.player.mapper.PlayerProfileMapper;
 import com.xiuxian.game.modules.skill.entity.PlayerSkill;
 import com.xiuxian.game.modules.skill.entity.Skill;
 import com.xiuxian.game.modules.skill.entity.SkillShopItem;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.time.LocalDateTime;
 import com.xiuxian.game.common.exception.BusinessException;
 import com.xiuxian.game.common.exception.ErrorCode;
 
@@ -30,6 +32,7 @@ public class SkillShopService {
 
     private final SkillShopMapper skillShopMapper;
     private final PlayerService playerService;   // 模块边界：通过PlayerService访问玩家数据
+    private final PlayerProfileMapper playerProfileMapper;
     private final PlayerSkillMapper playerSkillMapper;
     private final SkillMapper skillMapper;
 
@@ -69,7 +72,8 @@ public class SkillShopService {
 
     @Transactional
     public void buySkill(Integer shopItemId) {
-        PlayerProfile player = playerService.getCurrentPlayerProfile();
+        PlayerProfile currentPlayer = playerService.getCurrentPlayerProfile();
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(currentPlayer.getId());
         SkillShopItem item = skillShopMapper.selectById(shopItemId);
         if (item == null || Boolean.FALSE.equals(item.getAvailable())) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "商品不存在或不可用");
@@ -79,24 +83,29 @@ public class SkillShopService {
         if (defaultInt(player.getLevel(), 1) < item.getRequiredLevel()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_REQUIREMENTS_NOT_MET + ": 等级不足");
         }
+        PlayerSkill existing = playerSkillMapper.selectByPlayerIdAndSkillId(player.getId(), skill.getId());
+        if (existing != null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INVALID_OPERATION + ": 已经学习过该技能");
+        }
         if (defaultLong(player.getSpiritStones()) < item.getPrice()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INSUFFICIENT_RESOURCES + ": 灵石不足");
         }
         // 扣除灵石
         player.setSpiritStones(defaultLong(player.getSpiritStones()) - item.getPrice());
         playerService.savePlayerProfile(player);
-        // 学习技能（若未学习过）
-        PlayerSkill existing = playerSkillMapper.selectByPlayerIdAndSkillId(player.getId(), skill.getId());
-        if (existing == null) {
-            PlayerSkill ps = PlayerSkill.builder()
-                    .playerId(player.getId())
-                    .skillId(skill.getId())
-                    .level(1)
-                    .experience(0)
-                    .equipped(false)
-                    .slotNumber(0)
-                    .build();
-            playerSkillMapper.insert(ps);
+        // 原子学习技能，避免并发重复购买时重复插入
+        LocalDateTime now = LocalDateTime.now();
+        int insertedRows = playerSkillMapper.insertIfAbsent(
+                player.getId(),
+                skill.getId(),
+                1,
+                0,
+                false,
+                0,
+                now,
+                now);
+        if (insertedRows == 0) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INVALID_OPERATION + ": 已经学习过该技能");
         }
     }
 

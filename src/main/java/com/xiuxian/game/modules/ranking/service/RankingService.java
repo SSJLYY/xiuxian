@@ -166,7 +166,7 @@ public class RankingService {
             ranking.setPlayerName(player.getNickname());
             ranking.setRankingType("LEVEL");
             ranking.setRank(i + 1);
-            ranking.setScore(player.getLevel().longValue());
+            ranking.setScore((long) (player.getLevel() == null ? 0 : player.getLevel()));
             ranking.setUpdatedAt(now);
             rankings.add(ranking);
         }

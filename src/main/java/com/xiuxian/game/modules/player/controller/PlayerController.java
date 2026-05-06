@@ -125,11 +125,11 @@ public class PlayerController {
             if (totalSpend <= 0) throw new BusinessException(ErrorCode.PARAM_ERROR, "未提供有效的加点方案");
             if (totalSpend > availablePoints) throw new BusinessException(ErrorCode.PARAM_ERROR, "属性点不足");
 
-            profile.setAttack(profile.getAttack() + payload.getOrDefault("attack", 0));
-            profile.setDefense(profile.getDefense() + payload.getOrDefault("defense", 0));
-            profile.setHealth(profile.getHealth() + payload.getOrDefault("health", 0));
-            profile.setMana(profile.getMana() + payload.getOrDefault("mana", 0));
-            profile.setSpeed(profile.getSpeed() + payload.getOrDefault("speed", 0));
+            profile.setAttack(defaultInt(profile.getAttack()) + payload.getOrDefault("attack", 0));
+            profile.setDefense(defaultInt(profile.getDefense()) + payload.getOrDefault("defense", 0));
+            profile.setHealth(defaultInt(profile.getHealth()) + payload.getOrDefault("health", 0));
+            profile.setMana(defaultInt(profile.getMana()) + payload.getOrDefault("mana", 0));
+            profile.setSpeed(defaultInt(profile.getSpeed()) + payload.getOrDefault("speed", 0));
             profile.setAttributePoints(availablePoints - totalSpend);
 
             playerService.savePlayerProfile(profile);
@@ -189,5 +189,8 @@ public class PlayerController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
+    }
+    private int defaultInt(Integer value) {
+        return value == null ? 0 : value;
     }
 }

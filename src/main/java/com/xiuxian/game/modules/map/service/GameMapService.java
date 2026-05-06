@@ -16,12 +16,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
-/**
- * 游戏地图服务。
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -37,11 +35,10 @@ public class GameMapService {
 
     public GameMap getMapById(Integer mapId) {
         GameMap map = gameMapMapper.selectById(mapId);
-        if (map != null && !Boolean.FALSE.equals(map.getActive())) {
-            map.setMonsters(combatService.getMapMonsters(mapId));
-        } else if (map != null && Boolean.FALSE.equals(map.getActive())) {
+        if (map == null || Boolean.FALSE.equals(map.getActive())) {
             return null;
         }
+        map.setMonsters(combatService.getMapMonsters(mapId));
         return map;
     }
 
@@ -60,25 +57,17 @@ public class GameMapService {
     public List<GameMap> getMapsForPlayer(Integer playerId, int playerLevel, String playerRealm) {
         List<GameMap> allMaps = gameMapMapper.selectAllActive();
         List<PlayerMapProgress> playerProgress = playerMapProgressMapper.selectByPlayerId(playerId);
-
-        java.util.Map<Integer, PlayerMapProgress> progressMap = playerProgress.stream()
+        Map<Integer, PlayerMapProgress> progressMap = playerProgress.stream()
                 .collect(Collectors.toMap(
                         PlayerMapProgress::getMapId,
                         progress -> progress,
-                        (existing, replacement) -> replacement
-                ));
+                        (existing, replacement) -> replacement));
 
         for (GameMap map : allMaps) {
             PlayerMapProgress progress = progressMap.get(map.getId());
-            if (progress != null) {
-                map.setUnlocked(progress.getIsUnlocked());
-                map.setCurrent(progress.getIsCurrent());
-            } else {
-                map.setUnlocked(false);
-                map.setCurrent(false);
-            }
+            map.setUnlocked(progress != null && Boolean.TRUE.equals(progress.getIsUnlocked()));
+            map.setCurrent(progress != null && Boolean.TRUE.equals(progress.getIsCurrent()));
         }
-
         return allMaps;
     }
 
@@ -94,44 +83,34 @@ public class GameMapService {
 
         PlayerMapProgress progress = playerMapProgressMapper.selectByPlayerAndMap(playerId, mapId);
         if (progress == null) {
-            progress = new PlayerMapProgress();
-            progress.setPlayerId(playerId);
-            progress.setMapId(mapId);
-            progress.setIsUnlocked(true);
-            progress.setTotalKills(0);
-            progress.setTotalTimeSpent(0);
+            progress = buildInitialProgress(playerId, mapId);
             playerMapProgressMapper.insert(progress);
-        } else if (!progress.getIsUnlocked()) {
+        } else if (!Boolean.TRUE.equals(progress.getIsUnlocked())) {
             playerMapProgressMapper.unlockMap(playerId, mapId);
             progress.setIsUnlocked(true);
         }
 
         playerMapProgressMapper.clearCurrentMap(playerId);
+        progress.recordEnter();
+        playerMapProgressMapper.updateById(progress);
         playerMapProgressMapper.setCurrentMap(playerId, mapId);
 
         PlayerMapProgress latestProgress = playerMapProgressMapper.selectByPlayerAndMap(playerId, mapId);
-        if (latestProgress != null) {
-            latestProgress.recordEnter();
-            playerMapProgressMapper.updateById(latestProgress);
-            progress = latestProgress;
-        } else {
-            progress.recordEnter();
-            playerMapProgressMapper.updateById(progress);
-        }
-
-        log.info("玩家 {} 进入地图 {}", playerId, map.getName());
-        return progress;
+        log.info("playerId={} entered mapId={}", playerId, mapId);
+        return latestProgress != null ? latestProgress : progress;
     }
 
     @Transactional
     public void leaveMap(Integer playerId) {
         PlayerMapProgress current = playerMapProgressMapper.selectCurrentMap(playerId);
-        if (current != null) {
-            current.recordLeave();
-            current.startOffline();
-            playerMapProgressMapper.updateById(current);
-            log.info("玩家 {} 离开地图 {}", playerId, current.getMapId());
+        if (current == null) {
+            return;
         }
+
+        current.recordLeave();
+        current.startOffline();
+        playerMapProgressMapper.updateById(current);
+        log.info("playerId={} left mapId={}", playerId, current.getMapId());
     }
 
     public GameMap getCurrentMap(Integer playerId) {
@@ -144,18 +123,33 @@ public class GameMapService {
 
     @Transactional
     public void initPlayerMapProgress(Integer playerId) {
-        PlayerMapProgress progress = new PlayerMapProgress();
-        progress.setPlayerId(playerId);
-        progress.setMapId(1);
-        progress.setIsUnlocked(true);
+        PlayerMapProgress existing = playerMapProgressMapper.selectByPlayerAndMap(playerId, 1);
+        if (existing != null) {
+            if (!Boolean.TRUE.equals(existing.getIsUnlocked())) {
+                existing.setIsUnlocked(true);
+            }
+            existing.setIsCurrent(true);
+            if (existing.getFirstEnterAt() == null) {
+                existing.setFirstEnterAt(LocalDateTime.now());
+            }
+            existing.setLastEnterAt(LocalDateTime.now());
+            if (existing.getTotalKills() == null) {
+                existing.setTotalKills(0);
+            }
+            if (existing.getTotalTimeSpent() == null) {
+                existing.setTotalTimeSpent(0);
+            }
+            playerMapProgressMapper.clearCurrentMap(playerId);
+            playerMapProgressMapper.updateById(existing);
+            return;
+        }
+
+        PlayerMapProgress progress = buildInitialProgress(playerId, 1);
         progress.setIsCurrent(true);
         progress.setFirstEnterAt(LocalDateTime.now());
         progress.setLastEnterAt(LocalDateTime.now());
-        progress.setTotalKills(0);
-        progress.setTotalTimeSpent(0);
+        playerMapProgressMapper.clearCurrentMap(playerId);
         playerMapProgressMapper.insert(progress);
-
-        log.info("初始化玩家 {} 的地图进度", playerId);
     }
 
     public MapEncounter generateEncounter(Integer playerId, Integer mapId, int playerLevel) {
@@ -167,7 +161,7 @@ public class GameMapService {
         List<MapMonster> candidates = map.getMonsters();
         int totalWeight = candidates.stream().mapToInt(MapMonster::getSpawnWeight).sum();
         if (totalWeight <= 0) {
-            log.warn("地图遭遇配置无有效权重: mapId={}", mapId);
+            log.warn("mapId={} has no valid encounter weights", mapId);
             return null;
         }
 
@@ -181,7 +175,6 @@ public class GameMapService {
                 break;
             }
         }
-
         if (selected == null) {
             selected = candidates.get(0);
         }
@@ -193,7 +186,7 @@ public class GameMapService {
 
         int monsterLevel = selected.calculateLevel(playerLevel, map.getRequiredLevel());
         double statMultiplier = selected.calculateStatMultiplier(playerLevel, map.getRequiredLevel());
-        if (selected.getIsElite()) {
+        if (Boolean.TRUE.equals(selected.getIsElite())) {
             statMultiplier *= 1.5;
         }
 
@@ -218,14 +211,16 @@ public class GameMapService {
             return null;
         }
 
-        int baseSpiritStones = map.getBaseSpiritStones() * hours;
-        int baseExp = calculateBaseExp(map.getRequiredLevel()) * hours;
-        baseExp = (int) (baseExp * map.getExpModifier().doubleValue());
+        int baseSpiritStones = defaultInt(map.getBaseSpiritStones()) * hours;
+        int baseExp = calculateBaseExp(defaultInt(map.getRequiredLevel())) * hours;
+        if (map.getExpModifier() != null) {
+            baseExp = (int) (baseExp * map.getExpModifier().doubleValue());
+        }
 
         int injuryCount = 0;
         int actualSpiritStones = baseSpiritStones;
-        if (map.getOfflineRisk()) {
-            injuryCount = calculateInjuryCount(hours, map.getDangerLevel());
+        if (Boolean.TRUE.equals(map.getOfflineRisk())) {
+            injuryCount = calculateInjuryCount(hours, defaultInt(map.getDangerLevel()));
             double lossRate = Math.pow(0.9, injuryCount);
             actualSpiritStones = (int) (baseSpiritStones * lossRate);
         }
@@ -239,6 +234,17 @@ public class GameMapService {
         return reward;
     }
 
+    private PlayerMapProgress buildInitialProgress(Integer playerId, Integer mapId) {
+        PlayerMapProgress progress = new PlayerMapProgress();
+        progress.setPlayerId(playerId);
+        progress.setMapId(mapId);
+        progress.setIsUnlocked(true);
+        progress.setIsCurrent(false);
+        progress.setTotalKills(0);
+        progress.setTotalTimeSpent(0);
+        return progress;
+    }
+
     private int calculateBaseExp(int mapLevel) {
         return 20 + mapLevel * 5;
     }
@@ -246,16 +252,16 @@ public class GameMapService {
     private int calculateInjuryCount(int hours, int dangerLevel) {
         int injuryCount = 0;
         for (int i = 0; i < hours; i += 6) {
-            double baseProbability = 0.1;
-            double dangerMultiplier = dangerLevel * 0.05;
-            double timeMultiplier = ((double) i / 6) * 0.05;
-            double probability = baseProbability + dangerMultiplier + timeMultiplier;
-
+            double probability = 0.1 + dangerLevel * 0.05 + ((double) i / 6) * 0.05;
             if (ThreadLocalRandom.current().nextDouble() < probability) {
                 injuryCount++;
             }
         }
         return injuryCount;
+    }
+
+    private int defaultInt(Integer value) {
+        return value == null ? 0 : value;
     }
 
     @lombok.Data

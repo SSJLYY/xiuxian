@@ -4,6 +4,7 @@ import com.xiuxian.game.modules.shop.entity.Item;
 import com.xiuxian.game.modules.player.entity.PlayerItem;
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
 import com.xiuxian.game.dto.response.PlayerItemResponse;
+import com.xiuxian.game.modules.player.mapper.PlayerProfileMapper;
 import com.xiuxian.game.modules.shop.service.ItemService;
 import com.xiuxian.game.modules.player.service.PlayerService;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,7 @@ import com.xiuxian.game.common.exception.ErrorCode;
 public class EnhancedInventoryService {
 
     private final ItemService itemService;
+    private final PlayerProfileMapper playerProfileMapper;
     private final PlayerService playerService;
     private final EquipmentService equipmentService;
 
@@ -131,7 +133,7 @@ public class EnhancedInventoryService {
     @Transactional
     public void organizeInventory(Integer playerId) {
         log.info("整理背包, playerId={}", playerId);
-        PlayerProfile player = playerService.getPlayerProfileById(playerId);
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
         if (player == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
@@ -210,7 +212,7 @@ public class EnhancedInventoryService {
     @Transactional
     public Map<String, Object> useItems(Integer playerId, List<ItemUseRequest> useRequests) {
         log.info("批量使用物品, playerId={}, count={}", playerId, useRequests.size());
-        PlayerProfile player = playerService.getPlayerProfileById(playerId);
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
         if (player == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
@@ -278,7 +280,7 @@ public class EnhancedInventoryService {
     @Transactional
     public Map<String, Object> sellItems(Integer playerId, List<ItemSellRequest> sellRequests) {
         log.info("批量出售物品, playerId={}, count={}", playerId, sellRequests.size());
-        PlayerProfile player = playerService.getPlayerProfileById(playerId);
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
         if (player == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }

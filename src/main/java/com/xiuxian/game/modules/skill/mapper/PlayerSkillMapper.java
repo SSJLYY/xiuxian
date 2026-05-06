@@ -2,6 +2,7 @@ package com.xiuxian.game.modules.skill.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xiuxian.game.modules.skill.entity.PlayerSkill;
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -37,4 +38,18 @@ public interface PlayerSkillMapper extends BaseMapper<PlayerSkill> {
      */
     @Select("SELECT * FROM player_skills WHERE player_id = #{playerId} AND equipped = true")
     List<PlayerSkill> findEquippedSkills(@Param("playerId") Integer playerId);
+
+    @Insert("INSERT INTO player_skills (player_id, skill_id, level, experience, equipped, slot_number, created_at, updated_at) " +
+            "SELECT #{playerId}, #{skillId}, #{level}, #{experience}, #{equipped}, #{slotNumber}, #{createdAt}, #{updatedAt} FROM DUAL " +
+            "WHERE NOT EXISTS (" +
+            "SELECT 1 FROM player_skills WHERE player_id = #{playerId} AND skill_id = #{skillId}" +
+            ")")
+    int insertIfAbsent(@Param("playerId") Integer playerId,
+                       @Param("skillId") Integer skillId,
+                       @Param("level") Integer level,
+                       @Param("experience") Integer experience,
+                       @Param("equipped") Boolean equipped,
+                       @Param("slotNumber") Integer slotNumber,
+                       @Param("createdAt") java.time.LocalDateTime createdAt,
+                       @Param("updatedAt") java.time.LocalDateTime updatedAt);
 }

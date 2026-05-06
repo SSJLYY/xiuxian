@@ -4,6 +4,7 @@ import com.xiuxian.game.modules.shop.entity.Item;
 import com.xiuxian.game.modules.player.entity.PlayerItem;
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
 import com.xiuxian.game.dto.response.PlayerItemResponse;
+import com.xiuxian.game.modules.player.mapper.PlayerProfileMapper;
 import com.xiuxian.game.modules.shop.service.ItemService;
 import com.xiuxian.game.modules.player.service.PlayerService;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +42,7 @@ import com.xiuxian.game.common.exception.ErrorCode;
 public class InventoryService {
 
     private final ItemService itemService;
+    private final PlayerProfileMapper playerProfileMapper;
     private final PlayerService playerService;
 
     /**
@@ -57,7 +59,7 @@ public class InventoryService {
      */
     public List<PlayerItemResponse> getPlayerInventory(Integer playerId, String type, String search, String sortBy, String order) {
         log.debug("查询玩家背包物品, playerId={}, type={}, search={}, sortBy={}, order={}", playerId, type, search, sortBy, order);
-        PlayerProfile player = playerService.getPlayerProfileById(playerId);
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
         if (player == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
@@ -142,7 +144,7 @@ public class InventoryService {
     @Transactional(rollbackFor = Exception.class)
     public PlayerItemResponse addItemToInventory(Integer playerId, Integer itemId, Integer quantity) {
         log.info("添加物品到背包, playerId={}, itemId={}, quantity={}", playerId, itemId, quantity);
-        PlayerProfile player = playerService.getPlayerProfileById(playerId);
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
         if (player == null) {
             log.warn("玩家不存在, playerId={}", playerId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
@@ -160,7 +162,7 @@ public class InventoryService {
         if (existingItem != null) {
             // 如果可堆叠，增加数量
             if (item.getStackable()) {
-                existingItem.setQuantity(existingItem.getQuantity() + quantity);
+                existingItem.setQuantity((existingItem.getQuantity() == null ? 0 : existingItem.getQuantity()) + quantity);
                 existingItem.setUpdatedAt(LocalDateTime.now());
                 playerService.updatePlayerItem(existingItem);
                 log.info("物品堆叠成功, playerId={}, itemId={}, quantity={}", playerId, itemId, existingItem.getQuantity());
@@ -194,7 +196,7 @@ public class InventoryService {
     @Transactional(rollbackFor = Exception.class)
     public PlayerItemResponse removeItemFromInventory(Integer playerId, Integer itemId, Integer quantity) {
         log.info("从背包移除物品, playerId={}, itemId={}, quantity={}", playerId, itemId, quantity);
-        PlayerProfile player = playerService.getPlayerProfileById(playerId);
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
         if (player == null) {
             log.warn("玩家不存在, playerId={}", playerId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
@@ -235,7 +237,7 @@ public class InventoryService {
     @Transactional(rollbackFor = Exception.class)
     public PlayerItemResponse useItem(Integer playerId, Integer itemId) {
         log.info("使用物品, playerId={}, itemId={}", playerId, itemId);
-        PlayerProfile player = playerService.getPlayerProfileById(playerId);
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
         if (player == null) {
             log.warn("玩家不存在, playerId={}", playerId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
@@ -280,11 +282,22 @@ public class InventoryService {
     @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> useItem(Integer playerItemId, Integer quantity, Integer playerId) {
         log.info("使用物品（重载）, playerId={}, playerItemId={}, quantity={}", playerId, playerItemId, quantity);
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
+        if (player == null) {
+            log.warn("玩家不存在, playerId={}", playerId);
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
+        }
+
         // 根据playerItemId获取itemId
         PlayerItem playerItem = playerService.getPlayerItemById(playerItemId);
         if (playerItem == null) {
             log.warn("物品不存在, playerItemId={}", playerItemId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "物品不存在");
+        }
+
+        if (!playerId.equals(playerItem.getPlayerId())) {
+            log.warn("物品不属于当前玩家, playerId={}, playerItemId={}", playerId, playerItemId);
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "该物品不属于当前玩家");
         }
 
         if (playerItem.getQuantity() < quantity) {
@@ -297,8 +310,6 @@ public class InventoryService {
             log.warn("物品不可使用, itemId={}", playerItem.getItemId());
             throw new BusinessException(ErrorCode.PARAM_ERROR, "该物品不可使用");
         }
-
-        PlayerProfile player = playerService.getPlayerProfileById(playerId);
 
         // 使用指定数量的物品
         for (int i = 0; i < quantity; i++) {
@@ -331,7 +342,7 @@ public class InventoryService {
     @Transactional(rollbackFor = Exception.class)
     public void sellItem(Integer playerId, Integer playerItemId, Integer quantity) {
         log.info("出售物品, playerId={}, playerItemId={}, quantity={}", playerId, playerItemId, quantity);
-        PlayerProfile player = playerService.getPlayerProfileById(playerId);
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
         if (player == null) {
             log.warn("玩家不存在, playerId={}", playerId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");

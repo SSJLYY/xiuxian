@@ -242,7 +242,7 @@ public class NarrativeService {
     private void handleDialogueCompletion(PlayerDialogueState state, DialogueTree tree,
                                          String dialogueKey, String npcName) {
         state.setIsCompleted(true);
-        state.setTimesCompleted(state.getTimesCompleted() + 1);
+        state.setTimesCompleted(defaultInt(state.getTimesCompleted(), 0) + 1);
         state.setCompletedAt(LocalDateTime.now());
         playerDialogueStateMapper.updateById(state);
 
@@ -408,11 +408,11 @@ public class NarrativeService {
     @Transactional
     public void changeNpcAffinity(Integer playerId, Integer npcId, int change) {
         PlayerNpcRelation relation = ensureNpcRelation(playerId, npcId);
-        int newAffinity = Math.max(-100, Math.min(100, relation.getAffinity() + change));
+        int newAffinity = Math.max(-100, Math.min(100, defaultInt(relation.getAffinity(), 0) + change));
         relation.setAffinity(newAffinity);
         relation.setRelationshipLevel(PlayerNpcRelation.getRelationshipLevel(newAffinity));
         relation.setLastInteractAt(LocalDateTime.now());
-        relation.setTotalInteractions(relation.getTotalInteractions() + 1);
+        relation.setTotalInteractions(defaultInt(relation.getTotalInteractions(), 0) + 1);
         playerNpcRelationMapper.updateById(relation);
 
         if (log.isDebugEnabled()) {
@@ -425,16 +425,18 @@ public class NarrativeService {
     public PlayerNpcRelation ensureNpcRelation(Integer playerId, Integer npcId) {
         PlayerNpcRelation relation = playerNpcRelationMapper.selectByPlayerAndNpc(playerId, npcId);
         if (relation == null) {
-            relation = PlayerNpcRelation.builder()
-                    .playerId(playerId)
-                    .npcId(npcId)
-                    .affinity(0)
-                    .relationshipLevel(PlayerNpcRelation.LEVEL_STRANGER)
-                    .firstMetAt(LocalDateTime.now())
-                    .lastInteractAt(LocalDateTime.now())
-                    .totalInteractions(0)
-                    .build();
-            playerNpcRelationMapper.insert(relation);
+            LocalDateTime now = LocalDateTime.now();
+            playerNpcRelationMapper.insertIfAbsent(
+                    playerId,
+                    npcId,
+                    0,
+                    PlayerNpcRelation.LEVEL_STRANGER,
+                    now,
+                    now,
+                    0,
+                    now,
+                    now);
+            relation = playerNpcRelationMapper.selectByPlayerAndNpc(playerId, npcId);
         }
         return relation;
     }
@@ -443,7 +445,7 @@ public class NarrativeService {
     public void updateNpcInteraction(Integer playerId, Integer npcId) {
         PlayerNpcRelation relation = ensureNpcRelation(playerId, npcId);
         relation.setLastInteractAt(LocalDateTime.now());
-        relation.setTotalInteractions(relation.getTotalInteractions() + 1);
+        relation.setTotalInteractions(defaultInt(relation.getTotalInteractions(), 0) + 1);
         playerNpcRelationMapper.updateById(relation);
     }
 

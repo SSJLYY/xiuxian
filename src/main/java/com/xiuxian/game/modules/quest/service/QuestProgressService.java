@@ -51,7 +51,8 @@ public class QuestProgressService {
                         continue;
                     }
 
-                    int newProgress = Math.min(playerQuest.getCurrentProgress() + progressIncrement,
+                    int currentProgress = playerQuest.getCurrentProgress() == null ? 0 : playerQuest.getCurrentProgress();
+                    int newProgress = Math.min(currentProgress + progressIncrement,
                                                quest.getRequiredAmount());
                     playerQuest.setCurrentProgress(newProgress);
 

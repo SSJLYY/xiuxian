@@ -226,7 +226,10 @@ public class PlayerService {
      */
     @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public String attemptBreakthrough(Integer playerId) {
-        PlayerProfile profile = getPlayerProfileById(playerId);
+        PlayerProfile profile = playerProfileMapper.selectByIdForUpdate(playerId);
+        if (profile == null) {
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
+        }
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime cooldownUntil = profile.getBreakthroughCooldownUntil();
         if (cooldownUntil != null && cooldownUntil.isAfter(now)) {
@@ -266,12 +269,7 @@ public class PlayerService {
         if (cooldownUntil == null) {
             return false;
         }
-        if (!cooldownUntil.isAfter(LocalDateTime.now())) {
-            profile.setBreakthroughCooldownUntil(null);
-            playerProfileMapper.updateById(profile);
-            return false;
-        }
-        return true;
+        return cooldownUntil.isAfter(LocalDateTime.now());
     }
 
     /**
@@ -334,7 +332,7 @@ public class PlayerService {
      */
     @Transactional
     public void cultivate(String type) {
-        PlayerProfile profile = getCurrentPlayerProfile();
+        PlayerProfile profile = getCurrentPlayerProfileForUpdate();
         log.info("玩家开始修炼：ID={}, 等级={}, 境界={}, 类型={}", profile.getId(), profile.getLevel(), profile.getRealm(), type);
 
         if (profile.getIsCultivating() == null) {
@@ -379,7 +377,7 @@ public class PlayerService {
      */
     @Transactional
     public Map<String, Object> stopCultivate() {
-        PlayerProfile profile = getCurrentPlayerProfile();
+        PlayerProfile profile = getCurrentPlayerProfileForUpdate();
         log.info("玩家停止修炼：ID={}, 修炼状态={}", profile.getId(), profile.getIsCultivating());
 
         Map<String, Object> result = new java.util.HashMap<>();
@@ -487,6 +485,15 @@ public class PlayerService {
         playerProfileMapper.updateById(profile);
         log.info("玩家停止修炼成功：ID={}", profile.getId());
         return result;
+    }
+
+    private PlayerProfile getCurrentPlayerProfileForUpdate() {
+        PlayerProfile currentProfile = getCurrentPlayerProfile();
+        PlayerProfile lockedProfile = playerProfileMapper.selectByIdForUpdate(currentProfile.getId());
+        if (lockedProfile == null) {
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
+        }
+        return lockedProfile;
     }
 
     /**

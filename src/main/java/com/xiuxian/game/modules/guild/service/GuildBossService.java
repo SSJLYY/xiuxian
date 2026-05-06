@@ -11,6 +11,7 @@ import com.xiuxian.game.modules.guild.mapper.GuildBossMapper;
 import com.xiuxian.game.modules.guild.mapper.GuildMemberMapper;
 // cross-module entities accessed via Service interfaces
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
+import com.xiuxian.game.modules.player.mapper.PlayerProfileMapper;
 // cross-module services (module boundary)
 import com.xiuxian.game.modules.player.service.PlayerService;
 import com.xiuxian.game.common.exception.BusinessException;
@@ -57,6 +58,7 @@ public class GuildBossService {
     private final GuildBossMapper guildBossMapper;
     private final GuildBossChallengeMapper challengeMapper;
     private final GuildMemberMapper guildMemberMapper;
+    private final PlayerProfileMapper playerProfileMapper;
     // module boundary: access player data via PlayerService
     private final PlayerService playerService;
 
@@ -256,7 +258,10 @@ public class GuildBossService {
         int stones = record.getPersonalRewardStones() != null ? record.getPersonalRewardStones() : 0;
         int exp = (int) (boss.getRewardExp() * getDamageRatio(boss.getId(), playerId));
 
-        PlayerProfile player = playerService.getPlayerProfileById(playerId);
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
+        if (player == null) {
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
+        }
         player.setSpiritStones(defaultLong(player.getSpiritStones()) + stones);
         player.setExp(defaultLong(player.getExp()) + exp);
         playerService.applyLevelUpsWithoutCommit(player, 100);
@@ -346,7 +351,7 @@ public class GuildBossService {
             existing.setRewardClaimed(false);
             challengeMapper.insert(existing);
         } else {
-            existing.setDamageDealt(existing.getDamageDealt() + damage);
+            existing.setDamageDealt(defaultLong(existing.getDamageDealt()) + damage);
             existing.setTodayAttempts(getTodayAttempts(existing) + 1);
             existing.setLastChallengeAt(LocalDateTime.now());
             challengeMapper.updateById(existing);

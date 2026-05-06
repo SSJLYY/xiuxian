@@ -1,6 +1,7 @@
 package com.xiuxian.game.modules.skill.service;
 
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
+import com.xiuxian.game.modules.player.mapper.PlayerProfileMapper;
 import com.xiuxian.game.modules.skill.entity.Skill;
 import com.xiuxian.game.modules.skill.entity.PlayerSkill;
 import com.xiuxian.game.modules.skill.entity.SkillCombo;
@@ -50,6 +51,7 @@ public class SkillService {
 
     private final SkillMapper skillMapper;
     private final PlayerSkillMapper playerSkillMapper;
+    private final PlayerProfileMapper playerProfileMapper;
     private final PlayerService playerService;
     private final GameCalculator gameCalculator;
     private final SkillComboMapper skillComboMapper;
@@ -57,12 +59,14 @@ public class SkillService {
 
     public SkillService(SkillMapper skillMapper,
                         PlayerSkillMapper playerSkillMapper,
+                        PlayerProfileMapper playerProfileMapper,
                         @Lazy PlayerService playerService,
                         GameCalculator gameCalculator,
                         SkillComboMapper skillComboMapper,
                         PlayerSkillComboRecordMapper playerSkillComboRecordMapper) {
         this.skillMapper = skillMapper;
         this.playerSkillMapper = playerSkillMapper;
+        this.playerProfileMapper = playerProfileMapper;
         this.playerService = playerService;
         this.gameCalculator = gameCalculator;
         this.skillComboMapper = skillComboMapper;
@@ -143,8 +147,8 @@ public class SkillService {
         log.info("========== 学习技能 ==========");
         log.info("玩家ID: {}, 技能ID: {}", playerId, skillId);
 
-        // 1. 验证玩家是否存在
-        PlayerProfile player = playerService.getPlayerProfileById(playerId);
+        // 1. 验证玩家是否存在，并锁定玩家行，避免并发重复扣费或重复学习
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
         if (player == null) {
             log.error("玩家不存在: ID={}", playerId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
@@ -171,7 +175,7 @@ public class SkillService {
         // 4. 检查是否已学习
         PlayerSkill existing = playerSkillMapper.selectByPlayerIdAndSkillId(playerId, skillId);
         if (existing != null) {
-            log.warn("已学习该技能: 玩家ID={}, 技能ID={}", playerId, skillId);
+            log.warn("技能已学习: 玩家ID={}, 技能ID={}", playerId, skillId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INVALID_OPERATION + ": 已经学习过该技能");
         }
 
@@ -191,19 +195,21 @@ public class SkillService {
         }
 
         // 6. 创建玩家技能记录
-        PlayerSkill playerSkill = PlayerSkill.builder()
-                .playerId(playerId)
-                .skillId(skillId)
-                .level(1)
-                .experience(0)
-                .equipped(false)
-                .slotNumber(0)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
-        playerSkillMapper.insert(playerSkill);
+        LocalDateTime now = LocalDateTime.now();
+        int insertedRows = playerSkillMapper.insertIfAbsent(
+                playerId,
+                skillId,
+                1,
+                0,
+                false,
+                0,
+                now,
+                now);
+        if (insertedRows == 0) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INVALID_OPERATION + ": 已经学习过该技能");
+        }
 
-        PlayerSkill savedSkill = playerSkillMapper.selectById(playerSkill.getId());
+        PlayerSkill savedSkill = playerSkillMapper.selectByPlayerIdAndSkillId(playerId, skillId);
         log.info("技能学习成功: 玩家技能ID={}, 技能名称={}, 初始等级=1",
                 savedSkill.getId(), skill.getName());
         log.info("========== 学习技能完成 ==========");
@@ -228,15 +234,16 @@ public class SkillService {
 
         for (Skill skill : basicSkills) {
             if (!ownedSkillIds.contains(skill.getId())) {
-                PlayerSkill playerSkill = PlayerSkill.builder()
-                        .playerId(player.getId())
-                        .skillId(skill.getId())
-                        .level(1)
-                        .experience(0)
-                        .equipped(false)
-                        .slotNumber(0)
-                        .build();
-                playerSkillMapper.insert(playerSkill);
+                LocalDateTime now = LocalDateTime.now();
+                playerSkillMapper.insertIfAbsent(
+                        player.getId(),
+                        skill.getId(),
+                        1,
+                        0,
+                        false,
+                        0,
+                        now,
+                        now);
             }
         }
     }
@@ -349,7 +356,10 @@ public class SkillService {
         if (defaultInt(playerSkill.getLevel(), 1) >= skill.getMaxLevel()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INVALID_OPERATION + ": 技能已达到最大等级");
         }
-        PlayerProfile player = playerService.getPlayerProfileById(playerId);
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
+        if (player == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
+        }
         int points = player.getSkillPoints() == null ? 0 : player.getSkillPoints();
         if (points <= 0) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INSUFFICIENT_RESOURCES + ": 技能点不足");
@@ -446,7 +456,7 @@ public class SkillService {
      * @return 可用的连招列表
      */
     public List<SkillCombo> getAvailableCombos(Integer playerId) {
-        PlayerProfile player = playerService.getPlayerProfileById(playerId);
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
         if (player == null) {
             return Collections.emptyList();
         }

@@ -6,6 +6,7 @@ import com.xiuxian.game.modules.equipment.entity.PlayerEquipment;
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
 import com.xiuxian.game.modules.equipment.mapper.EquipmentMapper;
 import com.xiuxian.game.modules.equipment.mapper.PlayerEquipmentMapper;
+import com.xiuxian.game.modules.player.mapper.PlayerProfileMapper;
 import com.xiuxian.game.modules.player.service.PlayerService;
 
 import lombok.RequiredArgsConstructor;
@@ -51,6 +52,7 @@ public class EquipmentService {
 
     private final EquipmentMapper equipmentMapper;
     private final PlayerEquipmentMapper playerEquipmentMapper;
+    private final PlayerProfileMapper playerProfileMapper;
     private final PlayerService playerService; // 模块边界：通过PlayerService访问玩家数据
 
     // 使用 ThreadLocalRandom 替代共享 Random 实例（单例安全问题）
@@ -252,7 +254,7 @@ public class EquipmentService {
     public PlayerEquipment acquireEquipment(Integer equipmentId, Integer playerId) {
         log.info("玩家获取装备, playerId={}, equipmentId={}", playerId, equipmentId);
         try {
-            PlayerProfile player = playerService.getPlayerProfileById(playerId);
+            PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
             if (player == null) {
                 log.warn("玩家不存在, playerId={}", playerId);
                 throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
@@ -311,7 +313,7 @@ public class EquipmentService {
     @Transactional
     public PlayerEquipment equipItem(Integer playerEquipmentId, String slot, Integer playerId) {
         log.info("玩家穿戴装备, playerId={}, playerEquipmentId={}, slot={}", playerId, playerEquipmentId, slot);
-        PlayerProfile player = playerService.getPlayerProfileById(playerId);
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
         if (player == null) {
             log.warn("玩家不存在, playerId={}", playerId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
@@ -371,7 +373,7 @@ public class EquipmentService {
     @Transactional
     public PlayerEquipment unequipItem(Integer playerEquipmentId, Integer playerId) {
         log.info("玩家卸下装备, playerId={}, playerEquipmentId={}", playerId, playerEquipmentId);
-        PlayerProfile player = playerService.getPlayerProfileById(playerId);
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
         if (player == null) {
             log.warn("玩家不存在, playerId={}", playerId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
@@ -415,7 +417,7 @@ public class EquipmentService {
     @Transactional
     public PlayerEquipment repairEquipment(Integer playerEquipmentId, Integer playerId) {
         log.info("玩家修复装备, playerId={}, playerEquipmentId={}", playerId, playerEquipmentId);
-        PlayerProfile player = playerService.getPlayerProfileById(playerId);
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
         if (player == null) {
             log.warn("玩家不存在, playerId={}", playerId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
@@ -524,7 +526,7 @@ public class EquipmentService {
     @Transactional
     public PlayerEquipment enhanceEquipment(Integer playerEquipmentId, Integer playerId) {
         log.info("玩家强化装备, playerId={}, playerEquipmentId={}", playerId, playerEquipmentId);
-        PlayerProfile player = playerService.getPlayerProfileById(playerId);
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
         if (player == null) {
             log.warn("玩家不存在, playerId={}", playerId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
@@ -571,9 +573,9 @@ public class EquipmentService {
             int defenseBonus = (int)(equipment.getDefenseBonus() * 0.05);
             int healthBonus = (int)(equipment.getHealthBonus() * 0.05);
             
-            playerEquipment.setEnhanceAttackBonus(playerEquipment.getEnhanceAttackBonus() + attackBonus);
-            playerEquipment.setEnhanceDefenseBonus(playerEquipment.getEnhanceDefenseBonus() + defenseBonus);
-            playerEquipment.setEnhanceHealthBonus(playerEquipment.getEnhanceHealthBonus() + healthBonus);
+            playerEquipment.setEnhanceAttackBonus(defaultInt(playerEquipment.getEnhanceAttackBonus(), 0) + attackBonus);
+            playerEquipment.setEnhanceDefenseBonus(defaultInt(playerEquipment.getEnhanceDefenseBonus(), 0) + defenseBonus);
+            playerEquipment.setEnhanceHealthBonus(defaultInt(playerEquipment.getEnhanceHealthBonus(), 0) + healthBonus);
             
             playerEquipment.setUpdatedAt(LocalDateTime.now());
             playerEquipmentMapper.updateById(playerEquipment);
@@ -642,11 +644,31 @@ public class EquipmentService {
     @Transactional
     public PlayerEquipment grantEquipmentDirectly(Integer playerId, Integer equipmentId) {
         log.info("直接发放装备, playerId={}, equipmentId={}", playerId, equipmentId);
-        PlayerEquipment pe = new PlayerEquipment();
-        pe.setPlayerId(playerId);
-        pe.setEquipmentId(equipmentId);
-        pe.setEquipped(false);
-        pe.setCreatedAt(java.time.LocalDateTime.now());
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
+        if (player == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
+        }
+
+        Equipment equipment = equipmentMapper.selectById(equipmentId);
+        if (equipment == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "装备不存在");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        PlayerEquipment pe = PlayerEquipment.builder()
+                .playerId(playerId)
+                .equipmentId(equipmentId)
+                .slot("")
+                .equipped(false)
+                .durability(100)
+                .maxDurability(100)
+                .enhanceLevel(0)
+                .enhanceAttackBonus(0)
+                .enhanceDefenseBonus(0)
+                .enhanceHealthBonus(0)
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
         playerEquipmentMapper.insert(pe);
         log.info("装备发放成功, playerEquipmentId={}", pe.getId());
         return pe;

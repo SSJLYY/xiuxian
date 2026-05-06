@@ -15,6 +15,7 @@ import com.xiuxian.game.modules.pet.entity.PlayerPet;
 import com.xiuxian.game.modules.pet.service.PetService;
 import com.xiuxian.game.modules.player.entity.PlayerItem;
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
+import com.xiuxian.game.modules.player.mapper.PlayerProfileMapper;
 import com.xiuxian.game.modules.player.service.PlayerService;
 import com.xiuxian.game.modules.shop.entity.Item;
 import com.xiuxian.game.modules.shop.service.ItemService;
@@ -41,6 +42,7 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
     private final PetService petService;
     private final ItemService itemService;
     private final MailService mailService;
+    private final PlayerProfileMapper playerProfileMapper;
     private final PlayerService playerService;
 
     /**
@@ -95,7 +97,10 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
      */
     private void validateAndDeductListingFee(Integer playerId, int price) {
         long fee = Math.max(1, Math.round(price * 0.05));
-        PlayerProfile playerProfile = playerService.getPlayerProfileById(playerId);
+        PlayerProfile playerProfile = playerProfileMapper.selectByIdForUpdate(playerId);
+        if (playerProfile == null) {
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
+        }
         if (defaultLong(playerProfile.getSpiritStones()) < fee) {
             throw new BusinessException(ErrorCode.INSUFFICIENT_SPIRIT_STONES);
         }
@@ -213,7 +218,7 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
      * 扣除买家灵石
      */
     private void deductBuyerFunds(Integer buyerId, AuctionItem auctionItem) {
-        PlayerProfile buyerProfile = playerService.getPlayerProfileById(buyerId);
+        PlayerProfile buyerProfile = playerProfileMapper.selectByIdForUpdate(buyerId);
         if (buyerProfile == null) {
             throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
         }
@@ -228,7 +233,7 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
      * 支付卖家收益
      */
     private void paySellerProceeds(AuctionItem auctionItem) {
-        PlayerProfile sellerProfile = playerService.getPlayerProfileById(auctionItem.getSellerId());
+        PlayerProfile sellerProfile = playerProfileMapper.selectByIdForUpdate(auctionItem.getSellerId());
         if (sellerProfile == null) {
             throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
         }
@@ -263,7 +268,10 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
         long originalFee = Math.max(1, Math.round(auctionItem.getPrice() * 0.05));
         long cancelFee = originalFee / 2;
         
-        PlayerProfile playerProfile = playerService.getPlayerProfileById(playerId);
+        PlayerProfile playerProfile = playerProfileMapper.selectByIdForUpdate(playerId);
+        if (playerProfile == null) {
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
+        }
         if (defaultLong(playerProfile.getSpiritStones()) < cancelFee) {
             throw new BusinessException(ErrorCode.INSUFFICIENT_SPIRIT_STONES);
         }
@@ -385,7 +393,8 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
                         .orElse(null);
                 
                 if (existingItem != null) {
-                    existingItem.setQuantity(existingItem.getQuantity() + auctionItem.getQuantity());
+                    existingItem.setQuantity((existingItem.getQuantity() == null ? 0 : existingItem.getQuantity())
+                            + (auctionItem.getQuantity() == null ? 0 : auctionItem.getQuantity()));
                     playerService.savePlayerItem(existingItem);
                 } else {
                     PlayerItem newItem = new PlayerItem();
@@ -426,7 +435,8 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
                         .orElse(null);
                 
                 if (existingItem != null) {
-                    existingItem.setQuantity(existingItem.getQuantity() + auctionItem.getQuantity());
+                    existingItem.setQuantity((existingItem.getQuantity() == null ? 0 : existingItem.getQuantity())
+                            + (auctionItem.getQuantity() == null ? 0 : auctionItem.getQuantity()));
                     playerService.savePlayerItem(existingItem);
                 } else {
                     PlayerItem newItem = new PlayerItem();

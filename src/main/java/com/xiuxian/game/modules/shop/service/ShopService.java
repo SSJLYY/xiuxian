@@ -6,10 +6,10 @@ import com.xiuxian.game.modules.shop.entity.ShopItem;
 import com.xiuxian.game.common.exception.BusinessException;
 import com.xiuxian.game.common.exception.ErrorCode;
 import com.xiuxian.game.modules.shop.mapper.ShopItemMapper;
+import com.xiuxian.game.modules.player.mapper.PlayerProfileMapper;
 import com.xiuxian.game.modules.skill.service.SkillShopService;
 import com.xiuxian.game.modules.equipment.service.InventoryService;
 import com.xiuxian.game.modules.player.service.PlayerService;
-import com.xiuxian.game.modules.skill.service.SkillService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,10 +27,10 @@ import java.util.List;
 public class ShopService {
 
     private final ShopItemMapper shopItemMapper;
+    private final PlayerProfileMapper playerProfileMapper;
     private final PlayerService playerService;      // 玩家数据
     private final InventoryService inventoryService; // 背包/物品操作
     private final SkillShopService skillShopService; // 技能商店查询
-    private final SkillService skillService;         // 技能学习
 
     public List<ShopItem> listItems(String shopType) {
         if (shopType == null || shopType.isEmpty()) {
@@ -63,7 +63,11 @@ public class ShopService {
             throw new BusinessException(ErrorCode.SHOP_ITEM_OUT_OF_STOCK);
         }
 
-        PlayerProfile profile = playerService.getCurrentPlayerProfile();
+        PlayerProfile currentPlayer = playerService.getCurrentPlayerProfile();
+        PlayerProfile profile = playerProfileMapper.selectByIdForUpdate(currentPlayer.getId());
+        if (profile == null) {
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
+        }
 
         long needSpirit = (long) item.getPriceSpiritStones() * quantity;
         long needContribution = (long) item.getPriceContributionPoints() * quantity;
@@ -90,33 +94,25 @@ public class ShopService {
         }
 
         // 减少库存
-        item.decreaseStock(quantity);
-        shopItemMapper.updateById(item);
+        if (!item.isUnlimitedStock()) {
+            int updatedRows = shopItemMapper.decreaseStockIfEnough(shopItemId, quantity);
+            if (updatedRows == 0) {
+                throw new BusinessException(ErrorCode.SHOP_ITEM_OUT_OF_STOCK);
+            }
+        }
     }
 
     @Transactional
     public void buySkill(Integer skillId) {
-        PlayerProfile profile = playerService.getCurrentPlayerProfile();
-
         // 查询技能商店 — 通过SkillShopService，遵守模块边界
         SkillShopItem ssi = skillShopService.getSkillShopItemBySkillId(skillId);
 
         if (ssi == null || !Boolean.TRUE.equals(ssi.getAvailable())) {
             throw new BusinessException(ErrorCode.SHOP_ITEM_NOT_AVAILABLE);
         }
-        if (defaultInt(profile.getLevel(), 1) < ssi.getRequiredLevel()) {
-            throw new BusinessException(ErrorCode.SHOP_SKILL_LEVEL_NOT_ENOUGH);
-        }
-        if (defaultLong(profile.getSpiritStones()) < ssi.getPrice()) {
-            throw new BusinessException(ErrorCode.SHOP_INSUFFICIENT_SPIRIT_STONES);
-        }
 
-        // 扣除灵石
-        profile.setSpiritStones(defaultLong(profile.getSpiritStones()) - ssi.getPrice());
-        playerService.savePlayerProfile(profile);
-
-        // 学习技能 — 通过SkillService，遵守模块边界
-        skillService.learnSkill(skillId, profile.getId());
+        // 委托给技能商店服务统一处理扣费、等级校验和并发安全学习，避免重复扣费
+        skillShopService.buySkill(ssi.getId());
     }
 
     /**
@@ -129,10 +125,6 @@ public class ShopService {
             shopItemMapper.updateById(item);
         }
     }
-    private int defaultInt(Integer value, int defaultValue) {
-        return value == null ? defaultValue : value;
-    }
-
     private long defaultLong(Long value) {
         return value == null ? 0L : value;
     }

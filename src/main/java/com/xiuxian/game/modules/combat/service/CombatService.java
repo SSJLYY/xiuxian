@@ -16,6 +16,7 @@ import com.xiuxian.game.modules.equipment.service.EquipmentService;
 import com.xiuxian.game.modules.pet.entity.PlayerPet;
 import com.xiuxian.game.modules.pet.service.PetService;
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
+import com.xiuxian.game.modules.player.mapper.PlayerProfileMapper;
 import com.xiuxian.game.modules.player.service.PlayerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -73,6 +74,7 @@ public class CombatService {
     }
 
     private final PlayerService playerService;       // 模块边界：通过PlayerService访问玩家数据
+    private final PlayerProfileMapper playerProfileMapper;
     private final MapMonsterMapper mapMonsterMapper;
     private final MonsterMapper monsterMapper;
     private final CombatLogMapper combatLogMapper;
@@ -300,7 +302,7 @@ public class CombatService {
 
     /** 阶段1：校验 + 新手保护 + 速度计算 + 宠物准备 */
     private CombatContext prepareCombat(Integer playerId, Monster monster) {
-        PlayerProfile player = playerService.getPlayerProfileById(playerId);
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
         if (player == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
@@ -691,7 +693,7 @@ public class CombatService {
 
         int actualTimes = Math.min(times, 100);
 
-        PlayerProfile player = playerService.getPlayerProfileById(playerId);
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
         if (player == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }

@@ -6,6 +6,7 @@ import com.xiuxian.game.modules.guild.entity.Guild;
 import com.xiuxian.game.modules.guild.entity.GuildApplication;
 import com.xiuxian.game.modules.guild.entity.GuildMember;
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
+import com.xiuxian.game.modules.player.mapper.PlayerProfileMapper;
 import com.xiuxian.game.common.exception.BusinessException;
 import com.xiuxian.game.common.exception.ErrorCode;
 import com.xiuxian.game.modules.guild.mapper.GuildApplicationMapper;
@@ -49,6 +50,7 @@ public class GuildService {
     private final GuildMapper guildMapper;
     private final GuildMemberMapper guildMemberMapper;
     private final GuildApplicationMapper guildApplicationMapper;
+    private final PlayerProfileMapper playerProfileMapper;
     private final PlayerService playerService; // 模块边界：通过PlayerService访问玩家数据
 
     /**
@@ -133,7 +135,7 @@ public class GuildService {
      * @throws BusinessException 当玩家不存在、等级不足或灵石不足时抛出
      */
     private void validatePlayerAndDeductFee(Integer playerId) {
-        PlayerProfile profile = playerService.getPlayerProfileById(playerId);
+        PlayerProfile profile = playerProfileMapper.selectByIdForUpdate(playerId);
         if (profile == null) {
             throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
         }
@@ -227,7 +229,7 @@ public class GuildService {
         }
         
         // 模块边界：通过PlayerService访问玩家数据
-        PlayerProfile profile = playerService.getPlayerProfileById(playerId);
+        PlayerProfile profile = playerProfileMapper.selectByIdForUpdate(playerId);
         if (profile == null) {
             throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
         }
@@ -237,16 +239,14 @@ public class GuildService {
         }
         
         // 创建申请
-        GuildApplication application = new GuildApplication();
-        application.setGuildId(guildId.intValue());  // 转换为Integer
-        application.setPlayerId(playerId);
-        application.setStatus("PENDING");
-        application.setAppliedAt(LocalDateTime.now());
-        
-        guildApplicationMapper.insert(application);
-        
-        log.info("宗门申请已提交: applicationId={}, guildId={}, playerId={}", 
-                application.getId(), guildId, playerId);
+        LocalDateTime appliedAt = LocalDateTime.now();
+        int insertedRows = guildApplicationMapper.insertPendingIfAbsent(guildId.intValue(), playerId, appliedAt);
+        if (insertedRows == 0) {
+            throw new BusinessException(ErrorCode.GUILD_APPLICATION_EXISTS);
+        }
+
+        log.info("宗门申请已提交: guildId={}, playerId={}, appliedAt={}",
+                guildId, playerId, appliedAt);
     }
 
     /**
@@ -278,10 +278,6 @@ public class GuildService {
             throw new BusinessException(ErrorCode.GUILD_APPLICATION_NOT_FOUND);
         }
         
-        if (!"PENDING".equals(application.getStatus())) {
-            throw new BusinessException(ErrorCode.GUILD_APPLICATION_ALREADY_HANDLED);
-        }
-        
         // 模块边界：通过PlayerService访问玩家数据
         GuildMember handler = guildMemberMapper.selectOne(
                 new QueryWrapper<GuildMember>()
@@ -292,6 +288,17 @@ public class GuildService {
             throw new BusinessException(ErrorCode.GUILD_NO_PERMISSION);
         }
         
+        String targetStatus = approved ? "APPROVED" : "REJECTED";
+        LocalDateTime handledAt = LocalDateTime.now();
+        int handledRows = guildApplicationMapper.handlePendingApplication(
+                applicationId,
+                targetStatus,
+                handlerId,
+                handledAt);
+        if (handledRows == 0) {
+            throw new BusinessException(ErrorCode.GUILD_APPLICATION_ALREADY_HANDLED);
+        }
+
         if (approved) {
             GuildMember existingMember = guildMemberMapper.selectOne(
                     new QueryWrapper<GuildMember>().eq("player_id", application.getPlayerId()));
@@ -306,33 +313,24 @@ public class GuildService {
             }
             
             // 添加成员
-            GuildMember member = new GuildMember();
-            member.setGuildId(application.getGuildId());
-            member.setPlayerId(application.getPlayerId());
-            member.setRole("MEMBER");
-            member.setContribution(0);
-            member.setJoinedAt(LocalDateTime.now());
-            
-            guildMemberMapper.insert(member);
-            
+            int memberRows = guildMemberMapper.insertIfAbsent(
+                    application.getGuildId(),
+                    application.getPlayerId(),
+                    "MEMBER",
+                    0,
+                    handledAt);
+            if (memberRows == 0) {
+                throw new BusinessException(ErrorCode.GUILD_ALREADY_JOINED);
+            }
+             
             // 原子增加成员计数（防止并发加入导致计数不准确）
             int rows = guildMapper.incrementMemberCount(application.getGuildId());
             if (rows == 0) {
-                // 宗门已满（并发冲突）
-                guildMemberMapper.deleteById(member.getId());
                 throw new BusinessException(ErrorCode.GUILD_FULL);
             }
-            
-            application.setStatus("APPROVED");
-        } else {
-            application.setStatus("REJECTED");
         }
-        
-        application.setHandledBy(handlerId);
-        application.setHandledAt(LocalDateTime.now());
-        guildApplicationMapper.updateById(application);
-        
-        log.info("宗门申请处理完成: applicationId={}, status={}", applicationId, application.getStatus());
+
+        log.info("宗门申请处理完成: applicationId={}, status={}", applicationId, targetStatus);
     }
 
     /**
@@ -408,7 +406,10 @@ public class GuildService {
         }
         
         // 扣除玩家灵石
-        PlayerProfile profile = playerService.getPlayerProfileById(playerId);
+        PlayerProfile profile = playerProfileMapper.selectByIdForUpdate(playerId);
+        if (profile == null) {
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
+        }
         if (defaultLong(profile.getSpiritStones()) < amount) {
             throw new BusinessException(ErrorCode.INSUFFICIENT_SPIRIT_STONES);
         }

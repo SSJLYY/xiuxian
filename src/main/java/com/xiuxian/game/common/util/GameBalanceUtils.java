@@ -317,7 +317,8 @@ public class GameBalanceUtils {
      * @return 冷却回合数
      */
     public int calculatePetSkillCooldown(int petSpeed) {
-        return balance.getPet().getBaseSkillCooldown() + petSpeed / balance.getPet().getSkillCooldownSpeedDivider();
+        int divider = Math.max(1, balance.getPet().getSkillCooldownSpeedDivider());
+        return Math.max(1, balance.getPet().getBaseSkillCooldown() + petSpeed / divider);
     }
 
     /**

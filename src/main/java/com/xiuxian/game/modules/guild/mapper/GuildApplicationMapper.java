@@ -5,6 +5,7 @@ import com.xiuxian.game.modules.guild.entity.GuildApplication;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Update;
 
 /**
  * 宗门申请数据访问层
@@ -33,5 +34,13 @@ public interface GuildApplicationMapper extends BaseMapper<GuildApplication> {
     int insertPendingIfAbsent(@Param("guildId") Integer guildId,
                               @Param("playerId") Integer playerId,
                               @Param("appliedAt") java.time.LocalDateTime appliedAt);
+
+    @Update("UPDATE guild_applications " +
+            "SET status = #{status}, handled_by = #{handledBy}, handled_at = #{handledAt} " +
+            "WHERE id = #{applicationId} AND status = 'PENDING'")
+    int handlePendingApplication(@Param("applicationId") Long applicationId,
+                                 @Param("status") String status,
+                                 @Param("handledBy") Integer handledBy,
+                                 @Param("handledAt") java.time.LocalDateTime handledAt);
 }
 

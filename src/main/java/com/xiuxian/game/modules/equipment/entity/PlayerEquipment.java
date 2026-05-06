@@ -98,14 +98,18 @@ public class PlayerEquipment {
 
     // 业务方法
     public int getTotalAttackBonus(Equipment equipment) {
-        return equipment.getAttackBonus() + enhanceAttackBonus;
+        return defaultInt(equipment == null ? null : equipment.getAttackBonus()) + defaultInt(enhanceAttackBonus);
     }
 
     public int getTotalDefenseBonus(Equipment equipment) {
-        return equipment.getDefenseBonus() + enhanceDefenseBonus;
+        return defaultInt(equipment == null ? null : equipment.getDefenseBonus()) + defaultInt(enhanceDefenseBonus);
     }
 
     public int getTotalHealthBonus(Equipment equipment) {
-        return equipment.getHealthBonus() + enhanceHealthBonus;
+        return defaultInt(equipment == null ? null : equipment.getHealthBonus()) + defaultInt(enhanceHealthBonus);
+    }
+
+    private int defaultInt(Integer value) {
+        return value == null ? 0 : value;
     }
 }

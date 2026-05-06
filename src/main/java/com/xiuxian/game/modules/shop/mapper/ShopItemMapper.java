@@ -5,6 +5,7 @@ import com.xiuxian.game.modules.shop.entity.ShopItem;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
 
@@ -22,5 +23,10 @@ public interface ShopItemMapper extends BaseMapper<ShopItem> {
      */
     @Select("SELECT * FROM shop_items WHERE is_available = true")
     List<ShopItem> selectAvailableItems();
+
+    @Update("UPDATE shop_items " +
+            "SET stock = stock - #{quantity} " +
+            "WHERE id = #{shopItemId} AND is_available = true AND stock >= #{quantity} AND stock <> -1")
+    int decreaseStockIfEnough(@Param("shopItemId") Integer shopItemId, @Param("quantity") int quantity);
 }
 

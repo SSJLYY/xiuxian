@@ -21,6 +21,7 @@ import com.xiuxian.game.modules.pet.mapper.PlayerPetSkillMapper;
 // cross-module entities accessed via Service interfaces
 import com.xiuxian.game.modules.player.entity.PlayerItem;
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
+import com.xiuxian.game.modules.player.mapper.PlayerProfileMapper;
 import com.xiuxian.game.modules.shop.entity.Item;
 // cross-module services accessed via Service, not Mapper
 import com.xiuxian.game.modules.player.service.PlayerService;
@@ -59,6 +60,7 @@ public class PetService {
     private final PetTrainingLogMapper petTrainingLogMapper;
     private final PetEvolutionMapper petEvolutionMapper;
     private final PlayerPetEvolutionMapper playerPetEvolutionMapper;
+    private final PlayerProfileMapper playerProfileMapper;
     private final PlayerService playerService;
     private final ItemService itemService;
 
@@ -223,7 +225,7 @@ public class PetService {
      */
     @Transactional
     public PlayerPet capturePet(Integer playerId, Integer petId) {
-        PlayerProfile player = playerService.getPlayerProfile(playerId);
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
         Pet pet = petMapper.selectById(petId);
 
         if (player == null) {
@@ -276,7 +278,9 @@ public class PetService {
     /**
      * 设置出战宠物（用原子SQL批量取消，避免循环updateById）
      */
+    @Transactional
     public void setActivePet(Integer playerId, Integer playerPetId) {
+        ensurePlayerExistsForUpdate(playerId);
         PlayerPet targetPet = getOwnedPlayerPet(playerId, playerPetId);
         // 原子SQL：取消所有出战状态（1次DB写，替代循环updateById）
         playerPetMapper.deactivateAllPets(playerId);
@@ -292,6 +296,7 @@ public class PetService {
      */
     @Transactional
     public void feedPet(Integer playerId, Integer playerPetId) {
+        ensurePlayerExistsForUpdate(playerId);
         PlayerPet playerPet = getOwnedPlayerPet(playerId, playerPetId);
 
         // 消耗食物道具（简化处理，直接增加饱食度）
@@ -309,6 +314,7 @@ public class PetService {
      */
     @Transactional
     public void trainPet(Integer playerId, Integer playerPetId, String trainingType) {
+        ensurePlayerExistsForUpdate(playerId);
         PlayerPet playerPet = getOwnedPlayerPet(playerId, playerPetId);
 
         LocalDateTime cooldownUntil = playerPet.getLastTrainTime() == null
@@ -408,6 +414,7 @@ public class PetService {
      */
     @Transactional
     public void releasePet(Integer playerId, Integer playerPetId) {
+        ensurePlayerExistsForUpdate(playerId);
         PlayerPet playerPet = getOwnedPlayerPet(playerId, playerPetId);
         if (Boolean.TRUE.equals(playerPet.getIsLocked())) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "已加锁的宠物无法放生");
@@ -423,6 +430,7 @@ public class PetService {
      * 加解锁宠物
      */
     public void toggleLockPet(Integer playerId, Integer playerPetId) {
+        ensurePlayerExistsForUpdate(playerId);
         PlayerPet playerPet = getOwnedPlayerPet(playerId, playerPetId);
         boolean newLock = !Boolean.TRUE.equals(playerPet.getIsLocked());
         playerPet.setIsLocked(newLock);
@@ -472,6 +480,8 @@ public class PetService {
      */
     @Transactional
     public PetEvolutionResult evolvePet(Integer playerId, Integer playerPetId) {
+        ensurePlayerExistsForUpdate(playerId);
+
         PetEvolutionResult check = checkEvolution(playerId, playerPetId);
         if (!check.isSuccess()) {
             return check;
@@ -582,6 +592,7 @@ public class PetService {
      */
     @Transactional
     public PlayerPet grantPetDirectly(Integer playerId, Integer petId) {
+        ensurePlayerExistsForUpdate(playerId);
         Pet pet = petMapper.selectById(petId);
         if (pet == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "宠物模板不存在");
@@ -613,6 +624,15 @@ public class PetService {
         playerPetMapper.deleteById(playerPetId);
         log.info("后台删除玩家宠物: playerPetId={}", playerPetId);
     }
+
+    private PlayerProfile ensurePlayerExistsForUpdate(Integer playerId) {
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
+        if (player == null) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND, "玩家不存在");
+        }
+        return player;
+    }
+
     private int defaultInt(Integer value, int defaultValue) {
         return value == null ? defaultValue : value;
     }

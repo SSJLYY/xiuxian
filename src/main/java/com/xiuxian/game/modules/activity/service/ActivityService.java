@@ -148,18 +148,21 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         QueryWrapper<PlayerActivityProgress> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("player_id", playerId);
         queryWrapper.eq("activity_id", activityId);
-        PlayerActivityProgress progress = playerActivityProgressMapper.selectOne(queryWrapper);
+        PlayerActivityProgress progress = playerActivityProgressMapper.selectByPlayerAndActivityForUpdate(playerId, activityId);
 
         if (progress == null) {
-            // 创建新的进度记录
-            progress = new PlayerActivityProgress();
-            progress.setActivityId(activityId);
-            progress.setPlayerId(playerId);
-            progress.setProgress(buildProgressJson(0, 0));
-            progress.setCompleted(false);
-            progress.setRewarded(false);
-            playerActivityProgressMapper.insert(progress);
-            log.info("创建活动进度记录: playerId={}, activityId={}", playerId, activityId);
+            LocalDateTime now = LocalDateTime.now();
+            int insertedRows = playerActivityProgressMapper.insertIfAbsent(
+                    activityId,
+                    playerId,
+                    buildProgressJson(0, 0),
+                    false,
+                    false,
+                    now);
+            if (insertedRows > 0) {
+                log.info("创建活动进度记录: playerId={}, activityId={}", playerId, activityId);
+            }
+            progress = playerActivityProgressMapper.selectByPlayerAndActivityForUpdate(playerId, activityId);
         }
 
         log.info("玩家参与活动成功: playerId={}, activityId={}", playerId, activityId);
@@ -184,7 +187,7 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         QueryWrapper<PlayerActivityProgress> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("player_id", playerId);
         queryWrapper.eq("activity_id", activityId);
-        PlayerActivityProgress progress = playerActivityProgressMapper.selectOne(queryWrapper);
+        PlayerActivityProgress progress = playerActivityProgressMapper.selectByPlayerAndActivityForUpdate(playerId, activityId);
 
         if (progress == null) {
             log.warn("玩家未参与活动: playerId={}, activityId={}", playerId, activityId);
@@ -243,7 +246,7 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         QueryWrapper<PlayerActivityProgress> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("player_id", playerId);
         queryWrapper.eq("activity_id", activityId);
-        PlayerActivityProgress progress = playerActivityProgressMapper.selectOne(queryWrapper);
+        PlayerActivityProgress progress = playerActivityProgressMapper.selectByPlayerAndActivityForUpdate(playerId, activityId);
 
         if (progress == null) {
             log.warn("玩家未参与活动: playerId={}, activityId={}", playerId, activityId);
@@ -300,7 +303,7 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         QueryWrapper<PlayerActivityProgress> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("player_id", playerId);
         queryWrapper.eq("activity_id", activityId);
-        PlayerActivityProgress progress = playerActivityProgressMapper.selectOne(queryWrapper);
+        PlayerActivityProgress progress = playerActivityProgressMapper.selectByPlayerAndActivityForUpdate(playerId, activityId);
 
         if (progress == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "Player has not joined this activity");

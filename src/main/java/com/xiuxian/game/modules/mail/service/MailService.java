@@ -12,6 +12,7 @@ import com.xiuxian.game.modules.mail.mapper.PlayerMailMapper;
 // cross-module entities accessed via Service interfaces
 import com.xiuxian.game.modules.player.entity.PlayerItem;
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
+import com.xiuxian.game.modules.player.mapper.PlayerProfileMapper;
 // cross-module services (module boundary)
 import com.xiuxian.game.modules.player.service.PlayerService;
 import com.xiuxian.game.modules.equipment.service.EquipmentService;
@@ -40,6 +41,7 @@ public class MailService {
 
     private final PlayerMailMapper mailMapper;
     private final MailAttachmentMapper attachmentMapper;
+    private final PlayerProfileMapper playerProfileMapper;
     // module boundary: access player/equipment data via Service, not direct Mapper injection
     private final PlayerService playerService;
     private final EquipmentService equipmentService;
@@ -221,7 +223,7 @@ public class MailService {
         }
 
         // 发放附件奖励
-        PlayerProfile profile = playerService.getPlayerProfileById(playerId);
+        PlayerProfile profile = playerProfileMapper.selectByIdForUpdate(playerId);
         if (profile == null) {
             throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
         }
@@ -272,7 +274,7 @@ public class MailService {
                 PlayerItem existingItem = playerService.getPlayerItemByPlayerAndItem(profile.getId(), itemId);
                 
                 if (existingItem != null) {
-                    existingItem.setQuantity(existingItem.getQuantity() + quantity);
+                    existingItem.setQuantity((existingItem.getQuantity() == null ? 0 : existingItem.getQuantity()) + quantity);
                     playerService.updatePlayerItem(existingItem);
                 } else {
                     PlayerItem newItem = new PlayerItem();

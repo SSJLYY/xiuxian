@@ -11,6 +11,7 @@ import com.xiuxian.game.modules.pet.entity.PlayerPet;
 import com.xiuxian.game.modules.pet.service.PetService;
 import com.xiuxian.game.modules.player.entity.PlayerItem;
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
+import com.xiuxian.game.modules.player.mapper.PlayerProfileMapper;
 import com.xiuxian.game.modules.player.service.PlayerService;
 import com.xiuxian.game.modules.skill.entity.PlayerSkill;
 import com.xiuxian.game.modules.skill.entity.Skill;
@@ -43,6 +44,7 @@ import com.xiuxian.game.common.exception.ErrorCode;
 public class EnhancedCombatService {
 
     private final PlayerService playerService;
+    private final PlayerProfileMapper playerProfileMapper;
     private final SkillService skillService;
     private final ItemService itemService;
     private final MonsterMapper monsterMapper;
@@ -73,7 +75,7 @@ public class EnhancedCombatService {
      */
     @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> enhancedCombat(Integer playerId, Monster monster, Integer skillId, Integer itemId) {
-        PlayerProfile player = playerService.getPlayerProfileById(playerId);
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
         if (player == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
