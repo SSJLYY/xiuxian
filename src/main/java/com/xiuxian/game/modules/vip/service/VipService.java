@@ -4,11 +4,11 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xiuxian.game.common.exception.BusinessException;
 import com.xiuxian.game.common.exception.ErrorCode;
+import com.xiuxian.game.modules.mail.service.MailService;
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
 import com.xiuxian.game.modules.player.mapper.PlayerProfileMapper;
 import com.xiuxian.game.modules.vip.entity.PlayerVip;
 import com.xiuxian.game.modules.vip.entity.VipLevel;
-import com.xiuxian.game.modules.player.service.PlayerService;
 import com.xiuxian.game.modules.vip.mapper.PlayerVipMapper;
 import com.xiuxian.game.modules.vip.mapper.VipLevelMapper;
 import lombok.RequiredArgsConstructor;
@@ -17,136 +17,90 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import com.xiuxian.game.modules.mail.service.MailService;
 
 @Service
 @RequiredArgsConstructor
 public class VipService extends ServiceImpl<PlayerVipMapper, PlayerVip> {
-    
+
     private final PlayerVipMapper playerVipMapper;
     private final VipLevelMapper vipLevelMapper;
     private final PlayerProfileMapper playerProfileMapper;
-    private final PlayerService playerService; // 模块边界：通过PlayerService访问玩家数据
     private final MailService mailService;
-    
-    /**
-     * 获取玩家VIP信息
-     * @param playerId 玩家ID
-     * @return 玩家VIP信息
-     */
+
     public PlayerVip getPlayerVip(Integer playerId) {
         PlayerVip playerVip = playerVipMapper.selectOne(new QueryWrapper<PlayerVip>().eq("player_id", playerId));
         if (playerVip == null) {
-            // 创建新的VIP记录
-            playerVip = new PlayerVip();
-            playerVip.setPlayerId(playerId);
-            playerVip.setVipLevel(0);
-            playerVip.setTotalRecharge(0);
-            playerVip.setYuanbao(0);
-            playerVip.setLastDailyRewardAt(LocalDateTime.now().minusDays(1)); // 设置为昨天，确保可以领取
-            playerVipMapper.insert(playerVip);
+            LocalDateTime defaultRewardTime = LocalDateTime.now().minusDays(1);
+            playerVipMapper.insertIfAbsent(playerId, 0, 0, 0, defaultRewardTime);
+            playerVip = playerVipMapper.selectOne(new QueryWrapper<PlayerVip>().eq("player_id", playerId));
         }
+        if (playerVip == null) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR);
+        }
+        normalizePlayerVip(playerVip);
         return playerVip;
     }
-    
-    /**
-     * 获取所有VIP等级配置
-     * @return VIP等级列表
-     */
+
     public List<VipLevel> getAllVipLevels() {
         return vipLevelMapper.selectList(new QueryWrapper<VipLevel>().orderByAsc("level"));
     }
-    
-    /**
-     * 根据充值金额计算VIP等级
-     * @param totalRecharge 累计充值金额
-     * @return VIP等级
-     */
+
     public Integer calculateVipLevel(Integer totalRecharge) {
         List<VipLevel> vipLevels = getAllVipLevels();
+        int safeRecharge = defaultInt(totalRecharge);
         Integer vipLevel = 0;
-        
-        // 从高到低查找合适的VIP等级
+
         for (int i = vipLevels.size() - 1; i >= 0; i--) {
             VipLevel level = vipLevels.get(i);
-            if (totalRecharge >= level.getRequiredRecharge()) {
+            if (safeRecharge >= level.getRequiredRecharge()) {
                 vipLevel = level.getLevel();
                 break;
             }
         }
-        
+
         return vipLevel;
     }
-    
-    /**
-     * 更新玩家VIP信息
-     * 事务保护：VIP信息更新（充值金额、VIP等级、元宝）和升级奖励邮件在同一事务中
-     * @param playerId 玩家ID
-     * @param rechargeAmount 充值金额
-     * @return 更新后的玩家VIP信息
-     */
+
     @Transactional(rollbackFor = Exception.class)
     public PlayerVip updateVipInfo(Integer playerId, Integer rechargeAmount) {
         PlayerProfile lockedPlayer = playerProfileMapper.selectByIdForUpdate(playerId);
         if (lockedPlayer == null) {
             throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
         }
+        if (rechargeAmount == null || rechargeAmount <= 0) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "充值金额必须大于0");
+        }
 
         PlayerVip playerVip = getPlayerVip(playerId);
-        
-        // 模块边界：通过PlayerService访问玩家数据
-        playerVip.setTotalRecharge(playerVip.getTotalRecharge() + rechargeAmount);
-        
-        // 计算新的VIP等级
+        int currentRecharge = defaultInt(playerVip.getTotalRecharge());
+        int oldVipLevel = defaultInt(playerVip.getVipLevel());
+
+        playerVip.setTotalRecharge(currentRecharge + rechargeAmount);
+
         Integer newVipLevel = calculateVipLevel(playerVip.getTotalRecharge());
-        Integer oldVipLevel = playerVip.getVipLevel();
-        
-        // 更新VIP等级
         playerVip.setVipLevel(newVipLevel);
-        
-        // 模块边界：通过PlayerService访问玩家数据
-        Integer yuanbaoToAdd = rechargeAmount * 10;
-        
-        // 检查是否为首充（累计充值金额等于本次充值金额）
-        boolean isFirstRecharge = playerVip.getTotalRecharge().equals(rechargeAmount);
-        if (isFirstRecharge) {
-            // 首充额外奖励50%元宝
+
+        int yuanbaoToAdd = rechargeAmount * 10;
+        if (currentRecharge == 0) {
             yuanbaoToAdd = yuanbaoToAdd * 3 / 2;
         }
-        
-        playerVip.setYuanbao(playerVip.getYuanbao() + yuanbaoToAdd);
-        
-        // 模块边界：通过PlayerService访问玩家数据
+
+        playerVip.setYuanbao(defaultInt(playerVip.getYuanbao()) + yuanbaoToAdd);
         playerVipMapper.updateById(playerVip);
-        
-        // 模块边界：通过PlayerService访问玩家数据
+
         if (newVipLevel > oldVipLevel) {
             sendVipUpgradeReward(playerId, newVipLevel);
         }
-        
+
         return playerVip;
     }
-    
-    /**
-     * 发送VIP升级奖励邮件
-     * @param playerId 玩家ID
-     * @param newVipLevel 新的VIP等级
-     */
+
     private void sendVipUpgradeReward(Integer playerId, Integer newVipLevel) {
         String subject = "VIP等级提升奖励";
-        String content = String.format("恭喜您的VIP等级提升到%d级！获得了丰厚的奖励。", newVipLevel);
-        
-        // 发送邮件给玩家
+        String content = String.format("恭喜您的VIP等级提升到%d级，奖励已发放。", newVipLevel);
         mailService.sendSystemMail(playerId, subject, content, null, null, 0);
     }
-    
-    /**
-     * 领取VIP每日奖励
-     * 事务保护：领取时间更新和奖励邮件在同一事务中
-     * 幂等性：通过 lastDailyRewardAt 日期判断已领取，天然幂等
-     * @param playerId 玩家ID
-     * @return 是否成功领取
-     */
+
     @Transactional(rollbackFor = Exception.class)
     public boolean claimDailyReward(Integer playerId) {
         PlayerProfile lockedPlayer = playerProfileMapper.selectByIdForUpdate(playerId);
@@ -155,54 +109,51 @@ public class VipService extends ServiceImpl<PlayerVipMapper, PlayerVip> {
         }
 
         PlayerVip playerVip = getPlayerVip(playerId);
-        
-        // 检查今天是否已经领取过
         LocalDateTime lastRewardTime = playerVip.getLastDailyRewardAt();
         LocalDateTime now = LocalDateTime.now();
-        
-        // 模块边界：通过PlayerService访问玩家数据
         if (lastRewardTime != null && lastRewardTime.toLocalDate().equals(now.toLocalDate())) {
             return false;
         }
-        
-        // 模块边界：通过PlayerService访问玩家数据
+
         VipLevel currentVipLevel = getVipLevelConfig(playerVip.getVipLevel());
         if (currentVipLevel != null && currentVipLevel.getDailySpiritStones() > 0) {
             playerVip.setLastDailyRewardAt(now);
             playerVipMapper.updateById(playerVip);
-            // 模块边界：通过PlayerService访问玩家数据
+
             String subject = "VIP每日奖励";
-            String content = String.format("VIP%d每日奖励已发放，包括%d灵石。", 
-                                         playerVip.getVipLevel(), 
-                                         currentVipLevel.getDailySpiritStones());
-            
+            String content = String.format("VIP%d每日奖励已发放，包含%d灵石。",
+                    defaultInt(playerVip.getVipLevel()),
+                    currentVipLevel.getDailySpiritStones());
             mailService.sendSystemMail(playerId, subject, content, "SPIRIT_STONES", null,
                     currentVipLevel.getDailySpiritStones());
-            
-            // 模块边界：通过PlayerService访问玩家数据
             return true;
         }
-        
+
         return false;
     }
-    
-    /**
-     * 获取指定VIP等级的配置
-     * @param level VIP等级
-     * @return VIP等级配置
-     */
+
     public VipLevel getVipLevelConfig(Integer level) {
         return vipLevelMapper.selectOne(new QueryWrapper<VipLevel>().eq("level", level));
     }
-    
-    /**
-     * 检查玩家是否有指定VIP特权
-     * @param playerId 玩家ID
-     * @param requiredVipLevel 所需VIP等级
-     * @return 是否有权限
-     */
+
     public boolean hasVipPrivilege(Integer playerId, Integer requiredVipLevel) {
         PlayerVip playerVip = getPlayerVip(playerId);
-        return playerVip.getVipLevel() >= requiredVipLevel;
+        return defaultInt(playerVip.getVipLevel()) >= requiredVipLevel;
+    }
+
+    private void normalizePlayerVip(PlayerVip playerVip) {
+        if (playerVip.getVipLevel() == null) {
+            playerVip.setVipLevel(0);
+        }
+        if (playerVip.getTotalRecharge() == null) {
+            playerVip.setTotalRecharge(0);
+        }
+        if (playerVip.getYuanbao() == null) {
+            playerVip.setYuanbao(0);
+        }
+    }
+
+    private int defaultInt(Integer value) {
+        return value == null ? 0 : value;
     }
 }

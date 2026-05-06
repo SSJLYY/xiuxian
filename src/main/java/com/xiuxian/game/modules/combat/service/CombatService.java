@@ -795,24 +795,24 @@ public class CombatService {
      * batchCombat 用此方法获取基础数据，再统一乘以倍数后一次写库
      */
     private SingleCombatOutcome simulateSingleCombat(PlayerProfile player, Monster monster) {
-        int playerAttack = player.getAttack() + player.getEquipmentAttackBonus();
-        int playerDefense = player.getDefense() + player.getEquipmentDefenseBonus();
-        int playerSpeed = player.getSpeed() + player.getEquipmentSpeedBonus();
-        int monsterSpeed = monster.getSpeed();
+        int playerAttack = defaultInt(player.getAttack()) + defaultInt(player.getEquipmentAttackBonus());
+        int playerDefense = defaultInt(player.getDefense()) + defaultInt(player.getEquipmentDefenseBonus());
+        int playerSpeed = defaultInt(player.getSpeed()) + defaultInt(player.getEquipmentSpeedBonus());
+        int monsterSpeed = defaultInt(monster.getSpeed());
 
         PlayerPet activePet = petService.getActivePet(player.getId());
         PetCombatBonus petBonus = petService.calculatePetCombatBonus(activePet);
         if (petBonus != null && !petBonus.isEligible()) {
             petBonus = null;
         } else if (activePet != null && petBonus != null) {
-            playerAttack += activePet.getAttack();
-            playerDefense += activePet.getDefense();
-            playerSpeed += activePet.getSpeed();
+            playerAttack += defaultInt(activePet.getAttack());
+            playerDefense += defaultInt(activePet.getDefense());
+            playerSpeed += defaultInt(activePet.getSpeed());
         }
 
-        int currentPlayerHealth = player.getHealth() + player.getEquipmentHealthBonus()
-                + (activePet != null && petBonus != null ? activePet.getHealth() : 0);
-        int currentMonsterHealth = monster.getHealth();
+        int currentPlayerHealth = defaultInt(player.getHealth()) + defaultInt(player.getEquipmentHealthBonus())
+                + (activePet != null && petBonus != null ? defaultInt(activePet.getHealth()) : 0);
+        int currentMonsterHealth = defaultInt(monster.getHealth());
 
         List<String> log = new ArrayList<>();
         log.add("战斗开始！" + player.getNickname() + " VS " + monster.getName());
