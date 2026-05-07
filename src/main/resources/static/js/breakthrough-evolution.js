@@ -734,22 +734,22 @@ class PetEvolutionSystem {
         const match = existingBtn?.getAttribute('onclick')?.match(/\((\d+)\)/);
         if (!match) return;
 
-        const petId = match[1];
+        const playerPetId = match[1];
         const btn = document.createElement('button');
         btn.className = 'btn btn-warning pet-evolve-btn';
         btn.innerHTML = '🌟 进化';
-        btn.onclick = () => this.checkAndShowEvolution(petId);
+        btn.onclick = () => this.checkAndShowEvolution(playerPetId);
         actionsEl.appendChild(btn);
     }
 
-    async checkAndShowEvolution(petId) {
+    async checkAndShowEvolution(playerPetId) {
         try {
-            const res = await gameAPI.checkPetEvolution(petId);
+            const res = await gameAPI.checkPetEvolution(playerPetId);
             if (!res || !res.success) {
                 this.showToast('检查进化条件失败', 'error');
                 return;
             }
-            this.showEvolutionModal(petId, res.data);
+            this.showEvolutionModal(playerPetId, res.data);
         } catch (e) {
             this.showToast('无法检查进化条件', 'error');
         }
@@ -775,14 +775,14 @@ class PetEvolutionSystem {
         this.injectStyles();
     }
 
-    showEvolutionModal(petId, data) {
+    showEvolutionModal(playerPetId, data) {
         const modal = document.getElementById('petEvolutionModal');
         const body = document.getElementById('peModalBody');
         if (!modal || !body) return;
 
         const canEvolve = data.canEvolve;
         const pet = {
-            petId,
+            playerPetId,
             nickname: data.currentPetNickname || data.currentPetName,
             level: data.currentLevel,
             loyalty: data.currentLoyalty
@@ -803,7 +803,7 @@ class PetEvolutionSystem {
         body.innerHTML = canEvolve ? `
             <div class="pe-pet-preview">
                 <div class="pe-from">
-                    <div class="pe-pet-emoji">${this.getPetEmoji(pet.petId)}</div>
+                    <div class="pe-pet-emoji">${this.getPetEmoji(pet.playerPetId)}</div>
                     <div class="pe-pet-name">${pet.nickname || '灵兽'}</div>
                     <div class="pe-pet-level">Lv.${pet.level}</div>
                 </div>
@@ -830,7 +830,7 @@ class PetEvolutionSystem {
                 消耗：<strong>进化丹 ×1</strong>
             </div>
             <div class="pe-btn-row">
-                <button class="pe-confirm-btn" onclick="window.petEvolutionSystem.confirmEvolve(${petId})">
+                <button class="pe-confirm-btn" onclick="window.petEvolutionSystem.confirmEvolve(${playerPetId})">
                     🌟 开始蜕变
                 </button>
                 <button class="pe-cancel-btn" onclick="window.petEvolutionSystem.closeModal()">取消</button>
@@ -861,12 +861,12 @@ class PetEvolutionSystem {
         `;
     }
 
-    async confirmEvolve(petId) {
+    async confirmEvolve(playerPetId) {
         const btn = document.querySelector('.pe-confirm-btn');
         if (btn) { btn.disabled = true; btn.textContent = '⌛ 蜕变中...'; }
 
         try {
-            const res = await gameAPI.evolvePet(petId);
+            const res = await gameAPI.evolvePet(playerPetId);
             this.closeModal();
             if (res && res.success) {
                 this.showEvolutionSuccessAnimation(res.data);
@@ -1110,13 +1110,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 宠物进化相关
         if (!window.gameAPI.checkPetEvolution) {
-            window.gameAPI.checkPetEvolution = (id) => window.api.get(`/pets/evolution/check/${id}`);
+            window.gameAPI.checkPetEvolution = (playerPetId) => window.api.get(`/pets/evolution/check/${playerPetId}`);
         }
         if (!window.gameAPI.evolvePet) {
-            window.gameAPI.evolvePet = (id) => window.api.post(`/pets/evolution/evolve/${id}`);
+            window.gameAPI.evolvePet = (playerPetId) => window.api.post(`/pets/evolution/evolve/${playerPetId}`);
         }
         if (!window.gameAPI.getPetEvolutionInfo) {
-            window.gameAPI.getPetEvolutionInfo = (id) => window.api.get(`/pets/evolution/info/${id}`);
+            window.gameAPI.getPetEvolutionInfo = (playerPetId) => window.api.get(`/pets/evolution/info/${playerPetId}`);
         }
 
         // 初始化系统

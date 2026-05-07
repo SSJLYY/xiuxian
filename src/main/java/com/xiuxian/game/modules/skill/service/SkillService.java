@@ -148,7 +148,7 @@ public class SkillService {
         log.info("玩家ID: {}, 技能ID: {}", playerId, skillId);
 
         // 1. 验证玩家是否存在，并锁定玩家行，避免并发重复扣费或重复学习
-        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
+        PlayerProfile player = playerProfileMapper.selectById(playerId);
         if (player == null) {
             log.error("玩家不存在: ID={}", playerId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");

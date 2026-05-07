@@ -43,7 +43,7 @@ class SimpleUI {
     }
 
     switchAuthTab(tab) {
-        // 更新按钮状态
+        // 更新按钮状�?
         document.querySelectorAll('.tab-button').forEach(btn => {
             btn.classList.remove('active');
         });
@@ -74,7 +74,7 @@ class SimpleUI {
     showModule(moduleName) {
         console.log('切换模块:', moduleName);
         
-        // 更新导航状态
+        // 更新导航状�?
         document.querySelectorAll('.nav-item').forEach(item => {
             item.classList.remove('active');
         });
@@ -98,7 +98,7 @@ class SimpleUI {
             // 根据模块加载相应数据
             this.loadModuleData(moduleName);
         } else {
-            console.error('找不到模块:', `${moduleName}-module`);
+            console.error('找不到模�?', `${moduleName}-module`);
         }
     }
 
@@ -116,7 +116,7 @@ class SimpleUI {
                 this.loadInventoryModule();
                 break;
             case 'skills':
-                console.log('加载技能模块数据');
+                console.log('���ؼ���ģ������');
                 this.loadSkillsModule();
                 break;
             case 'pets':
@@ -152,21 +152,21 @@ class SimpleUI {
             <h2>战斗系统</h2>
             <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:20px;margin-top:20px;">
                 <div style="background:linear-gradient(135deg,#667eea,#764ba2);padding:20px;border-radius:12px;color:white;">
-                    <h3>角色属性</h3>
+                    <h3>角色属�?/h3>
                     <p>等级: ${player.level || 1}</p>
-                    <p>境界: ${player.realm || '练气期'}</p>
-                    <p>生命值: ${player.health || 100}</p>
-                    <p>攻击力: ${player.attack || 10}</p>
-                    <p>防御力: ${player.defense || 5}</p>
+                    <p>����: ${player.realm || '������'}</p>
+                    <p>生命�? ${player.health || 100}</p>
+                    <p>攻击�? ${player.attack || 10}</p>
+                    <p>防御�? ${player.defense || 5}</p>
                 </div>
                 <div style="background:linear-gradient(135deg,#f093fb,#f5576c);padding:20px;border-radius:12px;color:white;">
                     <h3>挑战副本</h3>
                     <p>挑战BOSS获得丰厚奖励</p>
-                    <button class="btn btn-primary" id="startCombatBtn" style="margin-top:10px;">开始挑战</button>
+                    <button class="btn btn-primary" id="startCombatBtn" style="margin-top:10px;">开始挑�?/button>
                 </div>
                 <div style="background:linear-gradient(135deg,#4facfe,#00f2fe);padding:20px;border-radius:12px;color:white;">
                     <h3>PVP对战</h3>
-                    <p>与其他玩家一决高下</p>
+                    <p>与其他玩家一决高�?/p>
                     <button class="btn btn-primary" id="matchPvpBtn" style="margin-top:10px;">匹配对手</button>
                 </div>
             </div>
@@ -178,7 +178,7 @@ class SimpleUI {
                 if (window.startBattle) {
                     await window.startBattle();
                 } else {
-                    alert('战斗功能正在初始化，请稍后重试');
+                    alert('ս���������ڳ�ʼ�������Ժ�����');
                 }
             });
         }
@@ -214,7 +214,7 @@ class SimpleUI {
                 </div>
                 <div style="background:rgba(255,255,255,0.1);padding:15px;border-radius:8px;">
                     <h3>背包物品</h3>
-                    <p style="color:#aaa;">完整背包功能请访问 <a href="inventory.html" style="color:#4ade80;">背包页面</a></p>
+                    <p style="color:#aaa;">完整背包功能请访�?<a href="inventory.html" style="color:#4ade80;">背包页面</a></p>
                 </div>
             </div>
         `;
@@ -235,10 +235,10 @@ class SimpleUI {
         const module = document.getElementById('shop-module');
         if (!module) return;
         const items = [
-            {name: '灵石袋(100)', price: 10, desc: '获得100灵石'},
-            {name: '灵石袋(1000)', price: 90, desc: '获得1000灵石'},
-            {name: '经验丹', price: 50, desc: '获得大量经验'},
-            {name: '修炼加速', price: 30, desc: '修炼速度提升50%'},
+            {name: '��ʯ��(100)', price: 10, desc: '���100��ʯ'},
+            {name: '��ʯ��(1000)', price: 90, desc: '���1000��ʯ'},
+            {name: '���鵤', price: 50, desc: '��ô�������'},
+            {name: '�������ٷ�', price: 30, desc: '�����ٶ�����50%'},
         ];
         module.innerHTML = `
             <h2>商城系统</h2>
@@ -302,18 +302,26 @@ class SimpleUI {
         try {
             const response = await gameAPI.getPlayerSkills();
             if (response.success) {
-                const skills = response.data || [];
+                const skills = (response.data || []).map(skill => this.normalizeSkill(skill));
                 this.renderSkills(skills);
             }
         } catch (error) {
-            console.error('加载技能数据失败:', error);
+            console.error('加载技能数据失�?', error);
         }
     }
 
+    normalizeSkill(skill) {
+        const summary = skill?.skill || {};
+        return {
+            ...skill,
+            skillName: summary?.name || skill?.skillName || skill?.name || 'Unknown Skill',
+            damage: skill?.damage ?? skill?.baseDamage ?? 0
+        };
+    }
     renderSkills(skills) {
         const container = document.getElementById('mySkillsList');
         if (!container) {
-            // 如果找不到容器，创建一个
+            // 如果找不到容器，创建一�?
             const module = document.getElementById('skills-module');
             if (module && !document.getElementById('mySkillsList')) {
                 const skillsList = document.createElement('div');
@@ -327,13 +335,13 @@ class SimpleUI {
         if (!list) return;
         
         if (skills.length === 0) {
-            list.innerHTML = '<p style="text-align:center;padding:40px;">你还没有技能</p>';
+            list.innerHTML = '<p style="text-align:center;padding:40px;">你还没有技�?/p>';
             return;
         }
         
         list.innerHTML = skills.map(skill => `
             <div class="skill-card" style="background:#16213e;padding:15px;border-radius:8px;margin:10px;">
-                <h4 style="margin:10px 0;">${escapeHtml(skill.skillName || '未知技能')}</h4>
+                <h4 style="margin:10px 0;">${escapeHtml(skill.skillName || 'δ֪����')}</h4>
                 <p>等级: ${skill.level || 1}</p>
                 <p>伤害: ${skill.damage || 0}</p>
             </div>
@@ -356,7 +364,7 @@ class SimpleUI {
         const module = document.getElementById('pets-module');
         if (!module) return;
         
-        // 检查是否已有宠物列表容器
+        // 检查是否已有宠物列表容�?
         let list = document.getElementById('myPetsList');
         if (!list) {
             list = document.createElement('div');
@@ -372,7 +380,7 @@ class SimpleUI {
         
         list.innerHTML = pets.map(pet => `
             <div class="pet-card" style="background:#16213e;padding:15px;border-radius:8px;margin:10px;">
-                <h4 style="margin:10px 0;">${escapeHtml(pet.nickname || '未命名')}</h4>
+                <h4 style="margin:10px 0;">${escapeHtml(pet.nickname || 'δ����')}</h4>
                 <p>等级: ${pet.level || 1}</p>
             </div>
         `).join('');
@@ -406,19 +414,19 @@ class SimpleUI {
         const password = document.getElementById('loginPassword').value;
 
         if (!username || !password) {
-            this.showNotification('请填写用户名和密码', 'error');
+            this.showNotification('����д�û���������', 'error');
             return;
         }
 
         this.showLoading(true);
 
-        // 使用现有的登录系统
+        // 使用现有的登录系�?
         if (window.authManager && typeof window.authManager.login === 'function') {
-            // 设置表单值并调用现有的登录函数
+            // 设置表单值并调用现有的登录函�?
             document.getElementById('loginUsername').value = username;
             document.getElementById('loginPassword').value = password;
             
-            // 调用现有的登录函数
+            // 调用现有的登录函�?
             window.authManager.login()
                 .then(() => {
                     this.showLoading(false);
@@ -446,27 +454,27 @@ class SimpleUI {
         const confirmPassword = document.getElementById('registerConfirmPassword').value;
 
         if (!username || !nickname || !email || !password || !confirmPassword) {
-            this.showNotification('请填写所有字段', 'error');
+            this.showNotification('����д�����ֶ�', 'error');
             return;
         }
 
         if (password !== confirmPassword) {
-            this.showNotification('两次输入的密码不一致', 'error');
+            this.showNotification('������������벻һ��', 'error');
             return;
         }
 
         this.showLoading(true);
 
-        // 使用现有的注册系统
+        // 使用现有的注册系�?
         if (window.authManager && typeof window.authManager.register === 'function') {
-            // 设置表单值并调用现有的注册函数
+            // 设置表单值并调用现有的注册函�?
             document.getElementById('registerUsername').value = username;
             document.getElementById('registerNickname').value = nickname;
             document.getElementById('registerEmail').value = email;
             document.getElementById('registerPassword').value = password;
             document.getElementById('registerConfirmPassword').value = confirmPassword;
             
-            // 调用现有的注册函数
+            // 调用现有的注册函�?
             window.authManager.register()
                 .then(() => {
                     this.showLoading(false);
@@ -489,7 +497,7 @@ class SimpleUI {
     }
 
     switchToGamePage() {
-        console.log('切换到游戏页面');
+        console.log('�л�����Ϸҳ��');
         const loginPage = document.getElementById('loginPage');
         const gamePage = document.getElementById('gamePage');
         
@@ -531,9 +539,9 @@ class SimpleUI {
 
         cultivationBtn.style.display = 'none';
         stopBtn.style.display = 'inline-block';
-        statusElement.textContent = '修炼中...';
+        statusElement.textContent = '������...';
         
-        this.showNotification('开始修炼', 'success');
+        this.showNotification('��ʼ����', 'success');
         this.addCultivationLog('开始修炼，感悟天地之道...');
 
         // 调用API
@@ -549,10 +557,10 @@ class SimpleUI {
 
         cultivationBtn.style.display = 'inline-block';
         stopBtn.style.display = 'none';
-        statusElement.textContent = '点击开始修炼';
+        statusElement.textContent = '�����ʼ����';
         
-        this.showNotification('停止修炼', 'info');
-        this.addCultivationLog('停止修炼，收功完毕。');
+        this.showNotification('ֹͣ����', 'info');
+        this.addCultivationLog('ֹͣ�������չ���ϡ�');
 
         // 调用API
         if (window.gameAPI && window.gameAPI.stopCultivation) {
@@ -579,12 +587,12 @@ class SimpleUI {
     }
 
     logout() {
-        if (confirm('确定要退出登录吗？')) {
+        if (confirm('ȷ��Ҫ�˳���¼��')) {
             if (window.gameAPI && window.gameAPI.logout) {
                 window.gameAPI.logout();
             }
             this.switchToLoginPage();
-            this.showNotification('已退出登录', 'info');
+            this.showNotification('���˳���¼', 'info');
         }
     }
 }
@@ -593,7 +601,7 @@ class SimpleUI {
 let simpleUI;
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Modern UI 初始化开始');
+    console.log('Modern UI ��ʼ����ʼ');
     simpleUI = new SimpleUI();
     
     // 暴露全局方法
@@ -604,20 +612,21 @@ document.addEventListener('DOMContentLoaded', () => {
     window.logout = () => simpleUI.logout();
     window.testGamePage = () => simpleUI.switchToGamePage();
     
-    console.log('Modern UI 初始化完成，全局方法已暴露');
+    console.log('Modern UI ��ʼ����ɣ�ȫ�ַ����ѱ�¶');
     
-    // 监听现有认证系统的登录成功事件
-    // 如果已经登录，直接显示游戏界面
+    // 监听现有认证系统的登录成功事�?
+    // 如果已经登录，直接显示游戏界�?
     setTimeout(() => {
-        // 检查是否有token来判断登录状态
+        // 检查是否有token来判断登录状�?
         const token = localStorage.getItem('authToken');
         console.log('检查登录状态，token存在:', !!token);
         
         if (token && window.authManager && window.authManager.isAuthenticated) {
-            console.log('检测到已登录，切换到游戏界面');
+            console.log('��⵽�ѵ�¼���л�����Ϸ����');
             simpleUI.switchToGamePage();
         } else if (token) {
             console.log('有token但authManager未准备好，等待认证系统初始化');
         }
     }, 1000);
 });
+

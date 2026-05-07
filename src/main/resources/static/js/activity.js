@@ -1,13 +1,13 @@
 // 活动系统JavaScript逻辑
 
-// 显示标签页
+// 显示标签�?
 function showTab(tabName) {
     // 隐藏所有标签页内容
     document.querySelectorAll('.tab-content').forEach(tab => {
         tab.style.display = 'none';
     });
     
-    // 移除所有标签页的激活状态
+    // 移除所有标签页的激活状�?
     document.querySelectorAll('.nav-tab').forEach(tab => {
         tab.classList.remove('active');
     });
@@ -18,7 +18,7 @@ function showTab(tabName) {
     // 激活选中的标签页按钮
     document.querySelector(`.nav-tab[data-module="${tabName}"]`).classList.add('active');
     
-    // 根据标签页加载相应数据
+    // 根据标签页加载相应数�?
     switch(tabName) {
         case 'current':
             loadActiveActivities();
@@ -86,11 +86,11 @@ function displayActiveActivities(activities) {
         </div>
     `).join('');
     
-    // 启动倒计时更新
+    // 启动倒计时更�?
     updateCountdowns(activities);
 }
 
-// 加载所有活动
+// 加载所有活�?
 async function loadAllActivities() {
     showLoading(true);
     
@@ -108,7 +108,7 @@ async function loadAllActivities() {
     }
 }
 
-// 显示所有活动
+// 显示所有活�?
 function displayAllActivities(activities) {
     const container = document.getElementById('historyActivitiesContainer');
     if (!container) return;
@@ -118,20 +118,20 @@ function displayAllActivities(activities) {
         return;
     }
     
-    // 按状态分类
+    // 按状态分�?
     const activeActivities = activities.filter(a => a.status === 'ACTIVE');
     const endedActivities = activities.filter(a => a.status === 'ENDED');
     
     let html = '';
     
     if (activeActivities.length > 0) {
-        html += '<h3 class="text-lg font-bold mb-3">进行中</h3>';
+        html += '<h3 class="text-lg font-bold mb-3">进行�?/h3>';
         html += activeActivities.map(activity => `
             <div class="activity-history-card border-l-4 border-blue-500">
                 <div class="p-4">
                     <div class="flex justify-between items-start">
                         <h4 class="font-bold text-lg">${escapeHtml(activity.name)}</h4>
-                        <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">进行中</span>
+                        <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">进行�?/span>
                     </div>
                     <p class="text-gray-600 text-sm mt-2">${escapeHtml(activity.description)}</p>
                     <div class="flex justify-between items-center mt-3">
@@ -147,13 +147,13 @@ function displayAllActivities(activities) {
         if (activeActivities.length > 0) {
             html += '<div class="my-4 border-t border-gray-200"></div>';
         }
-        html += '<h3 class="text-lg font-bold mb-3">已结束</h3>';
+        html += '<h3 class="text-lg font-bold mb-3">已结�?/h3>';
         html += endedActivities.map(activity => `
             <div class="activity-history-card border-l-4 border-gray-500">
                 <div class="p-4">
                     <div class="flex justify-between items-start">
                         <h4 class="font-bold text-lg">${escapeHtml(activity.name)}</h4>
-                        <span class="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">已结束</span>
+                        <span class="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">已结�?/span>
                     </div>
                     <p class="text-gray-600 text-sm mt-2">${escapeHtml(activity.description)}</p>
                     <div class="flex justify-between items-center mt-3">
@@ -281,7 +281,7 @@ async function showActivityDetails(activityId) {
     showLoading(true);
     
     try {
-        // 这里应该获取具体活动详情，简化处理
+        // 这里应该获取具体活动详情，简化处�?
         const response = await api.get('/activities/');
         if (response.success) {
             const activities = response.data;
@@ -290,7 +290,7 @@ async function showActivityDetails(activityId) {
             if (activity) {
                 displayActivityDetails(activity);
             } else {
-                showToast('活动不存在', 'error');
+                showToast('�������', 'error');
             }
         } else {
             showToast('获取活动详情失败: ' + response.message, 'error');
@@ -344,7 +344,7 @@ function displayActivityDetails(activity) {
     
     document.getElementById('activityModal').style.display = 'block';
     
-    // 启动倒计时更新
+    // 启动倒计时更�?
     updateModalCountdown(activity);
 }
 
@@ -356,7 +356,7 @@ async function participateInActivity(activityId) {
     try {
         const response = await api.post(`/activities/${activityId}/participate`);
         if (response.success) {
-            showToast('参与活动成功！', 'success');
+            showToast('�����ɹ���', 'success');
         } else {
             showToast('参与活动失败: ' + response.message, 'error');
         }
@@ -372,7 +372,7 @@ function closeActivityModal() {
     document.getElementById('activityModal').style.display = 'none';
 }
 
-// 更新倒计时
+// 更新倒计�?
 function updateCountdowns(activities) {
     activities.forEach(activity => {
         const element = document.getElementById(`countdown-${activity.id}`);
@@ -381,19 +381,19 @@ function updateCountdowns(activities) {
         }
     });
     
-    // 每秒更新一次倒计时
+    // 每秒更新一次倒计�?
     setTimeout(() => {
         updateCountdowns(activities);
     }, 1000);
 }
 
-// 更新模态框倒计时
+// 更新模态框倒计�?
 function updateModalCountdown(activity) {
     const element = document.getElementById(`modal-countdown-${activity.id}`);
     if (element) {
         element.textContent = calculateTimeRemaining(activity.endTime);
         
-        // 每秒更新一次倒计时
+        // 每秒更新一次倒计�?
         setTimeout(() => {
             updateModalCountdown(activity);
         }, 1000);
@@ -407,7 +407,7 @@ function calculateTimeRemaining(endTimeStr) {
     const diff = endTime - now;
     
     if (diff <= 0) {
-        return '已结束';
+        return '�ѽ���';
     }
     
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -416,11 +416,11 @@ function calculateTimeRemaining(endTimeStr) {
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
     
     if (days > 0) {
-        return `${days}天${hours}小时`;
+        return days + '��' + hours + 'Сʱ';
     } else if (hours > 0) {
-        return `${hours}小时${minutes}分钟`;
+        return hours + 'Сʱ' + minutes + '����';
     } else {
-        return `${minutes}分${seconds}秒`;
+        return minutes + '��' + seconds + '��';
     }
 }
 
@@ -430,7 +430,7 @@ function getActivityTypeText(type) {
         case 'DAILY_LOGIN':
             return '每日登录';
         case 'RECHARGE':
-            return '充值活动';
+            return '��ֵ�';
         case 'COMBAT':
             return '战斗活动';
         case 'CULTIVATION':
@@ -440,7 +440,7 @@ function getActivityTypeText(type) {
     }
 }
 
-// 格式化日期时间
+// 格式化日期时�?
 function formatDateTime(dateTimeStr) {
     const date = new Date(dateTimeStr);
     return date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });

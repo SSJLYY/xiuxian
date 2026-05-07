@@ -540,7 +540,8 @@ document.addEventListener('DOMContentLoaded', () => {
             window.gameAPI.getAvailableCombos = () => window.api.get('/skills/combos/available');
         }
         if (!window.gameAPI.checkCombo) {
-            window.gameAPI.checkCombo = (skillId) => window.api.post('/skills/combos/check', { skillId });
+            window.gameAPI.checkCombo = (skillId, baseDamage = 0) =>
+                window.api.post(`/skills/combos/check?skillId=${skillId}&baseDamage=${baseDamage}`);
         }
         if (!window.gameAPI.getComboStats) {
             window.gameAPI.getComboStats = () => window.api.get('/skills/combos/stats');
@@ -563,8 +564,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // 对外暴露连招检测，可从战斗JS中调用
-window.onSkillUsedForCombo = function(skillId) {
+window.onSkillUsedForCombo = function(skillId, baseDamage = 0) {
     if (window.skillComboSystem) {
-        window.skillComboSystem.onSkillUsed(skillId);
+        window.skillComboSystem.onSkillUsed(skillId, baseDamage);
     }
 };
