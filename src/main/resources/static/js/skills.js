@@ -1,11 +1,11 @@
-// 技能系统JavaScript
+﻿// 鎶€鑳界郴缁烰avaScript
 
 var currentTab = 'my-skills';
 var mySkills = [];
 var availableSkills = [];
 var equippedSkills = [];
 
-// 页面加载时初始化
+// 椤甸潰鍔犺浇鏃跺垵濮嬪寲
 document.addEventListener('DOMContentLoaded', function() {
     loadPlayerInfo();
     loadMySkills();
@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadEquippedSkills();
 });
 
-// 暴露�?modules.js 调用
+// 鏆撮湶缁?modules.js 璋冪敤
 window.loadMySkills = loadMySkills;
 window.loadAvailableSkills = loadAvailableSkills;
 window.loadEquippedSkills = loadEquippedSkills;
@@ -52,7 +52,7 @@ function normalizeAvailableSkill(skill) {
     };
 }
 
-// 加载玩家信息
+// 鍔犺浇鐜╁淇℃伅
 async function loadPlayerInfo() {
     try {
         const response = await gameAPI.getCurrentPlayerProfile();
@@ -64,15 +64,15 @@ async function loadPlayerInfo() {
             document.getElementById('playerSkillPoints').textContent = player.skillPoints || 0;
         }
     } catch (error) {
-        console.error('加载玩家信息失败:', error);
+        console.error('鍔犺浇鐜╁淇℃伅澶辫触:', error);
     }
 }
 
-// �л���ǩҳ
+// 切换标签页
 function showSkillTab(tabName, triggerElement = null) {
     currentTab = tabName;
     
-    // ���°�ť״̬
+    // 更新按钮状态
     const buttons = document.querySelectorAll('.skill-tab-btn');
     buttons.forEach(btn => btn.classList.remove('active'));
     const activeButton = triggerElement
@@ -80,10 +80,10 @@ function showSkillTab(tabName, triggerElement = null) {
         || Array.from(buttons).find(btn => btn.dataset.tab === tabName || btn.getAttribute('onclick')?.includes(`'${tabName}'`));
     activeButton?.classList.add('active');
     
-    // 隐藏所有标签页
+    // 闅愯棌鎵€鏈夋爣绛鹃〉
     document.querySelectorAll('.skill-tab-content').forEach(tab => tab.style.display = 'none');
     
-    // ��ʾ��Ӧ��ǩҳ
+    // 显示对应标签页
     if (tabName === 'my-skills') {
         document.getElementById('my-skills-tab').style.display = 'block';
         loadMySkills();
@@ -96,7 +96,7 @@ function showSkillTab(tabName, triggerElement = null) {
     }
 }
 
-// �����ҵļ����б�
+// 加载我的技能列表
 async function loadMySkills() {
     showLoading();
     try {
@@ -107,40 +107,41 @@ async function loadMySkills() {
             mySkills = (response.data || []).map(normalizePlayerSkill);
             renderMySkills();
         } else {
-            showToast('加载失败: ' + response.message, 'error');
+            showToast('鍔犺浇澶辫触: ' + response.message, 'error');
         }
     } catch (error) {
         hideLoading();
-        showToast('�����ҵļ���ʧ��', 'error');
+        showToast('加载我的技能失败', 'error');
         console.error(error);
     }
 }
 
-// ��Ⱦ�ҵļ����б�
+// 渲染我的技能列表
 function renderMySkills() {
     const container = document.getElementById('mySkillsList');
     
     if (mySkills.length === 0) {
-        container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 40px;">你还没有技能，去学习一些吧�?/p>';
+        container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 40px;">浣犺繕娌℃湁鎶€鑳斤紝鍘诲涔犱竴浜涘惂锛?/p>';
         return;
     }
     
     container.innerHTML = mySkills.map(skill => `
         <div class="skill-card rarity-${skill.rarity || 1}">
-            ${skill.isEquipped ? '<div class="equipped-badge">已装�?/div>' : ''}
+            ${skill.isEquipped ? '<div class="equipped-badge">宸茶澶?/div>' : ''}
             <div class="skill-icon">${getSkillIcon(skill.skillType)}</div>
             <h4 style="text-align: center; margin: 10px 0;">${escapeHtml(skill.skillName)}</h4>
-            <p style="text-align: center; font-size: 12px; color: #666;">等级 ${skill.level}</p>
+            <p style="text-align: center; font-size: 12px; color: #666;">绛夌骇 ${skill.level}</p>
+            <p style="text-align: center; font-size: 12px; color: #666;">槽位 ${Number(skill.slotNumber || 0) + 1}</p>
             
             <div class="skill-stats">
-                <div class="stat-item">⚔️ 伤害: ${skill.damage || 0}</div>
-                <div class="stat-item">�?消�? ${skill.manaCost || 0}</div>
-                <div class="stat-item">⏱️ 冷却: ${skill.cooldown || 0}s</div>
+                <div class="stat-item">鈿旓笍 浼ゅ: ${skill.damage || 0}</div>
+                <div class="stat-item">鈿?娑堣€? ${skill.manaCost || 0}</div>
+                <div class="stat-item">鈴憋笍 鍐峰嵈: ${skill.cooldown || 0}s</div>
             </div>
             
             <div style="margin-top: 10px;">
                 <div style="display: flex; justify-content: space-between; font-size: 12px;">
-                    <span>经验</span>
+                    <span>缁忛獙</span>
                     <span>${skill.experience}/${skill.expToNext}</span>
                 </div>
                 <div class="exp-bar">
@@ -149,18 +150,18 @@ function renderMySkills() {
             </div>
             
             <div style="margin-top: 8px; font-size: 12px; color: #666;">
-                <p>${escapeHtml(skill.description || '暂无描述')}</p>
+                <p>${escapeHtml(skill.description || '鏆傛棤鎻忚堪')}</p>
             </div>
             
             <div class="action-buttons" style="margin-top: 10px;">
-                ${!skill.isEquipped ? `<button class="btn btn-primary btn-sm" onclick="equipSkill(${skill.playerSkillId})">装备</button>` : ''}
-                <button class="btn btn-success btn-sm" onclick="upgradeSkill(${skill.playerSkillId})">升级</button>
+                ${!skill.isEquipped ? `<button class="btn btn-primary btn-sm" onclick="equipSkill(${skill.playerSkillId})">瑁呭</button>` : ''}
+                <button class="btn btn-success btn-sm" onclick="upgradeSkill(${skill.playerSkillId})">鍗囩骇</button>
             </div>
         </div>
     `).join('');
 }
 
-// ���ؿ�ѧϰ�ļ���
+// 加载可学习的技能
 async function loadAvailableSkills() {
     showLoading();
     try {
@@ -171,21 +172,21 @@ async function loadAvailableSkills() {
             availableSkills = (response.data || []).map(normalizeAvailableSkill);
             renderAvailableSkills();
         } else {
-            showToast('加载失败: ' + response.message, 'error');
+            showToast('鍔犺浇澶辫触: ' + response.message, 'error');
         }
     } catch (error) {
         hideLoading();
-        showToast('���ؿ�ѧϰ����ʧ��', 'error');
+        showToast('加载可学习技能失败', 'error');
         console.error(error);
     }
 }
 
-// ��Ⱦ��ѧϰ�ļ���
+// 渲染可学习的技能
 function renderAvailableSkills() {
     const container = document.getElementById('availableSkillsList');
     
     if (availableSkills.length === 0) {
-        container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 40px;">暂无可学习的技�?/p>';
+        container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 40px;">鏆傛棤鍙涔犵殑鎶€鑳?/p>';
         return;
     }
     
@@ -197,27 +198,27 @@ function renderAvailableSkills() {
             <p style="text-align: center; font-size: 12px; color: #666; margin: 5px 0;">${escapeHtml(skill.type)}</p>
             
             <div class="skill-stats">
-                <div class="stat-item">⚔️ 伤害: ${skill.baseDamage}</div>
-                <div class="stat-item">�?消�? ${skill.baseManaCost}</div>
-                <div class="stat-item">⏱️ 冷却: ${skill.baseCooldown}s</div>
+                <div class="stat-item">鈿旓笍 浼ゅ: ${skill.baseDamage}</div>
+                <div class="stat-item">鈿?娑堣€? ${skill.baseManaCost}</div>
+                <div class="stat-item">鈴憋笍 鍐峰嵈: ${skill.baseCooldown}s</div>
             </div>
             
             <p style="text-align: center; margin-top: 10px; font-size: 12px; color: #666;">
-                解锁等级: ${skill.unlockLevel}
+                瑙ｉ攣绛夌骇: ${skill.unlockLevel}
             </p>
             
             <p style="text-align: center; margin-top: 5px; font-size: 12px; color: #666;">
-                消耗灵�? ${skill.cost || 0}
+                娑堣€楃伒鐭? ${skill.cost || 0}
             </p>
             
             <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="learnSkill(${skill.id})">
-                📚 学习
+                馃摎 瀛︿範
             </button>
         </div>
     `).join('');
 }
 
-// ������װ���ļ���
+// 加载已装备的技能
 async function loadEquippedSkills() {
     showLoading();
     try {
@@ -228,21 +229,21 @@ async function loadEquippedSkills() {
             equippedSkills = (response.data || []).map(normalizePlayerSkill);
             renderEquippedSkills();
         } else {
-            showToast('加载失败: ' + response.message, 'error');
+            showToast('鍔犺浇澶辫触: ' + response.message, 'error');
         }
     } catch (error) {
         hideLoading();
-        showToast('������װ������ʧ��', 'error');
+        showToast('加载已装备技能失败', 'error');
         console.error(error);
     }
 }
 
-// ��Ⱦ��װ���ļ���
+// 渲染已装备的技能
 function renderEquippedSkills() {
     const container = document.getElementById('equippedSkillsList');
     
     if (equippedSkills.length === 0) {
-        container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 40px;">还没有装备任何技�?/p>';
+        container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 40px;">杩樻病鏈夎澶囦换浣曟妧鑳?/p>';
         return;
     }
     
@@ -250,22 +251,23 @@ function renderEquippedSkills() {
         <div class="skill-card equipped rarity-${skill.rarity || 1}">
             <div class="skill-icon">${getSkillIcon(skill.skillType)}</div>
             <h4 style="text-align: center; margin: 10px 0;">${escapeHtml(skill.skillName)}</h4>
-            <p style="text-align: center; font-size: 12px; color: #666;">等级 ${skill.level}</p>
+            <p style="text-align: center; font-size: 12px; color: #666;">绛夌骇 ${skill.level}</p>
+            <p style="text-align: center; font-size: 12px; color: #666;">槽位 ${Number(skill.slotNumber || 0) + 1}</p>
             
             <div class="skill-stats">
-                <div class="stat-item">⚔️ 伤害: ${skill.damage || 0}</div>
-                <div class="stat-item">�?消�? ${skill.manaCost || 0}</div>
-                <div class="stat-item">⏱️ 冷却: ${skill.cooldown || 0}s</div>
+                <div class="stat-item">鈿旓笍 浼ゅ: ${skill.damage || 0}</div>
+                <div class="stat-item">鈿?娑堣€? ${skill.manaCost || 0}</div>
+                <div class="stat-item">鈴憋笍 鍐峰嵈: ${skill.cooldown || 0}s</div>
             </div>
             
             <div class="action-buttons" style="margin-top: 10px;">
-                <button class="btn btn-secondary btn-sm" onclick="unequipSkill(${skill.playerSkillId})">卸下</button>
+                <button class="btn btn-secondary btn-sm" onclick="unequipSkill(${skill.playerSkillId})">鍗镐笅</button>
             </div>
         </div>
     `).join('');
 }
 
-// ѧϰ����
+// 学习技能
 async function learnSkill(skillId) {
     showLoading();
     try {
@@ -273,42 +275,60 @@ async function learnSkill(skillId) {
         hideLoading();
         
         if (response.success) {
-            showToast('📚 技能学习成功！', 'success');
+            showToast('馃摎 鎶€鑳藉涔犳垚鍔燂紒', 'success');
             loadMySkills();
             loadAvailableSkills();
             loadPlayerInfo();
         } else {
-            showToast(response.message || '学习失败', 'error');
+            showToast(response.message || '瀛︿範澶辫触', 'error');
         }
     } catch (error) {
         hideLoading();
-        showToast('学习失败: ' + (error.message || '未知错误'), 'error');
+        showToast('瀛︿範澶辫触: ' + (error.message || '鏈煡閿欒'), 'error');
     }
 }
 
-// װ������
+// 装备技能
 async function equipSkill(playerSkillId) {
     showLoading();
     try {
-        // 获取装备槽位（默认第1个空闲槽位）
-        const slotNumber = 0;
+        const equippedResponse = await gameAPI.getEquippedSkills();
+        if (!equippedResponse?.success) {
+            hideLoading();
+            showToast(equippedResponse?.message || '无法获取当前装备技能', 'error');
+            return;
+        }
+
+        equippedSkills = (equippedResponse.data || []).map(normalizePlayerSkill);
+        const usedSlots = new Set(
+            equippedSkills
+                .map(skill => Number(skill.slotNumber))
+                .filter(slot => Number.isInteger(slot) && slot >= 0)
+        );
+        const slotNumber = [0, 1, 2].find(slot => !usedSlots.has(slot));
+        if (slotNumber === undefined) {
+            hideLoading();
+            showToast('已达到3个装备上限，请先卸下一个技能', 'error');
+            return;
+        }
+
         const response = await gameAPI.equipSkill(playerSkillId, slotNumber);
         hideLoading();
         
         if (response.success) {
-            showToast('⚔️ 技能装备成功！', 'success');
+            showToast('鈿旓笍 鎶€鑳借澶囨垚鍔燂紒', 'success');
             loadMySkills();
             loadEquippedSkills();
         } else {
-            showToast(response.message || '装备失败', 'error');
+            showToast(response.message || '瑁呭澶辫触', 'error');
         }
     } catch (error) {
         hideLoading();
-        showToast('装备失败', 'error');
+        showToast('瑁呭澶辫触', 'error');
     }
 }
 
-// ж�¼���
+// 卸下技能
 async function unequipSkill(playerSkillId) {
     showLoading();
     try {
@@ -316,19 +336,19 @@ async function unequipSkill(playerSkillId) {
         hideLoading();
         
         if (response.success) {
-            showToast('��ж�¼���', 'success');
+            showToast('已卸下技能', 'success');
             loadMySkills();
             loadEquippedSkills();
         } else {
-            showToast(response.message || '卸下失败', 'error');
+            showToast(response.message || '鍗镐笅澶辫触', 'error');
         }
     } catch (error) {
         hideLoading();
-        showToast('卸下失败', 'error');
+        showToast('鍗镐笅澶辫触', 'error');
     }
 }
 
-// ��������
+// 升级技能
 async function upgradeSkill(playerSkillId) {
     showLoading();
     try {
@@ -336,55 +356,55 @@ async function upgradeSkill(playerSkillId) {
         hideLoading();
         
         if (response.success) {
-            showToast('💪 技能升级成功！', 'success');
+            showToast('馃挭 鎶€鑳藉崌绾ф垚鍔燂紒', 'success');
             loadMySkills();
             loadEquippedSkills();
             loadPlayerInfo();
         } else {
-            showToast(response.message || '升级失败', 'error');
+            showToast(response.message || '鍗囩骇澶辫触', 'error');
         }
     } catch (error) {
         hideLoading();
-        showToast('升级失败', 'error');
+        showToast('鍗囩骇澶辫触', 'error');
     }
 }
 
-// ���ߺ�������ȡ����ͼ��
+// 工具函数：获取技能图标
 function getSkillIcon(skillType) {
     const icons = {
-        'ATTACK': '⚔️',
+        'ATTACK': '鈿旓笍',
         'DEFENSE': '[DEF]',
-        'HEAL': '❤️',
+        'HEAL': '鉂わ笍',
         'BUFF': '[BUFF]',
-        'DEBUFF': '💀',
-        'SPECIAL': '🌟'
+        'DEBUFF': '馃拃',
+        'SPECIAL': '馃専'
     };
     return icons[skillType] || '[SKILL]';
 }
 
-// ���ߺ�������ȡϡ�ж�����
+// 工具函数：获取稀有度名称
 function getRarityName(rarity) {
     const names = {
-        1: '��ͨ',
-        2: 'ϡ��',
-        3: '史诗',
-        4: '��˵',
-        5: '��'
+        1: '普通',
+        2: '稀有',
+        3: '鍙茶瘲',
+        4: '传说',
+        5: '神话'
     };
-    return names[rarity] || '未知';
+    return names[rarity] || '鏈煡';
 }
 
-// 显示加载动画
+// 鏄剧ず鍔犺浇鍔ㄧ敾
 function showLoading() {
     document.getElementById('loading').classList.remove('hidden');
 }
 
-// 隐藏加载动画
+// 闅愯棌鍔犺浇鍔ㄧ敾
 function hideLoading() {
     document.getElementById('loading').classList.add('hidden');
 }
 
-// 显示提示消息
+// 鏄剧ず鎻愮ず娑堟伅
 function showToast(message, type = 'info') {
     if (window.authManager && window.authManager.showToast) {
         window.authManager.showToast(message, type);
@@ -392,6 +412,8 @@ function showToast(message, type = 'info') {
         alert(message);
     }
 }
+
+
 
 
 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 境界突破前端UI系统
  * GDD 3.3: 心魔战斗仪式感机制
  * 对接后端: /api/player/breakthrough, /api/player/breakthrough/can
@@ -920,13 +920,14 @@ class PetEvolutionSystem {
             // 构建宠物卡片列表
             let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:15px;">';
             for (const pet of res.data) {
+                const playerPetId = pet.id;
                 // 检查进化状态
                 let evolutionInfo = '';
                 try {
-                    const evoRes = await gameAPI.checkPetEvolution(pet.id);
+                    const evoRes = await gameAPI.checkPetEvolution(playerPetId);
                     if (evoRes?.success) {
                         const evo = evoRes.data;
-                        evolutionInfo = evo.success
+                        evolutionInfo = evo.canEvolve
                             ? `<div style="color:#4ade80;margin-top:5px;">✅ ${evo.message}</div>`
                             : `<div style="color:#fbbf24;margin-top:5px;">📋 ${evo.message}</div>`;
                     }
@@ -944,7 +945,7 @@ class PetEvolutionSystem {
                         </div>
                         ${evolutionInfo}
                         <div style="margin-top:10px;">
-                            <button class="btn btn-warning btn-sm" onclick="window.petEvolutionSystem?.checkAndShowEvolution(${pet.id})">
+                            <button class="btn btn-warning btn-sm" onclick="window.petEvolutionSystem?.checkAndShowEvolution(${playerPetId})">
                                 🌟 检查进化
                             </button>
                         </div>
