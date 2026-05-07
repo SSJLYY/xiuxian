@@ -27,7 +27,7 @@ export class CombatUI {
     updateMonsterDisplay(monster) {
         if (!monster) return;
         setText('combat-monster-name', monster.name);
-        setText('combat-monster-level', `等级${monster.level}`);
+        setText('combat-monster-level', `等级 ${monster.level}`);
         setText('combat-monster-type', monster.type);
         setText('combat-monster-health', monster.health);
         setText('combat-monster-attack', monster.attack);
@@ -60,16 +60,16 @@ export class CombatUI {
     async fightOnce() {
         try {
             const mapSelector = getMapSelector();
-            const mapId = mapSelector ? parseInt(mapSelector.value) : 1;
+            const mapId = mapSelector ? parseInt(mapSelector.value, 10) : 1;
             const { monster, result } = await combatService.fightOnce(mapId);
-            this.addCombatLog(`遭遇 ${monster.name} (等级${monster.level} ${monster.type})`);
+            this.addCombatLog(`遭遇 ${monster.name}（等级 ${monster.level} ${monster.type}）`);
             if (result.result === 'WIN') {
-                this.addCombatLog(`<span class="text-green-600">战斗胜利！获得经验: ${result.totalExpGained}, 灵石: ${result.totalSpiritStonesGained}</span>`);
+                this.addCombatLog(`<span class="text-green-600">战斗胜利，获得经验 ${result.totalExpGained}，灵石 ${result.totalSpiritStonesGained}</span>`);
                 if (result.droppedEquipmentId) {
-                    this.addCombatLog(`<span class="text-blue-600">获得装备掉落!</span>`);
+                    this.addCombatLog('<span class="text-blue-600">获得一件装备掉落</span>');
                 }
             } else {
-                this.addCombatLog(`<span class="text-red-600">战斗失败!</span>`);
+                this.addCombatLog('<span class="text-red-600">战斗失败</span>');
             }
             if (window.authManager?.loadPlayerProfile) await window.authManager.loadPlayerProfile();
         } catch (error) {
@@ -84,16 +84,16 @@ export class CombatUI {
             btn100: getFightButton('combat-fight-100-btn', 'fight-100-btn')
         };
         const mapSelector = getMapSelector();
-        const mapId = mapSelector ? parseInt(mapSelector.value) : 1;
+        const mapId = mapSelector ? parseInt(mapSelector.value, 10) : 1;
         Object.values(btns).forEach(b => { if (b) b.disabled = true; });
         const targetBtn = times === 50 ? btns.btn50 : btns.btn100;
         const origText = targetBtn ? targetBtn.innerHTML : '';
         if (targetBtn) targetBtn.innerHTML = '<i class="fa fa-spinner fa-spin mr-1"></i> 战斗中...';
         try {
-            this.addCombatLog(`<span class="text-blue-600">开始连续战斗${times}次...</span>`);
+            this.addCombatLog(`<span class="text-blue-600">开始连续战斗 ${times} 次...</span>`);
             const result = await combatService.batchFight(times, mapId);
-            this.addCombatLog(`<span class="text-green-600">连续战斗结束！</span>`);
-            this.addCombatLog(`总战斗次数: ${result.totalBattles}，胜利: ${result.wins}次，失败: ${result.losses}次`);
+            this.addCombatLog('<span class="text-green-600">连续战斗结束</span>');
+            this.addCombatLog(`总战斗次数: ${result.totalBattles}，胜利: ${result.wins} 次，失败: ${result.losses} 次`);
             this.addCombatLog(`胜率: ${(result.winRate * 100).toFixed(2)}%`);
             this.addCombatLog(`获得经验: ${result.totalExpGained}，灵石: ${result.totalSpiritStonesGained}`);
             if (window.authManager?.loadPlayerProfile) await window.authManager.loadPlayerProfile();
@@ -104,7 +104,6 @@ export class CombatUI {
             if (targetBtn) targetBtn.innerHTML = origText;
         }
     }
-
 }
 
 export const combatUI = new CombatUI();

@@ -20,7 +20,7 @@ export function mountGuildGlobals() {
     window.showCreateGuildForm = function() {
         const name = prompt('宗门名称:');
         if (!name) return;
-        const description = prompt('宗门描述 (可选):') || '';
+        const description = prompt('宗门描述（可选）:') || '';
         return guildUI.createGuild(name, description);
     };
 

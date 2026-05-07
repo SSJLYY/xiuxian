@@ -39,7 +39,7 @@ export class CheckinUI {
                 }
             }
         } catch (error) {
-            showToast('加载签到状态失败: ' + error.message, 'error');
+            showToast(`加载签到状态失败: ${error.message}`, 'error');
         }
     }
 
@@ -48,21 +48,21 @@ export class CheckinUI {
         const title = document.getElementById('checkin-month-title');
         if (!grid) return;
         const now = this.currentMonth;
-        if (title) title.textContent = `${now.getFullYear()}年${now.getMonth() + 1}月`;
+        if (title) title.textContent = `${now.getFullYear()}年 ${now.getMonth() + 1}月`;
         const year = now.getFullYear();
         const month = now.getMonth();
         const firstDay = new Date(year, month, 1).getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
-        const today = new Date().getDate();
+        const realToday = new Date();
+        const today = realToday.getDate();
         const checkedDays = (status.calendar || []).filter(cell => cell.checked).map(cell => cell.day);
         let html = '';
         for (let i = 0; i < firstDay; i++) html += '<div></div>';
         for (let d = 1; d <= daysInMonth; d++) {
-            const isToday = d === today && now.getMonth() === new Date().getMonth() && now.getFullYear() === new Date().getFullYear();
+            const isToday = d === today && now.getMonth() === realToday.getMonth() && now.getFullYear() === realToday.getFullYear();
             const isChecked = checkedDays.includes(d);
-            const dayNames = ['ATTACK', 'DEFENSE', 'HP', 'ATTACK', 'DEFENSE', 'HP', 'ATTACK'];
-            const rewardIcons = { ATTACK: '⚔️', DEFENSE: '🛡️', HP: '❤️' };
-            const rewardType = dayNames[(d - 1) % 7];
+            const rewardIcons = { 0: '⚔️', 1: '🛡️', 2: '❤️' };
+            const rewardType = (d - 1) % 3;
             html += `
                 <div class="checkin-day ${isToday ? 'today' : ''} ${isChecked ? 'checked' : ''}" style="aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;background:${isChecked ? 'rgba(46,204,113,0.15)' : isToday ? 'rgba(212,175,55,0.15)' : 'rgba(255,255,255,0.03)'};border:1px solid ${isChecked ? 'rgba(46,204,113,0.3)' : isToday ? 'rgba(212,175,55,0.3)' : 'transparent'};">
                     <span class="text-sm ${isToday ? 'font-bold' : ''}" style="color:${isToday ? 'var(--accent-gold)' : 'var(--text-light)'};">${d}</span>
@@ -89,15 +89,21 @@ export class CheckinUI {
 
     async doCheckIn() {
         const btn = document.getElementById('checkin-btn');
-        if (btn) { btn.disabled = true; btn.textContent = '签到中...'; }
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = '签到中...';
+        }
         try {
             const res = await checkinService.doCheckin();
-            showToast(res.message || '签到成功！', 'success');
+            showToast(res.message || '签到成功', 'success');
             if (window.authManager?.loadPlayerProfile) await window.authManager.loadPlayerProfile();
             await this.loadStatus();
         } catch (error) {
-            showToast('签到失败: ' + error.message, 'error');
-            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-calendar-check"></i> 今日签到'; }
+            showToast(`签到失败: ${error.message}`, 'error');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-calendar-check"></i> 今日签到';
+            }
         }
     }
 }

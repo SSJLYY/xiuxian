@@ -5,7 +5,7 @@ export function mountAuctionGlobals() {
     window.auctionUI = auctionUI;
     window.switchAuctionTab = function(tab) { return auctionUI.switchTab(tab); };
     window.loadAuctionItems = async function() { return auctionUI.loadAuctionItems(); };
-    window.loadMyAuctionItems = async function() { return auctionUI.loadMyAuctionItems(); };
+    window.loadMyAuctionItems = async function(status = '') { return auctionUI.loadMyAuctionItems(status); };
     window.buyAuctionItem = async function(auctionId) { return auctionUI.buyAuctionItem(auctionId); };
     window.cancelAuctionItem = async function(auctionId) { return auctionUI.cancelAuctionItem(auctionId); };
     window.showTab = function(tab) {
@@ -20,7 +20,7 @@ export function mountAuctionGlobals() {
         if (content) content.style.display = 'block';
         if (nav) nav.classList.add('active');
         if (tab === 'browse') return auctionUI.loadAuctionItems();
-        if (tab === 'my-auctions') return auctionUI.loadMyAuctionItems();
+        if (tab === 'my-auctions') return auctionUI.loadMyAuctionItems(auctionUI.currentMyStatus);
     };
     window.loadMyAuctions = async function(status = '') { return auctionUI.loadMyAuctionItems(status); };
     return auctionUI;

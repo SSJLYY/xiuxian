@@ -133,6 +133,9 @@ public class GuildBossService {
         // 更新挑战记录
         updateChallengeRecord(boss.getId(), playerId, damage, record);
 
+        int remainingAttempts = Math.max(0, MAX_DAILY_ATTEMPTS
+                - (record == null ? 1 : getTodayAttempts(record) + 1));
+
         // BOSS死亡时分发奖励
         if (bossDefeated) {
             GuildBoss latestBoss = guildBossMapper.selectBossById(boss.getId());
@@ -150,7 +153,7 @@ public class GuildBossService {
                 .bossDefeated(bossDefeated)
                 .bossRemainingHealth(boss.getCurrentHealth())
                 .bossMaxHealth(boss.getMaxHealth())
-                .remainingAttempts(Math.max(0, MAX_DAILY_ATTEMPTS - getTodayAttempts(record) - 1))
+                .remainingAttempts(remainingAttempts)
                 .build();
     }
 
@@ -172,7 +175,7 @@ public class GuildBossService {
 
             GuildBoss latestBoss = guildBossMapper.findLatestByGuildId(guildId);
             if (isBossRespawnPending(latestBoss)) {
-                throw new BusinessException(ErrorCode.GUILD_BOSS_ALREADY_DEFEATED, "宗门BOSS尚未刷新");
+                throw new BusinessException(ErrorCode.GUILD_BOSS_ALREADY_DEFEATED, "宗门BOSS今日已被击败，尚未刷新");
             }
 
             return spawnBoss(guildId);

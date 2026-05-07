@@ -54,7 +54,7 @@ public class OfflineRewardService {
         if (offlineMinutes < 10) {
             Map<String, Object> result = new HashMap<>();
             result.put("hasReward", false);
-            result.put("message", "离线时间不足10分钟");
+            result.put("message", "离线时间不足 10 分钟");
             return result;
         }
 
@@ -87,19 +87,19 @@ public class OfflineRewardService {
 
         OfflineReward reward = offlineRewardMapper.selectById(rewardId);
         if (reward == null) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "奖励不存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "离线奖励不存在");
         }
         if (!reward.getPlayerId().equals(playerId)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "无权领取该奖励");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "无权领取该离线奖励");
         }
         if (Boolean.TRUE.equals(reward.getClaimed())) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "奖励已被领取");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "离线奖励已领取");
         }
 
         LocalDateTime claimedAt = LocalDateTime.now();
         int claimedRows = offlineRewardMapper.claimRewardIfUnclaimed(rewardId, playerId, claimedAt);
         if (claimedRows == 0) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "奖励已被领取");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "离线奖励已领取");
         }
 
         player.setExp(defaultLong(player.getExp()) + defaultInt(reward.getExpGained(), 0));

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Xiuxian Codereview Direct Fix"
+  short_description: "Find and directly fix xiuxian bugs in codereview mode"
+  default_prompt: "Use $xiuxian-codereview-direct-fix to run a codereview-style bughunt and directly fix issues in this xiuxian repository."

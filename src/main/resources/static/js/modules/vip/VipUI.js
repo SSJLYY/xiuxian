@@ -1,5 +1,5 @@
 /**
- * VIP模块 - UI渲染层
+ * VIP 模块 - UI 渲染层
  */
 import { vipService } from './VipService.js';
 import { toast } from '../../components/Toast.js';
@@ -47,8 +47,8 @@ export class VipUI {
             this.renderVipInfo();
             this.renderVipLevels();
             this.renderVipBenefits();
-        } catch (error) {
-            toast.error('加载VIP数据失败');
+        } catch {
+            toast.error('加载 VIP 数据失败');
         } finally {
             loading.hide();
         }
@@ -56,26 +56,24 @@ export class VipUI {
 
     renderVipInfo() {
         const info = vipService.vipInfo;
-        if (!info) return;
+        if (!info) {
+            return;
+        }
 
-        // 当前VIP等级
         if (this.elements.currentVipLevel) {
             this.elements.currentVipLevel.textContent = `VIP ${info.level}`;
         }
 
-        // 经验值
         if (this.elements.currentExp) {
             this.elements.currentExp.textContent = info.currentExp || 0;
         }
 
-        // 下一级所需经验
         if (this.elements.expToNextLevel) {
             const nextLevelExp = info.nextLevelExp || info.currentExp || 0;
             const currentExp = info.currentExp || 0;
             this.elements.expToNextLevel.textContent = `${currentExp}/${nextLevelExp}`;
         }
 
-        // 经验进度条
         if (this.elements.expProgressBar) {
             const nextLevelExp = info.nextLevelExp || info.currentExp || 1;
             const currentExp = info.currentExp || 0;
@@ -83,7 +81,6 @@ export class VipUI {
             this.elements.expProgressBar.style.width = `${progress}%`;
         }
 
-        // 每日奖励按钮状态
         if (this.elements.dailyRewardBtn) {
             if (info.claimedDailyReward) {
                 this.elements.dailyRewardBtn.textContent = '今日已领取';
@@ -99,13 +96,15 @@ export class VipUI {
 
     renderVipLevels() {
         const container = this.elements.vipLevelsContainer;
-        if (!container) return;
+        if (!container) {
+            return;
+        }
 
         const levels = vipService.vipLevels;
         const currentLevel = vipService.vipInfo?.level || 0;
 
         if (levels.length === 0) {
-            container.innerHTML = '<p>暂无VIP等级信息</p>';
+            container.innerHTML = '<p>暂无 VIP 等级信息</p>';
             return;
         }
 
@@ -133,7 +132,9 @@ export class VipUI {
 
     renderVipBenefits() {
         const container = this.elements.vipBenefits;
-        if (!container) return;
+        if (!container) {
+            return;
+        }
 
         const benefits = vipService.vipBenefits || [];
         if (benefits.length === 0) {
@@ -160,7 +161,7 @@ export class VipUI {
         try {
             await vipService.claimDailyReward();
             await this.loadVipData();
-        } catch (error) {
+        } catch {
             toast.error('领取失败');
         } finally {
             loading.hide();
@@ -197,7 +198,7 @@ export class VipUI {
         });
 
         document.querySelectorAll('.recharge-option').forEach(option => {
-            option.addEventListener('click', (e) => {
+            option.addEventListener('click', e => {
                 const amount = parseInt(e.currentTarget.dataset.amount);
                 this.handleRecharge(amount);
                 modal.hide();
@@ -206,13 +207,15 @@ export class VipUI {
     }
 
     async handleRecharge(amount) {
-        if (!confirm(`确定要充值 ${amount} 元吗?`)) return;
+        if (!confirm(`确定要充值 ${amount} 元吗？`)) {
+            return;
+        }
 
         loading.show();
         try {
             await vipService.recharge(amount);
             await this.loadVipData();
-        } catch (error) {
+        } catch {
             toast.error('充值失败');
         } finally {
             loading.hide();

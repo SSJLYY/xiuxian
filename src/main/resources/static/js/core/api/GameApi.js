@@ -1,8 +1,3 @@
-/**
- * 游戏 API 客户端 - 2026-04-17 全面修复版
- * 所有 API 路径已与后端完全匹配
- */
-
 import { ApiClient } from './ApiClient.js';
 
 class GameApi extends ApiClient {
@@ -13,7 +8,6 @@ class GameApi extends ApiClient {
         });
     }
 
-    // ========== 认证相关 ==========
     async login(username, password, userType = 'player') {
         return this.post('/auth/login', { username, password, userType });
     }
@@ -30,7 +24,6 @@ class GameApi extends ApiClient {
         return this.get('/auth/me');
     }
 
-    // ========== 玩家相关 ==========
     async getCurrentPlayer() {
         return this.get('/player/profile');
     }
@@ -48,14 +41,13 @@ class GameApi extends ApiClient {
     }
 
     async getPlayerStats() {
-        return this.get('/player/profile'); // 临时方案
+        return this.get('/player/profile');
     }
 
     async allocateAttributes(payload) {
         return this.post('/player/attributes/allocate', payload);
     }
 
-    // ========== 修炼相关 ==========
     async getCultivateInfo() {
         return this.get('/player/cultivate/info');
     }
@@ -88,7 +80,6 @@ class GameApi extends ApiClient {
         return this.post('/player/breakthrough', {});
     }
 
-    // ========== 战斗相关 ==========
     async generateMonster(mapId = null) {
         const params = new URLSearchParams();
         if (mapId != null) {
@@ -120,7 +111,6 @@ class GameApi extends ApiClient {
         return this.get('/combat/history');
     }
 
-    // ========== 背包相关 ==========
     async getInventoryItems() {
         return this.get('/inventory');
     }
@@ -140,12 +130,11 @@ class GameApi extends ApiClient {
     async discardItem() {
         return {
             success: false,
-            message: '褰撳墠鍚庣鏈彁渚涗涪寮冪墿鍝佹帴鍙?',
+            message: '当前后端未提供丢弃物品接口',
             data: null
         };
     }
 
-    // ========== 装备相关 ==========
     async getEquipment() {
         return this.get('/equipment');
     }
@@ -186,12 +175,10 @@ class GameApi extends ApiClient {
     }
 
     async acquireEquipment(data) {
-        const equipmentId =
-            typeof data === 'object' && data !== null ? data.equipmentId : data;
+        const equipmentId = typeof data === 'object' && data !== null ? data.equipmentId : data;
         return this.post(`/equipment/acquire?equipmentId=${equipmentId}`, {});
     }
 
-    // ========== 技能相关 ==========
     async getSkills() {
         return this.get('/skills');
     }
@@ -232,7 +219,6 @@ class GameApi extends ApiClient {
         return this.get('/skills/combos/stats');
     }
 
-    // ========== 宠物相关 ==========
     async getPets() {
         return this.get('/pets');
     }
@@ -263,9 +249,7 @@ class GameApi extends ApiClient {
 
     async trainPet(playerPetId, trainingType = '普通训练') {
         const resolvedTrainingType =
-            typeof trainingType === 'string'
-                ? trainingType
-                : trainingType?.trainingType;
+            typeof trainingType === 'string' ? trainingType : trainingType?.trainingType;
         return this.post(`/pets/train/${playerPetId}`, {
             trainingType: resolvedTrainingType || '普通训练'
         });
@@ -287,7 +271,6 @@ class GameApi extends ApiClient {
         return this.delete(`/pets/release/${playerPetId}`);
     }
 
-    // ========== 任务相关 ==========
     async getQuests(type = 'all') {
         if (type === 'all') {
             return this.get('/quests');
@@ -308,7 +291,7 @@ class GameApi extends ApiClient {
     }
 
     async getMyQuests() {
-        return this.get('/quests/my'); // 需要后端添加此接口
+        return this.get('/quests/my');
     }
 
     async acceptQuest(questId) {
@@ -339,7 +322,6 @@ class GameApi extends ApiClient {
         return this.post('/quests/monthly/refresh', {});
     }
 
-    // ========== 商城相关 ==========
     async getShopItems(type = 'general') {
         const resolvedType = type === 'all' ? '' : type;
         return this.get(`/shop/items${resolvedType ? `?type=${encodeURIComponent(resolvedType)}` : ''}`);
@@ -357,7 +339,6 @@ class GameApi extends ApiClient {
         return this.post(`/shop/skills/${skillId}/buy`, {});
     }
 
-    // ========== 宗门相关 ==========
     async getGuildList() {
         return this.get('/guild/list');
     }
@@ -382,7 +363,6 @@ class GameApi extends ApiClient {
         return this.post('/guild/donate', { amount });
     }
 
-    // 宗门 Boss
     async getCurrentGuildBoss() {
         return this.get('/guild/boss/current');
     }
@@ -395,7 +375,6 @@ class GameApi extends ApiClient {
         return this.post('/guild/boss/claim-reward', {});
     }
 
-    // ========== 拍卖行相关 ==========
     async getAuctionItems(filters = {}) {
         const params = new URLSearchParams();
         Object.entries(filters || {}).forEach(([key, value]) => {
@@ -411,8 +390,15 @@ class GameApi extends ApiClient {
         return this.get('/auction/my-items');
     }
 
-    async listAuctionItem(itemId, price, duration = 24) {
-        return this.post('/auction/list', { itemId, price, duration });
+    async listAuctionItem({ itemType, itemId, playerItemId, quantity = 1, price, duration = 24 }) {
+        return this.post('/auction/list', {
+            itemType,
+            itemId,
+            playerItemId,
+            quantity,
+            price,
+            duration
+        });
     }
 
     async buyAuctionItem(auctionId) {
@@ -423,7 +409,6 @@ class GameApi extends ApiClient {
         return this.post(`/auction/cancel/${auctionId}`, {});
     }
 
-    // ========== 邮件相关 ==========
     async getMails() {
         return this.get('/mail/list');
     }
@@ -448,7 +433,6 @@ class GameApi extends ApiClient {
         return this.delete(`/mail/${mailId}`);
     }
 
-    // ========== 排行榜相关 ==========
     async getRanking(type = 'level') {
         return this.get(`/ranking/${type}`);
     }
@@ -473,7 +457,6 @@ class GameApi extends ApiClient {
         return this.get(`/ranking/my-rank?type=${encodeURIComponent(type)}`);
     }
 
-    // ========== 成就相关 ==========
     async getAchievements() {
         return this.get('/achievement/list');
     }
@@ -490,7 +473,6 @@ class GameApi extends ApiClient {
         return this.post(`/achievement/${achievementId}/claim`, {});
     }
 
-    // ========== 签到相关 ==========
     async getCheckinStatus(year = null, month = null) {
         if (year != null && month != null) {
             return this.get(`/checkin/status?year=${year}&month=${month}`);
@@ -524,7 +506,6 @@ class GameApi extends ApiClient {
         };
     }
 
-    // ========== VIP 相关 ==========
     async getVipInfo() {
         return this.get('/vip/info');
     }
@@ -553,7 +534,6 @@ class GameApi extends ApiClient {
         return this.get(`/vip/privilege/${requiredLevel}`);
     }
 
-    // ========== 活动相关 ==========
     async getActivities() {
         return this.get('/activities/');
     }
@@ -590,7 +570,6 @@ class GameApi extends ApiClient {
         return this.get(`/activities/${activityId}/ranking`);
     }
 
-    // ========== 礼包码相关 ==========
     async redeemGiftcode(code) {
         return this.post('/giftcode/redeem', { code });
     }
@@ -603,7 +582,6 @@ class GameApi extends ApiClient {
         return this.get('/giftcode/available');
     }
 
-    // ========== 叙事相关 ==========
     async getAvailableDialogues(npcId) {
         return this.get(`/dialogue/available/${npcId}`);
     }
@@ -649,7 +627,6 @@ class GameApi extends ApiClient {
         });
     }
 
-    // ========== 地图相关 ==========
     async getMaps() {
         return this.get('/maps');
     }
@@ -678,7 +655,6 @@ class GameApi extends ApiClient {
         return this.get('/maps/offline-reward');
     }
 
-    // ========== 离线奖励 ==========
     async claimOfflineRewards() {
         return this.post('/offline-reward/calculate', {});
     }
@@ -707,32 +683,12 @@ class GameApi extends ApiClient {
     async getOfflineRewardInfo() {
         return this.get('/offline-reward/unclaimed');
     }
-
-    async discardItem() {
-        return {
-            success: false,
-            message: '当前后端未提供丢弃物品接口',
-            data: null
-        };
-    }
-
-    async trainPet(playerPetId, trainingType = '普通训练') {
-        const resolvedTrainingType =
-            typeof trainingType === 'string'
-                ? trainingType
-                : trainingType?.trainingType;
-        return this.post(`/pets/train/${playerPetId}`, {
-            trainingType: resolvedTrainingType || '普通训练'
-        });
-    }
 }
 
-// 创建全局游戏 API 实例
 const gameAPI = new GameApi();
 
 export { GameApi, gameAPI };
 
-// 导出 API 客户端
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { GameApi, gameAPI, default: gameAPI };
 }

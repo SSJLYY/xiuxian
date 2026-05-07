@@ -1,5 +1,5 @@
 /**
- * 装备模块 - UI渲染层
+ * 装备模块 - UI 渲染层
  */
 import { equipmentService } from './EquipmentService.js';
 import { toast } from '../../components/Toast.js';
@@ -26,9 +26,10 @@ export class EquipmentUI {
 
     bindEvents() {
         if (this.elements.equipmentContainer) {
-            this.elements.equipmentContainer.addEventListener('click', (e) => {
-                const slot = e.target.dataset.slot;
-                if (slot) {
+            this.elements.equipmentContainer.addEventListener('click', e => {
+                const slotElement = e.target.closest('[data-slot]');
+                const slot = slotElement?.dataset?.slot;
+                if (slot && this.elements.equipmentContainer.contains(slotElement)) {
                     this.handleSlotClick(slot);
                 }
             });
@@ -40,7 +41,7 @@ export class EquipmentUI {
         try {
             await equipmentService.loadEquipment();
             this.renderEquipment();
-        } catch (error) {
+        } catch {
             toast.error('加载装备失败');
         } finally {
             loading.hide();
@@ -48,13 +49,15 @@ export class EquipmentUI {
     }
 
     renderEquipment() {
-        if (!this.elements.equipmentContainer) return;
+        if (!this.elements.equipmentContainer) {
+            return;
+        }
 
         const slotNames = {
-            'weapon': '武器',
-            'helmet': '头盔',
-            'armor': '护甲',
-            'accessory': '饰品'
+            weapon: '武器',
+            helmet: '头盔',
+            armor: '护甲',
+            accessory: '饰品'
         };
 
         this.elements.equipmentContainer.innerHTML = this.equipmentSlots.map(slot => {
@@ -82,17 +85,12 @@ export class EquipmentUI {
     async handleSlotClick(slot) {
         const item = equipmentService.getEquipmentBySlot(slot);
         if (item) {
-            // 显示已装备物品详情
-            if (confirm(`要卸下 ${item.itemName} 吗?`)) {
+            if (confirm(`要卸下 ${item.itemName} 吗？`)) {
                 await equipmentService.unequipItem(item.id);
                 this.renderEquipment();
             }
         } else {
-            // 打开背包选择装备 - 跳转到背包页面
-            toast.info('请从背包选择装备');
-            if (confirm('是否打开背包页面选择装备？')) {
-                window.location.href = 'inventory.html';
-            }
+            toast.info('当前版本暂不支持从此页面直接穿戴装备');
         }
     }
 }

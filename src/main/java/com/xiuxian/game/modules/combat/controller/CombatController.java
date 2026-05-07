@@ -2,6 +2,8 @@ package com.xiuxian.game.modules.combat.controller;
 
 import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.dto.response.CombatResult;
+import com.xiuxian.game.common.exception.BusinessException;
+import com.xiuxian.game.common.exception.ErrorCode;
 import com.xiuxian.game.modules.combat.entity.CombatLog;
 import com.xiuxian.game.modules.combat.entity.Monster;
 import com.xiuxian.game.modules.combat.service.CombatService;
@@ -163,9 +165,10 @@ public class CombatController {
             try {
                 return Integer.parseInt((String) val);
             } catch (NumberFormatException ignored) {
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "地图ID格式不正确");
             }
         }
-        return null;
+        throw new BusinessException(ErrorCode.PARAM_ERROR, "地图ID格式不正确");
     }
 
     /**

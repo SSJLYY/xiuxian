@@ -63,15 +63,15 @@ export class NarrativeUI {
     async loadNpcList() {
         const container = document.getElementById('npcList');
         if (!container) return;
-        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载NPC...</p></div>';
+        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载 NPC 中...</p></div>';
         try {
             const npcs = await narrativeService.getNpcList();
             if (npcs.length === 0) {
-                container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;text-align:center;padding:2rem;">暂无NPC数据</div>';
+                container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;text-align:center;padding:2rem;">暂无 NPC 数据</div>';
                 return;
             }
             container.innerHTML = npcs.map(npc => {
-                const typeIcons = { MERCHANT: '💰', QUEST_GIVER: '📜', TRAINER: '⚔️', QUEST: '📜', ELDER: '🧙', BOSS: '👹', NORMAL: '👤' };
+                const typeIcons = { MERCHANT: '🛒', QUEST_GIVER: '📜', TRAINER: '⚔️', QUEST: '📜', ELDER: '🧙', BOSS: '👹', NORMAL: '👤' };
                 const icon = typeIcons[npc.npcType] || '👤';
                 return `
                     <div class="npc-card p-4 rounded" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);cursor:pointer;" onclick="showNpcDetail(${npc.id})">
@@ -79,7 +79,7 @@ export class NarrativeUI {
                             <span style="font-size:2rem;">${icon}</span>
                             <div>
                                 <h4 class="font-semibold">${escapeText(npc.name || '神秘人物')}</h4>
-                                <span class="text-xs text-muted">${npc.npcTypeName || npc.npcType || 'NPC'}</span>
+                                <span class="text-xs text-muted">${escapeText(npc.npcTypeName || npc.npcType || 'NPC')}</span>
                             </div>
                         </div>
                         <div class="text-sm text-muted">${escapeText(npc.description || '一位神秘的修仙者')}</div>
@@ -94,20 +94,20 @@ export class NarrativeUI {
     async showNpcDetail(npcId) {
         try {
             const npc = await narrativeService.getNpcDetail(npcId);
-            alert(`【${npc?.name || '神秘人物'}】\n\n${npc?.description || '无描述'}\n\n${npc?.dailyDialogue ? '日常对话: ' + npc.dailyDialogue : ''}`);
+            alert(`【${npc?.name || '神秘人物'}】\n\n${npc?.description || '暂无描述'}\n\n${npc?.dailyDialogue ? `日常对话: ${npc.dailyDialogue}` : ''}`);
         } catch (error) {
-            showToast('加载NPC详情失败: ' + error.message, 'error');
+            showToast(`加载 NPC 详情失败: ${error.message}`, 'error');
         }
     }
 
     async loadNpcRelations() {
         const container = document.getElementById('npcRelationsList');
         if (!container) return;
-        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载关系...</p></div>';
+        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载关系中...</p></div>';
         try {
             const relations = await narrativeService.getNpcRelations();
             if (relations.length === 0) {
-                container.innerHTML = '<div class="empty-state">您还没有与任何NPC建立关系</div>';
+                container.innerHTML = '<div class="empty-state">您还没有与任何 NPC 建立关系</div>';
                 return;
             }
             container.innerHTML = relations.map(rel => {
@@ -118,9 +118,9 @@ export class NarrativeUI {
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2">
                                 <h4 class="font-semibold">${escapeText(rel.npcName || '神秘人物')}</h4>
-                                <span class="text-xs px-2 py-1 rounded" style="background:${color}22;color:${color};">${rel.relationName || rel.relation}</span>
+                                <span class="text-xs px-2 py-1 rounded" style="background:${color}22;color:${color};">${escapeText(rel.relationName || rel.relation)}</span>
                             </div>
-                            <span class="text-sm text-muted">好感度 ${rel.affinity || 0}</span>
+                            <span class="text-sm text-muted">好感度: ${rel.affinity || 0}</span>
                         </div>
                     </div>
                 `;

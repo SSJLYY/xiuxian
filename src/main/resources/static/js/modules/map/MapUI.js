@@ -31,15 +31,21 @@ export class MapUI {
         });
         const explorePanel = document.getElementById('map-explore-panel');
         const listPanel = document.getElementById('map-list-panel');
-        if (explorePanel) explorePanel.style.display = tab === 'explore' ? '' : 'none';
-        if (listPanel) listPanel.style.display = tab === 'list' ? '' : 'none';
+        if (explorePanel) {
+            explorePanel.style.display = tab === 'explore' ? '' : 'none';
+        }
+        if (listPanel) {
+            listPanel.style.display = tab === 'list' ? '' : 'none';
+        }
         return tab === 'explore' ? this.loadCurrentMap() : this.loadMapList();
     }
 
     async loadCurrentMap() {
         const infoEl = document.getElementById('current-map-info');
         const exploreBtn = document.getElementById('explore-btn');
-        if (!infoEl) return;
+        if (!infoEl) {
+            return;
+        }
         try {
             const map = await mapService.getCurrentMap();
             if (!map) {
@@ -77,7 +83,9 @@ export class MapUI {
 
     async loadMapList() {
         const container = document.getElementById('mapList');
-        if (!container) return;
+        if (!container) {
+            return;
+        }
         container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载地图...</p></div>';
         try {
             const maps = await mapService.getMapList();
@@ -86,20 +94,20 @@ export class MapUI {
                 return;
             }
             container.innerHTML = maps.map(map => {
-                const isCurrent = !!map.isCurrent;
-                const isLocked = !!map.isLocked;
+                const isCurrent = Boolean(map.isCurrent);
+                const isLocked = Boolean(map.isLocked);
                 return `
                     <div class="map-card p-4 rounded" style="background:rgba(255,255,255,0.05);border:1px solid ${isCurrent ? 'var(--accent-gold)' : 'rgba(255,255,255,0.1)'};">
                         <div class="flex items-center gap-2 mb-2">
                             <span style="font-size:1.5rem;">${map.icon || '🗺️'}</span>
                             <div class="flex-1">
-                                <h4 class="font-semibold">${escapeText(map.name || '未知')}</h4>
+                                <h4 class="font-semibold">${escapeText(map.name || '未知地图')}</h4>
                                 <span class="text-xs text-muted">Lv.${map.requiredLevel || 1}+</span>
                             </div>
                             ${isCurrent ? '<span class="text-xs px-2 py-1 rounded" style="background:rgba(212,175,55,0.2);color:var(--accent-gold);">当前</span>' : ''}
                             ${isLocked ? '<i class="fa-solid fa-lock text-muted"></i>' : ''}
                         </div>
-                        <div class="text-xs text-muted mb-3">${escapeText(map.description || '无描述')}</div>
+                        <div class="text-xs text-muted mb-3">${escapeText(map.description || '暂无描述')}</div>
                         <button class="btn btn-sm w-full ${isCurrent ? '' : 'btn-primary'}" onclick="enterMap(${map.id})" ${isCurrent || isLocked ? 'disabled' : ''}>
                             ${isCurrent ? '当前所在' : isLocked ? '等级不足' : '进入'}
                         </button>
@@ -114,11 +122,11 @@ export class MapUI {
     async enterMap(mapId) {
         try {
             await mapService.enterMap(mapId);
-            showToast('已进入地图！', 'success');
+            showToast('已进入地图', 'success');
             await this.loadCurrentMap();
             await this.loadMapList();
         } catch (error) {
-            showToast('进入地图失败: ' + error.message, 'error');
+            showToast(`进入地图失败: ${error.message}`, 'error');
         }
     }
 
@@ -130,12 +138,13 @@ export class MapUI {
         }
         try {
             const encounter = await mapService.exploreMap();
-            showToast(`遭遇 ${encounter?.monsterName || '怪物'}！`, 'info');
-            if (typeof window.showModule === 'function' && confirm(`遭遇了 ${encounter?.monsterName || '怪物'}！开始战斗？`)) {
+            const monsterName = encounter?.monster?.name || encounter?.monsterName || '怪物';
+            showToast(`遭遇 ${monsterName}`, 'info');
+            if (typeof window.showModule === 'function' && confirm(`遭遇了 ${monsterName}，开始战斗吗？`)) {
                 window.showModule('combat');
             }
         } catch (error) {
-            showToast('探索失败: ' + error.message, 'error');
+            showToast(`探索失败: ${error.message}`, 'error');
         } finally {
             await this.loadCurrentMap();
         }
@@ -143,7 +152,9 @@ export class MapUI {
 
     async loadStandaloneMaps() {
         const container = document.getElementById('mapRegions');
-        if (!container) return;
+        if (!container) {
+            return;
+        }
         container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载地图中...</p></div>';
         try {
             const maps = await mapService.getMapList();
@@ -153,7 +164,7 @@ export class MapUI {
                     <div class="map-region-card p-4 rounded" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);margin-bottom:12px;">
                         <div class="font-semibold mb-1">${escapeText(map.name || '未知区域')}</div>
                         <div class="text-sm text-muted mb-2">${escapeText(map.description || '暂无描述')}</div>
-                        <div class="text-xs text-muted">等级需求 ${map.requiredLevel || 1}</div>
+                        <div class="text-xs text-muted">等级需求: ${map.requiredLevel || 1}</div>
                     </div>
                 `).join('');
         } catch (error) {

@@ -33,13 +33,13 @@ function renderInventoryItems() {
     const sortBy = document.getElementById('sortSelect').value;
     const order = document.getElementById('orderSelect').value;
     
-    // 合并所有物品到一个数组
+    // 合并所有物品到一个数�?
     let allItems = [];
     for (const type in categorizedItems) {
         allItems = allItems.concat(categorizedItems[type]);
     }
     
-    // 应用过滤器
+    // 应用过滤�?
     if (typeFilter) {
         allItems = allItems.filter(item => item.itemType === typeFilter);
     }
@@ -95,7 +95,7 @@ function createItemCard(item) {
     const card = document.createElement('div');
     card.className = `item-card bg-white rounded-lg shadow-md overflow-hidden border ${item.locked ? 'locked-item' : ''} item-quality-${item.itemQuality}`;
     
-    // 获取品质颜色类
+    // 获取品质颜色�?
     const qualityClasses = {
         1: 'text-gray-600',
         2: 'text-green-600',
@@ -105,11 +105,11 @@ function createItemCard(item) {
     };
     
     const qualityText = {
-        1: '普通',
+        1: '��ͨ',
         2: '精良',
-        3: '稀有',
-        4: '史诗',
-        5: '传说'
+        3: 'ϡ��',
+        4: 'ʷʫ',
+        5: '��˵'
     };
     
     card.innerHTML = `
@@ -193,7 +193,7 @@ function sortItems() {
 
 // 整理背包
 function organizeInventory() {
-    if (confirm('确定要整理背包吗？这将自动堆叠相同物品。')) {
+    if (confirm('ȷ��Ҫ�����������⽫�Զ��ѵ���ͬ��Ʒ��')) {
         showLoading();
         api.post('/inventory/organize')
             .then(response => {
@@ -212,7 +212,7 @@ function organizeInventory() {
     }
 }
 
-// 按类型排序
+// 按类型排�?
 function sortByType() {
     document.getElementById('sortSelect').value = '';
     document.getElementById('typeFilter').value = '';
@@ -220,7 +220,7 @@ function sortByType() {
     renderInventoryItems();
 }
 
-// 按品质排序
+// 按品质排�?
 function sortByQuality() {
     document.getElementById('sortSelect').value = 'quality';
     document.getElementById('typeFilter').value = '';
@@ -228,6 +228,86 @@ function sortByQuality() {
     renderInventoryItems();
 }
 
+// 显示物品详情
+function showItemDetails(itemId) {
+    showLoading();
+    api.get(`/inventory/details/${itemId}`)
+        .then(response => {
+            hideLoading();
+            if (!response.success) {
+                showToast('获取物品详情失败: ' + response.message, 'error');
+                return;
+            }
+
+            const item = response.data || {};
+            const quality = Number(item.quality || item.itemQuality || 1);
+            const detailHtml = `
+                <div class="item-detail">
+                    <h2 class="text-2xl font-bold mb-4">${escapeHtml(item.name || item.itemName || 'Unknown Item')}</h2>
+                    <div class="mb-4">
+                        <span class="inline-block px-2 py-1 rounded text-xs font-semibold mr-2">
+                            Ʒ��: ${escapeHtml(getQualityText(quality))}
+                        </span>
+                        <span class="inline-block px-2 py-1 rounded text-xs font-semibold bg-gray-200 text-gray-800">
+                            ����: ${escapeHtml(item.type || item.itemType || 'Unknown')}
+                        </span>
+                    </div>
+                    <div class="mb-4">
+                        <p class="text-gray-700">${escapeHtml(item.description || item.itemDescription || '')}</p>
+                    </div>
+                    <div class="mb-4">
+                        <h3 class="font-bold mb-2">����</h3>
+                        <ul class="list-disc pl-5">
+                            <li>�۸�: ${item.price ?? 0} ��ʯ</li>
+                            <li>�ɶѵ�: ${item.stackable ? '��' : '��'}</li>
+                            <li>�ɳ���: ${item.sellable ? '��' : '��'}</li>
+                            <li>��ʹ��: ${item.usable ? '��' : '��'}</li>
+                            ${item.maxStack ? `<li>���ѵ�: ${item.maxStack}</li>` : ''}
+                        </ul>
+                    </div>
+                    <div class="flex justify-end space-x-2">
+                        <button class="btn btn-secondary" onclick="closeItemDetailModal()">�ر�</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('itemDetailContent').innerHTML = detailHtml;
+            document.getElementById('itemDetailModal').style.display = 'block';
+        })
+        .catch(error => {
+            hideLoading();
+            showToast('获取物品详情失败: ' + error.message, 'error');
+        });
+}
+
+// 切换物品锁定状�?
+function toggleItemLock(playerItemId) {
+    showLoading();
+    api.post(`/inventory/lock/${playerItemId}`)
+        .then(response => {
+            hideLoading();
+            if (response.success) {
+                showToast('物品锁定状态已切换', 'success');
+                loadInventoryItems();
+            } else {
+                showToast('切换锁定状态失�? ' + response.message, 'error');
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            showToast('切换锁定状态失�? ' + error.message, 'error');
+        });
+}
+
+function getQualityText(quality) {
+    const qualityMap = {
+        1: '��ͨ',
+        2: '����',
+        3: 'ϡ��',
+        4: 'ʷʫ',
+        5: '��˵'
+    };
+    return qualityMap[quality] || 'δ֪';
+}
 // 更新背包统计
 function updateInventoryStats() {
     let totalCount = 0;
@@ -235,7 +315,7 @@ function updateInventoryStats() {
     let uniqueCount = 0;
     let lockedCount = 0;
     
-    // 合并所有物品到一个数组
+    // 合并所有物品到一个数�?
     let allItems = [];
     for (const type in categorizedItems) {
         allItems = allItems.concat(categorizedItems[type]);
@@ -260,14 +340,14 @@ function updateInventoryStats() {
     document.getElementById('lockedCount').textContent = lockedCount;
 }
 
-// 显示标签页
+// 显示标签�?
 function showTab(tabName) {
     // 隐藏所有标签页内容
     document.querySelectorAll('.tab-content').forEach(tab => {
         tab.style.display = 'none';
     });
     
-    // 移除所有标签的激活状态
+    // 移除所有标签的激活状�?
     document.querySelectorAll('.nav-tab').forEach(tab => {
         tab.classList.remove('active');
     });
@@ -275,10 +355,10 @@ function showTab(tabName) {
     // 显示选中的标签页
     document.getElementById(`${tabName}-tab`).style.display = 'block';
     
-    // 激活选中的标签
+    // 激活选中的标�?
     document.querySelector(`[data-module="${tabName}"]`).classList.add('active');
     
-    // 如果是整理标签页，更新统计
+    // 如果是整理标签页，更新统�?
     if (tabName === 'organize') {
         updateInventoryStats();
     }
@@ -339,3 +419,4 @@ window.onclick = function(event) {
         batchActionModal.style.display = 'none';
     }
 };
+

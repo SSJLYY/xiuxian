@@ -135,9 +135,9 @@ export class InventoryService {
         return allItems;
     }
 
-    async useItem(itemId) {
+    async useItem(playerItemId) {
         try {
-            const response = await gameAPI.useItem(itemId);
+            const response = await gameAPI.useItem(playerItemId);
             if (!response?.success) {
                 throw new Error(response?.message || '使用物品失败');
             }
@@ -170,14 +170,14 @@ export class InventoryService {
         }
     }
 
-    async sellItem(itemId, quantity = 1) {
-        if (!itemId || quantity < 1) {
+    async sellItem(playerItemId, quantity = 1) {
+        if (!playerItemId || quantity < 1) {
             toast.error('参数无效');
             return null;
         }
 
         try {
-            const response = await gameAPI.sellItem(itemId, quantity);
+            const response = await gameAPI.sellItem(playerItemId, quantity);
             if (!response?.success) {
                 throw new Error(response?.message || '出售失败');
             }
@@ -190,8 +190,8 @@ export class InventoryService {
         }
     }
 
-    async discardItem(itemId, quantity = 1) {
-        if (!itemId || quantity < 1) {
+    async discardItem(playerItemId, quantity = 1) {
+        if (!playerItemId || quantity < 1) {
             toast.error('参数无效');
             return null;
         }
@@ -201,7 +201,7 @@ export class InventoryService {
         }
 
         try {
-            const response = await gameAPI.discardItem(itemId, quantity);
+            const response = await gameAPI.discardItem(playerItemId, quantity);
             if (!response?.success) {
                 throw new Error(response?.message || '丢弃失败');
             }

@@ -54,7 +54,7 @@ export class GuildUI {
     async loadGuildOverview() {
         try {
             this.myGuild = await guildService.getMyGuild();
-            this.toggleGameMyGuildEntry(!!this.myGuild);
+            this.toggleGameMyGuildEntry(Boolean(this.myGuild));
             if (this.myGuild) {
                 this.renderGameMyGuildSummary(this.myGuild);
             } else {
@@ -63,7 +63,7 @@ export class GuildUI {
             await this.switchGameTab('list');
         } catch (error) {
             this.hideGameMyGuildSummary();
-            showToast('加载宗门数据失败: ' + error.message, 'error');
+            showToast(`加载宗门数据失败: ${error.message}`, 'error');
         }
     }
 
@@ -90,7 +90,7 @@ export class GuildUI {
                     <div class="text-sm text-muted">创建宗门需要 10000 灵石</div>
                     <button class="btn btn-sm btn-primary" onclick="showCreateGuildForm()"><i class="fa-solid fa-plus"></i> 创建宗门</button>
                 </div>
-                ${this.guildList.length === 0 ? '<div class="empty-state">暂无宗门，创建一个吧！</div>' : `
+                ${this.guildList.length === 0 ? '<div class="empty-state">暂无宗门，创建一个吧</div>' : `
                     <div class="guild-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:15px;">
                         ${this.guildList.map(guild => `
                             <div class="guild-card p-4 rounded" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
@@ -202,14 +202,14 @@ export class GuildUI {
 
     async createGuild(name, description) {
         await guildService.createGuild(name, description);
-        showToast('宗门创建成功！', 'success');
+        showToast('宗门创建成功', 'success');
         if (window.authManager?.loadPlayerProfile) await window.authManager.loadPlayerProfile();
         return hasGamePageLayout() ? this.loadGuildOverview() : this.loadStandaloneData();
     }
 
     async donateGuild(amount) {
         await guildService.donateGuild(amount);
-        showToast('捐献成功！', 'success');
+        showToast('捐献成功', 'success');
         if (window.authManager?.loadPlayerProfile) await window.authManager.loadPlayerProfile();
         return hasGamePageLayout() ? this.loadGuildOverview() : this.loadStandaloneData();
     }

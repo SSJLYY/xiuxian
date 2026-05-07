@@ -168,15 +168,15 @@ public class SkillService {
         // 3. 检查等级要求
         if (skill.getUnlockLevel() > defaultInt(player.getLevel(), 1)) {
             log.warn("等级不足: 玩家等级={}, 需要等级={}", player.getLevel(), skill.getUnlockLevel());
-            throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_REQUIREMENTS_NOT_MET +
-                    ": 角色等级不足，需要" + skill.getUnlockLevel() + "级");
+            throw new BusinessException(ErrorCode.PARAM_ERROR,
+                    "角色等级不足，需要达到" + skill.getUnlockLevel() + "级");
         }
 
         // 4. 检查是否已学习
         PlayerSkill existing = playerSkillMapper.selectByPlayerIdAndSkillId(playerId, skillId);
         if (existing != null) {
             log.warn("技能已学习: 玩家ID={}, 技能ID={}", playerId, skillId);
-            throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INVALID_OPERATION + ": 已经学习过该技能");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "已经学习过该技能");
         }
 
         // 5. 检查并扣除灵石
@@ -206,7 +206,7 @@ public class SkillService {
                 now,
                 now);
         if (insertedRows == 0) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INVALID_OPERATION + ": 已经学习过该技能");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "已经学习过该技能");
         }
 
         PlayerSkill savedSkill = playerSkillMapper.selectByPlayerIdAndSkillId(playerId, skillId);
@@ -326,18 +326,18 @@ public class SkillService {
     @Transactional
     public PlayerSkill upgradeSkill(Integer playerSkillId, Integer playerId) {
         PlayerSkill playerSkill = playerSkillMapper.selectById(playerSkillId);
-        if (playerSkill == null) throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_SKILL_NOT_FOUND + ": 玩家技能不存在");
+        if (playerSkill == null) throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家技能不存在");
         if (!playerSkill.getPlayerId().equals(playerId)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INVALID_OPERATION + ": 无权操作该技能");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "无权操作该技能");
         }
         Skill skill = skillMapper.selectById(playerSkill.getSkillId());
         if (defaultInt(playerSkill.getLevel(), 1) >= skill.getMaxLevel()) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INVALID_OPERATION + ": 技能已达到最大等级");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "技能已达到最大等级");
         }
         int currentLevel = defaultInt(playerSkill.getLevel(), 1);
         int requiredExp = calculateSkillUpgradeExp(currentLevel);
         if (defaultInt(playerSkill.getExperience(), 0) < requiredExp) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INSUFFICIENT_RESOURCES + ": 技能经验不足，无法升级技能");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "技能经验不足，无法升级技能");
         }
         playerSkill.setExperience(defaultInt(playerSkill.getExperience(), 0) - requiredExp);
         playerSkill.setLevel(currentLevel + 1);
@@ -348,13 +348,13 @@ public class SkillService {
     @Transactional
     public PlayerSkill upgradeSkillByPoints(Integer playerSkillId, Integer playerId) {
         PlayerSkill playerSkill = playerSkillMapper.selectById(playerSkillId);
-        if (playerSkill == null) throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_SKILL_NOT_FOUND + ": 玩家技能不存在");
+        if (playerSkill == null) throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家技能不存在");
         if (!playerSkill.getPlayerId().equals(playerId)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INVALID_OPERATION + ": 无权操作该技能");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "无权操作该技能");
         }
         Skill skill = skillMapper.selectById(playerSkill.getSkillId());
         if (defaultInt(playerSkill.getLevel(), 1) >= skill.getMaxLevel()) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INVALID_OPERATION + ": 技能已达到最大等级");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "技能已达到最大等级");
         }
         PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
         if (player == null) {
@@ -362,7 +362,7 @@ public class SkillService {
         }
         int points = player.getSkillPoints() == null ? 0 : player.getSkillPoints();
         if (points <= 0) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INSUFFICIENT_RESOURCES + ": 技能点不足");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "技能点不足");
         }
         player.setSkillPoints(points - 1);
         playerService.savePlayerProfile(player);
@@ -374,9 +374,9 @@ public class SkillService {
     @Transactional
     public PlayerSkill equipSkill(Integer playerSkillId, Integer slotNumber, Integer playerId) {
         PlayerSkill playerSkill = playerSkillMapper.selectById(playerSkillId);
-        if (playerSkill == null) throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_SKILL_NOT_FOUND + ": 玩家技能不存在");
+        if (playerSkill == null) throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家技能不存在");
         if (!playerSkill.getPlayerId().equals(playerId)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INVALID_OPERATION + ": 无权操作该技能");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "无权操作该技能");
         }
         if (slotNumber == null || slotNumber < 0 || slotNumber >= MAX_EQUIP_SKILL_SLOTS) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "无效的技能槽位");
@@ -398,9 +398,9 @@ public class SkillService {
     @Transactional
     public PlayerSkill unequipSkill(Integer playerSkillId, Integer playerId) {
         PlayerSkill playerSkill = playerSkillMapper.selectById(playerSkillId);
-        if (playerSkill == null) throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_SKILL_NOT_FOUND + ": 玩家技能不存在");
+        if (playerSkill == null) throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家技能不存在");
         if (!playerSkill.getPlayerId().equals(playerId)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, GameConstants.ERROR_INVALID_OPERATION + ": 无权操作该技能");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "无权操作该技能");
         }
         playerSkill.setEquipped(false);
         playerSkill.setSlotNumber(0);

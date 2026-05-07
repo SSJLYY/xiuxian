@@ -13,13 +13,17 @@ export class MailService {
 
     async getMails() {
         const response = await gameAPI.getMails();
-        if (!response?.success) throw new Error(response?.message || '加载邮件失败');
+        if (!response?.success) {
+            throw new Error(response?.message || '加载邮件失败');
+        }
         return (response.data?.records || response.data?.list || []).map(mail => this.normalizeMail(mail));
     }
 
     async getMail(mailId) {
         const response = await gameAPI.getMail(mailId);
-        if (!response?.success) throw new Error(response?.message || '加载邮件详情失败');
+        if (!response?.success) {
+            throw new Error(response?.message || '加载邮件详情失败');
+        }
         const detail = response.data || {};
         return this.normalizeMail({
             ...(detail.mail || {}),
@@ -39,7 +43,9 @@ export class MailService {
 
     async claimAttachment(mailId) {
         const response = await gameAPI.claimMailAttachment(mailId);
-        if (!response?.success) throw new Error(response?.message || '领取附件失败');
+        if (!response?.success) {
+            throw new Error(response?.message || '领取附件失败');
+        }
         return response.data;
     }
 }

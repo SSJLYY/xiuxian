@@ -1,0 +1,4 @@
+interface:
+  display_name: "Xiuxian Development Direction"
+  short_description: "Plan xiuxian gameplay roadmap and iteration priorities"
+  default_prompt: "Use $xiuxian-development-direction to plan the xiuxian gameplay roadmap."

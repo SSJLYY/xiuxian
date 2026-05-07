@@ -23,8 +23,8 @@ export class PetsService {
         const rawCaptureRate = Number(pet?.captureRate ?? 0);
         return {
             ...pet,
-            name: pet?.name || 'Unknown Pet',
-            petName: pet?.name || 'Unknown Pet',
+            name: pet?.name || '未知宠物',
+            petName: pet?.name || '未知宠物',
             rarity: Number(pet?.rarity ?? 1),
             captureRate: pet?.captureRate != null
                 ? Math.round(rawCaptureRate <= 1 ? rawCaptureRate * 100 : rawCaptureRate)
@@ -36,8 +36,8 @@ export class PetsService {
     normalizeOwnedPet(pet, template = null) {
         return {
             ...pet,
-            petName: pet?.nickname || template?.name || pet?.name || 'Unknown Pet',
-            name: pet?.nickname || template?.name || pet?.name || 'Unknown Pet',
+            petName: pet?.nickname || template?.name || pet?.name || '未知宠物',
+            name: pet?.nickname || template?.name || pet?.name || '未知宠物',
             baseName: template?.name || pet?.name || '',
             description: pet?.description || template?.description || '',
             type: pet?.type || template?.type || 'NORMAL',

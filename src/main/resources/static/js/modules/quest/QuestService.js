@@ -9,13 +9,17 @@ export class QuestService {
             main: () => gameAPI.getQuests()
         };
         const response = await (mapping[tab] || mapping.daily)();
-        if (!response?.success) throw new Error(response?.message || '加载任务失败');
+        if (!response?.success) {
+            throw new Error(response?.message || '加载任务失败');
+        }
         return response.data || [];
     }
 
     async claimQuest(questId) {
         const response = await gameAPI.claimQuestReward(questId);
-        if (!response?.success) throw new Error(response?.message || '领取奖励失败');
+        if (!response?.success) {
+            throw new Error(response?.message || '领取奖励失败');
+        }
         return response.data;
     }
 }

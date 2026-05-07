@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Development Direction"
+  short_description: "Plan project milestones, scope, and next iterations"
+  default_prompt: "Use $project-development-direction to plan the next project phase and priorities."

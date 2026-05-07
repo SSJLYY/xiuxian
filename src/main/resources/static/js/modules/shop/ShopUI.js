@@ -1,5 +1,5 @@
 /**
- * 商城模块 - UI渲染层
+ * 商城模块 - UI 渲染层
  */
 import { shopService } from './ShopService.js';
 import { toast } from '../../components/Toast.js';
@@ -30,24 +30,21 @@ export class ShopUI {
     }
 
     bindEvents() {
-        // 标签页切换
         this.elements.shopTabs.forEach(tab => {
-            tab.addEventListener('click', (e) => {
+            tab.addEventListener('click', e => {
                 this.switchTab(e.target.dataset.shopTab);
             });
         });
 
-        // 分类筛选
         if (this.elements.categoryFilter) {
-            this.elements.categoryFilter.addEventListener('change', (e) => {
+            this.elements.categoryFilter.addEventListener('change', e => {
                 this.currentCategory = e.target.value;
                 this.loadShopItems();
             });
         }
 
-        // 搜索
         if (this.elements.searchInput) {
-            this.elements.searchInput.addEventListener('input', (e) => {
+            this.elements.searchInput.addEventListener('input', e => {
                 this.filterItems(e.target.value);
             });
         }
@@ -76,7 +73,7 @@ export class ShopUI {
             ]);
             this.renderShopItems();
             this.renderOrders();
-        } catch (error) {
+        } catch {
             toast.error('加载商城数据失败');
         } finally {
             loading.hide();
@@ -88,7 +85,7 @@ export class ShopUI {
         try {
             await shopService.getShopItems(this.currentCategory);
             this.renderShopItems();
-        } catch (error) {
+        } catch {
             toast.error('加载商品失败');
         } finally {
             loading.hide();
@@ -97,7 +94,9 @@ export class ShopUI {
 
     renderShopItems(items = shopService.shopItems) {
         const container = this.elements.shopContainer;
-        if (!container) return;
+        if (!container) {
+            return;
+        }
 
         if (items.length === 0) {
             container.innerHTML = '<p>暂无商品</p>';
@@ -130,9 +129,8 @@ export class ShopUI {
             </div>
         `;
 
-        // 绑定购买按钮
         container.querySelectorAll('[data-action="buy"]').forEach(btn => {
-            btn.addEventListener('click', (e) => this.showBuyDialog(e.target.dataset.itemId));
+            btn.addEventListener('click', e => this.showBuyDialog(e.target.dataset.itemId));
         });
     }
 
@@ -151,8 +149,11 @@ export class ShopUI {
 
     showBuyDialog(itemId) {
         const item = shopService.getItemById(itemId);
-        if (!item) return;
+        if (!item) {
+            return;
+        }
 
+        const maxStock = item.stock > 0 ? item.stock : 999999;
         const buyHtml = `
             <div class="buy-dialog">
                 <div class="item-preview">
@@ -164,7 +165,7 @@ export class ShopUI {
                     <label>购买数量:</label>
                     <div class="quantity-control">
                         <button class="btn btn-sm" id="decreaseQty">-</button>
-                        <input type="number" id="buyQty" value="1" min="1" max="${item.stock}">
+                        <input type="number" id="buyQty" value="1" min="1" max="${maxStock}">
                         <button class="btn btn-sm" id="increaseQty">+</button>
                     </div>
                 </div>
@@ -184,7 +185,6 @@ export class ShopUI {
             }
         });
 
-        // 绑定数量控制
         const qtyInput = document.getElementById('buyQty');
         const totalPrice = document.getElementById('totalPrice');
 
@@ -201,7 +201,7 @@ export class ShopUI {
         });
 
         document.getElementById('increaseQty').addEventListener('click', () => {
-            if (parseInt(qtyInput.value) < item.stock) {
+            if (parseInt(qtyInput.value) < maxStock) {
                 qtyInput.value = parseInt(qtyInput.value) + 1;
                 updateTotalPrice();
             }
@@ -216,7 +216,7 @@ export class ShopUI {
             await shopService.buyItem(itemId, quantity);
             await this.loadShopData();
             modal.hide();
-        } catch (error) {
+        } catch {
             toast.error('购买失败');
         } finally {
             loading.hide();
@@ -225,7 +225,9 @@ export class ShopUI {
 
     renderOrders() {
         const container = this.elements.myOrdersContainer;
-        if (!container) return;
+        if (!container) {
+            return;
+        }
 
         if (shopService.myOrders.length === 0) {
             container.innerHTML = '<p>暂无订单</p>';
@@ -259,9 +261,9 @@ export class ShopUI {
 
     translateStatus(status) {
         const statusMap = {
-            'pending': '待发货',
-            'completed': '已完成',
-            'cancelled': '已取消'
+            pending: '待发货',
+            completed: '已完成',
+            cancelled: '已取消'
         };
         return statusMap[status] || status;
     }

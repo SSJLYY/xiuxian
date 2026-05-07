@@ -17,7 +17,12 @@ function showToast(message, type = 'info') {
 }
 
 function getTypeEmoji(type) {
-    const map = { LEVEL: '⭐', COMBAT: '⚔️', CULTIVATION: '🌿', COLLECTION: '📦' };
+    const map = {
+        LEVEL: '⭐',
+        COMBAT: '⚔️',
+        CULTIVATION: '🌟',
+        COLLECTION: '📚'
+    };
     return map[type] || '🏆';
 }
 
@@ -47,7 +52,9 @@ export class AchievementUI {
     }
 
     getFilteredAchievements(filter = this.currentFilter) {
-        if (filter === 'all') return this.achievements;
+        if (filter === 'all') {
+            return this.achievements;
+        }
         return this.achievements.filter(item => (item.achievementType || '').toLowerCase() === filter.toLowerCase());
     }
 
@@ -79,7 +86,9 @@ export class AchievementUI {
 
     renderAchievementList(containerId) {
         const container = document.getElementById(containerId);
-        if (!container) return;
+        if (!container) {
+            return;
+        }
         const list = this.getFilteredAchievements();
         if (list.length === 0) {
             container.innerHTML = '<div class="empty-state">暂无成就数据</div>';
@@ -89,7 +98,7 @@ export class AchievementUI {
             const target = item.conditionValue || 1;
             const progress = item.progress || 0;
             const pct = Math.min(100, Math.round(progress / target * 100));
-            const canClaim = !!item.canClaim || (item.isCompleted && !item.isClaimed);
+            const canClaim = Boolean(item.canClaim) || (item.isCompleted && !item.isClaimed);
             return `
                 <div class="achievement-card ${item.isCompleted ? 'completed' : ''}" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);padding:16px;border-radius:12px;">
                     <div class="flex items-center gap-3 mb-2">
@@ -117,8 +126,10 @@ export class AchievementUI {
 
     async claimAchievement(id) {
         await achievementService.claimAchievement(id);
-        showToast('成就奖励领取成功！', 'success');
-        if (window.authManager?.loadPlayerProfile) await window.authManager.loadPlayerProfile();
+        showToast('成就奖励领取成功', 'success');
+        if (window.authManager?.loadPlayerProfile) {
+            await window.authManager.loadPlayerProfile();
+        }
         await this.loadAchievements();
         return hasGameLayout() ? this.renderGameLayout() : this.renderStandaloneLayout();
     }

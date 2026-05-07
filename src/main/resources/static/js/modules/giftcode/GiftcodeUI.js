@@ -1,5 +1,5 @@
 /**
- * 兑换码模块 - UI渲染层
+ * 礼包码模块 - UI 渲染层
  */
 import { giftcodeService } from './GiftcodeService.js';
 import { toast } from '../../components/Toast.js';
@@ -24,7 +24,7 @@ export class GiftcodeUI {
 
     bindEvents() {
         if (this.elements.redeemForm) {
-            this.elements.redeemForm.addEventListener('submit', (e) => {
+            this.elements.redeemForm.addEventListener('submit', e => {
                 e.preventDefault();
                 this.handleRedeem();
             });
@@ -40,8 +40,8 @@ export class GiftcodeUI {
             ]);
             this.renderMyCodes();
             this.renderAvailableCodes();
-        } catch (error) {
-            toast.error('加载兑换码数据失败');
+        } catch {
+            toast.error('加载礼包码数据失败');
         } finally {
             loading.hide();
         }
@@ -49,7 +49,9 @@ export class GiftcodeUI {
 
     renderMyCodes() {
         const container = this.elements.myCodesContainer;
-        if (!container) return;
+        if (!container) {
+            return;
+        }
 
         if (giftcodeService.myCodes.length === 0) {
             container.innerHTML = '<p>暂无兑换记录</p>';
@@ -66,7 +68,7 @@ export class GiftcodeUI {
                         </div>
                         <div class="code-rewards">
                             <div class="reward-label">奖励:</div>
-                            ${record.rewards.map(reward => `
+                            ${(record.rewards || []).map(reward => `
                                 <span class="reward-item">${reward.description}</span>
                             `).join('')}
                         </div>
@@ -78,11 +80,13 @@ export class GiftcodeUI {
 
     renderAvailableCodes() {
         const container = this.elements.availableCodesContainer;
-        if (!container) return;
+        if (!container) {
+            return;
+        }
 
         const availableCodes = giftcodeService.availableCodes || [];
         if (availableCodes.length === 0) {
-            container.innerHTML = '<p>暂无可用兑换码</p>';
+            container.innerHTML = '<p>暂无可用礼包码</p>';
             return;
         }
 
@@ -118,7 +122,7 @@ export class GiftcodeUI {
             await giftcodeService.redeemCode(code);
             this.elements.codeInput.value = '';
             await this.loadGiftcodeData();
-        } catch (error) {
+        } catch {
             toast.error('兑换失败');
         } finally {
             loading.hide();

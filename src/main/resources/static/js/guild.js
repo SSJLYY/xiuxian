@@ -292,14 +292,18 @@ function showSuccess(message) {
 /**
  * 切换标签页
  */
-function switchTab(tab) {
+function switchTab(tab, triggerElement = null) {
     currentTab = tab;
     
     // 更新按钮状态
-    document.querySelectorAll('.tab-button').forEach(btn => {
+    const buttons = document.querySelectorAll('.tab-button');
+    buttons.forEach(btn => {
         btn.classList.remove('active');
     });
-    event.target.classList.add('active');
+    const activeButton = triggerElement
+        || (typeof event !== 'undefined' ? event.target?.closest?.('.tab-button') : null)
+        || Array.from(buttons).find(btn => btn.dataset.tab === tab || btn.getAttribute('onclick')?.includes(`'${tab}'`));
+    activeButton?.classList.add('active');
     
     // 显示对应内容
     document.getElementById('guildInfoTab').style.display = tab === 'info' ? 'block' : 'none';

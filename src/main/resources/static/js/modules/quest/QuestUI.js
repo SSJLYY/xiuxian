@@ -31,7 +31,9 @@ export class QuestUI {
             btn.classList.toggle('active', btn.dataset.questTab === tab);
         });
         const list = document.getElementById('questsList') || document.getElementById('questList');
-        if (!list) return;
+        if (!list) {
+            return;
+        }
         list.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载中...</p></div>';
         try {
             const quests = await questService.getQuestsByTab(tab);
@@ -49,8 +51,8 @@ export class QuestUI {
         }
         const normalized = quests.map(q => ({
             quest: q.quest || q,
-            completed: !!q.completed,
-            rewardClaimed: !!q.rewardClaimed,
+            completed: Boolean(q.completed),
+            rewardClaimed: Boolean(q.rewardClaimed),
             currentProgress: q.currentProgress || 0,
             id: q.id || q.quest?.id
         }));
@@ -62,7 +64,7 @@ export class QuestUI {
                 <div class="quest-item ${q.completed ? 'completed' : ''}" style="background:rgba(255,255,255,0.05);padding:12px;border-radius:8px;">
                     <div class="flex items-center justify-between mb-2">
                         <div class="font-semibold">${escapeText(q.quest.title || q.quest.name || '任务')} <span class="text-xs text-muted">[${typeLabel}]</span></div>
-                        ${q.completed && !q.rewardClaimed ? `<button class="btn btn-primary btn-sm" onclick="claimQuest(${q.id})">领取奖励</button>` : q.completed ? `<span class="text-green-400 text-sm">已完成</span>` : ''}
+                        ${q.completed && !q.rewardClaimed ? `<button class="btn btn-primary btn-sm" onclick="claimQuest(${q.id})">领取奖励</button>` : q.completed ? '<span class="text-green-400 text-sm">已完成</span>' : ''}
                     </div>
                     <div class="text-sm text-muted mb-2">${escapeText(q.quest.description || '')}</div>
                     <div class="flex items-center gap-2 mb-1">
@@ -83,15 +85,23 @@ export class QuestUI {
         const el1 = document.getElementById('quest-completed-count');
         const el2 = document.getElementById('quest-claimable-count');
         const el3 = document.getElementById('quest-total-count');
-        if (el1) el1.textContent = completed;
-        if (el2) el2.textContent = claimable;
-        if (el3) el3.textContent = total;
+        if (el1) {
+            el1.textContent = completed;
+        }
+        if (el2) {
+            el2.textContent = claimable;
+        }
+        if (el3) {
+            el3.textContent = total;
+        }
     }
 
     async claimQuest(questId) {
         await questService.claimQuest(questId);
         showToast('任务奖励领取成功', 'success');
-        if (window.authManager?.loadPlayerProfile) await window.authManager.loadPlayerProfile();
+        if (window.authManager?.loadPlayerProfile) {
+            await window.authManager.loadPlayerProfile();
+        }
         return this.switchTab(this.currentTab);
     }
 }

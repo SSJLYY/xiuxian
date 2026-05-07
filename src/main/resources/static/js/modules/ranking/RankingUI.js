@@ -18,8 +18,8 @@ function showToast(message, type = 'info') {
 
 function formatNumber(num) {
     const value = Number(num) || 0;
-    if (value >= 100000000) return (value / 100000000).toFixed(1) + '亿';
-    if (value >= 10000) return (value / 10000).toFixed(1) + '万';
+    if (value >= 100000000) return `${(value / 100000000).toFixed(1)}亿`;
+    if (value >= 10000) return `${(value / 10000).toFixed(1)}万`;
     return value.toLocaleString();
 }
 
@@ -63,7 +63,7 @@ export class RankingUI {
             this.renderMyRank(myRank);
         } catch (error) {
             listContainer.innerHTML = `<div class="empty-state">加载失败: ${escapeText(error.message)}</div>`;
-            showToast('加载排行榜失败: ' + error.message, 'error');
+            showToast(`加载排行榜失败: ${error.message}`, 'error');
         }
     }
 
@@ -84,7 +84,7 @@ export class RankingUI {
             const rank = ranking.rank || index + 1;
             return `
                 <div class="ranking-item ${rank <= 3 ? 'top-rank' : ''}" data-rank="${rank}">
-                    <div class="rank-badge ${rank <= 3 ? 'rank-' + rank : ''}">${rank <= 3 ? ['🥇', '🥈', '🥉'][rank - 1] : `<span class="rank-number">${rank}</span>`}</div>
+                    <div class="rank-badge ${rank <= 3 ? `rank-${rank}` : ''}">${rank <= 3 ? ['🥇', '🥈', '🥉'][rank - 1] : `<span class="rank-number">${rank}</span>`}</div>
                     <div class="player-info-section">
                         <div class="player-name-display">${escapeText(ranking.playerName || '未知玩家')}</div>
                         <div class="player-realm-display">${escapeText(ranking.realm || '练气期')}</div>

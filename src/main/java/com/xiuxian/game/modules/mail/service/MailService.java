@@ -14,8 +14,11 @@ import com.xiuxian.game.modules.player.entity.PlayerItem;
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
 import com.xiuxian.game.modules.player.mapper.PlayerProfileMapper;
 // cross-module services (module boundary)
+import com.xiuxian.game.modules.shop.entity.Item;
+import com.xiuxian.game.modules.shop.service.ItemService;
 import com.xiuxian.game.modules.player.service.PlayerService;
 import com.xiuxian.game.modules.equipment.service.EquipmentService;
+import com.xiuxian.game.modules.equipment.entity.Equipment;
 import com.xiuxian.game.common.exception.BusinessException;
 import com.xiuxian.game.common.exception.ErrorCode;
 import com.xiuxian.game.common.util.PageUtil;
@@ -45,6 +48,7 @@ public class MailService {
     // module boundary: access player/equipment data via Service, not direct Mapper injection
     private final PlayerService playerService;
     private final EquipmentService equipmentService;
+    private final ItemService itemService;
 
     private static final int MAX_MAILBOX_SIZE = 100;
 
@@ -379,8 +383,41 @@ public class MailService {
      * 获取邮件附件列表
      */
     public List<MailAttachment> getMailAttachments(Long mailId) {
-        return attachmentMapper.selectList(
+        List<MailAttachment> attachments = attachmentMapper.selectList(
                 new QueryWrapper<MailAttachment>().eq("mail_id", mailId));
+        attachments.forEach(this::fillAttachmentDisplayName);
+        return attachments;
+    }
+
+    private void fillAttachmentDisplayName(MailAttachment attachment) {
+        if (attachment == null) {
+            return;
+        }
+        String itemType = attachment.getItemType();
+        Integer itemId = attachment.getItemId();
+        if (itemType == null || itemType.trim().isEmpty()) {
+            attachment.setItemName("附件");
+            return;
+        }
+
+        switch (itemType.trim().toUpperCase()) {
+            case "SPIRIT_STONES":
+                attachment.setItemName("灵石");
+                return;
+            case "EXP":
+                attachment.setItemName("经验");
+                return;
+            case "ITEM":
+                Item item = itemId != null ? itemService.getItemById(itemId) : null;
+                attachment.setItemName(item != null ? item.getName() : "物品");
+                return;
+            case "EQUIPMENT":
+                Equipment equipment = itemId != null ? equipmentService.getEquipmentById(itemId) : null;
+                attachment.setItemName(equipment != null ? equipment.getName() : "装备");
+                return;
+            default:
+                attachment.setItemName(itemType);
+        }
     }
 
     // ===================== Admin Feedback interface (for AdminFeedbackService) =====================

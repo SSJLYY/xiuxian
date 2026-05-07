@@ -1,8 +1,8 @@
-// 模块管理和导航系统
+﻿// 妯″潡绠＄悊鍜屽鑸郴缁?
 class ModuleManager {
     constructor() {
         this.currentModule = 'dashboard';
-        this.navigationMode = 'drawer'; // 'drawer' 或 'tabs'
+        this.navigationMode = 'drawer'; // 'drawer' 鎴?'tabs'
         this.modules = [
             'dashboard', 'combat', 'inventory', 'pets', 'quests', 'skills', 
             'shop', 'mail', 'guild', 'ranking', 'achievements', 
@@ -13,31 +13,31 @@ class ModuleManager {
     }
 
     init() {
-        // 从localStorage恢复导航模式
+        // 浠巐ocalStorage鎭㈠瀵艰埅妯″紡
         const savedMode = localStorage.getItem('navigationMode');
         if (savedMode) {
             this.navigationMode = savedMode;
             this.applyNavigationMode();
         }
         
-        // 绑定事件
+        // 缁戝畾浜嬩欢
         this.bindEvents();
         
-        // 初始化模块
+        // 鍒濆鍖栨ā鍧?
         this.showModule('dashboard');
     }
 
     bindEvents() {
-        // 绑定抽屉切换
+        // 缁戝畾鎶藉眽鍒囨崲
         window.toggleDrawer = () => this.toggleDrawer();
         
-        // 绑定导航模式切换
+        // 缁戝畾瀵艰埅妯″紡鍒囨崲
         window.toggleNavigationMode = () => this.toggleNavigationMode();
         
-        // 绑定模块切换
+        // 缁戝畾妯″潡鍒囨崲
         window.showModule = (moduleName) => this.showModule(moduleName);
         
-        // 绑定各种标签页切换
+        // 缁戝畾鍚勭鏍囩椤靛垏鎹?
         window.showInventoryTab = (tab) => this.showTab('inventory', tab);
         window.showShopTab = (tab) => this.showTab('shop', tab);
         window.showRankingTab = (tab) => this.showTab('ranking', tab);
@@ -81,7 +81,7 @@ class ModuleManager {
     showModule(moduleName) {
         console.log('切换到模块:', moduleName);
         
-        // 隐藏所有模块
+        // 闅愯棌鎵€鏈夋ā鍧?
         this.modules.forEach(module => {
             const element = document.getElementById(`${module}-module`);
             if (element) {
@@ -90,20 +90,20 @@ class ModuleManager {
             }
         });
 
-        // 显示目标模块
+        // 鏄剧ず鐩爣妯″潡
         const targetModule = document.getElementById(`${moduleName}-module`);
         if (targetModule) {
             targetModule.style.display = 'block';
             targetModule.classList.add('active');
         }
 
-        // 更新导航状态
+        // 鏇存柊瀵艰埅鐘舵€?
         this.updateNavigationState(moduleName);
         
-        // 加载模块数据
+        // 鍔犺浇妯″潡鏁版嵁
         this.loadModuleData(moduleName);
         
-        // 关闭抽屉（移动端）
+        // 鍏抽棴鎶藉眽锛堢Щ鍔ㄧ锛?
         const drawer = document.getElementById('drawer');
         if (drawer) {
             drawer.classList.remove('open');
@@ -113,7 +113,7 @@ class ModuleManager {
     }
 
     updateNavigationState(moduleName) {
-        // 更新抽屉导航状态
+        // 鏇存柊鎶藉眽瀵艰埅鐘舵€?
         document.querySelectorAll('.drawer-item').forEach(item => {
             item.classList.remove('active');
             if (item.dataset.module === moduleName) {
@@ -121,7 +121,7 @@ class ModuleManager {
             }
         });
 
-        // 更新标签页导航状态
+        // 鏇存柊鏍囩椤靛鑸姸鎬?
         document.querySelectorAll('.tab-navigation .tab-btn').forEach(btn => {
             btn.classList.remove('active');
             if (btn.dataset.module === moduleName) {
@@ -131,24 +131,35 @@ class ModuleManager {
     }
 
     showTab(moduleType, tabName) {
-        // 隐藏所有标签页内容
+        // 闅愯棌鎵€鏈夋爣绛鹃〉鍐呭
         document.querySelectorAll(`#${moduleType}-module .tab-content, #${moduleType}-module [class$="-tab-content"]`).forEach(tab => {
             tab.style.display = 'none';
         });
 
-        // 显示目标标签页
+        // 鏄剧ず鐩爣鏍囩椤?
         const targetTab = document.getElementById(`${tabName}-${moduleType}-tab`) || 
                          document.getElementById(`${tabName}-tab`);
         if (targetTab) {
             targetTab.style.display = 'block';
         }
 
-        // 更新标签按钮状态
-        document.querySelectorAll(`#${moduleType}-module .tab-btn`).forEach(btn => {
+        // 鏇存柊鏍囩鎸夐挳鐘舵€?
+        const tabButtons = document.querySelectorAll(`#${moduleType}-module .tab-btn`);
+        tabButtons.forEach(btn => {
             btn.classList.remove('active');
         });
-        
-        event.target.classList.add('active');
+
+        const activeButton = Array.from(tabButtons).find(btn =>
+            btn.dataset.invTab === tabName ||
+            btn.dataset.shopTab === tabName ||
+            btn.dataset.rankTab === tabName ||
+            btn.dataset.auctionTab === tabName ||
+            btn.dataset.vipTab === tabName ||
+            btn.dataset.activityTab === tabName
+        );
+        if (activeButton) {
+            activeButton.classList.add('active');
+        }
     }
 
     async loadModuleData(moduleName) {
@@ -219,17 +230,17 @@ class ModuleManager {
                     break;
             }
         } catch (error) {
-            console.error(`加载${moduleName}模块数据失败:`, error);
+            console.error(`鍔犺浇${moduleName}妯″潡鏁版嵁澶辫触:`, error);
         }
     }
 
     async loadDashboardData() {
-        // 修炼模块数据已在main.js中处理
-        console.log('加载修炼模块数据');
+        // 淇偧妯″潡鏁版嵁宸插湪main.js涓鐞?
+        console.log('鍔犺浇淇偧妯″潡鏁版嵁');
     }
 
     async loadMailData() {
-        console.log('加载邮件数据');
+        console.log('鍔犺浇閭欢鏁版嵁');
         if (window.mailUI?.init) {
             await window.mailUI.init();
         }
@@ -238,7 +249,7 @@ class ModuleManager {
     async loadAuctionData() {
         console.log('加载拍卖行数据');
         try {
-            // 更新灵石余额
+            // 鏇存柊鐏电煶浣欓
             const ssEl = document.getElementById('auction-ss-balance');
             if (ssEl) {
                 const ss = document.getElementById('playerSpiritStones');
@@ -246,36 +257,36 @@ class ModuleManager {
             }
             await window.loadAuctionItems();
         } catch (error) {
-            console.error('加载拍卖行失败:', error);
+            console.error('鍔犺浇鎷嶅崠琛屽け璐?', error);
         }
     }
 
     async loadVipData() {
-        console.log('加载VIP数据');
-        // 实现VIP数据加载
+        console.log('鍔犺浇VIP鏁版嵁');
+        // 瀹炵幇VIP鏁版嵁鍔犺浇
     }
 
     async loadActivityData() {
-        console.log('加载活动数据');
-        // 实现活动数据加载
+        console.log('鍔犺浇娲诲姩鏁版嵁');
+        // 瀹炵幇娲诲姩鏁版嵁鍔犺浇
     }
 
     async loadInventoryData() {
-        console.log('加载背包数据');
+        console.log('鍔犺浇鑳屽寘鏁版嵁');
         if (window.gameManager) {
             await window.gameManager.loadInventory();
         }
     }
 
     async loadQuestsData() {
-        console.log('加载任务数据');
+        console.log('鍔犺浇浠诲姟鏁版嵁');
         if (window.questUI?.init) {
             await window.questUI.init();
         }
     }
 
     async loadPetsData() {
-        console.log('加载宠物数据');
+        console.log('鍔犺浇瀹犵墿鏁版嵁');
         if (window.loadMyPets) {
             await window.loadMyPets();
         }
@@ -289,12 +300,12 @@ class ModuleManager {
     }
 
     async loadShopData() {
-        console.log('加载商城数据');
+        console.log('鍔犺浇鍟嗗煄鏁版嵁');
         if (window.gameManager) {
             await window.gameManager.loadShopItems();
             await window.gameManager.loadSkillShop();
         }
-        // 更新灵石余额显示
+        // 鏇存柊鐏电煶浣欓鏄剧ず
         this.updatePlayerSpiritStones();
     }
 
@@ -307,14 +318,14 @@ class ModuleManager {
     }
 
     async loadCombatData() {
-        console.log('加载战斗数据');
+        console.log('鍔犺浇鎴樻枟鏁版嵁');
         if (window.combatUI?.init) {
             window.combatUI.init();
         }
     }
 
     async loadGuildData() {
-        console.log('加载宗门数据');
+        console.log('鍔犺浇瀹楅棬鏁版嵁');
         if (window.guildUI?.init) {
             await window.guildUI.init();
         }
@@ -328,7 +339,7 @@ class ModuleManager {
     }
 
     async loadAchievementsData() {
-        console.log('加载成就数据');
+        console.log('鍔犺浇鎴愬氨鏁版嵁');
         if (window.achievementUI?.init) {
             await window.achievementUI.init();
         }
@@ -341,47 +352,47 @@ class ModuleManager {
                 await window.skillComboSystem.loadCombos();
             }
         } catch (error) {
-            console.error('加载连招数据失败:', error);
+            console.error('鍔犺浇杩炴嫑鏁版嵁澶辫触:', error);
         }
     }
 
     async loadPetEvolutionData() {
-        console.log('加载宠物进化数据');
+        console.log('鍔犺浇瀹犵墿杩涘寲鏁版嵁');
         if (window.petEvolutionUI?.init) {
             await window.petEvolutionUI.init();
         }
     }
 
     async loadNarrativeData() {
-        console.log('加载叙事数据');
+        console.log('鍔犺浇鍙欎簨鏁版嵁');
         if (window.narrativeUI?.init) {
             await window.narrativeUI.init();
         }
     }
 
     async loadLoreData() {
-        console.log('加载传说数据');
+        console.log('鍔犺浇浼犺鏁版嵁');
         if (window.loreUI?.init) {
             await window.loreUI.init();
         }
     }
 
     async loadMapData() {
-        console.log('加载地图数据');
+        console.log('鍔犺浇鍦板浘鏁版嵁');
         if (window.mapUI?.init) {
             await window.mapUI.init();
         }
     }
 
     async loadCheckInData() {
-        console.log('加载签到数据');
+        console.log('鍔犺浇绛惧埌鏁版嵁');
         if (window.checkinUI?.init) {
             await window.checkinUI.init();
         }
     }
 
     async loadAchievementsData() {
-        console.log('加载成就数据');
+        console.log('鍔犺浇鎴愬氨鏁版嵁');
         if (window.achievementUI?.init) {
             await window.achievementUI.init();
         }
@@ -396,7 +407,7 @@ class ModuleManager {
     }
 
     showToast(message, type = 'info') {
-        // 使用authManager的showToast方法
+        // 浣跨敤authManager鐨剆howToast鏂规硶
         if (window.authManager && window.authManager.showToast) {
             window.authManager.showToast(message, type);
         } else {
@@ -405,10 +416,10 @@ class ModuleManager {
     }
 }
 
-// 创建模块管理器实例
+// 鍒涘缓妯″潡绠＄悊鍣ㄥ疄渚?
 const moduleManager = new ModuleManager();
 
-// 全局函数
+// 鍏ㄥ眬鍑芥暟
 window.refreshMails = async function() {
     return window.mailUI?.loadMails();
 };
@@ -425,12 +436,12 @@ window.claimAttachment = async function(mailId) {
     return window.mailUI?.claimAttachment(mailId);
 };
 
-// 导出到全局
+// 瀵煎嚭鍒板叏灞€
 window.moduleManager = moduleManager;
 
-// ==================== 模块切换辅助函数 ====================
+// ==================== 妯″潡鍒囨崲杈呭姪鍑芥暟 ====================
 
-// 背包标签切换
+// 鑳屽寘鏍囩鍒囨崲
 window.switchInventoryTab = function(tab) {
     document.querySelectorAll('#inventory-module .tab-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.invTab === tab);
@@ -448,7 +459,7 @@ window.switchInventoryTab = function(tab) {
     });
 };
 
-// 商城标签切换
+// 鍟嗗煄鏍囩鍒囨崲
 window.switchShopTab = function(tab) {
     document.querySelectorAll('#shop-module .tab-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.shopTab === tab);
@@ -457,7 +468,7 @@ window.switchShopTab = function(tab) {
     document.getElementById('shop-skill-panel').style.display = (tab === 'skill') ? '' : 'none';
 };
 
-// 刷新商城商品
+// 鍒锋柊鍟嗗煄鍟嗗搧
 window.refreshShopItems = async function() {
     if (window.gameManager) {
         await window.gameManager.loadShopItems();
@@ -465,7 +476,7 @@ window.refreshShopItems = async function() {
     }
 };
 
-// 任务标签切换
+// 浠诲姟鏍囩鍒囨崲
 window.switchQuestTab = function(tab) {
     return window.questUI?.switchTab(tab);
 };
@@ -474,9 +485,9 @@ window.claimQuest = async function(questId) {
     return window.questUI?.claimQuest(questId);
 };
 
-// ==================== 宗门系统辅助函数（委托到模块化实现） ====================
+// ==================== 瀹楅棬绯荤粺杈呭姪鍑芥暟锛堝鎵樺埌妯″潡鍖栧疄鐜帮級 ====================
 
-// ==================== 拍卖行系统辅助函数 ====================
+// ==================== 鎷嶅崠琛岀郴缁熻緟鍔╁嚱鏁?====================
 
 window.switchAuctionTab = function(tab) {
     return window.auctionUI?.switchTab(tab);
@@ -486,8 +497,8 @@ window.loadAuctionItems = async function() {
     return window.auctionUI?.loadAuctionItems();
 };
 
-window.loadMyAuctionItems = async function() {
-    return window.auctionUI?.loadMyAuctionItems();
+window.loadMyAuctionItems = async function(status = '') {
+    return window.auctionUI?.loadMyAuctionItems(status);
 };
 
 window.buyAuctionItem = async function(auctionId) {
@@ -498,7 +509,7 @@ window.cancelAuctionItem = async function(auctionId) {
     return window.auctionUI?.cancelAuctionItem(auctionId);
 };
 
-// ==================== 宠物系统辅助函数（委托到模块化实现） ====================
+// ==================== 瀹犵墿绯荤粺杈呭姪鍑芥暟锛堝鎵樺埌妯″潡鍖栧疄鐜帮級 ====================
 
 function getPetsModule() {
     if (!window.petsUI) {
@@ -550,11 +561,11 @@ window.capturePet = async function(petId) {
     return getPetsModule().capturePet(petId);
 };
 
-// ==================== 技能系统辅助函数（委托到模块化实现） ====================
+// ==================== 鎶€鑳界郴缁熻緟鍔╁嚱鏁帮紙濮旀墭鍒版ā鍧楀寲瀹炵幇锛?====================
 
 function getSkillsModule() {
     if (!window.skillsUI) {
-        throw new Error('技能模块尚未初始化');
+        throw new Error('鎶€鑳芥ā鍧楀皻鏈垵濮嬪寲');
     }
     return window.skillsUI;
 }
@@ -587,7 +598,7 @@ window.upgradeSkill = async function(playerSkillId) {
     return getSkillsModule().upgradeSkill(playerSkillId);
 };
 
-// ==================== 修炼/挂机辅助函数（委托到模块化实现） ====================
+// ==================== 淇偧/鎸傛満杈呭姪鍑芥暟锛堝鎵樺埌妯″潡鍖栧疄鐜帮級 ====================
 
 function getCultivateModule() {
     if (!window.cultivateUI) {
@@ -616,7 +627,7 @@ window.resetCultivation = async function() {
     return getCultivateModule().resetCultivation();
 };
 
-// ==================== 仙界人物（NPC）辅助函数（委托到模块化实现） ====================
+// ==================== 浠欑晫浜虹墿锛圢PC锛夎緟鍔╁嚱鏁帮紙濮旀墭鍒版ā鍧楀寲瀹炵幇锛?====================
 
 function getNarrativeModule() {
     if (!window.narrativeUI) {
@@ -641,7 +652,7 @@ window.showNpcDetail = async function(npcId) {
     return getNarrativeModule().showNpcDetail(npcId);
 };
 
-// ==================== 传说图鉴辅助函数 ====================
+// ==================== 浼犺鍥鹃壌杈呭姪鍑芥暟 ====================
 
 window.switchLoreTab = function(tab) {
     return window.loreUI?.switchTab(tab);
@@ -651,7 +662,7 @@ window.loadLoreEntries = async function(filter = 'all') {
     return window.loreUI?.loadEntries(filter);
 };
 
-// ==================== 技能连招辅助函数（委托到模块化实现） ====================
+// ==================== 鎶€鑳借繛鎷涜緟鍔╁嚱鏁帮紙濮旀墭鍒版ā鍧楀寲瀹炵幇锛?====================
 
 window.switchComboTab = function(tab) {
     return getSkillsModule().switchComboTab(tab);
@@ -661,17 +672,17 @@ window.loadCombos = async function(availableOnly = true) {
     return getSkillsModule().loadCombos(availableOnly);
 };
 
-// ==================== 宠物进化辅助函数 ====================
+// ==================== 瀹犵墿杩涘寲杈呭姪鍑芥暟 ====================
 
 window.loadEvolutionInfo = async function() {
     return window.petEvolutionUI?.loadEvolutionInfo();
 };
 
-window.doEvolution = async function(petId) {
-    return window.petEvolutionUI?.doEvolution(petId);
+window.doEvolution = async function(playerPetId) {
+    return window.petEvolutionUI?.doEvolution(playerPetId);
 };
 
-// ==================== 世界地图辅助函数（委托到模块化实现） ====================
+// ==================== 涓栫晫鍦板浘杈呭姪鍑芥暟锛堝鎵樺埌妯″潡鍖栧疄鐜帮級 ====================
 
 function getMapModule() {
     if (!window.mapUI) {
@@ -700,7 +711,7 @@ window.exploreMap = async function() {
     return getMapModule().exploreMap();
 };
 
-// ==================== 每日签到辅助函数 ====================
+// ==================== 姣忔棩绛惧埌杈呭姪鍑芥暟 ====================
 
 window.changeCheckinMonth = function(delta) {
     return window.checkinUI?.changeMonth(delta);
@@ -730,3 +741,5 @@ window.switchRankingTab = function(tab) {
     }
     return window.rankingUI.switchTab(tab);
 };
+
+

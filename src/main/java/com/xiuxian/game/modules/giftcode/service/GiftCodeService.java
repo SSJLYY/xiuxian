@@ -91,7 +91,7 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
         if ("UNIQUE".equalsIgnoreCase(giftCode.getCodeType())) {
             int insertedRows = giftCodeUsageMapper.insertIfAbsent(giftCode.getId(), playerId);
             if (insertedRows == 0) {
-                throw new BusinessException(ErrorCode.PARAM_ERROR, "鎮ㄥ凡缁忎娇鐢ㄨ繃姝ょぜ鍖呯爜");
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "您已经使用过此礼包码");
             }
         } else {
             GiftCodeUsage usage = new GiftCodeUsage();

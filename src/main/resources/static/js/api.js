@@ -169,7 +169,7 @@ const gameAPI = {
     },
 
     async claimOfflineRewards() {
-        return await api.get('/offline-reward/calculate');
+        return await api.post('/offline-reward/calculate');
     },
 
     async claimOfflineRewardById(rewardId) {
@@ -178,6 +178,18 @@ const gameAPI = {
 
     async resetCultivation() {
         return await api.post('/player/reset-cultivation');
+    },
+
+    async canBreakthrough() {
+        return await api.get('/player/breakthrough/can');
+    },
+
+    async breakthrough() {
+        return await api.post('/player/breakthrough');
+    },
+
+    async attemptBreakthrough() {
+        return await this.breakthrough();
     },
 
     // 公共API
@@ -192,6 +204,10 @@ const gameAPI = {
     // 技能相关API
     async getSkills() {
         return await api.get('/skills/player');
+    },
+
+    async getPlayerSkills() {
+        return await this.getSkills();
     },
 
     async getAvailableSkills() {
@@ -235,28 +251,32 @@ const gameAPI = {
         return await api.post(`/pets/capture/${petId}`);
     },
 
-    async setActivePet(petId) {
-        return await api.post(`/pets/activate/${petId}`);
+    async setActivePet(playerPetId) {
+        return await api.post(`/pets/activate/${playerPetId}`);
     },
 
-    async feedPet(petId) {
-        return await api.post(`/pets/feed/${petId}`);
+    async feedPet(playerPetId) {
+        return await api.post(`/pets/feed/${playerPetId}`);
     },
 
-    async trainPet(petId, trainingType) {
-        return await api.post(`/pets/train/${petId}`, { trainingType });
+    async trainPet(playerPetId, trainingType = '普通训练') {
+        const resolvedTrainingType =
+            typeof trainingType === 'string' ? trainingType : trainingType?.trainingType;
+        return await api.post(`/pets/train/${playerPetId}`, {
+            trainingType: resolvedTrainingType || '普通训练'
+        });
     },
 
-    async renamePet(petId, nickname) {
-        return await api.post(`/pets/rename/${petId}`, { nickname });
+    async renamePet(playerPetId, nickname) {
+        return await api.post(`/pets/rename/${playerPetId}`, { nickname });
     },
 
-    async toggleLockPet(petId) {
-        return await api.post(`/pets/toggle-lock/${petId}`);
+    async toggleLockPet(playerPetId) {
+        return await api.post(`/pets/toggle-lock/${playerPetId}`);
     },
 
-    async releasePet(petId) {
-        return await api.delete(`/pets/release/${petId}`);
+    async releasePet(playerPetId) {
+        return await api.delete(`/pets/release/${playerPetId}`);
     },
 
     // 装备相关API

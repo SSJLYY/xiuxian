@@ -1,7 +1,17 @@
 import { petsService } from './PetsService.js';
 
 function getPetEmoji(type) {
-    const emojis = { NORMAL: '🐾', FIRE: '🔥', WATER: '💧', GRASS: '🌿', THUNDER: '⚡', ICE: '❄️', DARK: '🌙', LIGHT: '☀️', DRAGON: '🐉' };
+    const emojis = {
+        NORMAL: '🐾',
+        FIRE: '🔥',
+        WATER: '💧',
+        GRASS: '🌿',
+        THUNDER: '⚡',
+        ICE: '❄️',
+        DARK: '🌑',
+        LIGHT: '☀️',
+        DRAGON: '🐉'
+    };
     return emojis[type] || '🐾';
 }
 
@@ -28,7 +38,7 @@ export class PetsUI {
     async loadMyPets() {
         const container = document.getElementById('myPetsList');
         if (!container) return;
-        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载宠物...</p></div>';
+        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载宠物中...</p></div>';
         try {
             const pets = await petsService.getMyPets();
             this.renderMyPets(pets);
@@ -47,17 +57,15 @@ export class PetsUI {
             const defaultOpt = select.querySelector('option[value=""]');
             select.innerHTML = defaultOpt ? defaultOpt.outerHTML : '<option value="">-- 请选择宠物 --</option>';
             pets.forEach(pet => {
-                if ((pet.level || 1) >= 10) {
-                    const opt = document.createElement('option');
-                    opt.value = pet.id;
-                    opt.textContent = `${pet.nickname || pet.name || pet.petName} (Lv.${pet.level || 1})`;
-                    select.appendChild(opt);
-                }
+                const opt = document.createElement('option');
+                opt.value = pet.id;
+                opt.textContent = `${pet.nickname || pet.name || pet.petName} (Lv.${pet.level || 1})`;
+                select.appendChild(opt);
             });
         }
 
         if (!pets.length) {
-            container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;text-align:center;padding:2rem;">您还没有宠物，快去捕捉吧！</div>';
+            container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;text-align:center;padding:2rem;">您还没有宠物，快去捕捉吧</div>';
             return;
         }
 
@@ -71,6 +79,7 @@ export class PetsUI {
             const expToNext = pet.expToNext || 100;
             const trainingCooldownUntil = pet.trainCooldownUntil ? new Date(pet.trainCooldownUntil) : null;
             const trainingCoolingDown = trainingCooldownUntil && trainingCooldownUntil > new Date();
+
             return `
                 <div class="pet-card p-4 rounded" style="background:rgba(255,255,255,0.05);border:1px solid ${isActive ? qualityColor : 'rgba(255,255,255,0.1)'};">
                     <div class="flex items-center justify-between mb-2">
@@ -111,9 +120,9 @@ export class PetsUI {
                         <span style="font-size:2rem;">${getPetEmoji(pet.type || 'NORMAL')}</span>
                         <div class="flex-1">
                             <div class="font-bold" style="color:var(--accent-gold);">${escapeText(pet.nickname || pet.name || pet.petName || '出战宠物')}</div>
-                            <div class="text-sm text-muted">等级 ${pet.level || 1} | 战力评估中...</div>
+                            <div class="text-sm text-muted">等级 ${pet.level || 1} | 战斗中陪伴您</div>
                         </div>
-                        <span class="text-sm text-green-400">战斗中...</span>
+                        <span class="text-sm text-green-400">战斗中</span>
                     </div>
                 `;
             } else {
@@ -127,7 +136,7 @@ export class PetsUI {
     async loadAvailablePets() {
         const container = document.getElementById('availablePetsList');
         if (!container) return;
-        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载可捕获宠物...</p></div>';
+        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载可捕获宠物中...</p></div>';
         try {
             const pets = await petsService.getAvailablePets();
             if (!pets.length) {
@@ -161,14 +170,14 @@ export class PetsUI {
 
     async activatePet(playerPetId) {
         await petsService.activatePet(playerPetId);
-        if (window.moduleManager) window.moduleManager.showToast('设置出战成功！', 'success');
+        if (window.moduleManager) window.moduleManager.showToast('设置出战成功', 'success');
         await this.loadMyPets();
     }
 
     async feedPet(playerPetId) {
         await petsService.feedPet(playerPetId);
         sessionStorage.setItem('tutorial_pet_fed_once', 'true');
-        if (window.moduleManager) window.moduleManager.showToast('喂食成功！宠物很开心！', 'success');
+        if (window.moduleManager) window.moduleManager.showToast('喂食成功，宠物很开心', 'success');
         await this.loadMyPets();
         if (window.tutorialSystem?.checkProgress) {
             window.tutorialSystem.checkProgress();
@@ -177,7 +186,7 @@ export class PetsUI {
 
     async trainPet(playerPetId, trainingType) {
         await petsService.trainPet(playerPetId, trainingType);
-        if (window.moduleManager) window.moduleManager.showToast('训练成功！成长有所提升。', 'success');
+        if (window.moduleManager) window.moduleManager.showToast('训练成功，宠物获得成长', 'success');
         await this.loadMyPets();
     }
 
@@ -195,7 +204,7 @@ export class PetsUI {
 
     async capturePet(petId) {
         await petsService.capturePet(petId);
-        if (window.moduleManager) window.moduleManager.showToast('捕捉成功！获得新宠物！', 'success');
+        if (window.moduleManager) window.moduleManager.showToast('捕捉成功，获得新宠物', 'success');
         await this.loadMyPets();
         await this.loadAvailablePets();
     }

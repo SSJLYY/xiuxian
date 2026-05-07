@@ -10,12 +10,12 @@ function resolveStatus(activity) {
     const endTime = new Date(activity.endTime).getTime();
 
     if (Number.isFinite(startTime) && now < startTime) {
-        return { className: 'not-started', text: 'Not started', ongoing: false };
+        return { className: 'not-started', text: '未开始', ongoing: false };
     }
     if (Number.isFinite(endTime) && now > endTime) {
-        return { className: 'ended', text: 'Ended', ongoing: false };
+        return { className: 'ended', text: '已结束', ongoing: false };
     }
-    return { className: 'ongoing', text: 'Ongoing', ongoing: true };
+    return { className: 'ongoing', text: '进行中', ongoing: true };
 }
 
 function buildProgressText(activity) {
@@ -68,7 +68,7 @@ export class ActivityUI {
             this.renderActivities();
             this.renderMyActivities();
         } catch {
-            toast.error('Failed to load activities');
+            toast.error('加载活动失败');
         } finally {
             loading.hide();
         }
@@ -81,7 +81,7 @@ export class ActivityUI {
         }
 
         if (activityService.activities.length === 0) {
-            container.innerHTML = '<p>No activities</p>';
+            container.innerHTML = '<p>暂无活动</p>';
             return;
         }
 
@@ -110,12 +110,12 @@ export class ActivityUI {
                 <div class="activity-body">
                     <p class="activity-desc">${escapeHtml(activity.description || '')}</p>
                     <div class="activity-time">
-                        <span>Start: ${escapeHtml(startText)}</span>
-                        <span>End: ${escapeHtml(endText)}</span>
+                        <span>开始时间：${escapeHtml(startText)}</span>
+                        <span>结束时间：${escapeHtml(endText)}</span>
                     </div>
                     <div class="activity-progress">
                         <div class="progress-info">
-                            <span>Progress: ${escapeHtml(progressText)}</span>
+                            <span>进度：${escapeHtml(progressText)}</span>
                         </div>
                         <div class="progress-bar">
                             <div class="progress-fill" style="width: ${progressWidth}%"></div>
@@ -124,7 +124,7 @@ export class ActivityUI {
                 </div>
                 <div class="activity-footer">
                     <div class="activity-reward">
-                        <span>Reward: ${escapeHtml(activity.rewardDescription || 'No rewards')}</span>
+                        <span>奖励：${escapeHtml(activity.rewardDescription || '暂无奖励')}</span>
                     </div>
                     <div class="activity-actions">
                         ${this.renderActionButtons(activity, status.ongoing)}
@@ -141,7 +141,7 @@ export class ActivityUI {
         }
 
         if (activityService.myActivities.length === 0) {
-            container.innerHTML = '<p>No joined activities</p>';
+            container.innerHTML = '<p>暂无已参与活动</p>';
             return;
         }
 
@@ -163,18 +163,18 @@ export class ActivityUI {
                     <h4>${escapeHtml(activity.name || '')}</h4>
                     <p>${escapeHtml(activity.description || '')}</p>
                     <div class="activity-stats">
-                        <span>Progress: ${escapeHtml(progressText)}</span>
-                        <span>Reward: ${escapeHtml(activity.rewardDescription || 'No rewards')}</span>
+                        <span>进度：${escapeHtml(progressText)}</span>
+                        <span>奖励：${escapeHtml(activity.rewardDescription || '暂无奖励')}</span>
                     </div>
                 </div>
                 <div class="activity-status">
                     ${activity.claimed
-                        ? '<span class="status claimed">Claimed</span>'
+                        ? '<span class="status claimed">已领取</span>'
                         : activity.canClaim
-                            ? `<button class="btn btn-sm btn-success" data-action="claim" data-activity-id="${activity.id}">Claim reward</button>`
+                            ? `<button class="btn btn-sm btn-success" data-action="claim" data-activity-id="${activity.id}">领取奖励</button>`
                             : activity.completed
-                                ? '<span class="status completed">Ready</span>'
-                                : '<span class="status in-progress">In progress</span>'}
+                                ? '<span class="status completed">可领取</span>'
+                                : '<span class="status in-progress">进行中</span>'}
                 </div>
             </div>
         `;
@@ -182,16 +182,16 @@ export class ActivityUI {
 
     renderActionButtons(activity, isOngoing) {
         if (activity.claimed) {
-            return '<button class="btn btn-disabled" disabled>Claimed</button>';
+            return '<button class="btn btn-disabled" disabled>已领取</button>';
         }
         if (activity.canClaim) {
-            return `<button class="btn btn-success" data-action="claim" data-activity-id="${activity.id}">Claim reward</button>`;
+            return `<button class="btn btn-success" data-action="claim" data-activity-id="${activity.id}">领取奖励</button>`;
         }
         if (isOngoing && !activity.participated) {
-            return `<button class="btn btn-primary" data-action="participate" data-activity-id="${activity.id}">Join</button>`;
+            return `<button class="btn btn-primary" data-action="participate" data-activity-id="${activity.id}">参与活动</button>`;
         }
         if (activity.participated) {
-            return '<button class="btn btn-disabled" disabled>Joined</button>';
+            return '<button class="btn btn-disabled" disabled>已参与</button>';
         }
         return '';
     }
@@ -212,7 +212,7 @@ export class ActivityUI {
             await activityService.participateActivity(activityId);
             await this.loadActivities();
         } catch {
-            toast.error('Failed to join activity');
+            toast.error('参与活动失败');
         } finally {
             loading.hide();
         }
@@ -224,7 +224,7 @@ export class ActivityUI {
             await activityService.claimReward(activityId);
             await this.loadActivities();
         } catch {
-            toast.error('Failed to claim reward');
+            toast.error('领取奖励失败');
         } finally {
             loading.hide();
         }

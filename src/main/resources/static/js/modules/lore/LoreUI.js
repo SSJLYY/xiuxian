@@ -24,7 +24,7 @@ export class LoreUI {
     async loadEntries(filter = this.currentFilter) {
         const container = document.getElementById('loreContent');
         if (!container) return;
-        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载图鉴...</p></div>';
+        container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载图鉴中...</p></div>';
         try {
             const [progress, entries] = await Promise.all([
                 loreService.getProgress(),
@@ -46,8 +46,8 @@ export class LoreUI {
                             <span class="text-2xl">${entry.icon || '📖'}</span>
                             <h4 class="font-semibold">${escapeText(entry.title || '未知条目')}</h4>
                         </div>
-                        <div class="text-sm text-muted">${entry.isDiscovered ? escapeText(entry.description || '无描述') : '???'}</div>
-                        <div class="text-xs text-muted mt-2">类型: ${entry.category || '通用'}</div>
+                        <div class="text-sm text-muted">${entry.isDiscovered ? escapeText(entry.description || '暂无描述') : '???'}</div>
+                        <div class="text-xs text-muted mt-2">类型: ${escapeText(entry.category || '通用')}</div>
                     </div>
                 `;
             }).join('');

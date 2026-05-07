@@ -1,8 +1,3 @@
-/**
- * 玩家模块 - 业务服务层
- * 负责处理玩家相关的业务逻辑
- */
-
 import { gameAPI } from '../../core/api/GameApi.js';
 import { toast } from '../../components/Toast.js';
 import { FormatUtils } from '../../core/utils/FormatUtils.js';

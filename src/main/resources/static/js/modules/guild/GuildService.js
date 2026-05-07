@@ -22,14 +22,18 @@ export class GuildService {
 
     async getGuildList() {
         const response = await gameAPI.getGuildList();
-        if (!response?.success) throw new Error(response?.message || '加载宗门列表失败');
+        if (!response?.success) {
+            throw new Error(response?.message || '加载宗门列表失败');
+        }
         return unwrapGuildList(response.data).map(guild => this.normalizeGuild(guild));
     }
 
     async getMyGuild() {
         const response = await gameAPI.getMyGuild();
         if (!response?.success) {
-            if (response?.message) throw new Error(response.message);
+            if (response?.message) {
+                throw new Error(response.message);
+            }
             return null;
         }
         return response.data ? this.normalizeGuild(response.data) : null;
@@ -37,7 +41,9 @@ export class GuildService {
 
     async getGuildDetail(guildId) {
         const response = await gameAPI.get(`/guild/${guildId}`);
-        if (!response?.success) throw new Error(response?.message || '加载宗门详情失败');
+        if (!response?.success) {
+            throw new Error(response?.message || '加载宗门详情失败');
+        }
         const detail = response.data || {};
         return {
             ...detail,
@@ -47,25 +53,33 @@ export class GuildService {
 
     async createGuild(name, description = '') {
         const response = await gameAPI.createGuild(name, description);
-        if (!response?.success) throw new Error(response?.message || '创建宗门失败');
+        if (!response?.success) {
+            throw new Error(response?.message || '创建宗门失败');
+        }
         return response.data;
     }
 
     async applyGuild(guildId) {
         const response = await gameAPI.applyGuild(guildId);
-        if (!response?.success) throw new Error(response?.message || '申请加入失败');
+        if (!response?.success) {
+            throw new Error(response?.message || '申请加入失败');
+        }
         return response.data;
     }
 
     async leaveGuild() {
         const response = await gameAPI.leaveGuild();
-        if (!response?.success) throw new Error(response?.message || '退出宗门失败');
+        if (!response?.success) {
+            throw new Error(response?.message || '退出宗门失败');
+        }
         return response.data;
     }
 
     async donateGuild(amount) {
         const response = await gameAPI.donateGuild(amount);
-        if (!response?.success) throw new Error(response?.message || '捐献失败');
+        if (!response?.success) {
+            throw new Error(response?.message || '捐献失败');
+        }
         return response.data;
     }
 }

@@ -148,7 +148,7 @@ public class PetController {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
             petService.releasePet(playerId, playerPetId);
-            return ResponseEntity.ok(ApiResponse.success("释放成功", null));
+            return ResponseEntity.ok(ApiResponse.success("放生成功", null));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }

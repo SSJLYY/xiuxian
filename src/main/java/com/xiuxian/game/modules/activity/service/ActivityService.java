@@ -306,7 +306,7 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         PlayerActivityProgress progress = playerActivityProgressMapper.selectByPlayerAndActivityForUpdate(playerId, activityId);
 
         if (progress == null) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "Player has not joined this activity");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家未参与该活动");
         }
         if (Boolean.TRUE.equals(progress.getRewarded())) {
             throw new BusinessException(ErrorCode.ACTIVITY_REWARD_CLAIMED);
@@ -316,12 +316,12 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         int scoreValue = parseScoreFromProgress(progress.getProgress());
         boolean completed = isCompleted(activity, progress, progressValue, scoreValue);
         if (!completed) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "Activity progress does not meet reward conditions");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "活动进度未达到领奖条件");
         }
 
         List<MailAttachment> attachments = parseRewardAttachments(activity.getRewards());
         if (attachments.isEmpty()) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "Activity reward is not configured");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "活动奖励未配置");
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -342,8 +342,8 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         String rewardDescription = buildRewardSummary(attachments);
         mailService.sendMail(
                 playerId,
-                activity.getName() + " reward",
-                "Activity reward delivered: " + rewardDescription,
+                activity.getName() + "奖励发放",
+                "活动奖励已发放：" + rewardDescription,
                 "SYSTEM",
                 attachments,
                 now.plusDays(30));

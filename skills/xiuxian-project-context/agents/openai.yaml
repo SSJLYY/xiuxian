@@ -1,0 +1,4 @@
+interface:
+  display_name: "Xiuxian Project Context"
+  short_description: "Understand xiuxian repo structure and entry points"
+  default_prompt: "Use $xiuxian-project-context to understand this xiuxian repository before changing code."

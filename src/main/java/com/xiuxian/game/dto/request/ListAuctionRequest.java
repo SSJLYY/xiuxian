@@ -8,7 +8,7 @@ import javax.validation.constraints.NotNull;
 
 /**
  * 拍卖上架请求
- * 封装 AuctionService.listItem 的参数（不含 playerId，由 Controller 从认证上下文获取）
+ * 封装 AuctionService.listItem 的参数，playerId 由 Controller 从认证上下文获取。
  *
  * @author xiuxian
  */

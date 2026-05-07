@@ -1,0 +1,4 @@
+interface:
+  display_name: "Xiuxian API Trace"
+  short_description: "Trace xiuxian page-to-API-to-service call chains"
+  default_prompt: "Use $xiuxian-api-trace to trace this xiuxian page or API call chain."

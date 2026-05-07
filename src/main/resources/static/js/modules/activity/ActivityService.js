@@ -117,13 +117,13 @@ function describeReward(reward) {
 
     switch (type) {
         case 'SPIRIT_STONES':
-            return `Spirit Stones x${quantity}`;
+            return `灵石 x${quantity}`;
         case 'EXP':
-            return `EXP x${quantity}`;
+            return `经验 x${quantity}`;
         case 'ITEM':
-            return `${itemId == null ? 'Item' : `Item#${itemId}`} x${quantity}`;
+            return `${itemId == null ? '物品' : `物品#${itemId}`} x${quantity}`;
         case 'EQUIPMENT':
-            return `${itemId == null ? 'Equipment' : `Equipment#${itemId}`} x${quantity}`;
+            return `${itemId == null ? '装备' : `装备#${itemId}`} x${quantity}`;
         default:
             return `${type} x${quantity}`;
     }
@@ -148,7 +148,7 @@ function buildRewardDescription(rewardsRaw) {
         return rewardsRaw;
     }
 
-    return 'No rewards';
+    return '暂无奖励';
 }
 
 export class ActivityService {
@@ -166,10 +166,10 @@ export class ActivityService {
             ]);
 
             if (!activitiesResponse?.success) {
-                throw new Error(activitiesResponse?.message || 'Failed to load activities');
+                throw new Error(activitiesResponse?.message || '加载活动失败');
             }
             if (!progressResponse?.success) {
-                throw new Error(progressResponse?.message || 'Failed to load activity progress');
+                throw new Error(progressResponse?.message || '加载活动进度失败');
             }
 
             const progressRecords = progressResponse.data || [];
@@ -193,7 +193,7 @@ export class ActivityService {
                 myActivities: this.myActivities
             };
         } catch (error) {
-            toast.error(`Failed to load activities: ${error.message}`);
+            toast.error(`加载活动失败：${error.message}`);
             throw error;
         }
     }
@@ -216,13 +216,13 @@ export class ActivityService {
         try {
             const response = await gameAPI.participateActivity(activityId);
             if (!response?.success) {
-                throw new Error(response?.message || 'Failed to join activity');
+                throw new Error(response?.message || '参与活动失败');
             }
-            toast.success(response.message || 'Joined activity');
+            toast.success(response.message || '参与活动成功');
             await this.refreshData();
             return response.data;
         } catch (error) {
-            toast.error(`Failed to join activity: ${error.message}`);
+            toast.error(`参与活动失败：${error.message}`);
             throw error;
         }
     }
@@ -231,13 +231,13 @@ export class ActivityService {
         try {
             const response = await gameAPI.claimActivityReward(activityId);
             if (!response?.success) {
-                throw new Error(response?.message || 'Failed to claim reward');
+                throw new Error(response?.message || '领取奖励失败');
             }
-            toast.success(response.message || 'Reward claimed');
+            toast.success(response.message || '领取奖励成功');
             await this.refreshData();
             return response.data;
         } catch (error) {
-            toast.error(`Failed to claim reward: ${error.message}`);
+            toast.error(`领取奖励失败：${error.message}`);
             throw error;
         }
     }

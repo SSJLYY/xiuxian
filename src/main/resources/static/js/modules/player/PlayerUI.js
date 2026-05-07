@@ -1,8 +1,3 @@
-/**
- * 玩家模块 - UI渲染层
- * 负责玩家信息的UI渲染和交互
- */
-
 import { playerService } from './PlayerService.js';
 import { loading } from '../../components/Loading.js';
 import { FormatUtils } from '../../core/utils/FormatUtils.js';
@@ -14,34 +9,21 @@ class PlayerUI {
         this.isInitialized = false;
     }
 
-    /**
-     * 初始化玩家UI
-     */
     async init() {
         if (this.isInitialized) return;
 
         try {
-            // 绑定UI元素
             this.bindElements();
-
-            // 加载玩家信息
             await this.loadPlayerInfo();
-
-            // 启动自动刷新
             this.startAutoRefresh();
-
             this.isInitialized = true;
-            console.log('玩家UI初始化成功');
+            console.log('玩家 UI 初始化成功');
         } catch (error) {
-            console.error('玩家UI初始化失败:', error);
+            console.error('玩家 UI 初始化失败:', error);
         }
     }
 
-    /**
-     * 绑定UI元素
-     */
     bindElements() {
-        // 玩家信息显示元素
         this.elements = {
             playerName: document.getElementById('playerName'),
             playerLevel: document.getElementById('playerLevel'),
@@ -54,23 +36,12 @@ class PlayerUI {
         };
     }
 
-    /**
-     * 加载玩家信息
-     */
     async loadPlayerInfo() {
         try {
-            // 显示加载状态
             loading.showPage('加载中...');
-
-            // 获取玩家信息
             this.currentPlayer = await playerService.getCurrentPlayer();
-
-            // 格式化数据
             const displayData = playerService.formatPlayerInfo(this.currentPlayer);
-
-            // 更新UI
             this.updatePlayerDisplay(displayData);
-
         } catch (error) {
             console.error('加载玩家信息失败:', error);
         } finally {
@@ -78,14 +49,9 @@ class PlayerUI {
         }
     }
 
-    /**
-     * 更新玩家信息显示
-     * @param {Object} data - 格式化后的玩家数据
-     */
     updatePlayerDisplay(data) {
         if (!data) return;
 
-        // 更新头部信息
         if (this.elements.playerName) {
             this.elements.playerName.textContent = data.name;
         }
@@ -102,7 +68,6 @@ class PlayerUI {
             this.elements.playerSpiritStones.textContent = data.spiritStones;
         }
 
-        // 更新详细信息
         if (this.elements.playerExp) {
             this.elements.playerExp.textContent = `${data.exp}/${data.expToNext}`;
         }
@@ -120,26 +85,16 @@ class PlayerUI {
         }
     }
 
-    /**
-     * 更新灵石显示
-     * @param {number} amount - 灵石数量
-     */
     updateSpiritStones(amount) {
         if (this.elements.playerSpiritStones) {
-            this.elements.playerSpiritStones.textContent =
-                FormatUtils.formatSpiritStones(amount);
+            this.elements.playerSpiritStones.textContent = FormatUtils.formatSpiritStones(amount);
         }
 
-        // 更新当前玩家数据
         if (this.currentPlayer) {
             this.currentPlayer.spiritStones = amount;
         }
     }
 
-    /**
-     * 更新等级显示
-     * @param {number} level - 等级
-     */
     updateLevel(level) {
         if (this.elements.playerLevel) {
             this.elements.playerLevel.textContent = level;
@@ -150,14 +105,9 @@ class PlayerUI {
         }
     }
 
-    /**
-     * 更新境界显示
-     * @param {number} realm - 境界
-     */
     updateRealm(realm) {
         if (this.elements.playerRealm) {
-            this.elements.playerRealm.textContent =
-                playerService.getRealmName(realm);
+            this.elements.playerRealm.textContent = playerService.getRealmName(realm);
         }
 
         if (this.currentPlayer) {
@@ -165,11 +115,6 @@ class PlayerUI {
         }
     }
 
-    /**
-     * 更新经验显示
-     * @param {number} exp - 当前经验
-     * @param {number} expToNext - 升级所需经验
-     */
     updateExp(exp, expToNext) {
         if (this.elements.playerExp) {
             this.elements.playerExp.textContent =
@@ -182,11 +127,6 @@ class PlayerUI {
         }
     }
 
-    /**
-     * 更新血量显示
-     * @param {number} health - 当前血量
-     * @param {number} maxHealth - 最大血量
-     */
     updateHealth(health, maxHealth) {
         if (this.elements.playerHealth) {
             this.elements.playerHealth.textContent = `${health}/${maxHealth}`;
@@ -198,23 +138,12 @@ class PlayerUI {
         }
     }
 
-    /**
-     * 获取当前玩家信息
-     * @returns {Object} 玩家信息
-     */
     getCurrentPlayer() {
         return this.currentPlayer;
     }
 
-    /**
-     * 启动自动刷新
-     * @param {number} interval - 刷新间隔(毫秒)
-     */
     startAutoRefresh(interval = 5000) {
-        // 清除现有定时器
         this.stopAutoRefresh();
-
-        // 启动新的定时器
         this.refreshTimer = setInterval(() => {
             this.loadPlayerInfo().catch(error => {
                 console.error('自动刷新玩家信息失败:', error);
@@ -222,9 +151,6 @@ class PlayerUI {
         }, interval);
     }
 
-    /**
-     * 停止自动刷新
-     */
     stopAutoRefresh() {
         if (this.refreshTimer) {
             clearInterval(this.refreshTimer);
@@ -232,9 +158,6 @@ class PlayerUI {
         }
     }
 
-    /**
-     * 销毁玩家UI
-     */
     destroy() {
         this.stopAutoRefresh();
         this.elements = null;
@@ -243,10 +166,8 @@ class PlayerUI {
     }
 }
 
-// 创建全局PlayerUI实例
 const playerUI = new PlayerUI();
 
-// 导出UI类
 export { PlayerUI, playerUI };
 export default playerUI;
 

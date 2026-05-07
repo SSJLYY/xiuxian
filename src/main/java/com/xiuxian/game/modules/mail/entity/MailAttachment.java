@@ -20,4 +20,7 @@ public class MailAttachment {
     private Integer itemId;
 
     private Integer quantity;
+
+    @TableField(exist = false)
+    private String itemName;
 }

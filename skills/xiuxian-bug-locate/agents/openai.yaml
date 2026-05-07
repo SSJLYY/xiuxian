@@ -1,0 +1,4 @@
+interface:
+  display_name: "Xiuxian Bug Locate"
+  short_description: "Diagnose xiuxian bugs, root causes, and validation steps"
+  default_prompt: "Use $xiuxian-bug-locate to analyze this xiuxian bug before changing code."

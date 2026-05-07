@@ -8,32 +8,40 @@ export class MapService {
             ...map,
             isCurrent,
             isLocked: !isUnlocked && !isCurrent,
-            icon: map?.icon || (map?.mapType === 'SAFE' ? '🏯' : '🗺️'),
+            icon: map?.icon || (map?.mapType === 'SAFE' ? '🏕️' : '🗺️'),
             monsterLevel: map?.monsterLevel ?? map?.dangerLevel ?? 0
         };
     }
 
     async getCurrentMap() {
         const response = await gameAPI.getCurrentMap();
-        if (!response?.success) return null;
+        if (!response?.success) {
+            return null;
+        }
         return response.data ? this.normalizeMap(response.data) : null;
     }
 
     async getMapList() {
         const response = await gameAPI.getMaps();
-        if (!response?.success) throw new Error(response?.message || '加载地图列表失败');
+        if (!response?.success) {
+            throw new Error(response?.message || '加载地图列表失败');
+        }
         return (response.data || []).map(map => this.normalizeMap(map));
     }
 
     async enterMap(mapId) {
         const response = await gameAPI.enterMap(mapId);
-        if (!response?.success) throw new Error(response?.message || '进入地图失败');
+        if (!response?.success) {
+            throw new Error(response?.message || '进入地图失败');
+        }
         return response.data;
     }
 
     async exploreMap() {
         const response = await gameAPI.exploreMap();
-        if (!response?.success) throw new Error(response?.message || '探索失败');
+        if (!response?.success) {
+            throw new Error(response?.message || '探索失败');
+        }
         return response.data;
     }
 }

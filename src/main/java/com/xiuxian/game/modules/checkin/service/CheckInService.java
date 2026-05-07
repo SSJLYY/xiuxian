@@ -196,11 +196,11 @@ public class CheckInService {
     private String buildMilestoneMsg(int days) {
         switch (days) {
             case 7:
-                return "连续签到7天，获得额外奖励。";
+                return "连续签到 7 天，获得额外奖励。";
             case 14:
-                return "连续签到14天，获得进阶奖励。";
+                return "连续签到 14 天，获得进阶奖励。";
             case 30:
-                return "连续签到30天，获得月度大奖励。";
+                return "连续签到 30 天，获得月度大奖励。";
             default:
                 return "里程碑达成。";
         }

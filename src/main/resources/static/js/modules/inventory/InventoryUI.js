@@ -84,7 +84,7 @@ export class InventoryUI {
         }
 
         this.elements.itemsContainer.innerHTML = this.currentItems.map(item => `
-            <div class="inventory-item ${item.itemQuality || 'common'}" data-item-id="${item.itemId}">
+            <div class="inventory-item ${item.itemQuality || 'common'}" data-item-id="${item.playerItemId}">
                 <div class="item-icon">
                     <img src="${item.itemIcon || '/images/items/default.png'}" alt="${item.itemName}">
                 </div>
@@ -111,19 +111,16 @@ export class InventoryUI {
         const actions = [];
 
         if (item.usable || item.itemTypeCode === 'CONSUMABLE' || item.itemType === '消耗品') {
-            actions.push(`<button class="btn btn-sm btn-primary" data-action="use" data-item-id="${item.itemId}">使用</button>`);
-        } else if (item.itemTypeCode === 'EQUIPMENT' || item.itemType === '装备') {
-            actions.push(`<button class="btn btn-sm btn-success" data-action="equip" data-item-id="${item.itemId}">装备</button>`);
+            actions.push(`<button class="btn btn-sm btn-primary" data-action="use" data-item-id="${item.playerItemId}">使用</button>`);
         }
 
-        actions.push(`<button class="btn btn-sm btn-warning" data-action="sell" data-item-id="${item.itemId}">出售</button>`);
-        actions.push(`<button class="btn btn-sm btn-danger" data-action="discard" data-item-id="${item.itemId}">丢弃</button>`);
+        actions.push(`<button class="btn btn-sm btn-warning" data-action="sell" data-item-id="${item.playerItemId}">出售</button>`);
 
         return actions.join('');
     }
 
-    async showItemDetail(itemId) {
-        const item = this.currentItems.find(i => i.itemId == itemId);
+    async showItemDetail(playerItemId) {
+        const item = this.currentItems.find(i => i.playerItemId == playerItemId);
         if (!item) return;
 
         const detailHtml = `
@@ -214,7 +211,7 @@ export class InventoryUI {
             modal.hide();
             await this.loadItems();
         } catch (error) {
-            toast.error('操作失败');
+            toast.error(error?.message || '操作失败');
         } finally {
             loading.hide();
         }

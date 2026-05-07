@@ -1,0 +1,4 @@
+interface:
+  display_name: "Xiuxian Feature Implementation"
+  short_description: "Plan and land xiuxian feature changes with validation"
+  default_prompt: "Use $xiuxian-feature-implementation to plan and implement this xiuxian feature change."
