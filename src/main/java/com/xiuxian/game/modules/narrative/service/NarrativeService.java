@@ -105,10 +105,10 @@ public class NarrativeService {
         if (state == null) {
             return createNewDialogueState(tree, playerId);
         }
-        if (!state.getIsCompleted()) {
+        if (!Boolean.TRUE.equals(state.getIsCompleted())) {
             return state;
         }
-        if (!tree.getIsRepeatable()) {
+        if (!Boolean.TRUE.equals(tree.getIsRepeatable())) {
             throw new BusinessException(ErrorCode.DIALOGUE_ALREADY_COMPLETED);
         }
         return resetRepeatableDialogue(state, tree);
@@ -166,7 +166,7 @@ public class NarrativeService {
         }
 
         PlayerDialogueState state = playerDialogueStateMapper.selectByPlayerAndTree(playerId, tree.getId());
-        if (state == null || state.getIsCompleted()) {
+        if (state == null || Boolean.TRUE.equals(state.getIsCompleted())) {
             throw new BusinessException(ErrorCode.DIALOGUE_NOT_IN_PROGRESS);
         }
 

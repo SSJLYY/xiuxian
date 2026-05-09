@@ -190,10 +190,10 @@ public class CombatService {
                 .description(monster.getDescription())
                 .level(monster.getLevel())
                 .type(monster.getType())
-                .health((int)(monster.getHealth() * factor))
-                .attack((int)(monster.getAttack() * factor))
-                .defense((int)(monster.getDefense() * factor))
-                .speed(monster.getSpeed())
+                .health((int)(defaultInt(monster.getHealth()) * factor))
+                .attack((int)(defaultInt(monster.getAttack()) * factor))
+                .defense((int)(defaultInt(monster.getDefense()) * factor))
+                .speed(defaultInt(monster.getSpeed()))
                 .expReward(monster.getExpReward())
                 .spiritStonesReward(monster.getSpiritStonesReward())
                 .dropRate(monster.getDropRate())
@@ -275,9 +275,9 @@ public class CombatService {
                 .monsterName(monster.getName())
                 .monsterLevel(monster.getLevel())
                 .monsterType(monster.getType())
-                .playerLevel(ctx.player.getLevel())
-                .playerExp(ctx.player.getExp())
-                .playerSpiritStones(ctx.player.getSpiritStones())
+                .playerLevel(defaultInt(ctx.player.getLevel()))
+                .playerExp(defaultLong(ctx.player.getExp()))
+                .playerSpiritStones(defaultLong(ctx.player.getSpiritStones()))
                 .build();
     }
 
@@ -314,10 +314,10 @@ public class CombatService {
         ctx.playerDefense = player.getTotalDefense();
         ctx.playerSpeed = player.getTotalSpeed();
         ctx.playerHealth = player.getTotalHealth();
-        ctx.monsterHealth = monster.getHealth();
-        ctx.monsterAttack = monster.getAttack();
-        ctx.monsterDefense = monster.getDefense();
-        ctx.monsterSpeed = monster.getSpeed();
+        ctx.monsterHealth = defaultInt(monster.getHealth());
+        ctx.monsterAttack = defaultInt(monster.getAttack());
+        ctx.monsterDefense = defaultInt(monster.getDefense());
+        ctx.monsterSpeed = defaultInt(monster.getSpeed());
         ctx.battleLog = new ArrayList<>();
 
         // 新手保护
@@ -397,8 +397,10 @@ public class CombatService {
     /** 玩家行动 */
     private void executePlayerTurn(CombatContext ctx, int actions) {
         for (int i = 0; i < actions && ctx.currentMonsterHealth > 0; i++) {
-            int damage = calculateDamage(ctx.playerAttack, ctx.monsterDefense, ctx.player.getLevel(),
-                    ctx.monster.getLevel(), ctx.playerSpeed, ctx.monsterSpeed, true, ctx.battleLog);
+            int damage = calculateDamage(ctx.playerAttack, ctx.monsterDefense,
+                    Math.max(1, defaultInt(ctx.player.getLevel())),
+                    Math.max(1, defaultInt(ctx.monster.getLevel())),
+                    ctx.playerSpeed, ctx.monsterSpeed, true, ctx.battleLog);
             ctx.currentMonsterHealth -= damage;
             String marker = actions > 1 ? "【连击" + (i + 1) + "】" : "";
             ctx.battleLog.add("第" + ctx.rounds + "回合: " + marker + ctx.player.getNickname() + "造成了" + damage + "点伤害");
@@ -409,7 +411,9 @@ public class CombatService {
     private void executeMonsterTurn(CombatContext ctx, int actions) {
         for (int i = 0; i < actions && ctx.currentPlayerHealth > 0; i++) {
             int damage = calculateDamage(ctx.monsterAttack, ctx.playerDefense,
-                    ctx.monster.getLevel(), ctx.player.getLevel(), ctx.monsterSpeed, ctx.playerSpeed, false, ctx.battleLog);
+                    Math.max(1, defaultInt(ctx.monster.getLevel())),
+                    Math.max(1, defaultInt(ctx.player.getLevel())),
+                    ctx.monsterSpeed, ctx.playerSpeed, false, ctx.battleLog);
             ctx.currentPlayerHealth -= damage;
             String marker = actions > 1 ? "【连击" + (i + 1) + "】" : "";
             ctx.battleLog.add("第" + ctx.rounds + "回合: " + marker + ctx.monster.getName() + "造成了" + damage + "点伤害");
@@ -458,11 +462,11 @@ public class CombatService {
 
         if (ctx.playerWon) {
             ctx.battleLog.add("战斗胜利！");
-            ctx.expGained = calculateExpReward(ctx.monster, ctx.player.getLevel());
-            ctx.spiritStonesGained = calculateSpiritStonesReward(ctx.monster, ctx.player.getLevel());
+            ctx.expGained = calculateExpReward(ctx.monster, Math.max(1, defaultInt(ctx.player.getLevel())));
+            ctx.spiritStonesGained = calculateSpiritStonesReward(ctx.monster, Math.max(1, defaultInt(ctx.player.getLevel())));
 
             // 装备掉落
-            if (rng().nextInt(100) < ctx.monster.getDropRate() && ctx.monster.getDropEquipmentId() != null) {
+            if (rng().nextInt(100) < defaultInt(ctx.monster.getDropRate()) && ctx.monster.getDropEquipmentId() != null) {
                 ctx.droppedEquipmentId = ctx.monster.getDropEquipmentId();
                 try {
                     equipmentService.acquireEquipment(ctx.droppedEquipmentId, ctx.player.getId());
@@ -495,7 +499,7 @@ public class CombatService {
     private void processLevelUp(CombatContext ctx) {
         int levelUps = playerService.applyLevelUpsWithoutCommit(ctx.player, 100);
         if (levelUps > 0) {
-            ctx.battleLog.add("恭喜升级！当前等级：" + ctx.player.getLevel());
+            ctx.battleLog.add("恭喜升级！当前等级：" + defaultInt(ctx.player.getLevel()));
         }
     }
 
@@ -561,8 +565,8 @@ public class CombatService {
      * 计算经验奖励
      */
     private long calculateExpReward(Monster monster, int playerLevel) {
-        long baseExp = monster.getExpReward();
-        int levelDiff = playerLevel - monster.getLevel();
+        long baseExp = defaultInt(monster.getExpReward());
+        int levelDiff = playerLevel - Math.max(1, defaultInt(monster.getLevel()));
         if (levelDiff > 5) {
             baseExp = (long)(baseExp * 0.1);
         } else if (levelDiff > 0) {
@@ -581,7 +585,7 @@ public class CombatService {
      *   BOSS:   ×6.0
      */
     private long calculateSpiritStonesReward(Monster monster, int playerLevel) {
-        int monsterLevel = monster.getLevel();
+        int monsterLevel = Math.max(1, defaultInt(monster.getLevel()));
         String monsterType = monster.getType();
 
         // 计算基础灵石
@@ -706,7 +710,7 @@ public class CombatService {
         Monster lastMonster = null;
 
         for (int i = 0; i < actualTimes; i++) {
-            Monster monster = generateMonster(player.getLevel(), mapId);
+            Monster monster = generateMonster(Math.max(1, defaultInt(player.getLevel())), mapId);
             lastMonster = monster;
             log.debug("第{}场生成怪物: {}(Lv.{} {})", i + 1, monster.getName(), monster.getLevel(), monster.getType());
 
@@ -736,7 +740,7 @@ public class CombatService {
                 }
             }
 
-            player.setHealth(Math.max(0, Math.min(outcome.currentPlayerHealth, player.getMaxHealth())));
+            player.setHealth(Math.max(0, Math.min(outcome.currentPlayerHealth, defaultInt(player.getMaxHealth()))));
         }
 
         PlayerPet activePet = petService.getActivePet(playerId);
@@ -766,9 +770,9 @@ public class CombatService {
                 .monsterName(lastMonster != null ? lastMonster.getName() : null)
                 .monsterLevel(lastMonster != null ? lastMonster.getLevel() : null)
                 .monsterType(lastMonster != null ? lastMonster.getType() : null)
-                .playerLevel(player.getLevel())
-                .playerExp(player.getExp())
-                .playerSpiritStones(player.getSpiritStones())
+                .playerLevel(defaultInt(player.getLevel()))
+                .playerExp(defaultLong(player.getExp()))
+                .playerSpiritStones(defaultLong(player.getSpiritStones()))
                 .build();
     }
 
@@ -800,6 +804,10 @@ public class CombatService {
         int playerAttack = defaultInt(player.getAttack()) + defaultInt(player.getEquipmentAttackBonus());
         int playerDefense = defaultInt(player.getDefense()) + defaultInt(player.getEquipmentDefenseBonus());
         int playerSpeed = defaultInt(player.getSpeed()) + defaultInt(player.getEquipmentSpeedBonus());
+        int playerLevel = Math.max(1, defaultInt(player.getLevel()));
+        int monsterLevel = Math.max(1, defaultInt(monster.getLevel()));
+        int monsterAttack = defaultInt(monster.getAttack());
+        int monsterDefense = defaultInt(monster.getDefense());
         int monsterSpeed = defaultInt(monster.getSpeed());
 
         PlayerPet activePet = petService.getActivePet(player.getId());
@@ -834,7 +842,7 @@ public class CombatService {
 
             if (playerFirst) {
                 for (int i = 0; i < playerActions && currentMonsterHealth > 0; i++) {
-                    int dmg = calculateDamage(playerAttack, monster.getDefense(), player.getLevel(), monster.getLevel());
+                    int dmg = calculateDamage(playerAttack, monsterDefense, playerLevel, monsterLevel);
                     currentMonsterHealth -= dmg;
                     log.add("第" + rounds + "回合: " + player.getNickname() + "造成了" + dmg + "点伤害");
                 }
@@ -844,19 +852,19 @@ public class CombatService {
                 }
                 if (currentMonsterHealth <= 0) break;
                 for (int i = 0; i < monsterActions && currentPlayerHealth > 0; i++) {
-                    int mDmg = calculateDamage(monster.getAttack(), playerDefense, monster.getLevel(), player.getLevel());
+                    int mDmg = calculateDamage(monsterAttack, playerDefense, monsterLevel, playerLevel);
                     currentPlayerHealth -= mDmg;
                     log.add("第" + rounds + "回合: " + monster.getName() + "造成了" + mDmg + "点伤害");
                 }
             } else {
                 for (int i = 0; i < monsterActions && currentPlayerHealth > 0; i++) {
-                    int mDmg = calculateDamage(monster.getAttack(), playerDefense, monster.getLevel(), player.getLevel());
+                    int mDmg = calculateDamage(monsterAttack, playerDefense, monsterLevel, playerLevel);
                     currentPlayerHealth -= mDmg;
                     log.add("第" + rounds + "回合: " + monster.getName() + "造成了" + mDmg + "点伤害");
                 }
                 if (currentPlayerHealth <= 0) break;
                 for (int i = 0; i < playerActions && currentMonsterHealth > 0; i++) {
-                    int dmg = calculateDamage(playerAttack, monster.getDefense(), player.getLevel(), monster.getLevel());
+                    int dmg = calculateDamage(playerAttack, monsterDefense, playerLevel, monsterLevel);
                     currentMonsterHealth -= dmg;
                     log.add("第" + rounds + "回合: " + player.getNickname() + "造成了" + dmg + "点伤害");
                 }
@@ -873,8 +881,8 @@ public class CombatService {
         result.currentPlayerHealth = currentPlayerHealth;
 
         if (result.playerWon) {
-            result.expGained = calculateExpReward(monster, player.getLevel());
-            result.spiritStonesDelta = calculateSpiritStonesReward(monster, player.getLevel());
+            result.expGained = calculateExpReward(monster, playerLevel);
+            result.spiritStonesDelta = calculateSpiritStonesReward(monster, playerLevel);
             log.add("战斗胜利！获得经验：" + result.expGained + "，灵石：" + result.spiritStonesDelta);
         } else {
             long currentSpiritStones = player.getSpiritStones() == null ? 0L : player.getSpiritStones();

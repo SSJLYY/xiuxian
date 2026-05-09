@@ -60,7 +60,7 @@ public class CheckInService {
             throw new BusinessException(ErrorCode.CHECK_IN_ALREADY_DONE);
         }
 
-        int consecutiveDays = calculateConsecutiveDays(playerId, today);
+        int consecutiveDays = calculateExistingConsecutiveDays(playerId, today.minusDays(1)) + 1;
         int[] reward = getRewardForDay(consecutiveDays);
         int stones = reward[0];
         int exp = reward[1];
@@ -78,6 +78,7 @@ public class CheckInService {
 
         player.setSpiritStones(defaultLong(player.getSpiritStones()) + stones);
         player.setExp(defaultLong(player.getExp()) + exp);
+        playerService.applyLevelUpsWithoutCommit(player, 100);
         playerService.savePlayerProfile(player);
 
         log.info("[CheckIn] playerId={} consecutiveDays={} stones={} exp={}",
@@ -122,8 +123,8 @@ public class CheckInService {
                 && yearMonth.getMonthValue() == today.getMonthValue();
         boolean checkedToday = isCurrentMonth && checkedDays.contains(today.getDayOfMonth());
         int consecutiveDays = checkedToday
-                ? calculateConsecutiveDays(playerId, today)
-                : calculateConsecutiveDays(playerId, today.minusDays(1));
+                ? calculateExistingConsecutiveDays(playerId, today)
+                : calculateExistingConsecutiveDays(playerId, today.minusDays(1));
 
         int nextConsecutive = isCurrentMonth
                 ? (checkedToday ? consecutiveDays : consecutiveDays + 1)
@@ -155,9 +156,12 @@ public class CheckInService {
                 .build();
     }
 
-    private int calculateConsecutiveDays(Integer playerId, LocalDate targetDate) {
+    private int calculateExistingConsecutiveDays(Integer playerId, LocalDate targetDate) {
+        if (targetDate == null) {
+            return 0;
+        }
         int streak = 0;
-        LocalDate checkingDate = targetDate.minusDays(1);
+        LocalDate checkingDate = targetDate;
         while (streak < 365) {
             PlayerCheckIn record = checkInMapper.findByPlayerAndDate(playerId, checkingDate);
             if (record == null) {
@@ -166,7 +170,7 @@ public class CheckInService {
             streak++;
             checkingDate = checkingDate.minusDays(1);
         }
-        return streak + 1;
+        return streak;
     }
 
     private int[] getRewardForDay(int consecutiveDays) {

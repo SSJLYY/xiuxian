@@ -12,6 +12,7 @@ public enum ErrorCode {
     UNAUTHORIZED(1002, "未授权"),
     FORBIDDEN(1003, "禁止访问"),
     NOT_FOUND(1004, "资源不存在"),
+    DATA_CONFLICT(1005, "数据冲突，请刷新后重试"),
 
     // 用户/玩家相关错误码 1100-1199
     USER_NOT_FOUND(1100, "用户不存在"),

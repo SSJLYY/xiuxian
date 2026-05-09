@@ -106,9 +106,10 @@ public class AdminDashboardService {
      * @return 每日统计数据列表（倒序）
      */
     public List<DailyStatistics> getRecentStats(int days) {
+        int safeDays = Math.min(Math.max(days, 1), 365);
         QueryWrapper<DailyStatistics> queryWrapper = new QueryWrapper<>();
         queryWrapper.orderByDesc("stat_date");
-        queryWrapper.last("LIMIT " + days);
+        queryWrapper.last("LIMIT " + safeDays);
         return dailyStatisticsMapper.selectList(queryWrapper);
     }
 }

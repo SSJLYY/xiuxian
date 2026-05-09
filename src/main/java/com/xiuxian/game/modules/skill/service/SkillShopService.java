@@ -38,13 +38,8 @@ public class SkillShopService {
     }
 
     public SkillShopItem getSkillShopItemBySkillId(Integer skillId) {
-        SkillShopItem item = skillShopMapper.selectById(skillId);
-        if (item != null) {
-            return item;
-        }
-        List<SkillShopItem> allItems = skillShopMapper.selectAvailable();
-        return allItems.stream()
-                .filter(i -> i.getSkillId().equals(skillId))
+        return skillShopMapper.selectAvailable().stream()
+                .filter(i -> i.getSkillId() != null && i.getSkillId().equals(skillId))
                 .findFirst()
                 .orElse(null);
     }
@@ -94,8 +89,9 @@ public class SkillShopService {
 
     @Transactional
     public void sellSkill(Integer playerSkillId) {
-        PlayerProfile player = playerService.getCurrentPlayerProfile();
-        PlayerSkill ps = playerSkillMapper.selectById(playerSkillId);
+        PlayerProfile currentPlayer = playerService.getCurrentPlayerProfile();
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(currentPlayer.getId());
+        PlayerSkill ps = playerSkillMapper.selectByIdForUpdate(playerSkillId);
         if (ps == null || !ps.getPlayerId().equals(player.getId())) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "无法出售该技能");
         }

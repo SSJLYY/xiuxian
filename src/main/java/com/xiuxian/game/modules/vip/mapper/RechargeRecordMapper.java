@@ -16,5 +16,11 @@ public interface RechargeRecordMapper extends BaseMapper<RechargeRecord> {
             "WHERE id = #{orderId} AND status = 'PENDING'")
     int markRechargeSuccessIfPending(@Param("orderId") Long orderId,
                                      @Param("completedAt") LocalDateTime completedAt);
+
+    @Update("UPDATE recharge_records " +
+            "SET status = 'FAILED', completed_at = #{completedAt} " +
+            "WHERE id = #{orderId} AND status = 'PENDING'")
+    int markRechargeFailedIfPending(@Param("orderId") Long orderId,
+                                    @Param("completedAt") LocalDateTime completedAt);
 }
 

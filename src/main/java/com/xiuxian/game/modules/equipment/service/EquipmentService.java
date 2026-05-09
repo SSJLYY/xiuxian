@@ -217,7 +217,7 @@ public class EquipmentService {
                 .playerId(pe.getPlayerId())
                 .equipmentId(pe.getEquipmentId())
                 .slot(pe.getSlot())
-                .equipped(pe.getEquipped())
+                .equipped(Boolean.TRUE.equals(pe.getEquipped()))
                 .durability(pe.getDurability())
                 .maxDurability(pe.getMaxDurability())
                 .enhanceLevel(pe.getEnhanceLevel())
@@ -338,7 +338,7 @@ public class EquipmentService {
         // 如果同槽位已有装备，则卸下
         PlayerEquipment existingInSlot = playerEquipmentMapper.selectEquippedBySlot(playerId, slot);
         if (existingInSlot != null) {
-            if (existingInSlot.getEquipped()) {
+            if (Boolean.TRUE.equals(existingInSlot.getEquipped())) {
                 existingInSlot.setEquipped(false);
                 existingInSlot.setUpdatedAt(LocalDateTime.now());
                 playerEquipmentMapper.updateById(existingInSlot);
@@ -388,7 +388,7 @@ public class EquipmentService {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "无权操作该装备");
         }
 
-        if (playerEquipment.getEquipped()) {
+        if (Boolean.TRUE.equals(playerEquipment.getEquipped())) {
             Equipment equipment = equipmentMapper.selectById(playerEquipment.getEquipmentId());
             // 移除装备的属性加成
             removeEquipmentBonuses(player, equipment);
@@ -523,7 +523,7 @@ public class EquipmentService {
      * @param playerId 玩家ID
      * @return 更新后的玩家装备
      */
-    @Transactional
+    @Transactional(noRollbackFor = EquipmentEnhanceFailedException.class)
     public PlayerEquipment enhanceEquipment(Integer playerEquipmentId, Integer playerId) {
         log.info("玩家强化装备, playerId={}, playerEquipmentId={}", playerId, playerEquipmentId);
         PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
@@ -562,7 +562,6 @@ public class EquipmentService {
 
         // 扣除灵石
         player.setSpiritStones(defaultLong(player.getSpiritStones()) - enhanceCost);
-        playerService.savePlayerProfile(player);
 
         if (success) {
             // 强化成功
@@ -581,15 +580,16 @@ public class EquipmentService {
             playerEquipmentMapper.updateById(playerEquipment);
             
             // 如果装备已装备，更新玩家属性
-            if (playerEquipment.getEquipped()) {
+            if (Boolean.TRUE.equals(playerEquipment.getEquipped())) {
                 player.setEquipmentAttackBonus(defaultInt(player.getEquipmentAttackBonus(), 0) + attackBonus);
                 player.setEquipmentDefenseBonus(defaultInt(player.getEquipmentDefenseBonus(), 0) + defenseBonus);
                 player.setEquipmentHealthBonus(defaultInt(player.getEquipmentHealthBonus(), 0) + healthBonus);
-                playerService.savePlayerProfile(player);
             }
+            playerService.savePlayerProfile(player);
         } else {
             // 强化失败，不降级，但消耗灵石
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "强化失败！已消耗 " + enhanceCost + " 灵石");
+            playerService.savePlayerProfile(player);
+            throw new EquipmentEnhanceFailedException(enhanceCost);
         }
 
         return playerEquipmentMapper.selectById(playerEquipmentId);
@@ -710,5 +710,11 @@ public class EquipmentService {
 
     private long defaultLong(Long value) {
         return value == null ? 0L : value;
+    }
+
+    private static final class EquipmentEnhanceFailedException extends BusinessException {
+        private EquipmentEnhanceFailedException(int enhanceCost) {
+            super(ErrorCode.PARAM_ERROR, "强化失败！已消耗 " + enhanceCost + " 灵石");
+        }
     }
 }

@@ -15,4 +15,8 @@ public interface PlayerItemMapper extends BaseMapper<PlayerItem> {
 
     @Select("SELECT * FROM player_items WHERE player_id = #{playerId} AND item_id = #{itemId} LIMIT 1")
     PlayerItem selectByPlayerIdAndItemId(Integer playerId, Integer itemId);
+
+    @Select("SELECT * FROM player_items WHERE player_id = #{playerId} AND item_id = #{itemId} " +
+            "AND (locked = 0 OR locked IS NULL) LIMIT 1")
+    PlayerItem selectUnlockedByPlayerIdAndItemId(Integer playerId, Integer itemId);
 }

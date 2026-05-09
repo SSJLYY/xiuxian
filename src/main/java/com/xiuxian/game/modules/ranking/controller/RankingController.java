@@ -189,7 +189,10 @@ public class RankingController {
      * 转换前端类型到数据库排行榜类型
      */
     private String convertTypeToRankingType(String type) {
-        switch (type.toLowerCase()) {
+        if (type == null || type.trim().isEmpty()) {
+            return "LEVEL";
+        }
+        switch (type.trim().toLowerCase()) {
             case "level":
                 return "LEVEL";
             case "power":

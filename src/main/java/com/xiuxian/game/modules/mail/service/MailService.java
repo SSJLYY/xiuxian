@@ -160,7 +160,9 @@ public class MailService {
         wrapper.eq("player_id", playerId)
                .orderByDesc("created_at");
         
-        return mailMapper.selectPage(pageObj, wrapper);
+        IPage<PlayerMail> result = mailMapper.selectPage(pageObj, wrapper);
+        result.getRecords().forEach(this::normalizeMail);
+        return result;
     }
 
     /**
@@ -181,7 +183,8 @@ public class MailService {
         }
         
         // 标记为已读
-        if (!mail.getIsRead()) {
+        normalizeMail(mail);
+        if (!Boolean.TRUE.equals(mail.getIsRead())) {
             mail.setIsRead(true);
             mailMapper.updateById(mail);
         }
@@ -205,11 +208,12 @@ public class MailService {
             throw new BusinessException(ErrorCode.MAIL_ACCESS_DENIED);
         }
         
-        if (!mail.getHasAttachment()) {
+        normalizeMail(mail);
+        if (!Boolean.TRUE.equals(mail.getHasAttachment())) {
             throw new BusinessException(ErrorCode.MAIL_NO_ATTACHMENT);
         }
         
-        if (mail.getIsClaimed()) {
+        if (Boolean.TRUE.equals(mail.getIsClaimed())) {
             throw new BusinessException(ErrorCode.MAIL_ALREADY_CLAIMED);
         }
         
@@ -231,8 +235,15 @@ public class MailService {
         if (profile == null) {
             throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
         }
+        boolean profileChanged = false;
         for (MailAttachment attachment : attachments) {
-            grantAttachment(profile, attachment);
+            if (grantAttachment(profile, attachment)) {
+                profileChanged = true;
+            }
+        }
+        if (profileChanged) {
+            playerService.applyLevelUpsWithoutCommit(profile, 100);
+            playerService.savePlayerProfile(profile);
         }
 
         log.info("附件领取成功: mailId={}, attachmentCount={}", mailId, attachments.size());
@@ -241,7 +252,7 @@ public class MailService {
     /**
      * 发放附件奖励
      */
-    private void grantAttachment(PlayerProfile profile, MailAttachment attachment) {
+    private boolean grantAttachment(PlayerProfile profile, MailAttachment attachment) {
         String itemType = attachment.getItemType();
         Integer itemId = attachment.getItemId();
         Integer quantity = attachment.getQuantity();
@@ -260,22 +271,20 @@ public class MailService {
         switch (itemType.toUpperCase()) {
             case "SPIRIT_STONES":
                 profile.setSpiritStones(defaultLong(profile.getSpiritStones()) + quantity);
-                playerService.savePlayerProfile(profile);
                 log.debug("发放灵石: playerId={}, quantity={}", profile.getId(), quantity);
-                break;
+                return true;
                 
             case "EXP":
                 profile.setExp(defaultLong(profile.getExp()) + quantity);
-                playerService.savePlayerProfile(profile);
                 log.debug("发放经验: playerId={}, quantity={}", profile.getId(), quantity);
-                break;
+                return true;
                 
             case "ITEM":
                 if (itemId == null) {
                     log.error("物品ID为空: playerId={}", profile.getId());
                     throw new BusinessException(ErrorCode.PARAM_ERROR, "物品ID不能为空");
                 }
-                PlayerItem existingItem = playerService.getPlayerItemByPlayerAndItem(profile.getId(), itemId);
+                PlayerItem existingItem = playerService.getUnlockedPlayerItemByPlayerAndItem(profile.getId(), itemId);
                 
                 if (existingItem != null) {
                     existingItem.setQuantity((existingItem.getQuantity() == null ? 0 : existingItem.getQuantity()) + quantity);
@@ -290,7 +299,7 @@ public class MailService {
                     playerService.savePlayerItem(newItem);
                 }
                 log.debug("发放物品: playerId={}, itemId={}, quantity={}", profile.getId(), itemId, quantity);
-                break;
+                return false;
                 
             case "EQUIPMENT":
                 if (itemId == null) {
@@ -299,7 +308,7 @@ public class MailService {
                 }
                 equipmentService.grantEquipmentDirectly(profile.getId(), itemId);
                 log.debug("发放装备: playerId={}, equipmentId={}", profile.getId(), itemId);
-                break;
+                return false;
                 
             default:
                 log.error("未知的附件类型: itemType={}, playerId={}, mailId={}", itemType, profile.getId(), attachment.getMailId());
@@ -338,7 +347,7 @@ public class MailService {
     public long getUnreadCount(Integer playerId) {
         return mailMapper.selectCount(new QueryWrapper<PlayerMail>()
                 .eq("player_id", playerId)
-                .eq("is_read", false));
+                .and(qw -> qw.eq("is_read", false).or().isNull("is_read")));
     }
 
     /**
@@ -429,19 +438,26 @@ public class MailService {
         if (playerId != null) qw.eq("player_id", playerId);
         if (isRead != null) qw.eq("is_read", isRead);
         qw.orderByDesc("created_at");
-        return mailMapper.selectPage(pageObj, qw);
+        Page<PlayerMail> result = mailMapper.selectPage(pageObj, qw);
+        result.getRecords().forEach(this::normalizeMail);
+        return result;
     }
 
     /** Get single feedback mail by ID (admin use) */
     public PlayerMail getFeedbackById(Long feedbackId) {
         PlayerMail m = mailMapper.selectById(feedbackId);
-        return (m != null && "FEEDBACK".equals(m.getMailType())) ? m : null;
+        if (m != null && "FEEDBACK".equals(m.getMailType())) {
+            normalizeMail(m);
+            return m;
+        }
+        return null;
     }
 
     /** Mark feedback as read (admin use) */
     public PlayerMail markFeedbackAsRead(Long feedbackId) {
         PlayerMail m = mailMapper.selectById(feedbackId);
         if (m == null || !"FEEDBACK".equals(m.getMailType())) throw new BusinessException(ErrorCode.PARAM_ERROR, "Feedback not found");
+        normalizeMail(m);
         m.setIsRead(true);
         mailMapper.updateById(m);
         return m;
@@ -472,6 +488,22 @@ public class MailService {
         mailMapper.updateById(orig);
         return true;
     }
+
+    private void normalizeMail(PlayerMail mail) {
+        if (mail == null) {
+            return;
+        }
+        if (mail.getIsRead() == null) {
+            mail.setIsRead(false);
+        }
+        if (mail.getHasAttachment() == null) {
+            mail.setHasAttachment(false);
+        }
+        if (mail.getIsClaimed() == null) {
+            mail.setIsClaimed(false);
+        }
+    }
+
     private long defaultLong(Long value) {
         return value == null ? 0L : value;
     }

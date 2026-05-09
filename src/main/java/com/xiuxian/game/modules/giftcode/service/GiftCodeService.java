@@ -114,6 +114,7 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
     private void distributeRewards(PlayerProfile player, String rewardsJson) {
         Integer playerId = player.getId();
         List<Map<String, Object>> rewardList = parseRewardPayload(playerId, rewardsJson);
+        boolean profileChanged = false;
 
         for (Map<String, Object> reward : rewardList) {
             String type = reward.get("type") == null ? "" : String.valueOf(reward.get("type"));
@@ -124,7 +125,11 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
             switch (type.toUpperCase()) {
                 case "SPIRIT_STONES":
                     player.setSpiritStones(defaultLong(player.getSpiritStones()) + resolvedQuantity);
-                    playerService.savePlayerProfile(player);
+                    profileChanged = true;
+                    break;
+                case "EXP":
+                    player.setExp(defaultLong(player.getExp()) + resolvedQuantity);
+                    profileChanged = true;
                     break;
                 case "ITEM":
                     sendGiftCodeRewardMail(playerId, "ITEM", id, resolvedQuantity,
@@ -139,6 +144,11 @@ public class GiftCodeService extends ServiceImpl<GiftCodeMapper, GiftCode> {
                             "礼包码奖励", "您通过礼包码获得了奖励");
                     break;
             }
+        }
+
+        if (profileChanged) {
+            playerService.applyLevelUpsWithoutCommit(player, 100);
+            playerService.savePlayerProfile(player);
         }
     }
 

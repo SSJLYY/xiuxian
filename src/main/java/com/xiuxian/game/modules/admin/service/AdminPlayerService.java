@@ -7,8 +7,10 @@ import com.xiuxian.game.modules.player.entity.User;
 import com.xiuxian.game.modules.player.mapper.PlayerProfileMapper;
 import com.xiuxian.game.modules.player.mapper.UserMapper;
 import com.xiuxian.game.modules.player.service.AccountSecurityService;
+import com.xiuxian.game.modules.player.service.PlayerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -27,6 +29,7 @@ public class AdminPlayerService {
     private final PlayerProfileMapper playerProfileMapper;
     private final UserMapper userMapper;
     private final AccountSecurityService accountSecurityService;
+    private final PlayerService playerService;
 
     /**
      * 分页查询玩家列表，支持按昵称和用户ID过滤
@@ -38,7 +41,9 @@ public class AdminPlayerService {
      * @return 玩家档案分页结果
      */
     public Page<PlayerProfile> getPlayerList(int page, int size, String nickname, Integer userId) {
-        Page<PlayerProfile> pageObj = new Page<>(page, size);
+        long safePage = Math.max(page, 1);
+        long safeSize = Math.min(Math.max(size, 1), 100);
+        Page<PlayerProfile> pageObj = new Page<>(safePage, safeSize);
         QueryWrapper<PlayerProfile> queryWrapper = new QueryWrapper<>();
 
         if (nickname != null && !nickname.isEmpty()) {
@@ -70,8 +75,9 @@ public class AdminPlayerService {
      * @param profile  新的档案数据
      * @return 更新后的档案
      */
+    @Transactional
     public PlayerProfile updatePlayerProfile(Integer playerId, PlayerProfile profile) {
-        PlayerProfile existingProfile = playerProfileMapper.selectById(playerId);
+        PlayerProfile existingProfile = playerProfileMapper.selectByIdForUpdate(playerId);
         if (existingProfile == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在: playerId=" + playerId);
         }
@@ -87,7 +93,7 @@ public class AdminPlayerService {
         existingProfile.setSpeed(profile.getSpeed());
         existingProfile.setUpdatedAt(LocalDateTime.now());
 
-        playerProfileMapper.updateById(existingProfile);
+        playerService.savePlayerProfile(existingProfile);
         return existingProfile;
     }
 
@@ -135,8 +141,9 @@ public class AdminPlayerService {
      * @param exp          发放经验值（可为null）
      * @return 更新后的玩家档案
      */
+    @Transactional
     public PlayerProfile grantReward(Integer playerId, Long spiritStones, Long exp) {
-        PlayerProfile profile = playerProfileMapper.selectById(playerId);
+        PlayerProfile profile = playerProfileMapper.selectByIdForUpdate(playerId);
         if (profile == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在: playerId=" + playerId);
         }
@@ -147,10 +154,11 @@ public class AdminPlayerService {
 
         if (exp != null && exp > 0) {
             profile.setExp(defaultLong(profile.getExp()) + exp);
+            playerService.applyLevelUpsWithoutCommit(profile, 100);
         }
 
         profile.setUpdatedAt(LocalDateTime.now());
-        playerProfileMapper.updateById(profile);
+        playerService.savePlayerProfile(profile);
         return profile;
     }
 

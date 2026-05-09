@@ -21,6 +21,12 @@ public interface PlayerSkillMapper extends BaseMapper<PlayerSkill> {
     @Select("SELECT * FROM player_skills WHERE player_id = #{playerId} AND skill_id = #{skillId} LIMIT 1")
     PlayerSkill selectByPlayerIdAndSkillId(@Param("playerId") Integer playerId, @Param("skillId") Integer skillId);
 
+    @Select("SELECT * FROM player_skills WHERE id = #{id} FOR UPDATE")
+    PlayerSkill selectByIdForUpdate(@Param("id") Integer id);
+
+    @Select("SELECT * FROM player_skills WHERE player_id = #{playerId} FOR UPDATE")
+    List<PlayerSkill> selectByPlayerIdForUpdate(@Param("playerId") Integer playerId);
+
     /**
      * 查询玩家的所有技能
      */

@@ -86,7 +86,7 @@ public class SkillService {
     public List<Skill> getAvailableSkills(Integer playerId) {
         PlayerProfile player = playerService.getPlayerProfileById(playerId);
         if (player == null) throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
-        return skillMapper.selectByUnlockLevelLessThanEqual(player.getLevel());
+        return skillMapper.selectByUnlockLevelLessThanEqual(defaultInt(player.getLevel(), 1));
     }
 
     public List<PlayerSkill> getPlayerSkills(Integer playerId) {
@@ -115,8 +115,8 @@ public class SkillService {
                     .build();
             SkillResponse sr = SkillResponse.builder()
                     .id(ps.getId())
-                    .level(ps.getLevel())
-                    .equipped(ps.getEquipped())
+                    .level(defaultInt(ps.getLevel(), 1))
+                    .equipped(Boolean.TRUE.equals(ps.getEquipped()))
                     .slotNumber(ps.getSlotNumber())
                     .cooldown(s.getCooldown() != null
                             ? Math.max(1, s.getCooldown() - (defaultInt(ps.getLevel(), 1) - 1) / 2) : 0)
@@ -148,7 +148,7 @@ public class SkillService {
         log.info("玩家ID: {}, 技能ID: {}", playerId, skillId);
 
         // 1. 验证玩家是否存在，并锁定玩家行，避免并发重复扣费或重复学习
-        PlayerProfile player = playerProfileMapper.selectById(playerId);
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
         if (player == null) {
             log.error("玩家不存在: ID={}", playerId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
@@ -306,7 +306,7 @@ public class SkillService {
      */
     @Transactional
     public void addSkillExperience(Integer playerSkillId, Integer playerId, int expGain) {
-        PlayerSkill playerSkill = playerSkillMapper.selectById(playerSkillId);
+        PlayerSkill playerSkill = playerSkillMapper.selectByIdForUpdate(playerSkillId);
         if (playerSkill == null) throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家技能不存在");
         // 权限校验：确保技能属于当前玩家
         if (!playerSkill.getPlayerId().equals(playerId)) {
@@ -314,8 +314,9 @@ public class SkillService {
         }
         playerSkill.setExperience(defaultInt(playerSkill.getExperience(), 0) + expGain);
         Skill skill = skillMapper.selectById(playerSkill.getSkillId());
+        int maxLevel = skill.getMaxLevel() == null ? Integer.MAX_VALUE : skill.getMaxLevel();
         while (defaultInt(playerSkill.getExperience(), 0) >= calculateSkillUpgradeExp(defaultInt(playerSkill.getLevel(), 1))
-                && defaultInt(playerSkill.getLevel(), 1) < skill.getMaxLevel()) {
+                && defaultInt(playerSkill.getLevel(), 1) < maxLevel) {
             int requiredExp = calculateSkillUpgradeExp(defaultInt(playerSkill.getLevel(), 1));
             playerSkill.setExperience(defaultInt(playerSkill.getExperience(), 0) - requiredExp);
             playerSkill.setLevel(defaultInt(playerSkill.getLevel(), 1) + 1);
@@ -325,7 +326,7 @@ public class SkillService {
 
     @Transactional
     public PlayerSkill upgradeSkill(Integer playerSkillId, Integer playerId) {
-        PlayerSkill playerSkill = playerSkillMapper.selectById(playerSkillId);
+        PlayerSkill playerSkill = playerSkillMapper.selectByIdForUpdate(playerSkillId);
         if (playerSkill == null) throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家技能不存在");
         if (!playerSkill.getPlayerId().equals(playerId)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "无权操作该技能");
@@ -347,7 +348,11 @@ public class SkillService {
 
     @Transactional
     public PlayerSkill upgradeSkillByPoints(Integer playerSkillId, Integer playerId) {
-        PlayerSkill playerSkill = playerSkillMapper.selectById(playerSkillId);
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
+        if (player == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
+        }
+        PlayerSkill playerSkill = playerSkillMapper.selectByIdForUpdate(playerSkillId);
         if (playerSkill == null) throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家技能不存在");
         if (!playerSkill.getPlayerId().equals(playerId)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "无权操作该技能");
@@ -355,10 +360,6 @@ public class SkillService {
         Skill skill = skillMapper.selectById(playerSkill.getSkillId());
         if (defaultInt(playerSkill.getLevel(), 1) >= skill.getMaxLevel()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "技能已达到最大等级");
-        }
-        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
-        if (player == null) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
         int points = player.getSkillPoints() == null ? 0 : player.getSkillPoints();
         if (points <= 0) {
@@ -373,7 +374,7 @@ public class SkillService {
 
     @Transactional
     public PlayerSkill equipSkill(Integer playerSkillId, Integer slotNumber, Integer playerId) {
-        PlayerSkill playerSkill = playerSkillMapper.selectById(playerSkillId);
+        PlayerSkill playerSkill = playerSkillMapper.selectByIdForUpdate(playerSkillId);
         if (playerSkill == null) throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家技能不存在");
         if (!playerSkill.getPlayerId().equals(playerId)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "无权操作该技能");
@@ -381,9 +382,12 @@ public class SkillService {
         if (slotNumber == null || slotNumber < 0 || slotNumber >= MAX_EQUIP_SKILL_SLOTS) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "无效的技能槽位");
         }
-        List<PlayerSkill> equippedSkills = playerSkillMapper.selectByPlayerIdAndEquipped(playerId, true);
+        List<PlayerSkill> equippedSkills = playerSkillMapper.selectByPlayerIdForUpdate(playerId);
         for (PlayerSkill ps : equippedSkills) {
-            if (ps.getSlotNumber() != null && ps.getSlotNumber().equals(slotNumber)) {
+            if (ps.getId().equals(playerSkill.getId())) {
+                continue;
+            }
+            if (Boolean.TRUE.equals(ps.getEquipped()) && ps.getSlotNumber() != null && ps.getSlotNumber().equals(slotNumber)) {
                 ps.setEquipped(false);
                 ps.setSlotNumber(0);
                 playerSkillMapper.updateById(ps);
@@ -397,10 +401,13 @@ public class SkillService {
 
     @Transactional
     public PlayerSkill unequipSkill(Integer playerSkillId, Integer playerId) {
-        PlayerSkill playerSkill = playerSkillMapper.selectById(playerSkillId);
+        PlayerSkill playerSkill = playerSkillMapper.selectByIdForUpdate(playerSkillId);
         if (playerSkill == null) throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家技能不存在");
         if (!playerSkill.getPlayerId().equals(playerId)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "无权操作该技能");
+        }
+        if (!Boolean.TRUE.equals(playerSkill.getEquipped())) {
+            return playerSkill;
         }
         playerSkill.setEquipped(false);
         playerSkill.setSlotNumber(0);
@@ -432,16 +439,17 @@ public class SkillService {
         for (PlayerSkill playerSkill : equippedSkills) {
             Skill skill = skillMap.get(playerSkill.getSkillId());
             if (skill != null) {
+                int skillLevel = defaultInt(playerSkill.getLevel(), 1);
                 bonuses.put("health", bonuses.get("health") +
-                    (skill.getHealthBonus() != null ? skill.getHealthBonus() * playerSkill.getLevel() : 0));
+                    (skill.getHealthBonus() != null ? skill.getHealthBonus() * skillLevel : 0));
                 bonuses.put("mana", bonuses.get("mana") +
-                    (skill.getManaBonus() != null ? skill.getManaBonus() * playerSkill.getLevel() : 0));
+                    (skill.getManaBonus() != null ? skill.getManaBonus() * skillLevel : 0));
                 bonuses.put("attack", bonuses.get("attack") +
-                    (skill.getAttackBonus() != null ? skill.getAttackBonus() * playerSkill.getLevel() : 0));
+                    (skill.getAttackBonus() != null ? skill.getAttackBonus() * skillLevel : 0));
                 bonuses.put("defense", bonuses.get("defense") +
-                    (skill.getDefenseBonus() != null ? skill.getDefenseBonus() * playerSkill.getLevel() : 0));
+                    (skill.getDefenseBonus() != null ? skill.getDefenseBonus() * skillLevel : 0));
                 bonuses.put("speed", bonuses.get("speed") +
-                    (skill.getSpeedBonus() != null ? skill.getSpeedBonus() * playerSkill.getLevel() : 0));
+                    (skill.getSpeedBonus() != null ? skill.getSpeedBonus() * skillLevel : 0));
             }
         }
 
@@ -456,7 +464,7 @@ public class SkillService {
      * @return 可用的连招列表
      */
     public List<SkillCombo> getAvailableCombos(Integer playerId) {
-        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
+        PlayerProfile player = playerProfileMapper.selectById(playerId);
         if (player == null) {
             return Collections.emptyList();
         }
@@ -465,7 +473,7 @@ public class SkillService {
                 .map(PlayerSkill::getSkillId)
                 .collect(Collectors.toSet());
 
-        return skillComboMapper.selectAvailableCombos(player.getLevel()).stream()
+        return skillComboMapper.selectAvailableCombos(defaultInt(player.getLevel(), 1)).stream()
                 .filter(combo -> {
                     List<Integer> comboSequence = parseSkillSequence(combo.getSkillSequence());
                     return !comboSequence.isEmpty() && comboSequence.stream().allMatch(learnedSkillIds::contains);
@@ -515,7 +523,7 @@ public class SkillService {
 
         // 5. 构建最近的技能序列
         List<Integer> recentSkillSequence = recentRecords.stream()
-                .filter(r -> r.getUsedAt().isAfter(timeThreshold))
+                .filter(r -> r.getUsedAt() != null && r.getUsedAt().isAfter(timeThreshold))
                 .map(PlayerSkillComboRecord::getSkillId)
                 .collect(Collectors.collectingAndThen(Collectors.toList(), list -> {
                     Collections.reverse(list);
@@ -551,7 +559,7 @@ public class SkillService {
             // 检查序列是否匹配
             if (isSequenceMatch(recentSkillSequence, comboSequence)) {
                 // 触发连招！
-                double bonusPercent = combo.getComboBonus().doubleValue();
+                double bonusPercent = combo.getComboBonus() == null ? 0.0 : combo.getComboBonus().doubleValue();
                 int bonusDamage = (int) (baseDamage * bonusPercent / 100);
                 int finalDamage = baseDamage + bonusDamage;
 

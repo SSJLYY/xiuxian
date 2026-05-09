@@ -73,10 +73,11 @@ public class PlayerLoginLogService {
      * 获取玩家最近登录记录
      */
     public List<PlayerLoginLog> getRecentLogins(Integer playerId, int limit) {
+        int safeLimit = Math.min(Math.max(limit, 1), 100);
         QueryWrapper<PlayerLoginLog> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("player_id", playerId)
                    .orderByDesc("login_at")
-                   .last("LIMIT " + limit);
+                   .last("LIMIT " + safeLimit);
         return loginLogMapper.selectList(queryWrapper);
     }
     

@@ -106,6 +106,7 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
                 if (playerItem == null
                         || !playerItem.getPlayerId().equals(playerId)
                         || !Objects.equals(playerItem.getItemId(), itemId)
+                        || Boolean.TRUE.equals(playerItem.getLocked())
                         || playerItem.getQuantity() < quantity) {
                     throw new BusinessException("物品不存在或不属于您");
                 }
@@ -316,11 +317,7 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
     private void addItemToBuyerInventory(Integer buyerId, AuctionItem auctionItem) {
         switch (auctionItem.getItemType().toUpperCase()) {
             case "ITEM":
-                List<PlayerItem> existingItems = playerService.getPlayerItemsByPlayerId(buyerId);
-                PlayerItem existingItem = existingItems.stream()
-                        .filter(pi -> pi.getItemId().equals(auctionItem.getItemId()))
-                        .findFirst()
-                        .orElse(null);
+                PlayerItem existingItem = playerService.getUnlockedPlayerItemByPlayerAndItem(buyerId, auctionItem.getItemId());
 
                 if (existingItem != null) {
                     existingItem.setQuantity((existingItem.getQuantity() == null ? 0 : existingItem.getQuantity())
@@ -351,11 +348,7 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
     private void addItemToSellerInventory(Integer playerId, AuctionItem auctionItem) {
         switch (auctionItem.getItemType().toUpperCase()) {
             case "ITEM":
-                List<PlayerItem> existingItems = playerService.getPlayerItemsByPlayerId(playerId);
-                PlayerItem existingItem = existingItems.stream()
-                        .filter(pi -> pi.getItemId().equals(auctionItem.getItemId()))
-                        .findFirst()
-                        .orElse(null);
+                PlayerItem existingItem = playerService.getUnlockedPlayerItemByPlayerAndItem(playerId, auctionItem.getItemId());
 
                 if (existingItem != null) {
                     existingItem.setQuantity((existingItem.getQuantity() == null ? 0 : existingItem.getQuantity())

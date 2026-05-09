@@ -73,9 +73,14 @@ public class MapMonster {
         // 动态等级计算
         int levelDiff = playerLevel - mapBaseLevel;
         int adjustedLevel = mapBaseLevel + (int)(levelDiff * 0.5);
+        int effectiveMinLevel = defaultInt(minLevel, Math.max(1, mapBaseLevel));
+        int effectiveMaxLevel = defaultInt(maxLevel, effectiveMinLevel);
+        if (effectiveMaxLevel < effectiveMinLevel) {
+            effectiveMaxLevel = effectiveMinLevel;
+        }
 
         // 限制在最小和最大等级之间
-        return Math.max(minLevel, Math.min(maxLevel, adjustedLevel));
+        return Math.max(effectiveMinLevel, Math.min(effectiveMaxLevel, adjustedLevel));
     }
 
     /**
@@ -93,5 +98,9 @@ public class MapMonster {
         }
         // 标准难度
         return 1.0;
+    }
+
+    private int defaultInt(Integer value, int defaultValue) {
+        return value == null ? defaultValue : value;
     }
 }

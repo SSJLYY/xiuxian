@@ -92,15 +92,18 @@ public class EnhancedCombatService {
         PetCombatBonus petBonus = petService.calculatePetCombatBonus(activePet);
         boolean petEligible = activePet != null && petBonus != null && petBonus.isEligible();
         if (petEligible) {
-            playerHealth += activePet.getHealth();
-            playerAttack += activePet.getAttack();
-            playerDefense += activePet.getDefense();
-            playerSpeed += activePet.getSpeed();
+            playerHealth += defaultInt(activePet.getHealth());
+            playerAttack += defaultInt(activePet.getAttack());
+            playerDefense += defaultInt(activePet.getDefense());
+            playerSpeed += defaultInt(activePet.getSpeed());
         }
 
-        int monsterHealth = monster.getHealth();
-        int monsterDefense = monster.getDefense();
-        int monsterSpeed = monster.getSpeed();
+        int playerLevel = Math.max(1, defaultInt(player.getLevel()));
+        int monsterLevel = Math.max(1, defaultInt(monster.getLevel()));
+        int monsterAttack = defaultInt(monster.getAttack());
+        int monsterHealth = defaultInt(monster.getHealth());
+        int monsterDefense = defaultInt(monster.getDefense());
+        int monsterSpeed = defaultInt(monster.getSpeed());
 
         // 战斗日志
         List<String> battleLog = new ArrayList<>();
@@ -130,7 +133,7 @@ public class EnhancedCombatService {
                 for (int i = 0; i < actionPlan.playerActions && currentMonsterHealth > 0; i++) {
                     TurnOutcome playerAction = executePlayerTurn(player, playerAttack, playerSpeed,
                             skillId, itemId, currentPlayerMana, monster, currentMonsterHealth,
-                            monsterDefense, battleLog);
+                            monsterLevel, monsterDefense, monsterSpeed, battleLog);
                     currentPlayerMana = Math.max(0, currentPlayerMana - playerAction.manaCost);
                     currentMonsterHealth -= playerAction.damage;
                     currentPlayerHealth = Math.min(playerHealth, currentPlayerHealth + playerAction.heal);
@@ -142,13 +145,17 @@ public class EnhancedCombatService {
 
                 // 怪物回合
                 for (int i = 0; i < actionPlan.monsterActions && currentPlayerHealth > 0; i++) {
-                    TurnOutcome monsterAction = executeMonsterTurn(monster, player, currentPlayerHealth, playerDefense, playerSpeed, battleLog);
+                    TurnOutcome monsterAction = executeMonsterTurn(monster, player, playerLevel,
+                            monsterLevel, monsterAttack, monsterSpeed, currentPlayerHealth,
+                            playerDefense, playerSpeed, battleLog);
                     currentPlayerHealth -= monsterAction.damage;
                 }
             } else {
                 // 怪物先手
                 for (int i = 0; i < actionPlan.monsterActions && currentPlayerHealth > 0; i++) {
-                    TurnOutcome monsterAction = executeMonsterTurn(monster, player, currentPlayerHealth, playerDefense, playerSpeed, battleLog);
+                    TurnOutcome monsterAction = executeMonsterTurn(monster, player, playerLevel,
+                            monsterLevel, monsterAttack, monsterSpeed, currentPlayerHealth,
+                            playerDefense, playerSpeed, battleLog);
                     currentPlayerHealth -= monsterAction.damage;
                 }
 
@@ -158,7 +165,7 @@ public class EnhancedCombatService {
                 for (int i = 0; i < actionPlan.playerActions && currentMonsterHealth > 0; i++) {
                     TurnOutcome playerAction = executePlayerTurn(player, playerAttack, playerSpeed,
                             skillId, itemId, currentPlayerMana, monster, currentMonsterHealth,
-                            monsterDefense, battleLog);
+                            monsterLevel, monsterDefense, monsterSpeed, battleLog);
                     currentPlayerMana = Math.max(0, currentPlayerMana - playerAction.manaCost);
                     currentMonsterHealth -= playerAction.damage;
                     currentPlayerHealth = Math.min(playerHealth, currentPlayerHealth + playerAction.heal);
@@ -187,11 +194,11 @@ public class EnhancedCombatService {
             battleLog.add("战斗胜利！");
 
             // 计算奖励
-            expGained = calculateExpReward(monster, player.getLevel());
-            spiritStonesGained = calculateSpiritStonesReward(monster, player.getLevel());
+            expGained = calculateExpReward(monster, Math.max(1, defaultInt(player.getLevel())));
+            spiritStonesGained = calculateSpiritStonesReward(monster, Math.max(1, defaultInt(player.getLevel())));
 
             // 检查装备掉落
-            if (rng().nextInt(100) < monster.getDropRate() && monster.getDropEquipmentId() != null) {
+            if (rng().nextInt(100) < defaultInt(monster.getDropRate()) && monster.getDropEquipmentId() != null) {
                 droppedEquipmentId = monster.getDropEquipmentId();
                 try {
                     equipmentService.acquireEquipment(droppedEquipmentId, playerId);
@@ -205,19 +212,19 @@ public class EnhancedCombatService {
             player.setExp(defaultLong(player.getExp()) + expGained);
             player.setSpiritStones(defaultLong(player.getSpiritStones()) + spiritStonesGained);
 
-            int oldLevel = player.getLevel();
+            int oldLevel = defaultInt(player.getLevel());
             int levelUps = playerService.applyLevelUpsWithoutCommit(player, 100);
             if (levelUps > 0) {
-                battleLog.add("升级！当前等级" + player.getLevel());
+                battleLog.add("升级！当前等级" + defaultInt(player.getLevel()));
             }
-            if (oldLevel < 1000 && player.getLevel() >= 1000) {
+            if (oldLevel < 1000 && defaultInt(player.getLevel()) >= 1000) {
                 battleLog.add("已达到最高等级1000");
             }
 
             battleLog.add("获得经验" + expGained + "，灵石" + spiritStonesGained);
         } else {
             battleLog.add("战斗失败...");
-            long currentSpiritStones = player.getSpiritStones();
+            long currentSpiritStones = defaultLong(player.getSpiritStones());
             long lostSpiritStones = Math.max(1L, currentSpiritStones / 100);
             if (currentSpiritStones >= lostSpiritStones) {
                 player.setSpiritStones(currentSpiritStones - lostSpiritStones);
@@ -225,8 +232,8 @@ public class EnhancedCombatService {
             }
         }
         // 统一保存 - 使用独立事务方法
-        player.setHealth(Math.max(0, Math.min(currentPlayerHealth, player.getMaxHealth())));
-        player.setMana(Math.max(0, Math.min(currentPlayerMana, player.getMaxMana())));
+        player.setHealth(Math.max(0, Math.min(currentPlayerHealth, defaultInt(player.getMaxHealth()))));
+        player.setMana(Math.max(0, Math.min(currentPlayerMana, defaultInt(player.getMaxMana()))));
         saveCombatResult(player, playerId, monster.getId(), result, rounds, expGained, 
                 spiritStonesGained, droppedEquipmentId, battleLog);
 
@@ -238,7 +245,7 @@ public class EnhancedCombatService {
         resultMap.put("expGained", expGained);
         resultMap.put("spiritStonesGained", spiritStonesGained);
         resultMap.put("droppedEquipment", droppedEquipmentId);
-        resultMap.put("playerLevel", player.getLevel());
+        resultMap.put("playerLevel", defaultInt(player.getLevel()));
         resultMap.put("playerExp", player.getExp());
         resultMap.put("playerSpiritStones", player.getSpiritStones());
         resultMap.put("playerCurrentHealth", currentPlayerHealth);
@@ -281,7 +288,8 @@ public class EnhancedCombatService {
      */
     private TurnOutcome executePlayerTurn(PlayerProfile player, int playerAttack, int playerSpeed,
                                     Integer skillId, Integer playerItemId, int currentMana,
-                                    Monster monster, int monsterHealth, int monsterDefense,
+                                    Monster monster, int monsterHealth, int monsterLevel,
+                                    int monsterDefense, int monsterSpeed,
                                     List<String> battleLog) {
         // 检查是否使用技能
         if (skillId != null && skillId > 0) {
@@ -292,7 +300,9 @@ public class EnhancedCombatService {
                     // 计算技能伤害
                     double skillDamage = skill.getBaseDamage() + (skill.getDamagePerLevel() * playerSkill.getLevel());
                     int baseDamage = combatService.calculateDamage((int) skillDamage, monsterDefense,
-                            player.getLevel(), monster.getLevel(), playerSpeed, monster.getSpeed(),
+                            Math.max(1, defaultInt(player.getLevel())),
+                            monsterLevel,
+                            playerSpeed, monsterSpeed,
                             true, battleLog);
                     SkillComboResult comboResult = skillService.calculateCombatSkillDamageWithCombo(player.getId(), skill.getId(), baseDamage);
                     int damage = comboResult.getFinalDamage() > 0 ? comboResult.getFinalDamage() : baseDamage;
@@ -334,8 +344,10 @@ public class EnhancedCombatService {
         }
 
         // 普通攻击
-        int damage = combatService.calculateDamage(playerAttack, monsterDefense, player.getLevel(),
-                monster.getLevel(), playerSpeed, monster.getSpeed(), true, battleLog);
+        int damage = combatService.calculateDamage(playerAttack, monsterDefense,
+                Math.max(1, defaultInt(player.getLevel())),
+                monsterLevel,
+                playerSpeed, monsterSpeed, true, battleLog);
 
         // 检查暴击
         boolean isCritical = checkCriticalHit(player);
@@ -352,11 +364,13 @@ public class EnhancedCombatService {
     /**
      * 执行怪物回合
      */
-    private TurnOutcome executeMonsterTurn(Monster monster, PlayerProfile player, int playerHealth,
-                                           int playerDefense, int playerSpeed, List<String> battleLog) {
+    private TurnOutcome executeMonsterTurn(Monster monster, PlayerProfile player, int playerLevel,
+                                           int monsterLevel, int monsterAttack, int monsterSpeed,
+                                           int playerHealth, int playerDefense, int playerSpeed,
+                                           List<String> battleLog) {
         // 怪物普通攻击
-        int damage = combatService.calculateDamage(monster.getAttack(), playerDefense, monster.getLevel(),
-                player.getLevel(), monster.getSpeed(), playerSpeed, false, battleLog);
+        int damage = combatService.calculateDamage(monsterAttack, playerDefense,
+                monsterLevel, playerLevel, monsterSpeed, playerSpeed, false, battleLog);
         battleLog.add(monster.getName() + "攻击造成" + damage + "点伤害");
         return new TurnOutcome(damage, 0, 0);
     }
@@ -371,7 +385,9 @@ public class EnhancedCombatService {
     private PlayerItem getPlayerItem(Integer playerId, Integer playerItemId) {
         // playerItemId here is the PlayerItem primary key
         PlayerItem item = playerService.getPlayerItemById(playerItemId);
-        return (item != null && item.getPlayerId().equals(playerId)) ? item : null;
+        return (item != null
+                && item.getPlayerId().equals(playerId)
+                && !Boolean.TRUE.equals(item.getLocked())) ? item : null;
     }
 
     /**
@@ -394,8 +410,8 @@ public class EnhancedCombatService {
      * 计算经验奖励（含等级差修正）
      */
     private int calculateExpReward(Monster monster, int playerLevel) {
-        int baseExp = monster.getExpReward();
-        int levelDiff = playerLevel - monster.getLevel();
+        int baseExp = defaultInt(monster.getExpReward());
+        int levelDiff = playerLevel - Math.max(1, defaultInt(monster.getLevel()));
 
         // 等级差超过怪物等级时降低奖励，超过5级只给10%
         if (levelDiff > 5) {
@@ -413,8 +429,8 @@ public class EnhancedCombatService {
      * 计算灵石奖励
      */
     private int calculateSpiritStonesReward(Monster monster, int playerLevel) {
-        int baseReward = monster.getSpiritStonesReward();
-        int levelDiff = playerLevel - monster.getLevel();
+        int baseReward = defaultInt(monster.getSpiritStonesReward());
+        int levelDiff = playerLevel - Math.max(1, defaultInt(monster.getLevel()));
 
         // 等级差影响掉落
         if (levelDiff > 10) {

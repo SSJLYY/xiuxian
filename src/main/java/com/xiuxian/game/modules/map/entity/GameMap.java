@@ -116,7 +116,7 @@ public class GameMap {
      * 检查玩家是否满足进入条件
      */
     public boolean canEnter(int playerLevel, String playerRealm) {
-        if (playerLevel < requiredLevel) {
+        if (playerLevel < defaultInt(requiredLevel, 1)) {
             return false;
         }
         if (requiredRealm != null && !requiredRealm.isEmpty()) {
@@ -131,9 +131,13 @@ public class GameMap {
      */
     public String getDangerIcon() {
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < dangerLevel; i++) {
+        for (int i = 0; i < defaultInt(dangerLevel, 0); i++) {
             sb.append("⚠️");
         }
         return sb.toString();
+    }
+
+    private int defaultInt(Integer value, int fallback) {
+        return value == null ? fallback : value;
     }
 }

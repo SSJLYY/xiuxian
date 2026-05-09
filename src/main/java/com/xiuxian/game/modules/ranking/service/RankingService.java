@@ -38,7 +38,8 @@ public class RankingService {
      */
     @SuppressWarnings("unchecked")
     public List<Ranking> getRankingList(String rankingType, int limit) {
-        String cacheKey = CacheService.CacheKeys.rankingKey(rankingType + ":" + limit);
+        int safeLimit = Math.min(Math.max(limit, 1), 100);
+        String cacheKey = CacheService.CacheKeys.rankingKey(rankingType + ":" + safeLimit);
         
         // 先从缓存获取
         List<Ranking> cachedRankings = cacheService.get(cacheKey);
@@ -51,7 +52,7 @@ public class RankingService {
         LambdaQueryWrapper<Ranking> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Ranking::getRankingType, rankingType)
                .orderByAsc(Ranking::getRank)
-               .last("LIMIT " + limit);
+               .last("LIMIT " + safeLimit);
         
         List<Ranking> rankings = rankingMapper.selectList(wrapper);
         

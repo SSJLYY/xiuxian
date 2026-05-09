@@ -37,6 +37,9 @@ public class NpcController {
             Integer playerId = playerService.getCurrentPlayerId();
             Integer playerLevel = playerService.getPlayerProfileById(playerId).getLevel();
             log.info("获取NPC列表: playerId={}", playerId);
+            if (playerLevel == null || playerLevel < 1) {
+                playerLevel = 1;
+            }
             List<Npc> npcs = npcService.getAllNpcs(playerLevel);
             return ResponseEntity.ok(ApiResponse.success(npcs));
         } catch (Exception e) {

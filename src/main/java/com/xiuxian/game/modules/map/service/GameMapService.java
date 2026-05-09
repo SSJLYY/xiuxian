@@ -159,7 +159,7 @@ public class GameMapService {
         }
 
         List<MapMonster> candidates = map.getMonsters();
-        int totalWeight = candidates.stream().mapToInt(MapMonster::getSpawnWeight).sum();
+        int totalWeight = candidates.stream().mapToInt(monster -> defaultInt(monster.getSpawnWeight())).sum();
         if (totalWeight <= 0) {
             log.warn("mapId={} has no valid encounter weights", mapId);
             return null;
@@ -169,7 +169,7 @@ public class GameMapService {
         MapMonster selected = null;
         int currentWeight = 0;
         for (MapMonster monster : candidates) {
-            currentWeight += monster.getSpawnWeight();
+            currentWeight += defaultInt(monster.getSpawnWeight());
             if (roll < currentWeight) {
                 selected = monster;
                 break;
@@ -184,8 +184,9 @@ public class GameMapService {
             return null;
         }
 
-        int monsterLevel = selected.calculateLevel(playerLevel, map.getRequiredLevel());
-        double statMultiplier = selected.calculateStatMultiplier(playerLevel, map.getRequiredLevel());
+        int mapRequiredLevel = map.getRequiredLevel() == null ? 1 : map.getRequiredLevel();
+        int monsterLevel = selected.calculateLevel(playerLevel, mapRequiredLevel);
+        double statMultiplier = selected.calculateStatMultiplier(playerLevel, mapRequiredLevel);
         if (Boolean.TRUE.equals(selected.getIsElite())) {
             statMultiplier *= 1.5;
         }

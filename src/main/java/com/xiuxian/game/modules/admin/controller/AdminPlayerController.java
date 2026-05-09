@@ -42,6 +42,10 @@ public class AdminPlayerController {
             @RequestParam(required = false) String nickname,
             @RequestParam(required = false) Long userId) {
         try {
+            if (userId != null && (userId < Integer.MIN_VALUE || userId > Integer.MAX_VALUE)) {
+                return ResponseEntity.badRequest()
+                        .body(AdminApiResponse.error("userId 超出有效范围"));
+            }
             Page<PlayerProfile> pageData = adminPlayerService.getPlayerList(page, size, nickname,
                     userId != null ? userId.intValue() : null);
             Map<String, Object> data = new java.util.HashMap<>();

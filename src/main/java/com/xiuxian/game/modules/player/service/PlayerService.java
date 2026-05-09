@@ -245,7 +245,6 @@ public class PlayerService {
                     "灵石不足，需要" + BREAKTHROUGH_COST + "灵石进行境界突破");
         }
         long currentSpiritStones = profile.getSpiritStones();
-        profile.setSpiritStones(currentSpiritStones - BREAKTHROUGH_COST);
         // 消耗灵石
         profile.setSpiritStones(currentSpiritStones - BREAKTHROUGH_COST);
         // 成功率判断
@@ -254,14 +253,12 @@ public class PlayerService {
             String oldRealm = profile.getRealm();
             updateRealm(profile);
             profile.setBreakthroughCooldownUntil(null);
-            playerProfileMapper.updateById(profile);
+            savePlayerProfile(profile);
             return "突破成功！" + oldRealm + " → " + profile.getRealm();
-        } else {
-            profile.setSpiritStones(currentSpiritStones);
-            profile.setBreakthroughCooldownUntil(now.plusHours(1));
-            playerProfileMapper.updateById(profile);
-            return "心魔侵袭，突破失败！未消耗灵石，1小时后可再次尝试";
         }
+        profile.setBreakthroughCooldownUntil(now.plusHours(1));
+        savePlayerProfile(profile);
+        return "心魔侵袭，突破失败！已消耗灵石，1小时后可再次尝试";
     }
 
     private boolean isBreakthroughCoolingDown(PlayerProfile profile) {
@@ -307,10 +304,6 @@ public class PlayerService {
         }
         if (profile.getIsCultivating() == null) {
             profile.setIsCultivating(false);
-        }
-        List<PlayerItem> items = playerItemMapper.selectByPlayerId(profile.getId());
-        if (items == null || items.isEmpty()) {
-            awardStarterItems(profile.getId());
         }
         return profile;
     }
@@ -496,6 +489,57 @@ public class PlayerService {
         return lockedProfile;
     }
 
+    @Transactional
+    public PlayerProfile updateCurrentPlayerProfile(String nickname, String avatar) {
+        PlayerProfile profile = getCurrentPlayerProfileForUpdate();
+        if (nickname != null) {
+            profile.setNickname(nickname);
+        }
+        if (avatar != null) {
+            profile.setAvatar(avatar);
+        }
+        savePlayerProfile(profile);
+        return profile;
+    }
+
+    @Transactional
+    public PlayerProfile allocateCurrentPlayerAttributes(Map<String, Integer> payload) {
+        PlayerProfile profile = getCurrentPlayerProfileForUpdate();
+        int availablePoints = profile.getAttributePoints() == null ? 0 : profile.getAttributePoints();
+
+        int totalSpend = 0;
+        for (String attr : new String[]{"attack", "defense", "health", "mana", "speed"}) {
+            Integer points = payload.get(attr);
+            if (points != null && points > 0) {
+                totalSpend += points;
+            }
+        }
+
+        if (totalSpend <= 0) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "未提供有效的加点方案");
+        }
+        if (totalSpend > availablePoints) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "属性点不足");
+        }
+
+        profile.setAttack(defaultInt(profile.getAttack(), 0) + payload.getOrDefault("attack", 0));
+        profile.setDefense(defaultInt(profile.getDefense(), 0) + payload.getOrDefault("defense", 0));
+        profile.setHealth(defaultInt(profile.getHealth(), 0) + payload.getOrDefault("health", 0));
+        profile.setMana(defaultInt(profile.getMana(), 0) + payload.getOrDefault("mana", 0));
+        profile.setSpeed(defaultInt(profile.getSpeed(), 0) + payload.getOrDefault("speed", 0));
+        profile.setAttributePoints(availablePoints - totalSpend);
+
+        savePlayerProfile(profile);
+        return profile;
+    }
+
+    @Transactional
+    public void resetCurrentPlayerCultivation() {
+        PlayerProfile profile = getCurrentPlayerProfileForUpdate();
+        profile.setIsCultivating(false);
+        savePlayerProfile(profile);
+    }
+
     /**
      * 检查升级但不提交事务（用于循环检查）
      */
@@ -552,7 +596,10 @@ public class PlayerService {
      * 被外层事务（如 GuildService.donate）调用时自动加入外层事务。
      */
     public void savePlayerProfile(PlayerProfile playerProfile) {
-        playerProfileMapper.updateById(playerProfile);
+        int updatedRows = playerProfileMapper.updateById(playerProfile);
+        if (updatedRows == 0) {
+            throw new BusinessException(ErrorCode.DATA_CONFLICT, "玩家档案已被其他操作更新，请刷新后重试");
+        }
         log.debug("保存玩家档案成功: ID={}", playerProfile.getId());
     }
 
@@ -585,8 +632,12 @@ public class PlayerService {
             profile.setAttack(defaultInt(profile.getAttack(), 0) + LEVEL_UP_ATTACK_BONUS);
             profile.setDefense(defaultInt(profile.getDefense(), 0) + LEVEL_UP_DEFENSE_BONUS);
             profile.setHealth(defaultInt(profile.getHealth(), 0) + LEVEL_UP_HEALTH_BONUS);
+            profile.setMaxHealth(defaultInt(profile.getMaxHealth(), 0) + LEVEL_UP_HEALTH_BONUS);
             profile.setMana(defaultInt(profile.getMana(), 0) + LEVEL_UP_MANA_BONUS);
+            profile.setMaxMana(defaultInt(profile.getMaxMana(), 0) + LEVEL_UP_MANA_BONUS);
             profile.setSpeed(defaultInt(profile.getSpeed(), 0) + LEVEL_UP_SPEED_BONUS);
+            profile.setHealth(profile.getMaxHealth());
+            profile.setMana(profile.getMaxMana());
             
             log.info("玩家升级: {}级 -> {}级, 属性提升: 攻击+{}, 防御+{}, 生命+{}, 法力+{}, 速度+{}",
                     oldLevel, profile.getLevel(),
@@ -840,6 +891,13 @@ public class PlayerService {
      */
     public PlayerItem getPlayerItemByPlayerAndItem(Integer playerId, Integer itemId) {
         return playerItemMapper.selectByPlayerIdAndItemId(playerId, itemId);
+    }
+
+    /**
+     * 获取未锁定的背包条目，供消耗和奖励合并场景使用。
+     */
+    public PlayerItem getUnlockedPlayerItemByPlayerAndItem(Integer playerId, Integer itemId) {
+        return playerItemMapper.selectUnlockedByPlayerIdAndItemId(playerId, itemId);
     }
 
     /**

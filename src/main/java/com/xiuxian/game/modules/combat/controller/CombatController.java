@@ -40,6 +40,9 @@ public class CombatController {
     public ResponseEntity<ApiResponse<Monster>> generateMonster(@RequestParam(required = false) Integer mapId) {
         try {
             Integer playerLevel = playerService.getCurrentPlayerProfile().getLevel();
+            if (playerLevel == null || playerLevel < 1) {
+                playerLevel = 1;
+            }
             Monster monster = combatService.generateMonster(playerLevel, mapId);
             return ResponseEntity.ok(ApiResponse.success("怪物生成成功", monster));
         } catch (Exception e) {
@@ -57,6 +60,9 @@ public class CombatController {
             Integer mapId = extractMapId(request);
             Integer playerId = playerService.getCurrentPlayerId();
             Integer playerLevel = playerService.getCurrentPlayerProfile().getLevel();
+            if (playerLevel == null || playerLevel < 1) {
+                playerLevel = 1;
+            }
             Monster monster = combatService.generateMonster(playerLevel, mapId);
             CombatResult result = combatService.startCombat(playerId, monster);
             return ResponseEntity.ok(ApiResponse.success("战斗完成", result));
@@ -95,6 +101,9 @@ public class CombatController {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
             Integer playerLevel = playerService.getCurrentPlayerProfile().getLevel();
+            if (playerLevel == null || playerLevel < 1) {
+                playerLevel = 1;
+            }
             Monster monster = request.getMonsterId() != null
                     ? combatService.getMonsterById(request.getMonsterId())
                     : combatService.generateMonster(playerLevel, request.getMapId());
@@ -125,6 +134,9 @@ public class CombatController {
             int maxTimes = Math.min(times, 100);
             Integer playerId = playerService.getCurrentPlayerId();
             Integer playerLevel = playerService.getCurrentPlayerProfile().getLevel();
+            if (playerLevel == null || playerLevel < 1) {
+                playerLevel = 1;
+            }
             Integer mapId = extractMapId(request);
             CombatResult result = combatService.batchCombat(playerId, playerLevel, mapId, maxTimes);
             return ResponseEntity.ok(ApiResponse.success("批量战斗完成", result));

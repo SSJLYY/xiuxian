@@ -428,6 +428,7 @@ public class QuestService {
         }
 
         applyQuestReward(player, quest);
+        playerService.applyLevelUpsWithoutCommit(player, 100);
         playerService.savePlayerProfile(player);
     }
 
@@ -477,7 +478,7 @@ public class QuestService {
 
         List<PlayerQuest> allQuests = playerQuestMapper.selectByPlayerId(playerId);
         List<PlayerQuest> claimable = allQuests.stream()
-                .filter(pq -> pq.getCompleted() && !pq.getRewardClaimed())
+                .filter(pq -> Boolean.TRUE.equals(pq.getCompleted()) && !Boolean.TRUE.equals(pq.getRewardClaimed()))
                 .collect(Collectors.toList());
         if (claimable.isEmpty()) return 0;
 
@@ -501,6 +502,7 @@ public class QuestService {
             claimedCount++;
         }
         if (claimedCount > 0) {
+            playerService.applyLevelUpsWithoutCommit(player, 100);
             playerService.savePlayerProfile(player);
         }
         return claimedCount;
@@ -510,7 +512,7 @@ public class QuestService {
     public boolean hasIncompleteQuests(Integer playerId) {
         List<PlayerQuest> allQuests = playerQuestMapper.selectByPlayerId(playerId);
         
-        return allQuests.stream().anyMatch(pq -> !pq.getCompleted());
+        return allQuests.stream().anyMatch(pq -> !Boolean.TRUE.equals(pq.getCompleted()));
     }
 
     // 获取已完成但未领取奖励的任务数量（利用Mapper层的聚合查询）
@@ -524,7 +526,7 @@ public class QuestService {
         List<PlayerQuest> quests = getPlayerQuestsByType(playerId, questType);
         
         for (PlayerQuest pq : quests) {
-            if (!pq.getCompleted()) {
+            if (!Boolean.TRUE.equals(pq.getCompleted())) {
                 updateQuestProgressInternal(playerId, pq.getQuestId(), progress);
             }
         }

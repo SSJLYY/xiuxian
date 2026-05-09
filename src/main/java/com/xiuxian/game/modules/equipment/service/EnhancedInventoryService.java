@@ -140,19 +140,20 @@ public class EnhancedInventoryService {
 
         List<PlayerItem> playerItems = playerService.getPlayerItemsByPlayerId(playerId);
         
-        // 按物品ID分组
-        Map<Integer, List<PlayerItem>> groupedItems = new HashMap<>();
+        // 按物品ID和锁定状态分组，避免把锁定物品和未锁定物品合并
+        Map<String, List<PlayerItem>> groupedItems = new HashMap<>();
         for (PlayerItem item : playerItems) {
-            groupedItems.computeIfAbsent(item.getItemId(), k -> new ArrayList<>()).add(item);
+            String groupKey = item.getItemId() + ":" + Boolean.TRUE.equals(item.getLocked());
+            groupedItems.computeIfAbsent(groupKey, k -> new ArrayList<>()).add(item);
         }
         
         // 合并可堆叠的物品
-        for (Map.Entry<Integer, List<PlayerItem>> entry : groupedItems.entrySet()) {
+        for (Map.Entry<String, List<PlayerItem>> entry : groupedItems.entrySet()) {
             List<PlayerItem> items = entry.getValue();
             if (items.size() > 1) {
                 // 获取物品模板
-                Item itemTemplate = itemService.getItemById(entry.getKey());
-                if (itemTemplate != null && itemTemplate.getStackable()) {
+                Item itemTemplate = itemService.getItemById(items.get(0).getItemId());
+                if (itemTemplate != null && Boolean.TRUE.equals(itemTemplate.getStackable())) {
                     // 合并数量
                     int totalQuantity = items.stream().mapToInt(PlayerItem::getQuantity).sum();
                     
@@ -183,6 +184,10 @@ public class EnhancedInventoryService {
     @Transactional
     public void toggleItemLock(Integer playerId, Integer playerItemId) {
         log.info("切换物品锁定状态, playerId={}, playerItemId={}", playerId, playerItemId);
+        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
+        if (player == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
+        }
         PlayerItem playerItem = playerService.getPlayerItemById(playerItemId);
         if (playerItem == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "物品不存在");
@@ -194,7 +199,7 @@ public class EnhancedInventoryService {
         }
         
         // 切换锁定状态
-        playerItem.setLocked(!playerItem.getLocked());
+        playerItem.setLocked(!Boolean.TRUE.equals(playerItem.getLocked()));
         playerItem.setUpdatedAt(LocalDateTime.now());
         playerService.updatePlayerItem(playerItem);
         log.info("切换物品锁定状态成功, playerId={}, playerItemId={}, locked={}", playerId, playerItemId, playerItem.getLocked());
@@ -231,12 +236,12 @@ public class EnhancedInventoryService {
             }
 
             // 检查物品是否被锁定
-            if (playerItem.getLocked()) {
+            if (Boolean.TRUE.equals(playerItem.getLocked())) {
                 throw new BusinessException(ErrorCode.PARAM_ERROR, "物品已被锁定，无法使用: " + request.getPlayerItemId());
             }
 
             Item item = itemService.getItemById(playerItem.getItemId());
-            if (item == null || !item.getUsable()) {
+            if (item == null || !Boolean.TRUE.equals(item.getUsable())) {
                 throw new BusinessException(ErrorCode.PARAM_ERROR, "该物品不可使用: " + request.getPlayerItemId());
             }
 
@@ -300,12 +305,12 @@ public class EnhancedInventoryService {
             }
 
             // 检查物品是否被锁定
-            if (playerItem.getLocked()) {
+            if (Boolean.TRUE.equals(playerItem.getLocked())) {
                 throw new BusinessException(ErrorCode.PARAM_ERROR, "物品已被锁定，无法出售: " + request.getPlayerItemId());
             }
 
             Item item = itemService.getItemById(playerItem.getItemId());
-            if (item == null || !item.getSellable()) {
+            if (item == null || !Boolean.TRUE.equals(item.getSellable())) {
                 throw new BusinessException(ErrorCode.PARAM_ERROR, "该物品不可出售: " + request.getPlayerItemId());
             }
 

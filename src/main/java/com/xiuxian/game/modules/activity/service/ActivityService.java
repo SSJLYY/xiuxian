@@ -137,9 +137,10 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "活动不存在");
         }
 
+        LocalDateTime now = LocalDateTime.now();
         if (!"ACTIVE".equals(activity.getStatus()) ||
-            activity.getStartTime().isAfter(LocalDateTime.now()) ||
-            activity.getEndTime().isBefore(LocalDateTime.now())) {
+            (activity.getStartTime() != null && activity.getStartTime().isAfter(now)) ||
+            (activity.getEndTime() != null && activity.getEndTime().isBefore(now))) {
             log.warn("活动不在进行中: activityId={}, status={}", activityId, activity.getStatus());
             throw new BusinessException(ErrorCode.PARAM_ERROR, "活动不在进行中");
         }
@@ -151,7 +152,6 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         PlayerActivityProgress progress = playerActivityProgressMapper.selectByPlayerAndActivityForUpdate(playerId, activityId);
 
         if (progress == null) {
-            LocalDateTime now = LocalDateTime.now();
             int insertedRows = playerActivityProgressMapper.insertIfAbsent(
                     activityId,
                     playerId,
@@ -591,6 +591,7 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         // 检查需要开始的活动
         QueryWrapper<Activity> startQuery = new QueryWrapper<>();
         startQuery.eq("status", "DRAFT");
+        startQuery.isNotNull("start_time");
         startQuery.le("start_time", now);
         List<Activity> activitiesToStart = activityMapper.selectList(startQuery);
 
@@ -603,6 +604,7 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         // 检查需要结束的活动
         QueryWrapper<Activity> endQuery = new QueryWrapper<>();
         endQuery.eq("status", "ACTIVE");
+        endQuery.isNotNull("end_time");
         endQuery.lt("end_time", now);
         List<Activity> activitiesToEnd = activityMapper.selectList(endQuery);
 
@@ -643,8 +645,9 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         });
         
         // 限制返回数量
-        if (ranking.size() > limit) {
-            ranking = ranking.subList(0, limit);
+        int safeLimit = Math.min(Math.max(limit, 1), 100);
+        if (ranking.size() > safeLimit) {
+            ranking = ranking.subList(0, safeLimit);
         }
         
         log.debug("获取活动排名成功: activityId={}, count={}", activityId, ranking.size());

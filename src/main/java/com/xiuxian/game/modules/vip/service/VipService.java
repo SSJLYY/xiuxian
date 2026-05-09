@@ -28,11 +28,25 @@ public class VipService extends ServiceImpl<PlayerVipMapper, PlayerVip> {
     private final MailService mailService;
 
     public PlayerVip getPlayerVip(Integer playerId) {
-        PlayerVip playerVip = playerVipMapper.selectOne(new QueryWrapper<PlayerVip>().eq("player_id", playerId));
+        PlayerVip playerVip = playerVipMapper.selectByPlayerId(playerId);
         if (playerVip == null) {
             LocalDateTime defaultRewardTime = LocalDateTime.now().minusDays(1);
             playerVipMapper.insertIfAbsent(playerId, 0, 0, 0, defaultRewardTime);
-            playerVip = playerVipMapper.selectOne(new QueryWrapper<PlayerVip>().eq("player_id", playerId));
+            playerVip = playerVipMapper.selectByPlayerId(playerId);
+        }
+        if (playerVip == null) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR);
+        }
+        normalizePlayerVip(playerVip);
+        return playerVip;
+    }
+
+    private PlayerVip getPlayerVipForUpdate(Integer playerId) {
+        PlayerVip playerVip = playerVipMapper.selectByPlayerIdForUpdate(playerId);
+        if (playerVip == null) {
+            LocalDateTime defaultRewardTime = LocalDateTime.now().minusDays(1);
+            playerVipMapper.insertIfAbsent(playerId, 0, 0, 0, defaultRewardTime);
+            playerVip = playerVipMapper.selectByPlayerIdForUpdate(playerId);
         }
         if (playerVip == null) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR);
@@ -71,7 +85,7 @@ public class VipService extends ServiceImpl<PlayerVipMapper, PlayerVip> {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "充值金额必须大于0");
         }
 
-        PlayerVip playerVip = getPlayerVip(playerId);
+        PlayerVip playerVip = getPlayerVipForUpdate(playerId);
         int currentRecharge = defaultInt(playerVip.getTotalRecharge());
         int oldVipLevel = defaultInt(playerVip.getVipLevel());
 
@@ -96,8 +110,8 @@ public class VipService extends ServiceImpl<PlayerVipMapper, PlayerVip> {
     }
 
     private void sendVipUpgradeReward(Integer playerId, Integer newVipLevel) {
-        String subject = "VIP等级提升奖励";
-        String content = String.format("恭喜您的VIP等级提升到%d级，奖励已发放。", newVipLevel);
+        String subject = "VIP等级提升通知";
+        String content = String.format("恭喜您的VIP等级提升到%d级，可享受更高的VIP特权和每日奖励。", newVipLevel);
         mailService.sendSystemMail(playerId, subject, content, null, null, 0);
     }
 
@@ -108,7 +122,7 @@ public class VipService extends ServiceImpl<PlayerVipMapper, PlayerVip> {
             throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
         }
 
-        PlayerVip playerVip = getPlayerVip(playerId);
+        PlayerVip playerVip = getPlayerVipForUpdate(playerId);
         LocalDateTime lastRewardTime = playerVip.getLastDailyRewardAt();
         LocalDateTime now = LocalDateTime.now();
         if (lastRewardTime != null && lastRewardTime.toLocalDate().equals(now.toLocalDate())) {

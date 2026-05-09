@@ -59,7 +59,7 @@ public class InventoryService {
      */
     public List<PlayerItemResponse> getPlayerInventory(Integer playerId, String type, String search, String sortBy, String order) {
         log.debug("查询玩家背包物品, playerId={}, type={}, search={}, sortBy={}, order={}", playerId, type, search, sortBy, order);
-        PlayerProfile player = playerProfileMapper.selectByIdForUpdate(playerId);
+        PlayerProfile player = playerProfileMapper.selectById(playerId);
         if (player == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
@@ -157,11 +157,11 @@ public class InventoryService {
         }
 
         // 检查是否已存在该物品
-        PlayerItem existingItem = playerService.getPlayerItemByPlayerAndItem(playerId, itemId);
+        PlayerItem existingItem = playerService.getUnlockedPlayerItemByPlayerAndItem(playerId, itemId);
 
         if (existingItem != null) {
             // 如果可堆叠，增加数量
-            if (item.getStackable()) {
+            if (Boolean.TRUE.equals(item.getStackable())) {
                 existingItem.setQuantity((existingItem.getQuantity() == null ? 0 : existingItem.getQuantity()) + quantity);
                 existingItem.setUpdatedAt(LocalDateTime.now());
                 playerService.updatePlayerItem(existingItem);
@@ -202,7 +202,7 @@ public class InventoryService {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在");
         }
 
-        PlayerItem playerItem = playerService.getPlayerItemByPlayerAndItem(playerId, itemId);
+        PlayerItem playerItem = playerService.getUnlockedPlayerItemByPlayerAndItem(playerId, itemId);
         if (playerItem == null) {
             log.warn("玩家没有该物品, playerId={}, itemId={}", playerId, itemId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家没有该物品");
@@ -249,12 +249,12 @@ public class InventoryService {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "物品不存在");
         }
 
-        if (!item.getUsable()) {
+        if (!Boolean.TRUE.equals(item.getUsable())) {
             log.warn("物品不可使用, itemId={}", itemId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "该物品不可使用");
         }
 
-        PlayerItem playerItem = playerService.getPlayerItemByPlayerAndItem(playerId, itemId);
+        PlayerItem playerItem = playerService.getUnlockedPlayerItemByPlayerAndItem(playerId, itemId);
         if (playerItem == null) {
             log.warn("玩家没有该物品, playerId={}, itemId={}", playerId, itemId);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家没有该物品");
@@ -300,13 +300,18 @@ public class InventoryService {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "该物品不属于当前玩家");
         }
 
+        if (Boolean.TRUE.equals(playerItem.getLocked())) {
+            log.warn("物品已被锁定, playerId={}, playerItemId={}", playerId, playerItemId);
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "物品已被锁定，无法使用");
+        }
+
         if (playerItem.getQuantity() < quantity) {
             log.warn("物品数量不足, playerItemId={}, have={}, need={}", playerItemId, playerItem.getQuantity(), quantity);
             throw new BusinessException(ErrorCode.PARAM_ERROR, "物品数量不足");
         }
 
         Item item = itemService.getItemById(playerItem.getItemId());
-        if (!item.getUsable()) {
+        if (!Boolean.TRUE.equals(item.getUsable())) {
             log.warn("物品不可使用, itemId={}", playerItem.getItemId());
             throw new BusinessException(ErrorCode.PARAM_ERROR, "该物品不可使用");
         }
@@ -359,8 +364,13 @@ public class InventoryService {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "该物品不属于当前玩家");
         }
 
+        if (Boolean.TRUE.equals(playerItem.getLocked())) {
+            log.warn("物品已被锁定, playerId={}, playerItemId={}", playerId, playerItemId);
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "物品已被锁定，无法出售");
+        }
+
         Item item = itemService.getItemById(playerItem.getItemId());
-        if (item == null || !item.getSellable()) {
+        if (item == null || !Boolean.TRUE.equals(item.getSellable())) {
             log.warn("物品不可出售, itemId={}", playerItem.getItemId());
             throw new BusinessException(ErrorCode.PARAM_ERROR, "该物品不可出售");
         }

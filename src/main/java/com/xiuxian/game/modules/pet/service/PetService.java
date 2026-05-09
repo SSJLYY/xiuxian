@@ -182,7 +182,7 @@ public class PetService {
         // 技能发动概率：忠诚度/100 × 基础概率
         double skillTriggerChance = (loyalty / 100.0) * 0.3 * loyaltyFactor;
         // 技能伤害：基于宠物攻击力和等级
-        int skillDamage = (int) (pet.getBaseAttack() * levelFactor * hungerFactor * loyaltyFactor);
+        int skillDamage = (int) (defaultInt(pet.getBaseAttack(), 0) * levelFactor * hungerFactor * loyaltyFactor);
         // 共鸣：忠诚度100且低概率触发
         boolean resonance = loyalty >= 100 && ThreadLocalRandom.current().nextDouble() < 0.05;
 
@@ -258,15 +258,16 @@ public class PetService {
         playerPet.setLevel(1);
         playerPet.setExp(0L);
         playerPet.setExpToNext(PET_BASE_EXP_TO_NEXT);
-        playerPet.setAttack(pet.getBaseAttack());
-        playerPet.setDefense(pet.getBaseDefense());
-        playerPet.setHealth(pet.getBaseHealth());
-        playerPet.setMaxHealth(pet.getBaseHealth());
-        playerPet.setSpeed(pet.getBaseSpeed());
+        playerPet.setAttack(defaultInt(pet.getBaseAttack(), 0));
+        playerPet.setDefense(defaultInt(pet.getBaseDefense(), 0));
+        playerPet.setHealth(defaultInt(pet.getBaseHealth(), 0));
+        playerPet.setMaxHealth(defaultInt(pet.getBaseHealth(), 0));
+        playerPet.setSpeed(defaultInt(pet.getBaseSpeed(), 0));
         playerPet.setHunger(100);
         playerPet.setLoyalty(50);
         playerPet.setIsActive(false);
         playerPet.setIsLocked(false);
+        playerPet.setCapturedAt(LocalDateTime.now());
         playerPet.setCreatedAt(LocalDateTime.now());
         playerPet.setUpdatedAt(LocalDateTime.now());
 
@@ -502,7 +503,7 @@ public class PetService {
                 : evolution.getRequiredItemQuantity();
         PlayerItem evolutionItem = requiredItemId == null
                 ? null
-                : playerService.getPlayerItemByPlayerAndItem(playerId, requiredItemId);
+                : playerService.getUnlockedPlayerItemByPlayerAndItem(playerId, requiredItemId);
         if (requiredItemId != null && (evolutionItem == null || evolutionItem.getQuantity() == null || evolutionItem.getQuantity() < requiredItemQuantity)) {
             return PetEvolutionResult.fail("缺少进化丹，无法进化");
         }
@@ -568,7 +569,7 @@ public class PetService {
         result.put("defenseBonus", evolution.getDefenseBonus());
         result.put("healthBonus", evolution.getHealthBonus());
         result.put("speedBonus", evolution.getSpeedBonus());
-        PlayerItem evolutionItem = requiredItemId == null ? null : playerService.getPlayerItemByPlayerAndItem(playerId, requiredItemId);
+        PlayerItem evolutionItem = requiredItemId == null ? null : playerService.getUnlockedPlayerItemByPlayerAndItem(playerId, requiredItemId);
         result.put("hasRequiredItem", requiredItemId == null || (evolutionItem != null && evolutionItem.getQuantity() != null && evolutionItem.getQuantity() >= requiredItemQuantity));
         return result;
     }
@@ -604,10 +605,17 @@ public class PetService {
         playerPet.setNickname(pet.getName());
         playerPet.setLevel(1);
         playerPet.setExp(0L);
+        playerPet.setExpToNext(PET_BASE_EXP_TO_NEXT);
+        playerPet.setAttack(defaultInt(pet.getBaseAttack(), 0));
+        playerPet.setDefense(defaultInt(pet.getBaseDefense(), 0));
+        playerPet.setHealth(defaultInt(pet.getBaseHealth(), 0));
+        playerPet.setMaxHealth(defaultInt(pet.getBaseHealth(), 0));
+        playerPet.setSpeed(defaultInt(pet.getBaseSpeed(), 0));
         playerPet.setHunger(100);
         playerPet.setLoyalty(80);
         playerPet.setIsActive(false);
         playerPet.setIsLocked(false);
+        playerPet.setCapturedAt(LocalDateTime.now());
         playerPet.setCreatedAt(LocalDateTime.now());
         playerPet.setUpdatedAt(LocalDateTime.now());
 

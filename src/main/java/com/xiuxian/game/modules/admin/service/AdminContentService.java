@@ -43,7 +43,7 @@ public class AdminContentService {
      * 分页查询物品列表
      */
     public Page<Item> getItemList(int page, int size, String name) {
-        Page<Item> pageObj = new Page<>(page, size);
+        Page<Item> pageObj = buildPage(page, size);
         QueryWrapper<Item> queryWrapper = new QueryWrapper<>();
 
         if (name != null && !name.isEmpty()) {
@@ -87,7 +87,7 @@ public class AdminContentService {
      * 分页查询装备列表
      */
     public Page<Equipment> getEquipmentList(int page, int size, String name) {
-        Page<Equipment> pageObj = new Page<>(page, size);
+        Page<Equipment> pageObj = buildPage(page, size);
         QueryWrapper<Equipment> queryWrapper = new QueryWrapper<>();
 
         if (name != null && !name.isEmpty()) {
@@ -131,7 +131,7 @@ public class AdminContentService {
      * 分页查询技能列表
      */
     public Page<Skill> getSkillList(int page, int size, String name) {
-        Page<Skill> pageObj = new Page<>(page, size);
+        Page<Skill> pageObj = buildPage(page, size);
         QueryWrapper<Skill> queryWrapper = new QueryWrapper<>();
 
         if (name != null && !name.isEmpty()) {
@@ -175,7 +175,7 @@ public class AdminContentService {
      * 分页查询宠物列表
      */
     public Page<Pet> getPetList(int page, int size, String name) {
-        Page<Pet> pageObj = new Page<>(page, size);
+        Page<Pet> pageObj = buildPage(page, size);
         QueryWrapper<Pet> queryWrapper = new QueryWrapper<>();
 
         if (name != null && !name.isEmpty()) {
@@ -219,7 +219,7 @@ public class AdminContentService {
      * 分页查询怪物列表
      */
     public Page<Monster> getMonsterList(int page, int size, String name) {
-        Page<Monster> pageObj = new Page<>(page, size);
+        Page<Monster> pageObj = buildPage(page, size);
         QueryWrapper<Monster> queryWrapper = new QueryWrapper<>();
 
         if (name != null && !name.isEmpty()) {
@@ -272,5 +272,11 @@ public class AdminContentService {
         stats.put("monsters", monsterMapper.selectCount(null));
 
         return stats;
+    }
+
+    private <T> Page<T> buildPage(int page, int size) {
+        long safePage = Math.max(page, 1);
+        long safeSize = Math.min(Math.max(size, 1), 100);
+        return new Page<>(safePage, safeSize);
     }
 }

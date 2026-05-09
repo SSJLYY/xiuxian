@@ -51,17 +51,10 @@ public class PlayerController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PlayerProfile>> updateProfile(@RequestBody Map<String, Object> data) {
         try {
-            PlayerProfile profile = playerService.getCurrentPlayerProfile();
-            
-            // 更新允许的字段
-            if (data.containsKey("nickname")) {
-                profile.setNickname((String) data.get("nickname"));
-            }
-            if (data.containsKey("avatar")) {
-                profile.setAvatar((String) data.get("avatar"));
-            }
-            
-            playerService.savePlayerProfile(profile);
+            PlayerProfile currentProfile = playerService.getCurrentPlayerProfile();
+            PlayerProfile profile = playerService.updateCurrentPlayerProfile(
+                    data.containsKey("nickname") ? (String) data.get("nickname") : null,
+                    data.containsKey("avatar") ? (String) data.get("avatar") : null);
             LogUtils.logUserAction(null, profile.getId(), "UPDATE_PROFILE", "更新玩家档案：" + data.keySet());
             
             return ResponseEntity.ok(ApiResponse.success("更新成功", profile));
@@ -113,26 +106,8 @@ public class PlayerController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PlayerProfile>> allocateAttributes(@RequestBody Map<String, Integer> payload) {
         try {
-            PlayerProfile profile = playerService.getCurrentPlayerProfile();
-            int availablePoints = profile.getAttributePoints() == null ? 0 : profile.getAttributePoints();
-
-            int totalSpend = 0;
-            for (String attr : new String[]{"attack", "defense", "health", "mana", "speed"}) {
-                Integer points = payload.get(attr);
-                if (points != null && points > 0) totalSpend += points;
-            }
-
-            if (totalSpend <= 0) throw new BusinessException(ErrorCode.PARAM_ERROR, "未提供有效的加点方案");
-            if (totalSpend > availablePoints) throw new BusinessException(ErrorCode.PARAM_ERROR, "属性点不足");
-
-            profile.setAttack(defaultInt(profile.getAttack()) + payload.getOrDefault("attack", 0));
-            profile.setDefense(defaultInt(profile.getDefense()) + payload.getOrDefault("defense", 0));
-            profile.setHealth(defaultInt(profile.getHealth()) + payload.getOrDefault("health", 0));
-            profile.setMana(defaultInt(profile.getMana()) + payload.getOrDefault("mana", 0));
-            profile.setSpeed(defaultInt(profile.getSpeed()) + payload.getOrDefault("speed", 0));
-            profile.setAttributePoints(availablePoints - totalSpend);
-
-            playerService.savePlayerProfile(profile);
+            PlayerProfile currentProfile = playerService.getCurrentPlayerProfile();
+            PlayerProfile profile = playerService.allocateCurrentPlayerAttributes(payload);
             LogUtils.logUserAction(null, profile.getId(), "ALLOCATE_ATTRIBUTES", "分配属性点: " + payload);
 
             return ResponseEntity.ok(ApiResponse.success("加点成功", profile));
@@ -153,8 +128,7 @@ public class PlayerController {
     public ResponseEntity<ApiResponse<Void>> resetCultivation() {
         try {
             PlayerProfile profile = playerService.getCurrentPlayerProfile();
-            profile.setIsCultivating(false);
-            playerService.savePlayerProfile(profile);
+            playerService.resetCurrentPlayerCultivation();
             LogUtils.logUserAction(null, profile.getId(), "RESET_CULTIVATION", "重置修炼状态");
             return ResponseEntity.ok(ApiResponse.success("修炼状态已重置", null));
         } catch (Exception e) {
@@ -189,8 +163,5 @@ public class PlayerController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
-    }
-    private int defaultInt(Integer value) {
-        return value == null ? 0 : value;
     }
 }

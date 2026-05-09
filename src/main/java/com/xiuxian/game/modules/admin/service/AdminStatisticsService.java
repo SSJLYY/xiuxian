@@ -124,9 +124,10 @@ public class AdminStatisticsService {
      * @return 每日统计数据列表（倒序）
      */
     public List<DailyStatistics> getRecentStats(int days) {
+        int safeDays = Math.min(Math.max(days, 1), 365);
         QueryWrapper<DailyStatistics> queryWrapper = new QueryWrapper<>();
         queryWrapper.orderByDesc("stat_date");
-        queryWrapper.last("LIMIT " + days);
+        queryWrapper.last("LIMIT " + safeDays);
         return dailyStatisticsMapper.selectList(queryWrapper);
     }
 
@@ -137,10 +138,11 @@ public class AdminStatisticsService {
      * @return 包含每日收入 Map 的统计结果
      */
     public Map<String, Object> getRevenueStats(int days) {
+        int safeDays = Math.min(Math.max(days, 1), 365);
         Map<String, Object> stats = new HashMap<>();
 
         // 查询指定日期范围内的成功充值记录
-        LocalDateTime startDate = LocalDate.now().minusDays(days - 1).atStartOfDay();
+        LocalDateTime startDate = LocalDate.now().minusDays(safeDays - 1L).atStartOfDay();
         QueryWrapper<RechargeRecord> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("status", "SUCCESS");
         queryWrapper.ge("completed_at", startDate);
@@ -150,7 +152,7 @@ public class AdminStatisticsService {
 
         // 初始化每天收入为 0
         Map<LocalDate, Long> dailyRevenue = new LinkedHashMap<>();
-        for (int i = days - 1; i >= 0; i--) {
+        for (int i = safeDays - 1; i >= 0; i--) {
             LocalDate date = LocalDate.now().minusDays(i);
             dailyRevenue.put(date, 0L);
         }
@@ -171,12 +173,13 @@ public class AdminStatisticsService {
      * @return 包含每日新增/活跃玩家 Map 的统计结果
      */
     public Map<String, Object> getPlayerGrowthStats(int days) {
+        int safeDays = Math.min(Math.max(days, 1), 365);
         Map<String, Object> stats = new HashMap<>();
 
         // 从每日统计快照中读取数据
         QueryWrapper<DailyStatistics> queryWrapper = new QueryWrapper<>();
         queryWrapper.orderByDesc("stat_date");
-        queryWrapper.last("LIMIT " + days);
+        queryWrapper.last("LIMIT " + safeDays);
 
         List<DailyStatistics> dailyStats = dailyStatisticsMapper.selectList(queryWrapper);
 
@@ -184,7 +187,7 @@ public class AdminStatisticsService {
         Map<LocalDate, Integer> dailyNewPlayers = new LinkedHashMap<>();
         Map<LocalDate, Integer> dailyActivePlayers = new LinkedHashMap<>();
 
-        for (int i = days - 1; i >= 0; i--) {
+        for (int i = safeDays - 1; i >= 0; i--) {
             LocalDate date = LocalDate.now().minusDays(i);
             dailyNewPlayers.put(date, 0);
             dailyActivePlayers.put(date, 0);
