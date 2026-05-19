@@ -912,10 +912,16 @@ public class PlayerService {
             if (playerItem.getUpdatedAt() == null) {
                 playerItem.setUpdatedAt(now);
             }
-            playerItemMapper.insert(playerItem);
+            int insertedRows = playerItemMapper.insert(playerItem);
+            if (insertedRows == 0) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "背包物品保存失败");
+            }
         } else {
             playerItem.setUpdatedAt(now);
-            playerItemMapper.updateById(playerItem);
+            int updatedRows = playerItemMapper.updateById(playerItem);
+            if (updatedRows == 0) {
+                throw new BusinessException(ErrorCode.NOT_FOUND, "背包物品不存在: " + playerItem.getId());
+            }
         }
     }
 
@@ -923,15 +929,24 @@ public class PlayerService {
      * 删除背包条目（供InventoryService使用）
      */
     public void deletePlayerItem(Integer playerItemId) {
-        playerItemMapper.deleteById(playerItemId);
+        int deletedRows = playerItemMapper.deleteById(playerItemId);
+        if (deletedRows == 0) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "背包物品不存在: " + playerItemId);
+        }
     }
 
     /**
      * 根据ID获取背包条目后更新（供InventoryService使用）
      */
     public void updatePlayerItem(PlayerItem playerItem) {
+        if (playerItem.getId() == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "背包物品ID不能为空");
+        }
         playerItem.setUpdatedAt(LocalDateTime.now());
-        playerItemMapper.updateById(playerItem);
+        int updatedRows = playerItemMapper.updateById(playerItem);
+        if (updatedRows == 0) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "背包物品不存在: " + playerItem.getId());
+        }
     }
 
     // ===================== 反作弊/登录安全方法（供AntiFraudService使用） =====================

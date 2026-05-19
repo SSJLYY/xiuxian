@@ -2,6 +2,8 @@ package com.xiuxian.game.modules.player.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.xiuxian.game.common.util.PageUtil;
+import com.xiuxian.game.common.util.RequestUtils;
 import com.xiuxian.game.modules.player.entity.PlayerLoginLog;
 import com.xiuxian.game.modules.player.mapper.PlayerLoginLogMapper;
 import com.xiuxian.game.modules.admin.service.AntiFraudService;
@@ -52,7 +54,7 @@ public class PlayerLoginLogService {
      */
     public Page<PlayerLoginLog> getLoginLogs(Integer playerId, LocalDateTime startTime, 
                                            LocalDateTime endTime, int page, int size) {
-        Page<PlayerLoginLog> pageParam = new Page<>(page, size);
+        Page<PlayerLoginLog> pageParam = PageUtil.createPage(page, size);
         QueryWrapper<PlayerLoginLog> queryWrapper = new QueryWrapper<>();
         
         if (playerId != null) {
@@ -119,23 +121,16 @@ public class PlayerLoginLogService {
      * 获取客户端IP地址
      */
     private String getClientIpAddress(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty() && !"unknown".equalsIgnoreCase(xForwardedFor)) {
-            return xForwardedFor.split(",")[0].trim();
-        }
-        
-        String xRealIp = request.getHeader("X-Real-IP");
-        if (xRealIp != null && !xRealIp.isEmpty() && !"unknown".equalsIgnoreCase(xRealIp)) {
-            return xRealIp;
-        }
-        
-        return request.getRemoteAddr();
+        return RequestUtils.getClientIp(request);
     }
     
     /**
      * 获取用户代理信息
      */
     private String getUserAgent(HttpServletRequest request) {
+        if (request == null) {
+            return null;
+        }
         String userAgent = request.getHeader("User-Agent");
         if (userAgent != null && userAgent.length() > 200) {
             userAgent = userAgent.substring(0, 200);

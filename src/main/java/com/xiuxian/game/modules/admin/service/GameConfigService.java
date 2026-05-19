@@ -1,6 +1,8 @@
 package com.xiuxian.game.modules.admin.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.xiuxian.game.common.exception.BusinessException;
+import com.xiuxian.game.common.exception.ErrorCode;
 import com.xiuxian.game.modules.admin.entity.GameConfig;
 import com.xiuxian.game.modules.admin.mapper.GameConfigMapper;
 import lombok.RequiredArgsConstructor;
@@ -127,16 +129,64 @@ public class GameConfigService {
         }
         return "true".equalsIgnoreCase(value) || "1".equals(value) || "yes".equalsIgnoreCase(value);
     }
+
+    public void createConfig(String key, String value, String description, String category) {
+        String normalizedKey = normalizeRequiredField(key, "配置键不能为空");
+        validateConfigValue(value);
+        if (getConfigByKey(normalizedKey) != null) {
+            throw new BusinessException(ErrorCode.DATA_CONFLICT, "配置已存在: " + normalizedKey);
+        }
+
+        GameConfig config = new GameConfig();
+        config.setConfigKey(normalizedKey);
+        config.setConfigValue(value);
+        config.setConfigType(determineConfigType(value));
+        config.setDescription(description);
+        config.setCategory(category);
+        gameConfigMapper.insert(config);
+
+        configCache.put(normalizedKey, value);
+        log.info("配置项已创建: key={}, value={}", normalizedKey, value);
+    }
+
+    public void updateConfig(String key, String value, String description, String category) {
+        String normalizedKey = normalizeRequiredField(key, "配置键不能为空");
+        validateConfigValue(value);
+
+        GameConfig config = getConfigByKey(normalizedKey);
+        if (config == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "配置不存在: " + normalizedKey);
+        }
+
+        config.setConfigValue(value);
+        config.setConfigType(determineConfigType(value));
+        if (description != null) {
+            config.setDescription(description);
+        }
+        if (category != null) {
+            config.setCategory(category);
+        }
+        int updatedRows = gameConfigMapper.updateById(config);
+        if (updatedRows == 0) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "配置不存在: " + normalizedKey);
+        }
+
+        configCache.put(normalizedKey, value);
+        log.info("配置项已更新: key={}, value={}", normalizedKey, value);
+    }
     
     /**
      * 新增或更新配置项
      */
     public void setConfig(String key, String value, String description, String category) {
-        GameConfig config = getConfigByKey(key);
+        String normalizedKey = normalizeRequiredField(key, "配置键不能为空");
+        validateConfigValue(value);
+
+        GameConfig config = getConfigByKey(normalizedKey);
         
         if (config == null) {
             config = new GameConfig();
-            config.setConfigKey(key);
+            config.setConfigKey(normalizedKey);
             config.setConfigValue(value);
             config.setConfigType(determineConfigType(value));
             config.setDescription(description);
@@ -151,25 +201,32 @@ public class GameConfigService {
             if (category != null) {
                 config.setCategory(category);
             }
-            gameConfigMapper.updateById(config);
+            int updatedRows = gameConfigMapper.updateById(config);
+            if (updatedRows == 0) {
+                throw new BusinessException(ErrorCode.NOT_FOUND, "配置不存在: " + normalizedKey);
+            }
         }
         
-        configCache.put(key, value);
+        configCache.put(normalizedKey, value);
 
-        log.info("配置项已更新: key={}, value={}", key, value);
+        log.info("配置项已更新: key={}, value={}", normalizedKey, value);
     }
 
     /**
      * 删除配置项
      */
     public void deleteConfig(String key) {
+        String normalizedKey = normalizeRequiredField(key, "配置键不能为空");
         QueryWrapper<GameConfig> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("config_key", key);
-        gameConfigMapper.delete(queryWrapper);
+        queryWrapper.eq("config_key", normalizedKey);
+        int deletedRows = gameConfigMapper.delete(queryWrapper);
+        if (deletedRows == 0) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "配置不存在: " + normalizedKey);
+        }
 
-        configCache.remove(key);
+        configCache.remove(normalizedKey);
 
-        log.info("配置项已删除: key={}", key);
+        log.info("配置项已删除: key={}", normalizedKey);
     }
     
     /**
@@ -195,6 +252,24 @@ public class GameConfigService {
         QueryWrapper<GameConfig> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("config_key", key);
         return gameConfigMapper.selectOne(queryWrapper);
+    }
+
+    private String normalizeRequiredField(String value, String errorMessage) {
+        if (value == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, errorMessage);
+        }
+
+        String normalized = value.trim();
+        if (normalized.isEmpty()) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, errorMessage);
+        }
+        return normalized;
+    }
+
+    private void validateConfigValue(String value) {
+        if (value == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "配置值不能为空");
+        }
     }
     
     /**

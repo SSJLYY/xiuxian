@@ -2,31 +2,26 @@ package com.xiuxian.game.modules.admin.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xiuxian.game.modules.shop.entity.Item;
-import com.xiuxian.game.modules.shop.mapper.ItemMapper;
-import com.xiuxian.game.modules.equipment.entity.Equipment;
-import com.xiuxian.game.modules.equipment.mapper.EquipmentMapper;
-import com.xiuxian.game.modules.skill.entity.Skill;
-import com.xiuxian.game.modules.skill.mapper.SkillMapper;
-import com.xiuxian.game.modules.pet.entity.Pet;
-import com.xiuxian.game.modules.pet.mapper.PetMapper;
+import com.xiuxian.game.common.exception.BusinessException;
+import com.xiuxian.game.common.exception.ErrorCode;
+import com.xiuxian.game.common.util.PageUtil;
 import com.xiuxian.game.modules.combat.entity.Monster;
 import com.xiuxian.game.modules.combat.mapper.MonsterMapper;
+import com.xiuxian.game.modules.equipment.entity.Equipment;
+import com.xiuxian.game.modules.equipment.mapper.EquipmentMapper;
+import com.xiuxian.game.modules.pet.entity.Pet;
+import com.xiuxian.game.modules.pet.mapper.PetMapper;
+import com.xiuxian.game.modules.shop.entity.Item;
+import com.xiuxian.game.modules.shop.mapper.ItemMapper;
+import com.xiuxian.game.modules.skill.entity.Skill;
+import com.xiuxian.game.modules.skill.mapper.SkillMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import com.xiuxian.game.common.exception.BusinessException;
-import com.xiuxian.game.common.exception.ErrorCode;
+import java.util.HashMap;
+import java.util.Map;
 
-/**
- * Admin 内容管理服务（聚合层）
- * 负责物品、装备、技能、宠物、怪物等游戏内容的管理。
- * admin 聚合层务实例外，允许直接访问各模块 Mapper。
- *
- * @author shaun.sheng
- */
 @Service
 @RequiredArgsConstructor
 public class AdminContentService {
@@ -37,19 +32,12 @@ public class AdminContentService {
     private final PetMapper petMapper;
     private final MonsterMapper monsterMapper;
 
-    // ==================== 物品管理 ====================
-
-    /**
-     * 分页查询物品列表
-     */
     public Page<Item> getItemList(int page, int size, String name) {
-        Page<Item> pageObj = buildPage(page, size);
+        Page<Item> pageObj = PageUtil.createPage(page, size);
         QueryWrapper<Item> queryWrapper = new QueryWrapper<>();
-
-        if (name != null && !name.isEmpty()) {
-            queryWrapper.like("name", name);
+        if (name != null && !name.trim().isEmpty()) {
+            queryWrapper.like("name", name.trim());
         }
-
         queryWrapper.orderByAsc("id");
         return itemMapper.selectPage(pageObj, queryWrapper);
     }
@@ -61,39 +49,38 @@ public class AdminContentService {
     public Item createItem(Item item) {
         item.setCreatedAt(LocalDateTime.now());
         item.setUpdatedAt(LocalDateTime.now());
-        itemMapper.insert(item);
+        int insertedRows = itemMapper.insert(item);
+        if (insertedRows == 0) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "创建物品失败");
+        }
         return item;
     }
 
     public Item updateItem(Integer id, Item item) {
-        Item existingItem = itemMapper.selectById(id);
-        if (existingItem == null) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "物品不存在，id=" + id);
-        }
-
+        ensureExists(itemMapper.selectById(id), "物品不存在，id=" + id);
         item.setId(id);
         item.setUpdatedAt(LocalDateTime.now());
-        itemMapper.updateById(item);
-        return item;
+        int updatedRows = itemMapper.updateById(item);
+        if (updatedRows == 0) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "物品不存在，id=" + id);
+        }
+        return itemMapper.selectById(id);
     }
 
     public boolean deleteItem(Integer id) {
-        return itemMapper.deleteById(id) > 0;
+        int deletedRows = itemMapper.deleteById(id);
+        if (deletedRows == 0) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "物品不存在，id=" + id);
+        }
+        return true;
     }
 
-    // ==================== 装备管理 ====================
-
-    /**
-     * 分页查询装备列表
-     */
     public Page<Equipment> getEquipmentList(int page, int size, String name) {
-        Page<Equipment> pageObj = buildPage(page, size);
+        Page<Equipment> pageObj = PageUtil.createPage(page, size);
         QueryWrapper<Equipment> queryWrapper = new QueryWrapper<>();
-
-        if (name != null && !name.isEmpty()) {
-            queryWrapper.like("name", name);
+        if (name != null && !name.trim().isEmpty()) {
+            queryWrapper.like("name", name.trim());
         }
-
         queryWrapper.orderByAsc("id");
         return equipmentMapper.selectPage(pageObj, queryWrapper);
     }
@@ -105,39 +92,38 @@ public class AdminContentService {
     public Equipment createEquipment(Equipment equipment) {
         equipment.setCreatedAt(LocalDateTime.now());
         equipment.setUpdatedAt(LocalDateTime.now());
-        equipmentMapper.insert(equipment);
+        int insertedRows = equipmentMapper.insert(equipment);
+        if (insertedRows == 0) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "创建装备失败");
+        }
         return equipment;
     }
 
     public Equipment updateEquipment(Integer id, Equipment equipment) {
-        Equipment existingEquipment = equipmentMapper.selectById(id);
-        if (existingEquipment == null) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "装备不存在，id=" + id);
-        }
-
+        ensureExists(equipmentMapper.selectById(id), "装备不存在，id=" + id);
         equipment.setId(id);
         equipment.setUpdatedAt(LocalDateTime.now());
-        equipmentMapper.updateById(equipment);
-        return equipment;
+        int updatedRows = equipmentMapper.updateById(equipment);
+        if (updatedRows == 0) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "装备不存在，id=" + id);
+        }
+        return equipmentMapper.selectById(id);
     }
 
     public boolean deleteEquipment(Integer id) {
-        return equipmentMapper.deleteById(id) > 0;
+        int deletedRows = equipmentMapper.deleteById(id);
+        if (deletedRows == 0) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "装备不存在，id=" + id);
+        }
+        return true;
     }
 
-    // ==================== 技能管理 ====================
-
-    /**
-     * 分页查询技能列表
-     */
     public Page<Skill> getSkillList(int page, int size, String name) {
-        Page<Skill> pageObj = buildPage(page, size);
+        Page<Skill> pageObj = PageUtil.createPage(page, size);
         QueryWrapper<Skill> queryWrapper = new QueryWrapper<>();
-
-        if (name != null && !name.isEmpty()) {
-            queryWrapper.like("name", name);
+        if (name != null && !name.trim().isEmpty()) {
+            queryWrapper.like("name", name.trim());
         }
-
         queryWrapper.orderByAsc("id");
         return skillMapper.selectPage(pageObj, queryWrapper);
     }
@@ -149,39 +135,38 @@ public class AdminContentService {
     public Skill createSkill(Skill skill) {
         skill.setCreatedAt(LocalDateTime.now());
         skill.setUpdatedAt(LocalDateTime.now());
-        skillMapper.insert(skill);
+        int insertedRows = skillMapper.insert(skill);
+        if (insertedRows == 0) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "创建技能失败");
+        }
         return skill;
     }
 
     public Skill updateSkill(Integer id, Skill skill) {
-        Skill existingSkill = skillMapper.selectById(id);
-        if (existingSkill == null) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "技能不存在，id=" + id);
-        }
-
+        ensureExists(skillMapper.selectById(id), "技能不存在，id=" + id);
         skill.setId(id);
         skill.setUpdatedAt(LocalDateTime.now());
-        skillMapper.updateById(skill);
-        return skill;
+        int updatedRows = skillMapper.updateById(skill);
+        if (updatedRows == 0) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "技能不存在，id=" + id);
+        }
+        return skillMapper.selectById(id);
     }
 
     public boolean deleteSkill(Integer id) {
-        return skillMapper.deleteById(id) > 0;
+        int deletedRows = skillMapper.deleteById(id);
+        if (deletedRows == 0) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "技能不存在，id=" + id);
+        }
+        return true;
     }
 
-    // ==================== 宠物管理 ====================
-
-    /**
-     * 分页查询宠物列表
-     */
     public Page<Pet> getPetList(int page, int size, String name) {
-        Page<Pet> pageObj = buildPage(page, size);
+        Page<Pet> pageObj = PageUtil.createPage(page, size);
         QueryWrapper<Pet> queryWrapper = new QueryWrapper<>();
-
-        if (name != null && !name.isEmpty()) {
-            queryWrapper.like("name", name);
+        if (name != null && !name.trim().isEmpty()) {
+            queryWrapper.like("name", name.trim());
         }
-
         queryWrapper.orderByAsc("id");
         return petMapper.selectPage(pageObj, queryWrapper);
     }
@@ -193,39 +178,38 @@ public class AdminContentService {
     public Pet createPet(Pet pet) {
         pet.setCreatedAt(LocalDateTime.now());
         pet.setUpdatedAt(LocalDateTime.now());
-        petMapper.insert(pet);
+        int insertedRows = petMapper.insert(pet);
+        if (insertedRows == 0) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "创建宠物失败");
+        }
         return pet;
     }
 
     public Pet updatePet(Integer id, Pet pet) {
-        Pet existingPet = petMapper.selectById(id);
-        if (existingPet == null) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "宠物不存在，id=" + id);
-        }
-
+        ensureExists(petMapper.selectById(id), "宠物不存在，id=" + id);
         pet.setId(id);
         pet.setUpdatedAt(LocalDateTime.now());
-        petMapper.updateById(pet);
-        return pet;
+        int updatedRows = petMapper.updateById(pet);
+        if (updatedRows == 0) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "宠物不存在，id=" + id);
+        }
+        return petMapper.selectById(id);
     }
 
     public boolean deletePet(Integer id) {
-        return petMapper.deleteById(id) > 0;
+        int deletedRows = petMapper.deleteById(id);
+        if (deletedRows == 0) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "宠物不存在，id=" + id);
+        }
+        return true;
     }
 
-    // ==================== 怪物管理 ====================
-
-    /**
-     * 分页查询怪物列表
-     */
     public Page<Monster> getMonsterList(int page, int size, String name) {
-        Page<Monster> pageObj = buildPage(page, size);
+        Page<Monster> pageObj = PageUtil.createPage(page, size);
         QueryWrapper<Monster> queryWrapper = new QueryWrapper<>();
-
-        if (name != null && !name.isEmpty()) {
-            queryWrapper.like("name", name);
+        if (name != null && !name.trim().isEmpty()) {
+            queryWrapper.like("name", name.trim());
         }
-
         queryWrapper.orderByAsc("id");
         return monsterMapper.selectPage(pageObj, queryWrapper);
     }
@@ -237,46 +221,45 @@ public class AdminContentService {
     public Monster createMonster(Monster monster) {
         monster.setCreatedAt(LocalDateTime.now());
         monster.setUpdatedAt(LocalDateTime.now());
-        monsterMapper.insert(monster);
+        int insertedRows = monsterMapper.insert(monster);
+        if (insertedRows == 0) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "创建怪物失败");
+        }
         return monster;
     }
 
     public Monster updateMonster(Integer id, Monster monster) {
-        Monster existingMonster = monsterMapper.selectById(id);
-        if (existingMonster == null) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "怪物不存在，id=" + id);
-        }
-
+        ensureExists(monsterMapper.selectById(id), "怪物不存在，id=" + id);
         monster.setId(id);
         monster.setUpdatedAt(LocalDateTime.now());
-        monsterMapper.updateById(monster);
-        return monster;
+        int updatedRows = monsterMapper.updateById(monster);
+        if (updatedRows == 0) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "怪物不存在，id=" + id);
+        }
+        return monsterMapper.selectById(id);
     }
 
     public boolean deleteMonster(Integer id) {
-        return monsterMapper.deleteById(id) > 0;
+        int deletedRows = monsterMapper.deleteById(id);
+        if (deletedRows == 0) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "怪物不存在，id=" + id);
+        }
+        return true;
     }
 
-    // ==================== 统计 ====================
-
-    /**
-     * 获取各类游戏内容数量统计
-     */
-    public java.util.Map<String, Long> getContentStats() {
-        java.util.Map<String, Long> stats = new java.util.HashMap<>();
-
+    public Map<String, Long> getContentStats() {
+        Map<String, Long> stats = new HashMap<>();
         stats.put("items", itemMapper.selectCount(null));
         stats.put("equipments", equipmentMapper.selectCount(null));
         stats.put("skills", skillMapper.selectCount(null));
         stats.put("pets", petMapper.selectCount(null));
         stats.put("monsters", monsterMapper.selectCount(null));
-
         return stats;
     }
 
-    private <T> Page<T> buildPage(int page, int size) {
-        long safePage = Math.max(page, 1);
-        long safeSize = Math.min(Math.max(size, 1), 100);
-        return new Page<>(safePage, safeSize);
+    private void ensureExists(Object entity, String message) {
+        if (entity == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, message);
+        }
     }
 }

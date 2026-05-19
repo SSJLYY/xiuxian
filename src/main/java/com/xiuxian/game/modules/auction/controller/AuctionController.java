@@ -9,8 +9,10 @@ import com.xiuxian.game.modules.player.service.PlayerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.constraints.Min;
 import java.util.List;
 
 /**
@@ -35,6 +37,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/auction")
 @RequiredArgsConstructor
+@Validated
 public class AuctionController {
     
     private final AuctionService auctionService;
@@ -134,8 +137,8 @@ public class AuctionController {
     @GetMapping("/items")
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<IPage<AuctionItem>> getAuctionItems(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "1") @Min(1) int page,
+            @RequestParam(defaultValue = "20") @Min(1) int size,
             @RequestParam(required = false) String itemType,
             @RequestParam(required = false) Integer minPrice,
             @RequestParam(required = false) Integer maxPrice) {

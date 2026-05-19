@@ -365,10 +365,16 @@ public class GuildService {
         }
         
         // 删除成员
-        guildMemberMapper.deleteById(member.getId());
+        int deletedRows = guildMemberMapper.deleteById(member.getId());
+        if (deletedRows == 0) {
+            throw new BusinessException(ErrorCode.GUILD_NOT_MEMBER);
+        }
         
         // 原子减少成员计数（防止并发退出导致计数不准确）
-        guildMapper.decrementMemberCount(member.getGuildId());
+        int updatedRows = guildMapper.decrementMemberCount(member.getGuildId());
+        if (updatedRows == 0) {
+            throw new BusinessException(ErrorCode.GUILD_NOT_FOUND);
+        }
         
         log.info("退出宗门成功: playerId={}, guildId={}", playerId, member.getGuildId());
     }

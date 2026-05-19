@@ -42,6 +42,18 @@ public class AchievementService {
     }
 
     @Transactional
+    public boolean deleteAchievementAndProgress(Integer achievementId) {
+        int deletedRows = achievementMapper.deleteById(achievementId);
+        if (deletedRows == 0) {
+            return false;
+        }
+
+        playerAchievementMapper.delete(
+                new QueryWrapper<PlayerAchievement>().eq("achievement_id", achievementId));
+        return true;
+    }
+
+    @Transactional
     public void updateAchievementProgress(Integer playerId, Long achievementId, int progress) {
         Achievement achievement = achievementMapper.selectById(achievementId);
         if (achievement == null) {

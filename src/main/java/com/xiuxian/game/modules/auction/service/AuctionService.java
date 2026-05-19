@@ -2,8 +2,8 @@ package com.xiuxian.game.modules.auction.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.xiuxian.game.common.util.PageUtil;
 import com.xiuxian.game.common.exception.BusinessException;
 import com.xiuxian.game.common.exception.ErrorCode;
 import com.xiuxian.game.dto.request.ListAuctionRequest;
@@ -44,6 +44,7 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
     private final MailService mailService;
     private final PlayerProfileMapper playerProfileMapper;
     private final PlayerService playerService;
+    private final AuctionExpirationService auctionExpirationService;
 
     @Transactional
     public AuctionItem listItem(Integer playerId, ListAuctionRequest request) {
@@ -258,7 +259,7 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
     }
 
     public IPage<AuctionItem> getAuctionItems(int page, int size, String itemType, Integer minPrice, Integer maxPrice) {
-        Page<AuctionItem> pageObj = new Page<>(page, size);
+        IPage<AuctionItem> pageObj = PageUtil.createPage(page, size);
         QueryWrapper<AuctionItem> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("status", "ON_SALE");
         queryWrapper.gt("expire_at", LocalDateTime.now());
@@ -296,23 +297,13 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
         List<AuctionItem> expiredItems = auctionItemMapper.selectList(queryWrapper);
         for (AuctionItem item : expiredItems) {
             try {
-                processOneExpiredAuction(item);
+                auctionExpirationService.processOneExpiredAuction(item, getItemName(item));
             } catch (Exception e) {
                 log.error("处理过期拍卖物品失败，跳过该记录，auctionItemId={}", item.getId(), e);
             }
         }
     }
 
-    @Transactional(rollbackFor = Exception.class)
-    public void processOneExpiredAuction(AuctionItem item) {
-        int rows = auctionItemMapper.expireAuctionItem(item.getId());
-        if (rows == 0) {
-            return;
-        }
-
-        item.setStatus("EXPIRED");
-        returnItemToSellerViaMail(item);
-    }
 
     private void addItemToBuyerInventory(Integer buyerId, AuctionItem auctionItem) {
         switch (auctionItem.getItemType().toUpperCase()) {
@@ -376,18 +367,6 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
         }
     }
 
-    private void returnItemToSellerViaMail(AuctionItem auctionItem) {
-        String subject = "拍卖物品退回";
-        String content = String.format("您的拍卖物品 %s 已过期未售出，现已退回给您。", getItemName(auctionItem));
-        mailService.sendSystemMail(
-                auctionItem.getSellerId(),
-                subject,
-                content,
-                auctionItem.getItemType(),
-                auctionItem.getItemId(),
-                auctionItem.getQuantity()
-        );
-    }
 
     private void sendTransactionNotification(AuctionItem auctionItem) {
         String sellerSubject = "拍卖物品售出";
@@ -406,6 +385,7 @@ public class AuctionService extends ServiceImpl<AuctionItemMapper, AuctionItem> 
         );
         mailService.sendSystemMail(auctionItem.getBuyerId(), buyerSubject, buyerContent, null, null, 0);
     }
+
 
     private String getItemName(AuctionItem auctionItem) {
         String itemType = auctionItem.getItemType().toUpperCase();

@@ -2,6 +2,7 @@ package com.xiuxian.game.common.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiuxian.game.dto.response.ApiResponse;
+import com.xiuxian.game.common.util.RequestUtils;
 import com.xiuxian.game.modules.player.service.AccountSecurityService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -81,17 +82,7 @@ public class SecurityFilter extends OncePerRequestFilter {
     }
 
     private String getClientIpAddress(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty() && !"unknown".equalsIgnoreCase(xForwardedFor)) {
-            return xForwardedFor.split(",")[0].trim();
-        }
-
-        String xRealIp = request.getHeader("X-Real-IP");
-        if (xRealIp != null && !xRealIp.isEmpty() && !"unknown".equalsIgnoreCase(xRealIp)) {
-            return xRealIp;
-        }
-
-        return request.getRemoteAddr();
+        return RequestUtils.getClientIp(request);
     }
 
     private void sendErrorResponse(HttpServletResponse response, String message) throws IOException {

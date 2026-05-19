@@ -8,73 +8,106 @@ import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.xiuxian.game.common.annotation.RateLimit;
 import com.xiuxian.game.common.exception.BusinessException;
 import com.xiuxian.game.common.exception.ErrorCode;
+import com.xiuxian.game.common.util.RateLimiter;
+import com.xiuxian.game.common.util.RequestUtils;
+import com.xiuxian.game.modules.player.service.PlayerService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import javax.servlet.http.HttpServletRequest;
 import java.lang.reflect.Method;
 
-/**
- * 限流拦截器
- * 基于 Sentinel 的流量控制切面增强逻辑
- *
- * @author shaun.sheng
- */
 @Slf4j
 @Aspect
 @Component
+@RequiredArgsConstructor
 public class RateLimitAspect {
 
-    /**
-     * 拦截@RateLimit注解的方法进行限流保护
-     */
+    private final RateLimiter rateLimiter;
+    private final PlayerService playerService;
+
     @Around("@annotation(com.xiuxian.game.common.annotation.RateLimit)")
     public Object around(ProceedingJoinPoint point) throws Throwable {
         MethodSignature signature = (MethodSignature) point.getSignature();
         Method method = signature.getMethod();
 
         RateLimit rateLimit = method.getAnnotation(RateLimit.class);
-        // 切点保证注解存在；防御性兜底：无注解时直接放行
         if (rateLimit == null) {
             return point.proceed();
         }
 
-        // 获取限流资源名
         String resourceName = rateLimit.value();
         if (resourceName.isEmpty()) {
             resourceName = method.getDeclaringClass().getName() + ":" + method.getName();
         }
 
+        String rateLimitKey = buildRateLimitKey(resourceName, rateLimit.keyType());
+        if (!rateLimiter.isAllowed(rateLimitKey, rateLimit.maxRequests(), rateLimit.windowSeconds())) {
+            log.warn("Request rate limited: key={}, method={}.{}",
+                    rateLimitKey,
+                    method.getDeclaringClass().getSimpleName(),
+                    method.getName());
+            throw new BusinessException(ErrorCode.RATE_LIMIT_EXCEEDED, rateLimit.message());
+        }
+
         Entry entry = null;
         try {
-            // 创建Sentinel资源入口
             entry = SphU.entry(resourceName, EntryType.IN);
-
-            // 执行业务方法
             return point.proceed();
-
         } catch (BlockException e) {
-            // 触发限流，返回友好提示
-            log.warn("请求被限流: resource={}, method={}.{}",
+            log.warn("Sentinel blocked request: resource={}, method={}.{}",
                     resourceName,
                     method.getDeclaringClass().getSimpleName(),
                     method.getName());
-
-            throw new BusinessException(ErrorCode.SERVER_BUSY, "请求过于频繁，请稍后再试");
-
+            throw new BusinessException(ErrorCode.SERVER_BUSY, rateLimit.message());
         } catch (Throwable e) {
-            // 记录异常并重新抛出
             Tracer.trace(e);
-            log.error("Sentinel资源记录异常: resource={}", resourceName, e);
+            log.error("Sentinel resource failed: resource={}", resourceName, e);
             throw e;
-
         } finally {
             if (entry != null) {
                 entry.exit();
             }
         }
+    }
+
+    private String buildRateLimitKey(String resourceName, RateLimit.KeyType keyType) {
+        switch (keyType) {
+            case USER:
+                Integer playerId = resolveCurrentPlayerId();
+                if (playerId != null) {
+                    return resourceName + ":USER:" + playerId;
+                }
+                return resourceName + ":USER:anonymous";
+            case IP:
+            default:
+                return resourceName + ":IP:" + resolveClientIp();
+        }
+    }
+
+    private Integer resolveCurrentPlayerId() {
+        try {
+            return playerService.getCurrentPlayerId();
+        } catch (Exception e) {
+            log.debug("Unable to resolve current player for rate limit key: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private String resolveClientIp() {
+        RequestAttributes attributes = RequestContextHolder.getRequestAttributes();
+        if (attributes instanceof ServletRequestAttributes) {
+            HttpServletRequest request = ((ServletRequestAttributes) attributes).getRequest();
+            return RequestUtils.getClientIp(request);
+        }
+        return "unknown";
     }
 }

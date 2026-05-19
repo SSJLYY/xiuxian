@@ -2,6 +2,7 @@ package com.xiuxian.game.modules.admin.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.xiuxian.game.common.util.PageUtil;
 import com.xiuxian.game.modules.player.entity.PlayerProfile;
 import com.xiuxian.game.modules.player.entity.User;
 import com.xiuxian.game.modules.player.mapper.PlayerProfileMapper;
@@ -41,9 +42,7 @@ public class AdminPlayerService {
      * @return 玩家档案分页结果
      */
     public Page<PlayerProfile> getPlayerList(int page, int size, String nickname, Integer userId) {
-        long safePage = Math.max(page, 1);
-        long safeSize = Math.min(Math.max(size, 1), 100);
-        Page<PlayerProfile> pageObj = new Page<>(safePage, safeSize);
+        Page<PlayerProfile> pageObj = PageUtil.createPage(page, size);
         QueryWrapper<PlayerProfile> queryWrapper = new QueryWrapper<>();
 
         if (nickname != null && !nickname.isEmpty()) {
@@ -130,7 +129,11 @@ public class AdminPlayerService {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "玩家不存在: playerId=" + playerId);
         }
 
-        return playerProfileMapper.deleteById(playerId) > 0;
+        int deletedRows = playerProfileMapper.deleteById(playerId);
+        if (deletedRows == 0) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "?????: playerId=" + playerId);
+        }
+        return true;
     }
 
     /**
@@ -187,7 +190,10 @@ public class AdminPlayerService {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "默认管理员角色不可修改");
         }
         u.setRole(role);
-        userMapper.updateById(u);
+        int updatedRows = userMapper.updateById(u);
+        if (updatedRows == 0) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND, "?????: userId=" + userId);
+        }
         return u;
     }
 
@@ -211,7 +217,10 @@ public class AdminPlayerService {
         }
         u.setPassword(passwordEncoder.encode(newPassword));
         u.setMustChangePassword(false);
-        userMapper.updateById(u);
+        int updatedRows = userMapper.updateById(u);
+        if (updatedRows == 0) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND, "??????: username=" + username);
+        }
     }
     private long defaultLong(Long value) {
         return value == null ? 0L : value;

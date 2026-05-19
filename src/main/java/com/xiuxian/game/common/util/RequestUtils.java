@@ -1,6 +1,8 @@
 package com.xiuxian.game.common.util;
 
 import javax.servlet.http.HttpServletRequest;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 /**
  * HTTP 请求工具类
@@ -65,8 +67,18 @@ public final class RequestUtils {
     private static boolean isTrustedProxy(HttpServletRequest request) {
         // 可以通过配置指定可信代理IP列表
         // 这里简单实现：检查X-Forwarded-For是否存在来判断是否有代理
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        return xForwardedFor != null && !xForwardedFor.trim().isEmpty();
+        String remoteAddr = request.getRemoteAddr();
+        try {
+            InetAddress address = InetAddress.getByName(remoteAddr);
+            if (address.isLoopbackAddress() || address.isSiteLocalAddress() || address.isLinkLocalAddress()) {
+                return true;
+            }
+            return remoteAddr != null
+                    && (remoteAddr.startsWith("fc") || remoteAddr.startsWith("FC")
+                    || remoteAddr.startsWith("fd") || remoteAddr.startsWith("FD"));
+        } catch (UnknownHostException e) {
+            return false;
+        }
     }
 
     /**

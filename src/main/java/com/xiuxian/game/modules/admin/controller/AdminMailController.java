@@ -2,13 +2,16 @@ package com.xiuxian.game.modules.admin.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.xiuxian.game.common.exception.BusinessException;
+import com.xiuxian.game.common.exception.ErrorCode;
+import com.xiuxian.game.common.util.LogUtils;
+import com.xiuxian.game.common.util.PageUtil;
 import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.modules.admin.service.AdminAuthService;
 import com.xiuxian.game.modules.mail.entity.MailAttachment;
 import com.xiuxian.game.modules.mail.entity.PlayerMail;
 import com.xiuxian.game.modules.mail.mapper.PlayerMailMapper;
 import com.xiuxian.game.modules.mail.service.MailService;
-import com.xiuxian.game.common.util.LogUtils;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,29 +22,16 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
-/**
- * 管理后台邮件管理 Controller
- *
- * <p>提供管理员向玩家发送系统邮件的接口，支持单发与批量发送。
- * 邮件可携带附件（灵石、经验、道具、装备等）。</p>
- * <ul>
- *   <li>单发：向指定玩家发送一封邮件</li>
- *   <li>批量发送：向多个玩家同时发送相同邮件</li>
- * </ul>
- *
- * <p>所有接口均需 ADMIN 角色权限。</p>
- *
- * @author shaun.sheng
- * @version 1.0.0
- * @since 2024-12-09
- */
 @Slf4j
 @RestController
 @RequestMapping("/api/admin/mail")
@@ -49,135 +39,66 @@ import java.util.List;
 @Validated
 public class AdminMailController {
 
+    private static final List<String> ALLOWED_MAIL_TYPES = Arrays.asList("SYSTEM", "REWARD", "ACTIVITY");
+    private static final List<String> ALLOWED_ATTACHMENT_TYPES = Arrays.asList("SPIRIT_STONES", "EXP", "ITEM", "EQUIPMENT");
+
     private final MailService mailService;
     private final AdminAuthService adminAuthService;
     private final PlayerMailMapper playerMailMapper;
 
-    private Integer getCurrentAdminId() {
-        return adminAuthService.getCurrentAdminId();
-    }
-
-    /**
-     * 向单个玩家发送系统邮件
-     *
-     * <p>邮件类型说明：</p>
-     * <ul>
-     *   <li>SYSTEM - 系统通知邮件</li>
-     *   <li>REWARD - 奖励发放邮件</li>
-     *   <li>ACTIVITY - 活动邮件</li>
-     * </ul>
-     *
-     * <p>附件类型说明：</p>
-     * <ul>
-     *   <li>SPIRIT_STONES - 灵石</li>
-     *   <li>EXP - 经验值</li>
-     *   <li>ITEM - 道具</li>
-     *   <li>EQUIPMENT - 装备</li>
-     * </ul>
-     *
-     * @param request 发送邮件请求体
-     * @return 发送结果
-     */
     @PostMapping("/send")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> sendMail(@Valid @RequestBody SendMailRequest request) {
         try {
-            Integer adminId = getCurrentAdminId();
-            
-            log.info("管理员发送单封邮件: adminId={}, playerId={}, title={}", 
-                    adminId, request.getPlayerId(), request.getTitle());
-            
-            // 构建附件列表
+            Integer adminId = adminAuthService.getCurrentAdminId();
             List<MailAttachment> attachments = buildAttachments(request.getAttachments());
-            
-            // 计算过期时间（默认 7 天）
-            LocalDateTime expireAt = request.getExpireDays() != null && request.getExpireDays() > 0
-                    ? LocalDateTime.now().plusDays(request.getExpireDays())
-                    : LocalDateTime.now().plusDays(7);
-            
-            // 发送邮件
+            LocalDateTime expireAt = resolveExpireAt(request.getExpireDays());
+
             mailService.sendMail(
                     request.getPlayerId(),
                     request.getTitle(),
                     request.getContent(),
-                    request.getMailType(),
+                    normalizeMailType(request.getMailType()),
                     attachments,
                     expireAt
             );
-            
-            LogUtils.logUserAction(null, adminId, "ADMIN_SEND_MAIL", 
-                    "管理员发送邮件: playerId=" + request.getPlayerId() + ", title=" + request.getTitle());
-            LogUtils.logBusiness("ADMIN_MAIL", "管理员发送邮件",
-                    "adminId", adminId, "playerId", request.getPlayerId(), "mailType", request.getMailType());
-            
-            log.info("管理员发送邮件成功: adminId={}, playerId={}", adminId, request.getPlayerId());
-            
+
+            LogUtils.logUserAction(null, adminId, "ADMIN_SEND_MAIL",
+                    "admin send mail playerId=" + request.getPlayerId() + ", title=" + request.getTitle());
             return ResponseEntity.ok(ApiResponse.success("邮件发送成功", null));
-            
         } catch (Exception e) {
-            log.error("管理员发送邮件失败: {}", e.getMessage(), e);
+            log.error("Admin send mail failed", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
         }
     }
 
-    /**
-     * 向多个玩家批量发送系统邮件
-     *
-     * <p>批量发送时向 playerIds 列表中的每位玩家各发送一封内容相同的邮件。</p>
-     * <ul>
-     *   <li>支持同时向数千名玩家发送（内部异步处理）</li>
-     *   <li>附件类型与单发一致</li>
-     *   <li>邮件类型与单发一致</li>
-     *   <li>未收取的邮件按 expireDays 自动过期</li>
-     * </ul>
-     *
-     * <p>业务限制：</p>
-     * <ul>
-     *   <li>playerIds 不能为空</li>
-     *   <li>批量发送的邮件内容和附件对所有玩家相同，如需差异化请多次调用单发接口</li>
-     *   <li>邮件标题和正文不能为空</li>
-     * </ul>
-     *
-     * @param request 批量发送邮件请求体
-     * @return 发送结果
-     */
     @PostMapping("/send-batch")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<Void>> sendBatchMail(@Valid @RequestBody SendBatchMailRequest request) {
+    public ResponseEntity<ApiResponse<MailService.BatchSendResult>> sendBatchMail(@Valid @RequestBody SendBatchMailRequest request) {
         try {
-            Integer adminId = getCurrentAdminId();
-            
-            log.info("管理员批量发送邮件: adminId={}, playerCount={}, title={}", 
-                    adminId, request.getPlayerIds().size(), request.getTitle());
-            
-            // 构建附件列表
+            Integer adminId = adminAuthService.getCurrentAdminId();
             List<MailAttachment> attachments = buildAttachments(request.getAttachments());
-            
-            // 计算过期时间（默认 7 天）
-            LocalDateTime expireAt = request.getExpireDays() != null && request.getExpireDays() > 0
-                    ? LocalDateTime.now().plusDays(request.getExpireDays())
-                    : LocalDateTime.now().plusDays(7);
-            
-            mailService.sendBatchMail(
+            LocalDateTime expireAt = resolveExpireAt(request.getExpireDays());
+
+            MailService.BatchSendResult result = mailService.sendBatchMail(
                     request.getPlayerIds(),
                     request.getTitle(),
                     request.getContent(),
-                    request.getMailType(),
+                    normalizeMailType(request.getMailType()),
                     attachments,
                     expireAt
             );
-            
-            LogUtils.logUserAction(null, adminId, "ADMIN_SEND_BATCH_MAIL", 
-                    "管理员批量发送邮件: playerCount=" + request.getPlayerIds().size() + ", title=" + request.getTitle());
-            LogUtils.logBusiness("ADMIN_MAIL", "管理员批量发送邮件",
-                    "adminId", adminId, "playerCount", request.getPlayerIds().size(), "mailType", request.getMailType());
-            
-            log.info("管理员批量发送邮件成功: adminId={}, playerCount={}", adminId, request.getPlayerIds().size());
-            
-            return ResponseEntity.ok(ApiResponse.success("批量邮件发送成功", null));
-            
+
+            LogUtils.logUserAction(null, adminId, "ADMIN_SEND_BATCH_MAIL",
+                    "admin send batch mail success=" + result.getSuccessCount() + ", fail=" + result.getFailCount());
+
+            if (result.getFailCount() > 0) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                        ApiResponse.error("部分邮件发送失败", result));
+            }
+            return ResponseEntity.ok(ApiResponse.success("批量邮件发送成功", result));
         } catch (Exception e) {
-            log.error("管理员批量发送邮件失败: {}", e.getMessage(), e);
+            log.error("Admin send batch mail failed", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
         }
     }
@@ -185,106 +106,118 @@ public class AdminMailController {
     @GetMapping("/system")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Page<PlayerMail>>> getSystemMailList(
-            @RequestParam(defaultValue = "1") Integer page,
-            @RequestParam(defaultValue = "20") Integer size) {
+            @RequestParam(defaultValue = "1") @Min(1) Integer page,
+            @RequestParam(defaultValue = "20") @Min(1) Integer size) {
         try {
-            Integer adminId = getCurrentAdminId();
-            Page<PlayerMail> pageRequest = new Page<>(page, size);
+            Integer adminId = adminAuthService.getCurrentAdminId();
+            Page<PlayerMail> pageRequest = PageUtil.createPage(page, size);
             Page<PlayerMail> result = playerMailMapper.selectPage(
                     pageRequest,
-                    new QueryWrapper<PlayerMail>()
-                            .eq("mail_type", "SYSTEM")
-                            .orderByDesc("created_at")
+                    new QueryWrapper<PlayerMail>().eq("mail_type", "SYSTEM").orderByDesc("created_at")
             );
 
             LogUtils.logUserAction(null, adminId, "ADMIN_GET_SYSTEM_MAIL_LIST",
-                    "管理员查看系统邮件列表: page=" + page + ", size=" + size);
-
+                    "get system mail list page=" + page + ", size=" + size);
             return ResponseEntity.ok(ApiResponse.success("获取成功", result));
         } catch (Exception e) {
-            log.error("获取系统邮件列表失败", e);
+            log.error("Get system mails failed", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
         }
     }
 
-    /**
-     * 将附件 DTO 列表转换为 MailAttachment 列表
-     */
+    private LocalDateTime resolveExpireAt(Integer expireDays) {
+        if (expireDays != null && expireDays > 0) {
+            return LocalDateTime.now().plusDays(expireDays);
+        }
+        return LocalDateTime.now().plusDays(7);
+    }
+
+    private String normalizeMailType(String mailType) {
+        String normalized = mailType.trim().toUpperCase(Locale.ROOT);
+        if (!ALLOWED_MAIL_TYPES.contains(normalized)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "邮件类型不合法");
+        }
+        return normalized;
+    }
+
     private List<MailAttachment> buildAttachments(List<AttachmentDTO> attachmentDTOs) {
         if (attachmentDTOs == null || attachmentDTOs.isEmpty()) {
             return new ArrayList<>();
         }
-        
-        List<MailAttachment> attachments = new ArrayList<>();
+
+        List<MailAttachment> attachments = new ArrayList<>(attachmentDTOs.size());
         for (AttachmentDTO dto : attachmentDTOs) {
+            String itemType = dto.getItemType().trim().toUpperCase(Locale.ROOT);
+            if (!ALLOWED_ATTACHMENT_TYPES.contains(itemType)) {
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "附件类型不合法");
+            }
+            if (dto.getQuantity() == null || dto.getQuantity() <= 0) {
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "附件数量必须大于0");
+            }
+            if (("ITEM".equals(itemType) || "EQUIPMENT".equals(itemType))
+                    && (dto.getItemId() == null || dto.getItemId() <= 0)) {
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "道具或装备附件必须提供有效ID");
+            }
+
             MailAttachment attachment = new MailAttachment();
-            attachment.setItemType(dto.getItemType());
+            attachment.setItemType(itemType);
             attachment.setItemId(dto.getItemId());
             attachment.setQuantity(dto.getQuantity());
             attachments.add(attachment);
         }
-        
         return attachments;
     }
 
-    /**
-     * 发送单封邮件请求 DTO
-     */
     @Data
     public static class SendMailRequest {
-        
-        @NotNull(message = "玩家 ID 不能为空")
+        @NotNull(message = "玩家ID不能为空")
+        @Min(value = 1, message = "玩家ID必须大于0")
         private Integer playerId;
-        
+
         @NotBlank(message = "邮件标题不能为空")
         private String title;
-        
+
         @NotBlank(message = "邮件正文不能为空")
         private String content;
-        
+
         @NotBlank(message = "邮件类型不能为空")
-        private String mailType; // SYSTEM/REWARD/ACTIVITY
-        
-        private List<AttachmentDTO> attachments;
-        
+        private String mailType;
+
+        private List<@Valid AttachmentDTO> attachments;
+
+        @Min(value = 1, message = "过期天数必须大于0")
         private Integer expireDays;
     }
 
-    /**
-     * 批量发送邮件请求 DTO
-     */
     @Data
     public static class SendBatchMailRequest {
-        
-        @NotEmpty(message = "玩家 ID 列表不能为空")
-        private List<Integer> playerIds;
-        
+        @NotEmpty(message = "玩家ID列表不能为空")
+        private List<@NotNull @Min(value = 1, message = "玩家ID必须大于0") Integer> playerIds;
+
         @NotBlank(message = "邮件标题不能为空")
         private String title;
-        
+
         @NotBlank(message = "邮件正文不能为空")
         private String content;
-        
+
         @NotBlank(message = "邮件类型不能为空")
-        private String mailType; // SYSTEM/REWARD/ACTIVITY
-        
-        private List<AttachmentDTO> attachments;
-        
+        private String mailType;
+
+        private List<@Valid AttachmentDTO> attachments;
+
+        @Min(value = 1, message = "过期天数必须大于0")
         private Integer expireDays;
     }
 
-    /**
-     * 邮件附件 DTO
-     */
     @Data
     public static class AttachmentDTO {
-        
         @NotBlank(message = "附件类型不能为空")
-        private String itemType; // SPIRIT_STONES/EXP/ITEM/EQUIPMENT
-        
-        private Integer itemId; // 道具/装备时必填，灵石/经验时传 null
-        
+        private String itemType;
+
+        private Integer itemId;
+
         @NotNull(message = "附件数量不能为空")
+        @Min(value = 1, message = "附件数量必须大于0")
         private Integer quantity;
     }
 }

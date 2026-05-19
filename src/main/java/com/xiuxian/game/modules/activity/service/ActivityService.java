@@ -73,9 +73,9 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         log.debug("获取正在进行的活动");
         
         QueryWrapper<Activity> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("status", "ACTIVE");
-        queryWrapper.le("start_time", LocalDateTime.now());
-        queryWrapper.ge("end_time", LocalDateTime.now());
+        queryWrapper.eq("status", "ACTIVE")
+                .and(wrapper -> wrapper.isNull("start_time").or().le("start_time", LocalDateTime.now()))
+                .and(wrapper -> wrapper.isNull("end_time").or().ge("end_time", LocalDateTime.now()));
         List<Activity> activities = activityMapper.selectList(queryWrapper);
         
         log.debug("获取正在进行的活动成功: count={}", activities.size());
@@ -390,6 +390,15 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         return activity;
     }
 
+    private void ensureActivityRunning(Activity activity) {
+        LocalDateTime now = LocalDateTime.now();
+        if (!"ACTIVE".equals(activity.getStatus())
+                || (activity.getStartTime() != null && activity.getStartTime().isAfter(now))
+                || (activity.getEndTime() != null && activity.getEndTime().isBefore(now))) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "Activity is not running");
+        }
+    }
+
     private Integer extractNumericRule(Activity activity, String... keys) {
         if (activity == null || activity.getRules() == null || activity.getRules().trim().isEmpty()) {
             return null;
@@ -561,7 +570,7 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
             // 发送邮件通知玩家活动结束和奖励
             String subject = "活动结束通知";
             String content = String.format("活动【%s】已结束，感谢您的参与！您的最终积分为：%s，排名将在稍后公布。",
-                    activity.getName(), progress.getProgress()); // 使用progress字段代替score
+                    activity.getName(), parseScoreFromProgress(progress.getProgress())); // 使用progress字段代替score
 
             mailService.sendSystemMail(progress.getPlayerId(), subject, content, null, null, 0);
             log.debug("发送活动奖励邮件: playerId={}, activityId={}", progress.getPlayerId(), activityId);
@@ -645,7 +654,10 @@ public class ActivityService extends ServiceImpl<ActivityMapper, Activity> {
         });
         
         // 限制返回数量
-        int safeLimit = Math.min(Math.max(limit, 1), 100);
+        if (limit <= 0) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "limit must be greater than 0");
+        }
+        int safeLimit = Math.min(limit, 100);
         if (ranking.size() > safeLimit) {
             ranking = ranking.subList(0, safeLimit);
         }

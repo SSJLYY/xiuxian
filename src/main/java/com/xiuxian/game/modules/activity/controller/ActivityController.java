@@ -1,5 +1,7 @@
 package com.xiuxian.game.modules.activity.controller;
 
+import com.xiuxian.game.common.exception.BusinessException;
+import com.xiuxian.game.common.exception.ErrorCode;
 import com.xiuxian.game.dto.response.ApiResponse;
 import com.xiuxian.game.modules.activity.entity.Activity;
 import com.xiuxian.game.modules.activity.entity.PlayerActivityProgress;
@@ -8,14 +10,17 @@ import com.xiuxian.game.modules.player.service.PlayerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
 
-/**
- * 活动控制器。
- */
 @Slf4j
 @RestController
 @RequestMapping("/api/activities")
@@ -31,9 +36,7 @@ public class ActivityController {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
             log.debug("获取活动列表: playerId={}", playerId);
-
             List<Activity> activities = activityService.getActiveActivities();
-
             log.debug("获取活动列表成功: playerId={}, count={}", playerId, activities.size());
             return ApiResponse.success("获取成功", activities);
         } catch (Exception e) {
@@ -48,9 +51,7 @@ public class ActivityController {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
             log.debug("获取所有活动: playerId={}", playerId);
-
             List<Activity> activities = activityService.getAllActivities();
-
             log.debug("获取所有活动成功: playerId={}, count={}", playerId, activities.size());
             return ApiResponse.success("获取成功", activities);
         } catch (Exception e) {
@@ -65,9 +66,7 @@ public class ActivityController {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
             log.debug("获取玩家活动进度: playerId={}", playerId);
-
             List<PlayerActivityProgress> progress = activityService.getPlayerActivityProgress(playerId);
-
             log.debug("获取玩家活动进度成功: playerId={}, count={}", playerId, progress.size());
             return ApiResponse.success("获取成功", progress);
         } catch (Exception e) {
@@ -82,9 +81,7 @@ public class ActivityController {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
             log.info("玩家参与活动: playerId={}, activityId={}", playerId, activityId);
-
             PlayerActivityProgress progress = activityService.participateInActivity(playerId, activityId);
-
             log.info("玩家参与活动成功: playerId={}, activityId={}", playerId, activityId);
             return ApiResponse.success("参与成功", progress);
         } catch (Exception e) {
@@ -101,12 +98,9 @@ public class ActivityController {
             @RequestBody UpdateProgressRequest request) {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
-            log.info("更新活动进度: playerId={}, activityId={}, increment={}",
-                    playerId, activityId, request.getIncrement());
-
-            PlayerActivityProgress progress = activityService.updateActivityProgress(
-                    playerId, activityId, request.getIncrement());
-
+            int increment = request.requireIncrement();
+            log.info("更新活动进度: playerId={}, activityId={}, increment={}", playerId, activityId, increment);
+            PlayerActivityProgress progress = activityService.updateActivityProgress(playerId, activityId, increment);
             log.info("更新活动进度成功: playerId={}, activityId={}", playerId, activityId);
             return ApiResponse.success("更新成功", progress);
         } catch (Exception e) {
@@ -123,12 +117,9 @@ public class ActivityController {
             @RequestBody UpdateScoreRequest request) {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
-            log.info("更新活动积分: playerId={}, activityId={}, score={}",
-                    playerId, activityId, request.getScore());
-
-            PlayerActivityProgress progress = activityService.updateActivityScore(
-                    playerId, activityId, request.getScore());
-
+            int score = request.requireScore();
+            log.info("更新活动积分: playerId={}, activityId={}, score={}", playerId, activityId, score);
+            PlayerActivityProgress progress = activityService.updateActivityScore(playerId, activityId, score);
             log.info("更新活动积分成功: playerId={}, activityId={}", playerId, activityId);
             return ApiResponse.success("更新成功", progress);
         } catch (Exception e) {
@@ -144,9 +135,7 @@ public class ActivityController {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
             log.info("领取活动奖励: playerId={}, activityId={}", playerId, activityId);
-
             Map<String, Object> result = activityService.claimActivityReward(playerId, activityId);
-
             log.info("领取活动奖励成功: playerId={}, activityId={}", playerId, activityId);
             return ApiResponse.success("领取成功", result);
         } catch (Exception e) {
@@ -163,9 +152,7 @@ public class ActivityController {
         try {
             Integer playerId = playerService.getCurrentPlayerId();
             log.debug("获取活动排名: playerId={}, activityId={}, limit={}", playerId, activityId, limit);
-
             List<PlayerActivityProgress> ranking = activityService.getActivityRanking(activityId, limit);
-
             log.debug("获取活动排名成功: playerId={}, activityId={}, count={}", playerId, activityId, ranking.size());
             return ApiResponse.success("获取成功", ranking);
         } catch (Exception e) {
@@ -178,11 +165,12 @@ public class ActivityController {
         private Integer increment;
         private Integer progress;
 
-        public int getIncrement() {
-            if (increment != null) {
-                return increment;
+        public int requireIncrement() {
+            Integer value = increment != null ? increment : progress;
+            if (value == null) {
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "increment is required");
             }
-            return progress != null ? progress : 0;
+            return value;
         }
 
         public void setIncrement(Integer increment) {
@@ -199,13 +187,20 @@ public class ActivityController {
     }
 
     public static class UpdateScoreRequest {
-        private int score;
+        private Integer score;
 
-        public int getScore() {
+        public int requireScore() {
+            if (score == null) {
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "score is required");
+            }
             return score;
         }
 
-        public void setScore(int score) {
+        public Integer getScore() {
+            return score;
+        }
+
+        public void setScore(Integer score) {
             this.score = score;
         }
     }

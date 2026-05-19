@@ -915,6 +915,19 @@ CREATE TABLE `gift_codes`  (
 -- ----------------------------
 -- Records of gift_codes
 -- ----------------------------
+ALTER TABLE `gift_codes`
+  ADD COLUMN `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT 'gift code name' AFTER `code`,
+  CHANGE COLUMN `code_type` `code_type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'type: UNIVERSAL/UNIQUE',
+  CHANGE COLUMN `max_uses` `max_usage` int NULL DEFAULT 1 COMMENT 'max usage count',
+  ADD COLUMN `status` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'ACTIVE' COMMENT 'status: ACTIVE/DISABLED/EXPIRED' AFTER `expire_at`;
+
+UPDATE `gift_codes`
+SET `status` = CASE WHEN `is_active` = 1 THEN 'ACTIVE' ELSE 'DISABLED' END;
+
+ALTER TABLE `gift_codes`
+  DROP INDEX `idx_is_active`,
+  DROP COLUMN `is_active`,
+  ADD INDEX `idx_status`(`status` ASC) USING BTREE;
 
 -- ----------------------------
 -- Table structure for guild_applications

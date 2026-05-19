@@ -2,6 +2,8 @@ package com.xiuxian.game.modules.admin.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.xiuxian.game.common.util.PageUtil;
+import com.xiuxian.game.common.util.RequestUtils;
 import com.xiuxian.game.modules.admin.entity.AdminOperationLog;
 import com.xiuxian.game.modules.admin.mapper.AdminOperationLogMapper;
 import lombok.RequiredArgsConstructor;
@@ -85,7 +87,7 @@ public class AdminOperationLogService {
     public Page<AdminOperationLog> getOperationLogs(Integer adminId, String operationType,
                                                    String targetType, LocalDateTime startTime,
                                                    LocalDateTime endTime, int page, int size) {
-        Page<AdminOperationLog> pageParam = new Page<>(page, size);
+        Page<AdminOperationLog> pageParam = PageUtil.createPage(page, size);
         QueryWrapper<AdminOperationLog> queryWrapper = new QueryWrapper<>();
 
         if (adminId != null) {
@@ -152,17 +154,7 @@ public class AdminOperationLogService {
      * 获取客户端真实IP
      */
     private String getClientIpAddress(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty() && !"unknown".equalsIgnoreCase(xForwardedFor)) {
-            return xForwardedFor.split(",")[0].trim();
-        }
-
-        String xRealIp = request.getHeader("X-Real-IP");
-        if (xRealIp != null && !xRealIp.isEmpty() && !"unknown".equalsIgnoreCase(xRealIp)) {
-            return xRealIp;
-        }
-
-        return request.getRemoteAddr();
+        return RequestUtils.getClientIp(request);
     }
 
     /**
